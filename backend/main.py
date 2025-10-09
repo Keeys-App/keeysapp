@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import uvicorn
@@ -35,8 +35,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# GraphQL context getter
+async def get_context(request: Request):
+    """
+    Get context for GraphQL requests.
+    """
+    return {"request": request}
+
+
 # GraphQL endpoint
-graphql_app = GraphQLRouter(schema)
+graphql_app = GraphQLRouter(schema, context_getter=get_context)
 app.include_router(graphql_app, prefix="/graphql")
 
 # TODO: Add your REST API routers here
@@ -56,4 +64,10 @@ if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
     print(f"Starting server on port: {port}")
     print(f"PORT environment variable: {os.getenv('PORT', 'NOT SET')}")
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=port,
+        reload=True,  # Auto-reload on code changes
+        reload_dirs=["app"]  # Watch app directory for changes
+    )
