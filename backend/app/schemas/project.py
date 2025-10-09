@@ -210,11 +210,16 @@ class ProjectQuery:
             
         Returns:
             List of projects
+            
+        Raises:
+            UnauthorizedError: If user is not authenticated
         """
+        from app.core.exceptions import UnauthorizedError
+        
         try:
             current_user_id = get_current_user_id(info)
             if not current_user_id:
-                return []
+                raise UnauthorizedError("Authentication required to access projects")
             
             db: Session = next(get_db())
             try:
@@ -222,6 +227,9 @@ class ProjectQuery:
                 return [build_project_type(project, current_user_id) for project in projects]
             finally:
                 db.close()
+        except UnauthorizedError:
+            # Re-raise authentication errors
+            raise
         except Exception as e:
             logger.error(f"Error in projects query: {type(e).__name__}: {str(e)}")
             return []
@@ -237,6 +245,9 @@ class ProjectQuery:
             
         Returns:
             Project or None
+            
+        Raises:
+            UnauthorizedError: If user is not authenticated
         """
         try:
             current_user_id = get_current_user_id(info)

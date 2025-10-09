@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode, FC } from 'react';
+import { apolloClient } from '../lib/apollo';
 
 interface User {
   id: string;  // UUID for security (prevents enumeration attacks)
@@ -49,11 +50,13 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     localStorage.setItem('authUser', JSON.stringify(newUser));
   };
 
-  const logout = () => {
+  const logout = async () => {
     setToken(null);
     setUser(null);
     localStorage.removeItem('authToken');
     localStorage.removeItem('authUser');
+    // Clear Apollo Client cache to prevent stale data
+    await apolloClient.clearStore();
   };
 
   const value = {
