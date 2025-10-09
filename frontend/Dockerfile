@@ -6,14 +6,11 @@ WORKDIR /app
 # Enable Corepack for Yarn 4
 RUN corepack enable
 
-# Copy package files from frontend directory
-COPY frontend/package.json frontend/yarn.lock* ./
+# Copy all frontend files first
+COPY frontend/ .
 
 # Install dependencies
 RUN yarn install --frozen-lockfile
-
-# Copy source code from frontend directory
-COPY frontend/ .
 
 # Build the application
 RUN yarn build
