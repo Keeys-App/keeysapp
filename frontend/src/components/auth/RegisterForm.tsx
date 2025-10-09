@@ -5,7 +5,7 @@ import { REGISTER_MUTATION } from '@/graphql/auth';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Field, FieldLabel } from '@/components/ui/field';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -92,10 +92,9 @@ export const RegisterForm: FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin
             </Alert>
           ) : null}
 
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+          <Field>
+            <FieldLabel>Email</FieldLabel>
             <Input
-              id="email"
               type="email"
               placeholder="your@email.com"
               value={email}
@@ -106,12 +105,11 @@ export const RegisterForm: FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin
               required
               autoComplete="email"
             />
-          </div>
+          </Field>
 
-          <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
+          <Field>
+            <FieldLabel>Username</FieldLabel>
             <Input
-              id="username"
               type="text"
               placeholder="johndoe"
               value={username}
@@ -122,12 +120,11 @@ export const RegisterForm: FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin
               required
               autoComplete="username"
             />
-          </div>
+          </Field>
 
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+          <Field>
+            <FieldLabel>Password</FieldLabel>
             <Input
-              id="password"
               type="password"
               placeholder="••••••••"
               value={password}
@@ -139,12 +136,11 @@ export const RegisterForm: FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin
               autoComplete="new-password"
               maxLength={72}
             />
-          </div>
+          </Field>
 
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm Password</Label>
+          <Field>
+            <FieldLabel>Confirm Password</FieldLabel>
             <Input
-              id="confirmPassword"
               type="password"
               placeholder="••••••••"
               value={confirmPassword}
@@ -156,7 +152,7 @@ export const RegisterForm: FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin
               autoComplete="new-password"
               maxLength={72}
             />
-          </div>
+          </Field>
 
           <Button type="submit" disabled={loading} className="w-full">
             {loading ? 'Creating account...' : 'Create Account'}

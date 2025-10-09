@@ -5,7 +5,7 @@ import { LOGIN_MUTATION } from '@/graphql/auth';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Field, FieldLabel } from '@/components/ui/field';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -74,10 +74,9 @@ export const LoginForm: FC<LoginFormProps> = ({ onSuccess, onSwitchToRegister })
             </Alert>
           ) : null}
 
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+          <Field>
+            <FieldLabel>Email</FieldLabel>
             <Input
-              id="email"
               type="email"
               placeholder="your@email.com"
               value={email}
@@ -88,14 +87,13 @@ export const LoginForm: FC<LoginFormProps> = ({ onSuccess, onSwitchToRegister })
               required
               autoComplete="email"
             />
-          </div>
+          </Field>
 
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+          <Field>
+            <FieldLabel>Password</FieldLabel>
             <Input
-              id="password"
               type="password"
-              placeholder=""
+              placeholder="••••••••"
               value={password}
               onChange={(e) => {
                 setPassword(e.target.value);
@@ -105,7 +103,7 @@ export const LoginForm: FC<LoginFormProps> = ({ onSuccess, onSwitchToRegister })
               autoComplete="current-password"
               maxLength={72}
             />
-          </div>
+          </Field>
 
           <Button type="submit" disabled={loading} className="w-full">
             {loading ? 'Signing in...' : 'Sign In'}

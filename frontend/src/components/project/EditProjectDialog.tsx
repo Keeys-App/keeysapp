@@ -12,7 +12,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Field, FieldLabel } from '@/components/ui/field';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -109,12 +109,11 @@ export const EditProjectDialog: FC<EditProjectDialogProps> = ({ open, onOpenChan
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Name */}
-          <div className="space-y-2">
-            <Label htmlFor="name">
+          <Field>
+            <FieldLabel>
               Name <span className="text-destructive">*</span>
-            </Label>
+            </FieldLabel>
             <Input
-              id="name"
               placeholder="My Awesome Project"
               value={name}
               onChange={(e) => {
@@ -123,13 +122,12 @@ export const EditProjectDialog: FC<EditProjectDialogProps> = ({ open, onOpenChan
               disabled={loading}
               required
             />
-          </div>
+          </Field>
 
           {/* Description */}
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+          <Field>
+            <FieldLabel>Description</FieldLabel>
             <Textarea
-              id="description"
               placeholder="Describe your project..."
               value={description}
               onChange={(e) => {
@@ -138,11 +136,11 @@ export const EditProjectDialog: FC<EditProjectDialogProps> = ({ open, onOpenChan
               disabled={loading}
               rows={3}
             />
-          </div>
+          </Field>
 
           {/* Languages */}
-          <div className="space-y-2">
-            <Label>Languages</Label>
+          <Field>
+            <FieldLabel>Languages</FieldLabel>
 
             {/* Selected languages */}
             {languages.length > 0 ? (
@@ -206,11 +204,11 @@ export const EditProjectDialog: FC<EditProjectDialogProps> = ({ open, onOpenChan
                 Add
               </Button>
             </div>
-          </div>
+          </Field>
 
           {/* Color */}
-          <div className="space-y-2">
-            <Label>Color</Label>
+          <Field>
+            <FieldLabel>Color</FieldLabel>
             <div className="flex gap-2 flex-wrap">
               {DEFAULT_PROJECT_COLORS.map((c) => {
                 return (
@@ -229,11 +227,11 @@ export const EditProjectDialog: FC<EditProjectDialogProps> = ({ open, onOpenChan
                 );
               })}
             </div>
-          </div>
+          </Field>
 
           {/* Status */}
-          <div className="space-y-2">
-            <Label>Status</Label>
+          <Field>
+            <FieldLabel>Status</FieldLabel>
             <Select value={status} onValueChange={setStatus} disabled={loading}>
               <SelectTrigger>
                 <SelectValue />
@@ -244,7 +242,7 @@ export const EditProjectDialog: FC<EditProjectDialogProps> = ({ open, onOpenChan
                 <SelectItem value={ProjectStatus.ARCHIVED}>Archived</SelectItem>
               </SelectContent>
             </Select>
-          </div>
+          </Field>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>

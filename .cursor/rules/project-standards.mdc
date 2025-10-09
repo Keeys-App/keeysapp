@@ -11,6 +11,7 @@ alwaysApply: true
 - Always reuse small parts do not make small things from scratch every time you make new components
 - Split big components into modules
 - Use Atomic design pattern
+- Do now write yourown components and do not change them in the components/ui, always install them from chadcn by yarn dlx.
 
 ## Docs
 
