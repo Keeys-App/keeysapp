@@ -3,9 +3,20 @@ import type { FC, FormEvent } from 'react';
 import { useMutation } from '@apollo/client';
 import { REGISTER_MUTATION } from '@/graphql/auth';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Field, FieldLabel } from '@/components/ui/field';
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from '@/components/ui/field';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -14,7 +25,10 @@ interface RegisterFormProps {
   onSwitchToLogin?: () => void;
 }
 
-export const RegisterForm: FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin }) => {
+export const RegisterForm: FC<RegisterFormProps> = ({
+  onSuccess,
+  onSwitchToLogin,
+}) => {
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -74,98 +88,119 @@ export const RegisterForm: FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin
       }
     } catch (err: any) {
       // Handle GraphQL errors and network errors
-      const errorMessage = err?.graphQLErrors?.[0]?.message || err?.message || 'An error occurred during registration';
+      const errorMessage =
+        err?.graphQLErrors?.[0]?.message ||
+        err?.message ||
+        'An error occurred during registration';
       setError(errorMessage);
     }
   };
 
   return (
     <Card className="w-full max-w-md">
-      <CardHeader>
-        <CardTitle className="text-center text-2xl">Create Account</CardTitle>
+      <CardHeader className="text-center">
+        <CardTitle className="text-xl">Create an account</CardTitle>
+        <CardDescription>
+          Enter your details to get started
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error ? (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          ) : null}
+        <form onSubmit={handleSubmit}>
+          <FieldGroup>
+            {error ? (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            ) : null}
 
-          <Field>
-            <FieldLabel>Email</FieldLabel>
-            <Input
-              type="email"
-              placeholder="your@email.com"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-              }}
-              disabled={loading}
-              required
-              autoComplete="email"
-            />
-          </Field>
+            <Field>
+              <FieldLabel htmlFor="email">Email</FieldLabel>
+              <Input
+                id="email"
+                type="email"
+                placeholder="m@example.com"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                }}
+                disabled={loading}
+                required
+                autoComplete="email"
+              />
+            </Field>
 
-          <Field>
-            <FieldLabel>Username</FieldLabel>
-            <Input
-              type="text"
-              placeholder="johndoe"
-              value={username}
-              onChange={(e) => {
-                setUsername(e.target.value);
-              }}
-              disabled={loading}
-              required
-              autoComplete="username"
-            />
-          </Field>
+            <Field>
+              <FieldLabel htmlFor="username">Username</FieldLabel>
+              <Input
+                id="username"
+                type="text"
+                placeholder="johndoe"
+                value={username}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                }}
+                disabled={loading}
+                required
+                autoComplete="username"
+              />
+            </Field>
 
-          <Field>
-            <FieldLabel>Password</FieldLabel>
-            <Input
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-              }}
-              disabled={loading}
-              required
-              autoComplete="new-password"
-              maxLength={72}
-            />
-          </Field>
+            <Field>
+              <FieldLabel htmlFor="password">Password</FieldLabel>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Create a password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                }}
+                disabled={loading}
+                required
+                autoComplete="new-password"
+                maxLength={72}
+              />
+              <FieldDescription>
+                Must be at least 6 characters long
+              </FieldDescription>
+            </Field>
 
-          <Field>
-            <FieldLabel>Confirm Password</FieldLabel>
-            <Input
-              type="password"
-              placeholder="••••••••"
-              value={confirmPassword}
-              onChange={(e) => {
-                setConfirmPassword(e.target.value);
-              }}
-              disabled={loading}
-              required
-              autoComplete="new-password"
-              maxLength={72}
-            />
-          </Field>
+            <Field>
+              <FieldLabel htmlFor="confirmPassword">
+                Confirm Password
+              </FieldLabel>
+              <Input
+                id="confirmPassword"
+                type="password"
+                placeholder="Confirm your password"
+                value={confirmPassword}
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                }}
+                disabled={loading}
+                required
+                autoComplete="new-password"
+                maxLength={72}
+              />
+            </Field>
 
-          <Button type="submit" disabled={loading} className="w-full">
-            {loading ? 'Creating account...' : 'Create Account'}
-          </Button>
-
-          {onSwitchToLogin ? (
-            <p className="text-center text-sm text-muted-foreground">
-              Already have an account?{' '}
-              <span className="text-primary cursor-pointer hover:underline" onClick={onSwitchToLogin}>
-                Sign in
-              </span>
-            </p>
-          ) : null}
+            <Field>
+              <Button type="submit" disabled={loading} className="w-full">
+                {loading ? 'Creating account...' : 'Create Account'}
+              </Button>
+              {onSwitchToLogin ? (
+                <FieldDescription className="text-center">
+                  Already have an account?{' '}
+                  <span
+                    className="text-primary cursor-pointer hover:underline"
+                    onClick={onSwitchToLogin}
+                  >
+                    Sign in
+                  </span>
+                </FieldDescription>
+              ) : null}
+            </Field>
+          </FieldGroup>
         </form>
       </CardContent>
     </Card>
