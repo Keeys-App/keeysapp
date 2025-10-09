@@ -36,8 +36,15 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     const storedUser = localStorage.getItem('authUser');
 
     if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
+      try {
+        setToken(storedToken);
+        setUser(JSON.parse(storedUser));
+      } catch (error) {
+        console.error('Error parsing stored user data:', error);
+        // Clear corrupted data
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('authUser');
+      }
     }
 
     setIsLoading(false);

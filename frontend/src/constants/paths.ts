@@ -7,5 +7,6 @@ export const PATHS = {
   AUTH: '/auth',
   HOME: '/',
   DASHBOARD: '/',
+  PROJECT: '/project/:id',
 } as const;
 

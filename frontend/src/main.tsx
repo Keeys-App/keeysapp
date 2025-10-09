@@ -24,16 +24,16 @@ function ThemedApp() {
 
 function AppWithProviders() {
   return (
-    <ThemeProvider>
-      <ThemedApp />
-    </ThemeProvider>
-  )
+    <ApolloProvider client={apolloClient}>
+      <ThemeProvider>
+        <ThemedApp />
+      </ThemeProvider>
+    </ApolloProvider>
+  );
 }
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ApolloProvider client={apolloClient}>
-      <AppWithProviders />
-    </ApolloProvider>
+    <AppWithProviders />
   </StrictMode>,
 )

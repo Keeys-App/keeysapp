@@ -1,4 +1,5 @@
 import { useState, type FC } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Flex, Button, Heading, Text, Grid, Box, AlertDialog } from '@radix-ui/themes';
 import { PlusIcon } from '@radix-ui/react-icons';
 import { useQuery, useMutation } from '@apollo/client';
@@ -6,15 +7,21 @@ import { GET_PROJECTS, DELETE_PROJECT, type GetProjectsData, type Project } from
 import { ProjectCard } from './ProjectCard';
 import { CreateProjectDialog } from './CreateProjectDialog';
 import { EditProjectDialog } from './EditProjectDialog';
+import { PATHS } from '../constants/paths';
+import { useAuth } from '../contexts/AuthContext';
 
 export const ProjectList: FC = () => {
+  const navigate = useNavigate();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
 
-  const { data, loading, error } = useQuery<GetProjectsData>(GET_PROJECTS);
+  const { data, loading, error } = useQuery<GetProjectsData>(GET_PROJECTS, {
+    skip: !isAuthenticated || authLoading,
+  });
 
   const [deleteProject, { loading: deleting }] = useMutation(DELETE_PROJECT, {
     refetchQueries: [{ query: GET_PROJECTS }],
@@ -36,6 +43,10 @@ export const ProjectList: FC = () => {
   const handleDelete = (project: Project) => {
     setProjectToDelete(project);
     setDeleteDialogOpen(true);
+  };
+
+  const handleProjectClick = (project: Project) => {
+    navigate(PATHS.PROJECT.replace(':id', project.id));
   };
 
   const confirmDelete = async () => {
@@ -117,6 +128,7 @@ export const ProjectList: FC = () => {
                   project={project}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
+                  onClick={handleProjectClick}
                 />
               );
             })}
