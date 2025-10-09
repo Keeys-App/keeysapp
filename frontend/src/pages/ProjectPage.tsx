@@ -82,7 +82,7 @@ export const ProjectPage: FC = () => {
       <div className="space-y-4">
         <h2 className="text-xl font-semibold">Translation Keys</h2>
         <CreateKeyForm projectId={project.id} />
-        <KeyList projectId={project.id} />
+        <KeyList projectId={project.id} projectLanguages={project.languages || []} />
       </div>
     </div>
   );

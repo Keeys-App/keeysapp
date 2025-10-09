@@ -4,12 +4,14 @@ import type { TranslationKey } from '@/types/translationKey';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { TranslationEditor } from './TranslationEditor';
 
 interface KeyListProps {
   projectId: string;
+  projectLanguages: string[];
 }
 
-export function KeyList({ projectId }: KeyListProps) {
+export function KeyList({ projectId, projectLanguages }: KeyListProps) {
   const { data, loading, error } = useQuery(GET_PROJECT_KEYS, {
     variables: { projectId },
     skip: !projectId,
@@ -62,23 +64,20 @@ export function KeyList({ projectId }: KeyListProps) {
             </CardHeader>
             <CardContent>
               <div className="border-t pt-4">
-                {key.translations.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No translations yet</p>
+                {projectLanguages.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No languages configured in project</p>
                 ) : (
                   <div className="space-y-2">
-                    {key.translations.map((translation) => {
+                    {projectLanguages.map((language) => {
+                      const translation = key.translations.find(t => t.language === language);
                       return (
-                        <div
-                          key={translation.language}
-                          className="flex gap-4 items-start"
-                        >
-                          <span className="font-medium text-sm w-12 shrink-0">
-                            {translation.language}
-                          </span>
-                          <span className="text-sm flex-1">
-                            {translation.value}
-                          </span>
-                        </div>
+                        <TranslationEditor
+                          key={language}
+                          keyId={key.id}
+                          language={language}
+                          currentValue={translation?.value || ''}
+                          projectId={projectId}
+                        />
                       );
                     })}
                   </div>
