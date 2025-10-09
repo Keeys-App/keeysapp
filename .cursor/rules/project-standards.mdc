@@ -54,6 +54,7 @@ alwaysApply: true
 ## Sensitive Data
 
 - Never commit secrets, passwords, or API keys to the repository. Use environment variables and `.env` files, and ensure they are listed in `.gitignore`.
+- На форнтенд ни при каких условиях не должн НИКОГДА попадать в чистом виде ошибки SQL или технического вида
 
 ## Documentation
 

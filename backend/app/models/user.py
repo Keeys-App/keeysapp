@@ -1,5 +1,7 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
 from sqlalchemy.sql import func
+from sqlalchemy.dialects.postgresql import UUID
+import uuid
 import bcrypt as bcrypt_lib
 from app.models.base import Base
 
@@ -17,10 +19,12 @@ def _truncate_password_bytes(password: str) -> bytes:
 class User(Base):
     """
     User model for authentication and authorization.
+    Uses UUID for public identification to prevent enumeration attacks.
     """
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True)  # Internal use only
+    public_id = Column(UUID(as_uuid=True), unique=True, index=True, default=uuid.uuid4, nullable=False)  # Public facing ID
     email = Column(String, unique=True, index=True, nullable=False)
     username = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)

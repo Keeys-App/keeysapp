@@ -24,6 +24,7 @@ class TestUserModel:
         db_session.refresh(user)
 
         assert user.id is not None
+        assert user.public_id is not None  # UUID should be auto-generated
         assert user.email == sample_user_data["email"]
         assert user.username == sample_user_data["username"]
         assert user.is_active is True

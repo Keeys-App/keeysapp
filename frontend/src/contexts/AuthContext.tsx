@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode, FC } from 'react';
 
 interface User {
-  id: number;
+  id: string;  // UUID for security (prevents enumeration attacks)
   email: string;
   username: string;
   isActive: boolean;

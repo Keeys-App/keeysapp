@@ -1,5 +1,6 @@
 from typing import Optional
 from sqlalchemy.orm import Session
+from uuid import UUID
 from app.models.user import User
 
 
@@ -39,16 +40,36 @@ class UserService:
     @staticmethod
     def get_user_by_id(db: Session, user_id: int) -> Optional[User]:
         """
-        Get user by ID.
+        Get user by internal ID.
+        For internal use only. Use get_user_by_public_id for public API.
         
         Args:
             db: Database session
-            user_id: User ID
+            user_id: Internal user ID
             
         Returns:
             User object or None
         """
         return db.query(User).filter(User.id == user_id).first()
+
+    @staticmethod
+    def get_user_by_public_id(db: Session, public_id: str) -> Optional[User]:
+        """
+        Get user by public UUID.
+        Use this method for public-facing APIs to prevent enumeration attacks.
+        
+        Args:
+            db: Database session
+            public_id: User's public UUID (as string)
+            
+        Returns:
+            User object or None
+        """
+        try:
+            uuid_obj = UUID(public_id)
+            return db.query(User).filter(User.public_id == uuid_obj).first()
+        except (ValueError, AttributeError):
+            return None
 
     @staticmethod
     def create_user(db: Session, email: str, username: str, password: str) -> User:

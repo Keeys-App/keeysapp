@@ -3,18 +3,32 @@ from typing import Optional
 from datetime import timedelta
 from strawberry.types import Info
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError, OperationalError
+import logging
 
 from app.database import get_db
 from app.services.user_service import UserService
 from app.core.security import create_access_token, decode_access_token
+from app.core.exceptions import (
+    AuthenticationError,
+    UserAlreadyExistsError,
+    DatabaseError,
+    handle_database_exception
+)
+
+
+import uuid as uuid_lib
+
+logger = logging.getLogger(__name__)
 
 
 @strawberry.type
 class UserType:
     """
     GraphQL type for User.
+    Uses public_id (UUID) instead of internal ID for security.
     """
-    id: int
+    id: str  # UUID as string for public API
     email: str
     username: str
     is_active: bool
@@ -69,7 +83,8 @@ class AuthMutation:
             AuthPayload with access token and user data
             
         Raises:
-            Exception: If email or username already exists
+            UserAlreadyExistsError: If email or username already exists
+            DatabaseError: If database operation fails
         """
         db: Session = next(get_db())
         
@@ -77,12 +92,12 @@ class AuthMutation:
             # Check if email already exists
             existing_user = UserService.get_user_by_email(db, input.email)
             if existing_user:
-                raise Exception("Email already registered")
+                raise UserAlreadyExistsError(field="email")
             
             # Check if username already exists
             existing_username = UserService.get_user_by_username(db, input.username)
             if existing_username:
-                raise Exception("Username already taken")
+                raise UserAlreadyExistsError(field="username")
             
             # Create user
             user = UserService.create_user(
@@ -92,20 +107,29 @@ class AuthMutation:
                 password=input.password
             )
             
-            # Create access token
-            access_token = create_access_token(data={"sub": str(user.id)})
+            # Create access token using public_id (UUID) for security
+            access_token = create_access_token(data={"sub": str(user.public_id)})
             
             return AuthPayload(
                 access_token=access_token,
                 token_type="bearer",
                 user=UserType(
-                    id=user.id,
+                    id=str(user.public_id),  # Use UUID for public API
                     email=user.email,
                     username=user.username,
                     is_active=user.is_active,
                     is_superuser=user.is_superuser
                 )
             )
+        except (UserAlreadyExistsError, AuthenticationError):
+            # Re-raise app exceptions as-is (they have safe messages)
+            raise
+        except (IntegrityError, OperationalError) as e:
+            # Database errors - never expose to users!
+            handle_database_exception(e, "user registration")
+        except Exception as e:
+            # Catch-all for unexpected errors
+            handle_database_exception(e, "user registration")
         finally:
             db.close()
 
@@ -122,7 +146,8 @@ class AuthMutation:
             AuthPayload with access token and user data
             
         Raises:
-            Exception: If authentication fails
+            AuthenticationError: If authentication fails
+            DatabaseError: If database operation fails
         """
         db: Session = next(get_db())
         
@@ -130,22 +155,31 @@ class AuthMutation:
             # Authenticate user
             user = UserService.authenticate_user(db, input.email, input.password)
             if not user:
-                raise Exception("Invalid credentials")
+                raise AuthenticationError()
             
-            # Create access token
-            access_token = create_access_token(data={"sub": str(user.id)})
+            # Create access token using public_id (UUID) for security
+            access_token = create_access_token(data={"sub": str(user.public_id)})
             
             return AuthPayload(
                 access_token=access_token,
                 token_type="bearer",
                 user=UserType(
-                    id=user.id,
+                    id=str(user.public_id),  # Use UUID for public API
                     email=user.email,
                     username=user.username,
                     is_active=user.is_active,
                     is_superuser=user.is_superuser
                 )
             )
+        except (AuthenticationError, UserAlreadyExistsError):
+            # Re-raise app exceptions as-is (they have safe messages)
+            raise
+        except (IntegrityError, OperationalError) as e:
+            # Database errors - never expose to users!
+            handle_database_exception(e, "user login")
+        except Exception as e:
+            # Catch-all for unexpected errors
+            handle_database_exception(e, "user login")
         finally:
             db.close()
 
@@ -165,40 +199,46 @@ class AuthQuery:
             info: GraphQL info object
             
         Returns:
-            Current user or None
+            Current user or None (no exceptions, just returns None on any error)
         """
-        # Get token from context
-        request = info.context.get("request")
-        if not request:
-            return None
-        
-        auth_header = request.headers.get("Authorization")
-        if not auth_header or not auth_header.startswith("Bearer "):
-            return None
-        
-        token = auth_header.replace("Bearer ", "")
-        payload = decode_access_token(token)
-        
-        if not payload:
-            return None
-        
-        user_id = payload.get("sub")
-        if not user_id:
-            return None
-        
-        db: Session = next(get_db())
         try:
-            user = UserService.get_user_by_id(db, int(user_id))
-            if not user:
+            # Get token from context
+            request = info.context.get("request")
+            if not request:
                 return None
             
-            return UserType(
-                id=user.id,
-                email=user.email,
-                username=user.username,
-                is_active=user.is_active,
-                is_superuser=user.is_superuser
-            )
-        finally:
-            db.close()
+            auth_header = request.headers.get("Authorization")
+            if not auth_header or not auth_header.startswith("Bearer "):
+                return None
+            
+            token = auth_header.replace("Bearer ", "")
+            payload = decode_access_token(token)
+            
+            if not payload:
+                return None
+            
+            public_id = payload.get("sub")
+            if not public_id:
+                return None
+            
+            db: Session = next(get_db())
+            try:
+                # Find user by public_id (UUID) for security
+                user = UserService.get_user_by_public_id(db, public_id)
+                if not user:
+                    return None
+                
+                return UserType(
+                    id=str(user.public_id),  # Use UUID for public API
+                    email=user.email,
+                    username=user.username,
+                    is_active=user.is_active,
+                    is_superuser=user.is_superuser
+                )
+            finally:
+                db.close()
+        except Exception as e:
+            # Log error but return None (don't expose errors in queries)
+            logger.error(f"Error in me query: {type(e).__name__}: {str(e)}")
+            return None
 

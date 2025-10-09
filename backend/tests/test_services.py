@@ -23,6 +23,7 @@ class TestUserService:
         )
 
         assert user.id is not None
+        assert user.public_id is not None  # UUID should be auto-generated
         assert user.email == sample_user_data["email"]
         assert user.username == sample_user_data["username"]
         assert user.verify_password(sample_user_data["password"]) is True
