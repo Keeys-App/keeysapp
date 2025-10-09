@@ -98,13 +98,6 @@ export const ProjectList: FC = () => {
         {/* Header */}
         <div className="flex justify-between items-center">
           <h2 className="text-3xl font-bold">Projects</h2>
-          <Button
-            onClick={() => {
-              return setCreateDialogOpen(true);
-            }}
-          >
-            <Plus className="h-4 w-4" /> New Project
-          </Button>
         </div>
 
         {/* Projects Grid */}
@@ -153,6 +146,25 @@ export const ProjectList: FC = () => {
           </Empty>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {/* Create Project Card */}
+            <div
+              className="bg-card border-dashed hover:bg-accent hover:border-primary flex min-h-[180px] cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border-2 p-6 transition-colors"
+              onClick={() => {
+                return setCreateDialogOpen(true);
+              }}
+            >
+              <div className="bg-muted flex size-12 items-center justify-center rounded-lg">
+                <Plus className="text-muted-foreground size-6" />
+              </div>
+              <div className="text-center">
+                <h3 className="font-semibold">Create Project</h3>
+                <p className="text-muted-foreground text-sm">
+                  Add a new project
+                </p>
+              </div>
+            </div>
+
+            {/* Existing Projects */}
             {projects.map((project) => {
               return (
                 <ProjectCard
