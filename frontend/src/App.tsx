@@ -1,5 +1,4 @@
 import React from 'react'
-import Demo from './components/Demo'
 import './App.css'
 
 function App() {
@@ -8,8 +7,8 @@ function App() {
       <header className="App-header">
         <h1>React + GraphQL Boilerplate</h1>
         <p>Ready to build your application!</p>
+        <p>GraphQL endpoint: <code>http://localhost:8000/graphql</code></p>
       </header>
-      <Demo />
     </div>
   )
 }

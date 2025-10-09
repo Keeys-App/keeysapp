@@ -87,49 +87,30 @@
 - **GraphQL Playground:** http://localhost:8000/graphql
 - **Frontend:** http://localhost:5173
 
-## 📝 Демо функционал
+## 📝 Базовый функционал
 
-Бойлерплейт включает базовый демо функционал:
+Бойлерплейт включает минимальный GraphQL endpoint для проверки работы:
 
 ### GraphQL Schema
 ```graphql
-type User {
-  id: Int!
-  name: String!
-  email: String!
-}
-
 type Query {
   hello: String!
-  users: [User!]!
-}
-
-type Mutation {
-  createUser(name: String!, email: String!): User!
 }
 ```
 
-### Примеры запросов
+### Пример запроса
 
-**Query:**
 ```graphql
 query {
   hello
-  users {
-    id
-    name
-    email
-  }
 }
 ```
 
-**Mutation:**
-```graphql
-mutation {
-  createUser(name: "John Doe", email: "john@example.com") {
-    id
-    name
-    email
+**Ответ:**
+```json
+{
+  "data": {
+    "hello": "Hello from GraphQL!"
   }
 }
 ```
@@ -144,12 +125,11 @@ mutation {
 
 ## 🧹 Очистка
 
-Если нужно убрать демо функционал:
+Бойлерплейт уже содержит минимальный функционал. Для полной очистки:
 
 1. Удалите `backend/app/schemas/graphql.py`
-2. Удалите `frontend/src/components/Demo.tsx`
-3. Удалите `frontend/src/graphql/demo.ts`
-4. Обновите `frontend/src/App.tsx`
+2. Уберите GraphQL из `backend/main.py`
+3. Удалите Apollo Client из `frontend/src/main.tsx`
 
 ## 📚 Полезные ссылки
 
