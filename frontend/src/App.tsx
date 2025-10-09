@@ -8,18 +8,18 @@ function App() {
         
         <Card size="3" style={{ maxWidth: 600, width: '100%' }}>
           <Flex direction="column" gap="4">
-            <Heading size="5">Добро пожаловать!</Heading>
+            <Heading size="5">Welcome!</Heading>
             <Text size="3" color="gray">
-              Ваше приложение готово к разработке с Radix UI компонентами.
+              Your application is ready for development with Radix UI components.
             </Text>
             <Text size="2" color="gray">
               GraphQL endpoint: <code>http://localhost:8000/graphql</code>
             </Text>
             
             <Flex direction="column" gap="3" mt="4">
-              <TextField.Root placeholder="Введите ваш email" />
+              <TextField.Root placeholder="Enter your email" />
               <Button size="3" style={{ width: '100%' }}>
-                Начать работу
+                Get Started
               </Button>
             </Flex>
           </Flex>
