@@ -66,10 +66,16 @@ export const Combobox: FC<ComboboxProps> = ({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0" align="start">
+      <PopoverContent 
+        className="w-[--radix-popover-trigger-width] p-0" 
+        align="start"
+        onWheel={(e) => {
+          e.stopPropagation();
+        }}
+      >
         <Command>
           <CommandInput placeholder={searchPlaceholder} className="h-9" />
-          <CommandList>
+          <CommandList className="max-h-[300px] overflow-y-auto">
             <CommandEmpty>{emptyText}</CommandEmpty>
             <CommandGroup>
               {options.map((option) => {
