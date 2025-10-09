@@ -12,7 +12,9 @@ COPY frontend/ .
 # Install dependencies
 RUN yarn install --frozen-lockfile
 
-# Build the application
+# Build the application with environment variables
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
 RUN yarn build
 
 # Production stage
