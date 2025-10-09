@@ -1,7 +1,10 @@
 from datetime import datetime, timedelta
 from typing import Optional
 import jwt
+import logging
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
@@ -40,9 +43,12 @@ def decode_access_token(token: str) -> Optional[dict]:
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
         return payload
     except jwt.ExpiredSignatureError:
-        # Token has expired
+        logger.warning("Token has expired")
         return None
-    except jwt.InvalidTokenError:
-        # Token is invalid
+    except jwt.InvalidTokenError as e:
+        logger.warning(f"Invalid token: {type(e).__name__}")
+        return None
+    except Exception as e:
+        logger.error(f"Unexpected error decoding token: {type(e).__name__}: {str(e)}")
         return None
 

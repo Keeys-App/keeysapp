@@ -14,6 +14,25 @@ python migrations/<migration_name>.py
 
 ## Доступные миграции
 
+### create_projects_tables.py
+Создает таблицы для модуля проектов.
+
+```bash
+python migrations/create_projects_tables.py
+```
+
+**Что делает:**
+1. Создает таблицу `projects` (id, public_id, name, description, languages, color, status, owner_id, timestamps)
+2. Создает таблицу `project_members` (id, project_id, user_id, role, created_at)
+3. Устанавливает foreign key constraints
+
+**Когда использовать:**
+- При первой установке модуля проектов
+- Если таблицы существуют, предложит их пересоздать
+
+**⚠️ Внимание:** 
+- Пересоздание таблиц удалит все данные проектов!
+
 ### migrate_add_public_id.py
 Добавляет колонку `public_id` (UUID) в таблицу users.
 
@@ -61,6 +80,7 @@ python migrations/recreate_tables.py
 | Дата | Миграция | Описание |
 |------|----------|----------|
 | 2025-10-09 | migrate_add_public_id | Добавлен UUID для безопасности |
+| 2025-10-09 | create_projects_tables | Создание модуля проектов |
 
 ## Best Practices
 

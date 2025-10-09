@@ -42,12 +42,24 @@ class AppException(Exception):
 
 class AuthenticationError(AppException):
     """
-    Authentication failed.
+    Authentication failed (wrong credentials).
     """
     def __init__(self, internal_message: Optional[str] = None):
         super().__init__(
             message="Invalid credentials",
             internal_message=internal_message or "Authentication failed",
+            log_level="warning"
+        )
+
+
+class UnauthorizedError(AppException):
+    """
+    User is not authenticated (missing or invalid token).
+    """
+    def __init__(self, internal_message: Optional[str] = None):
+        super().__init__(
+            message="Authentication required. Please log in.",
+            internal_message=internal_message or "Unauthorized access attempt",
             log_level="warning"
         )
 

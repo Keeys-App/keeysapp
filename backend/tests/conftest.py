@@ -6,6 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app.models.base import Base
 from app.models.user import User  # Import User so table is registered
+from app.models.project import Project, ProjectMember  # Import Project models
 
 
 # Use in-memory SQLite for tests
@@ -60,4 +61,12 @@ def created_user(db_session, sample_user_data):
     db_session.commit()
     db_session.refresh(user)
     return user
+
+
+@pytest.fixture
+def test_user(created_user):
+    """
+    Alias for created_user for project tests.
+    """
+    return created_user
 

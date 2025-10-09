@@ -1,6 +1,7 @@
 import strawberry
-from typing import Optional
+from typing import Optional, List
 from app.schemas.auth import AuthQuery, AuthMutation, UserType
+from app.schemas.project import ProjectQuery, ProjectMutation, ProjectType
 
 
 @strawberry.type
@@ -18,6 +19,10 @@ class Query:
     
     # Include auth queries
     me: Optional[UserType] = strawberry.field(resolver=AuthQuery.me)
+    
+    # Include project queries
+    projects: List[ProjectType] = strawberry.field(resolver=ProjectQuery.projects)
+    project: Optional[ProjectType] = strawberry.field(resolver=ProjectQuery.project)
 
 
 @strawberry.type
@@ -29,6 +34,12 @@ class Mutation:
     # Include auth mutations
     register = strawberry.field(resolver=AuthMutation.register)
     login = strawberry.field(resolver=AuthMutation.login)
+    
+    # Include project mutations
+    create_project = strawberry.field(resolver=ProjectMutation.create_project)
+    update_project = strawberry.field(resolver=ProjectMutation.update_project)
+    delete_project = strawberry.field(resolver=ProjectMutation.delete_project)
+    add_project_member = strawberry.field(resolver=ProjectMutation.add_project_member)
 
 
 schema = strawberry.Schema(query=Query, mutation=Mutation)
