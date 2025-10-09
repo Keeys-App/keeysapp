@@ -69,6 +69,7 @@ export const Combobox: FC<ComboboxProps> = ({
       <PopoverContent 
         className="w-[--radix-popover-trigger-width] p-0" 
         align="start"
+        onWheel={(e) => e.stopPropagation()}
       >
         <Command shouldFilter={false}>
           <CommandInput placeholder={searchPlaceholder} className="h-9" />
