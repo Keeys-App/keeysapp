@@ -61,7 +61,7 @@ export const ProjectCard: FC<ProjectCardProps> = ({
 
   return (
     <Link to={projectUrl} className="block">
-      <Card className="relative cursor-pointer transition-all group overflow-hidden shadow-none">
+      <Card className="relative cursor-pointer h-full transition-all group overflow-hidden shadow-none">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <div className="flex items-center gap-2">
