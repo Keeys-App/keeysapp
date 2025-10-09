@@ -12,6 +12,7 @@ from app.core.security import create_access_token, decode_access_token
 from app.core.exceptions import (
     AuthenticationError,
     UserAlreadyExistsError,
+    ValidationError,
     DatabaseError,
     handle_database_exception
 )
@@ -83,12 +84,19 @@ class AuthMutation:
             AuthPayload with access token and user data
             
         Raises:
+            ValidationError: If password is too short or too long
             UserAlreadyExistsError: If email or username already exists
             DatabaseError: If database operation fails
         """
         db: Session = next(get_db())
         
         try:
+            # Validate password
+            if len(input.password) < 8:
+                raise ValidationError("Password must be at least 8 characters long")
+            if len(input.password) > 72:
+                raise ValidationError("Password must be no more than 72 characters long")
+            
             # Check if email already exists
             existing_user = UserService.get_user_by_email(db, input.email)
             if existing_user:
@@ -121,7 +129,7 @@ class AuthMutation:
                     is_superuser=user.is_superuser
                 )
             )
-        except (UserAlreadyExistsError, AuthenticationError):
+        except (UserAlreadyExistsError, AuthenticationError, ValidationError):
             # Re-raise app exceptions as-is (they have safe messages)
             raise
         except (IntegrityError, OperationalError) as e:

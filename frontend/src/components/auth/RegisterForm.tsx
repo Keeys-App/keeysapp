@@ -52,8 +52,8 @@ export const RegisterForm: FC<RegisterFormProps> = ({
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters long');
       return;
     }
 
@@ -101,7 +101,7 @@ export const RegisterForm: FC<RegisterFormProps> = ({
       <CardHeader className="text-center">
         <CardTitle className="text-xl">Create an account</CardTitle>
         <CardDescription>
-          Enter your details to get started
+          Enter your information below to create your account
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -127,6 +127,10 @@ export const RegisterForm: FC<RegisterFormProps> = ({
                 required
                 autoComplete="email"
               />
+              <FieldDescription>
+                We&apos;ll use this to contact you. We will not share your
+                email with anyone else.
+              </FieldDescription>
             </Field>
 
             <Field>
@@ -161,7 +165,7 @@ export const RegisterForm: FC<RegisterFormProps> = ({
                 maxLength={72}
               />
               <FieldDescription>
-                Must be at least 6 characters long
+                Must be at least 8 characters long.
               </FieldDescription>
             </Field>
 
@@ -182,6 +186,7 @@ export const RegisterForm: FC<RegisterFormProps> = ({
                 autoComplete="new-password"
                 maxLength={72}
               />
+              <FieldDescription>Please confirm your password.</FieldDescription>
             </Field>
 
             <Field>
