@@ -5,6 +5,9 @@ alwaysApply: true
 
 # Project Standards & Best Practices
 
+## UI 
+- Always use Radix UI
+
 ## Docs
 
 - For any documentation we use Obsidian. The Vault is in docs/obsidian dir.

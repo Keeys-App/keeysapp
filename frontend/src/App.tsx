@@ -1,15 +1,38 @@
-import React from 'react'
-import './App.css'
+import { Box, Button, Card, Flex, Heading, Text, TextField } from '@radix-ui/themes'
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1>React + GraphQL Boilerplate</h1>
-        <p>Ready to build your application!</p>
-        <p>GraphQL endpoint: <code>http://localhost:8000/graphql</code></p>
-      </header>
-    </div>
+    <Box p="6" style={{ minHeight: '100vh' }}>
+      <Flex direction="column" gap="6" align="center">
+        <Heading size="8">React + GraphQL + Radix UI</Heading>
+        
+        <Card size="3" style={{ maxWidth: 600, width: '100%' }}>
+          <Flex direction="column" gap="4">
+            <Heading size="5">Добро пожаловать!</Heading>
+            <Text size="3" color="gray">
+              Ваше приложение готово к разработке с Radix UI компонентами.
+            </Text>
+            <Text size="2" color="gray">
+              GraphQL endpoint: <code>http://localhost:8000/graphql</code>
+            </Text>
+            
+            <Flex direction="column" gap="3" mt="4">
+              <TextField.Root placeholder="Введите ваш email" />
+              <Button size="3" style={{ width: '100%' }}>
+                Начать работу
+              </Button>
+            </Flex>
+          </Flex>
+        </Card>
+
+        <Flex gap="3" wrap="wrap" justify="center">
+          <Button variant="solid">Solid Button</Button>
+          <Button variant="soft">Soft Button</Button>
+          <Button variant="outline">Outline Button</Button>
+          <Button variant="ghost">Ghost Button</Button>
+        </Flex>
+      </Flex>
+    </Box>
   )
 }
 
