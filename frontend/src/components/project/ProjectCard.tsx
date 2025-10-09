@@ -28,6 +28,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { ProjectStatus } from "@/components/blocks";
 import { PATHS } from "@/constants/paths";
 
@@ -66,9 +72,13 @@ export const ProjectCard: FC<ProjectCardProps> = ({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-full" style={{ backgroundColor: project.color }} />
+              <div
+                className="h-3 w-3 rounded-full"
+                style={{ backgroundColor: project.color }}
+              />
             </div>
-            {project.name}</CardTitle>
+            {project.name}
+          </CardTitle>
           <CardDescription>{project.description}</CardDescription>
           <CardAction>
             {project.canEdit ? (
@@ -109,16 +119,7 @@ export const ProjectCard: FC<ProjectCardProps> = ({
             <span className="text-sm text-muted-foreground">
               {project.keysCount} keys
             </span>
-            <div className="flex items-center gap-2 flex-1 max-w-[140px]">
-              <Progress value={project.translationProgress} className="h-2" />
-              <span className="text-sm font-medium whitespace-nowrap">
-                {project.translationProgress}%
-              </span>
-            </div>
           </div>
-        </CardContent>
-
-        <CardFooter>
           <div className="flex items-center gap-5 text-sm font-medium text-gray-500">
             <ProjectStatus status={project.status} />
             <div className="flex items-center gap-1">
@@ -130,6 +131,26 @@ export const ProjectCard: FC<ProjectCardProps> = ({
               {project.languages.length}
             </div>
           </div>
+        </CardContent>
+
+        <CardFooter>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="w-full">
+                  <Progress value={project.translationProgress} className="h-2" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-sm">
+                  <span className="font-semibold">{project.translationProgress}%</span> translated
+                </p>
+                <p className="text-xs text-muted">
+                  {project.keysCount} keys × {project.languages.length} languages
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </CardFooter>
       </Card>
     </Link>
