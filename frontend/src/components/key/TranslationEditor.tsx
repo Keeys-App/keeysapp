@@ -28,11 +28,7 @@ export function TranslationEditor({ keyId, language, currentValue, projectId }: 
   const handleSave = async () => {
     const trimmedValue = value.trim();
     
-    if (!trimmedValue) {
-      alert('Translation cannot be empty');
-      return;
-    }
-
+    // Allow empty value to delete translation
     await setTranslation({
       variables: {
         input: {

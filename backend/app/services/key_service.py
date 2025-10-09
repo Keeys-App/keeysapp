@@ -207,16 +207,17 @@ class KeyService:
     ) -> Optional[Translation]:
         """
         Set or update a translation for a key in a specific language.
+        If value is empty, deletes the translation.
         
         Args:
             db: Database session
             key_public_id: Public UUID of the key
             language: Language code
-            value: Translation value
+            value: Translation value (empty string to delete)
             user_id: User ID setting the translation
             
         Returns:
-            Created/updated translation or None if failed
+            Created/updated translation or None if deleted/failed
         """
         # Get key
         key_obj = KeyService.get_key_by_public_id(db, key_public_id)
@@ -232,6 +233,13 @@ class KeyService:
             Translation.key_id == key_obj.id,
             Translation.language == language
         ).first()
+        
+        # If value is empty, delete the translation
+        if not value or not value.strip():
+            if translation:
+                db.delete(translation)
+                db.commit()
+            return None
         
         if translation:
             # Update existing
