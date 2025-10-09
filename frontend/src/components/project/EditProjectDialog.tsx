@@ -2,7 +2,8 @@ import { useState, useEffect, type FC } from 'react';
 import { useMutation } from '@apollo/client';
 import { X } from 'lucide-react';
 import { UPDATE_PROJECT, GET_PROJECTS, type UpdateProjectInput, type Project } from '@/graphql/projects';
-import { DEFAULT_PROJECT_COLORS, COMMON_LANGUAGES, ProjectStatus } from '@/types/project';
+import { COMMON_LANGUAGES, ProjectStatus } from '@/types/project';
+import { ColorPicker } from '@/components/blocks';
 import {
   Dialog,
   DialogContent,
@@ -28,7 +29,7 @@ export const EditProjectDialog: FC<EditProjectDialogProps> = ({ open, onOpenChan
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [languages, setLanguages] = useState<string[]>([]);
-  const [color, setColor] = useState(DEFAULT_PROJECT_COLORS[0]);
+  const [color, setColor] = useState('#6366f1');
   const [status, setStatus] = useState<string>(ProjectStatus.ACTIVE);
   const [languageInput, setLanguageInput] = useState('');
 
@@ -101,7 +102,10 @@ export const EditProjectDialog: FC<EditProjectDialogProps> = ({ open, onOpenChan
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent 
+        className="max-w-md max-h-[90vh] overflow-y-auto"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>Edit Project</DialogTitle>
           <DialogDescription>Update your project settings.</DialogDescription>
@@ -209,24 +213,7 @@ export const EditProjectDialog: FC<EditProjectDialogProps> = ({ open, onOpenChan
           {/* Color */}
           <Field>
             <FieldLabel>Color</FieldLabel>
-            <div className="flex gap-2 flex-wrap">
-              {DEFAULT_PROJECT_COLORS.map((c) => {
-                return (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => {
-                      return setColor(c);
-                    }}
-                    className="w-8 h-8 rounded-md transition-all"
-                    style={{
-                      backgroundColor: c,
-                      border: color === c ? '3px solid hsl(var(--primary))' : '2px solid hsl(var(--border))',
-                    }}
-                  />
-                );
-              })}
-            </div>
+            <ColorPicker value={color} onChange={setColor} disabled={loading} />
           </Field>
 
           {/* Status */}
@@ -234,7 +221,7 @@ export const EditProjectDialog: FC<EditProjectDialogProps> = ({ open, onOpenChan
             <FieldLabel>Status</FieldLabel>
             <Select value={status} onValueChange={setStatus} disabled={loading}>
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={ProjectStatus.ACTIVE}>Active</SelectItem>

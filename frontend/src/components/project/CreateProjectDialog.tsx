@@ -5,6 +5,7 @@ import { X } from 'lucide-react';
 import { CREATE_PROJECT, GET_PROJECTS, type CreateProjectInput } from '@/graphql/projects';
 import { DEFAULT_PROJECT_COLORS, COMMON_LANGUAGES, ProjectStatus } from '@/types/project';
 import { useAuth } from '@/contexts/AuthContext';
+import { ColorPicker } from '@/components/blocks';
 import {
   Dialog,
   DialogContent,
@@ -219,24 +220,7 @@ export const CreateProjectDialog: FC<CreateProjectDialogProps> = ({ open, onOpen
           {/* Color */}
           <Field>
             <FieldLabel>Color</FieldLabel>
-            <div className="flex gap-2 flex-wrap">
-              {DEFAULT_PROJECT_COLORS.map((c) => {
-                return (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => {
-                      return setColor(c);
-                    }}
-                    className="w-8 h-8 rounded-md transition-all"
-                    style={{
-                      backgroundColor: c,
-                      border: color === c ? '3px solid hsl(var(--primary))' : '2px solid hsl(var(--border))',
-                    }}
-                  />
-                );
-              })}
-            </div>
+            <ColorPicker value={color} onChange={setColor} disabled={loading} />
           </Field>
 
           {/* Status */}
@@ -244,7 +228,7 @@ export const CreateProjectDialog: FC<CreateProjectDialogProps> = ({ open, onOpen
             <FieldLabel>Status</FieldLabel>
             <Select value={status} onValueChange={setStatus} disabled={loading}>
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={ProjectStatus.ACTIVE}>Active</SelectItem>

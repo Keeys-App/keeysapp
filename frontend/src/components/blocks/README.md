@@ -27,3 +27,16 @@ import { ProjectStatus } from '@/components/blocks';
 <ProjectStatus status="draft" showIcon={false} />
 ```
 
+### ColorPicker
+
+Компонент для выбора цвета из палитры с визуальной индикацией выбранного цвета.
+
+```tsx
+import { ColorPicker } from '@/components/blocks';
+
+<ColorPicker 
+  value={color} 
+  onChange={setColor} 
+/>
+```
+

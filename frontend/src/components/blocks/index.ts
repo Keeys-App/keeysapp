@@ -4,4 +4,5 @@
  */
 
 export { ProjectStatus, getProjectStatusInfo } from './ProjectStatus';
+export { ColorPicker } from './ColorPicker';
 
