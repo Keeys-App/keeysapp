@@ -1,11 +1,11 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@apollo/client';
-import { Flex, Heading, Text, Button, Box, Grid } from '@radix-ui/themes';
-import { ArrowLeftIcon } from '@radix-ui/react-icons';
+import { ArrowLeft } from 'lucide-react';
 import { GET_PROJECT, type GetProjectData } from '../graphql/projects';
 import { PATHS } from '../constants/paths';
 import { useAuth } from '../contexts/AuthContext';
 import type { FC } from 'react';
+import { Button } from '@/components/ui/button';
 
 export const ProjectPage: FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -23,91 +23,68 @@ export const ProjectPage: FC = () => {
 
   if (loading) {
     return (
-      <Flex direction="column" align="center" justify="center" style={{ minHeight: '50vh' }}>
-        <Text size="3" color="gray">
-          Loading project...
-        </Text>
-      </Flex>
+      <div className="flex flex-col items-center justify-center min-h-[50vh]">
+        <p className="text-lg text-muted-foreground">Loading project...</p>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Flex direction="column" align="center" justify="center" style={{ minHeight: '50vh' }}>
-        <Text size="3" color="red">
-          Error loading project: {error.message}
-        </Text>
-        <Button onClick={handleBackClick} style={{ marginTop: '1rem' }}>
-          <ArrowLeftIcon /> Back to Dashboard
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
+        <p className="text-lg text-destructive">Error loading project: {error.message}</p>
+        <Button onClick={handleBackClick}>
+          <ArrowLeft className="h-4 w-4" /> Back to Dashboard
         </Button>
-      </Flex>
+      </div>
     );
   }
 
   if (!data?.project) {
     return (
-      <Flex direction="column" align="center" justify="center" style={{ minHeight: '50vh' }}>
-        <Text size="3" color="gray">
-          Project not found
-        </Text>
-        <Button onClick={handleBackClick} style={{ marginTop: '1rem' }}>
-          <ArrowLeftIcon /> Back to Dashboard
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
+        <p className="text-lg text-muted-foreground">Project not found</p>
+        <Button onClick={handleBackClick}>
+          <ArrowLeft className="h-4 w-4" /> Back to Dashboard
         </Button>
-      </Flex>
+      </div>
     );
   }
 
   const project = data.project;
 
   return (
-    <Box>
+    <div>
       {/* Header */}
-      <Flex direction="column" gap="4" mb="6">
-        <Flex align="center" gap="3">
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex items-center gap-3">
           <Button variant="ghost" onClick={handleBackClick}>
-            <ArrowLeftIcon /> Back
+            <ArrowLeft className="h-4 w-4" /> Back
           </Button>
-          <Box
+          <div
+            className="w-1 h-8 rounded-sm"
             style={{
-              width: '4px',
-              height: '32px',
               backgroundColor: project.color,
-              borderRadius: '2px',
             }}
           />
-          <Flex direction="column" gap="1">
-            <Heading size="6">{project.name}</Heading>
-            {project.description ? (
-              <Text size="3" color="gray">
-                {project.description}
-              </Text>
-            ) : null}
-          </Flex>
-        </Flex>
-      </Flex>
+          <div className="flex flex-col gap-1">
+            <h2 className="text-3xl font-bold">{project.name}</h2>
+            {project.description ? <p className="text-lg text-muted-foreground">{project.description}</p> : null}
+          </div>
+        </div>
+      </div>
 
       {/* Project Keys Section */}
-      <Box>
-        <Heading size="4" mb="4">
-          Translation Keys
-        </Heading>
-        
+      <div>
+        <h3 className="text-2xl font-semibold mb-4">Translation Keys</h3>
+
         {/* Placeholder for keys list - will be implemented later */}
-        <Grid columns={{ initial: '1', sm: '2', md: '3' }} gap="3">
-          <Box
-            style={{
-              padding: '2rem',
-              border: '2px dashed var(--gray-6)',
-              borderRadius: '8px',
-              textAlign: 'center',
-            }}
-          >
-            <Text size="3" color="gray">
-              Keys list will be implemented here
-            </Text>
-          </Box>
-        </Grid>
-      </Box>
-    </Box>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="p-8 border-2 border-dashed rounded-lg text-center">
+            <p className="text-lg text-muted-foreground">Keys list will be implemented here</p>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };

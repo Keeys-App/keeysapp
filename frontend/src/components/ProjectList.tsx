@@ -1,7 +1,6 @@
 import { useState, type FC } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Flex, Button, Heading, Text, Grid, Box, AlertDialog } from '@radix-ui/themes';
-import { PlusIcon } from '@radix-ui/react-icons';
+import { Plus } from 'lucide-react';
 import { useQuery, useMutation } from '@apollo/client';
 import { GET_PROJECTS, DELETE_PROJECT, type GetProjectsData, type Project } from '../graphql/projects';
 import { ProjectCard } from './ProjectCard';
@@ -9,6 +8,17 @@ import { CreateProjectDialog } from './CreateProjectDialog';
 import { EditProjectDialog } from './EditProjectDialog';
 import { PATHS } from '../constants/paths';
 import { useAuth } from '../contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export const ProjectList: FC = () => {
   const navigate = useNavigate();
@@ -58,21 +68,17 @@ export const ProjectList: FC = () => {
 
   if (loading) {
     return (
-      <Flex direction="column" align="center" justify="center" style={{ minHeight: '50vh' }}>
-        <Text size="3" color="gray">
-          Loading projects...
-        </Text>
-      </Flex>
+      <div className="flex flex-col items-center justify-center min-h-[50vh]">
+        <p className="text-lg text-muted-foreground">Loading projects...</p>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Flex direction="column" align="center" justify="center" style={{ minHeight: '50vh' }}>
-        <Text size="3" color="red">
-          Error loading projects. Please try again.
-        </Text>
-      </Flex>
+      <div className="flex flex-col items-center justify-center min-h-[50vh]">
+        <p className="text-lg text-destructive">Error loading projects. Please try again.</p>
+      </div>
     );
   }
 
@@ -80,47 +86,39 @@ export const ProjectList: FC = () => {
 
   return (
     <>
-      <Flex direction="column" gap="4">
+      <div className="flex flex-col gap-4">
         {/* Header */}
-        <Flex justify="between" align="center">
-          <Heading size="6">Projects</Heading>
-          <Button onClick={() => {
-            return setCreateDialogOpen(true);
-          }}>
-            <PlusIcon /> New Project
+        <div className="flex justify-between items-center">
+          <h2 className="text-3xl font-bold">Projects</h2>
+          <Button
+            onClick={() => {
+              return setCreateDialogOpen(true);
+            }}
+          >
+            <Plus className="h-4 w-4" /> New Project
           </Button>
-        </Flex>
+        </div>
 
         {/* Projects Grid */}
         {projects.length === 0 ? (
-          <Flex
-            direction="column"
-            align="center"
-            justify="center"
-            gap="4"
-            style={{
-              minHeight: '40vh',
-              border: '2px dashed var(--gray-6)',
-              borderRadius: 8,
-              padding: '3rem',
-            }}
-          >
-            <Box>
-              <Heading size="4" mb="2" style={{ textAlign: 'center' }}>
-                No projects yet
-              </Heading>
-              <Text size="2" color="gray" style={{ textAlign: 'center' }}>
+          <div className="flex flex-col items-center justify-center gap-4 min-h-[40vh] border-2 border-dashed rounded-lg p-12">
+            <div>
+              <h3 className="text-2xl font-semibold text-center mb-2">No projects yet</h3>
+              <p className="text-sm text-muted-foreground text-center">
                 Create your first project to start managing translations
-              </Text>
-            </Box>
-            <Button size="3" onClick={() => {
-              return setCreateDialogOpen(true);
-            }}>
-              <PlusIcon /> Create Your First Project
+              </p>
+            </div>
+            <Button
+              size="lg"
+              onClick={() => {
+                return setCreateDialogOpen(true);
+              }}
+            >
+              <Plus className="h-4 w-4" /> Create Your First Project
             </Button>
-          </Flex>
+          </div>
         ) : (
-          <Grid columns={{ initial: '1', sm: '2', md: '3' }} gap="4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {projects.map((project) => {
               return (
                 <ProjectCard
@@ -132,44 +130,34 @@ export const ProjectList: FC = () => {
                 />
               );
             })}
-          </Grid>
+          </div>
         )}
-      </Flex>
+      </div>
 
       {/* Create Project Dialog */}
       <CreateProjectDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
 
       {/* Edit Project Dialog */}
-      <EditProjectDialog
-        open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
-        project={selectedProject}
-      />
+      <EditProjectDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} project={selectedProject} />
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog.Root open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialog.Content style={{ maxWidth: 450 }}>
-          <AlertDialog.Title>Delete Project</AlertDialog.Title>
-          <AlertDialog.Description size="2">
-            Are you sure you want to delete <strong>{projectToDelete?.name}</strong>? This action
-            cannot be undone and will delete all project data including translations.
-          </AlertDialog.Description>
-
-          <Flex gap="3" mt="4" justify="end">
-            <AlertDialog.Cancel>
-              <Button variant="soft" color="gray" disabled={deleting}>
-                Cancel
-              </Button>
-            </AlertDialog.Cancel>
-            <AlertDialog.Action>
-              <Button variant="solid" color="red" onClick={confirmDelete} disabled={deleting}>
-                {deleting ? 'Deleting...' : 'Delete Project'}
-              </Button>
-            </AlertDialog.Action>
-          </Flex>
-        </AlertDialog.Content>
-      </AlertDialog.Root>
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Project</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong>{projectToDelete?.name}</strong>? This action cannot be undone
+              and will delete all project data including translations.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deleting ? 'Deleting...' : 'Delete Project'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
-

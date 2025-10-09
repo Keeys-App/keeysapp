@@ -1,6 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Box, Flex, Spinner } from '@radix-ui/themes';
+import { Loader2 } from 'lucide-react';
 import type { FC, ReactNode } from 'react';
 import { PATHS } from '../constants/paths';
 
@@ -13,9 +13,9 @@ export const ProtectedRoute: FC<ProtectedRouteProps> = ({ children }) => {
 
   if (isLoading) {
     return (
-      <Flex align="center" justify="center" style={{ minHeight: '100vh' }}>
-        <Spinner size="3" />
-      </Flex>
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
     );
   }
 
@@ -23,6 +23,6 @@ export const ProtectedRoute: FC<ProtectedRouteProps> = ({ children }) => {
     return <Navigate to={PATHS.AUTH} replace />;
   }
 
-  return <Box>{children}</Box>;
+  return <>{children}</>;
 };
 

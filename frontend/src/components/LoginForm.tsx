@@ -1,9 +1,13 @@
 import { useState } from 'react';
 import type { FC, FormEvent } from 'react';
 import { useMutation } from '@apollo/client';
-import { Box, Button, Card, Flex, Heading, Text, TextField, Callout } from '@radix-ui/themes';
 import { LOGIN_MUTATION } from '../graphql/auth';
 import { useAuth } from '../contexts/AuthContext';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface LoginFormProps {
   onSuccess?: () => void;
@@ -14,7 +18,7 @@ export const LoginForm: FC<LoginFormProps> = ({ onSuccess, onSwitchToRegister })
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  
+
   const { login } = useAuth();
   const [loginMutation, { loading }] = useMutation(LOGIN_MUTATION);
 
@@ -45,7 +49,7 @@ export const LoginForm: FC<LoginFormProps> = ({ onSuccess, onSwitchToRegister })
           isActive: data.login.user.isActive,
           isSuperuser: data.login.user.isSuperuser,
         });
-        
+
         if (onSuccess) {
           onSuccess();
         }
@@ -58,23 +62,22 @@ export const LoginForm: FC<LoginFormProps> = ({ onSuccess, onSwitchToRegister })
   };
 
   return (
-    <Card size="3" style={{ maxWidth: 450, width: '100%' }}>
-      <form onSubmit={handleSubmit}>
-        <Flex direction="column" gap="4">
-          <Heading size="6" align="center">Sign In</Heading>
-          
+    <Card className="w-full max-w-md">
+      <CardHeader>
+        <CardTitle className="text-center text-2xl">Sign In</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
           {error ? (
-            <Callout.Root color="red">
-              <Callout.Text>{error}</Callout.Text>
-            </Callout.Root>
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           ) : null}
 
-          <Box>
-            <Text as="label" size="2" weight="medium" mb="2">
-              Email
-            </Text>
-            <TextField.Root
-              size="3"
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
               type="email"
               placeholder="your@email.com"
               value={email}
@@ -85,14 +88,12 @@ export const LoginForm: FC<LoginFormProps> = ({ onSuccess, onSwitchToRegister })
               required
               autoComplete="email"
             />
-          </Box>
+          </div>
 
-          <Box>
-            <Text as="label" size="2" weight="medium" mb="2">
-              Password
-            </Text>
-            <TextField.Root
-              size="3"
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
               type="password"
               placeholder="••••••••"
               value={password}
@@ -104,28 +105,22 @@ export const LoginForm: FC<LoginFormProps> = ({ onSuccess, onSwitchToRegister })
               autoComplete="current-password"
               maxLength={72}
             />
-          </Box>
+          </div>
 
-          <Button size="3" type="submit" disabled={loading}>
+          <Button type="submit" disabled={loading} className="w-full">
             {loading ? 'Signing in...' : 'Sign In'}
           </Button>
 
           {onSwitchToRegister ? (
-            <Text size="2" align="center" color="gray">
+            <p className="text-center text-sm text-muted-foreground">
               Don't have an account?{' '}
-              <Text
-                as="span"
-                color="blue"
-                style={{ cursor: 'pointer' }}
-                onClick={onSwitchToRegister}
-              >
+              <span className="text-primary cursor-pointer hover:underline" onClick={onSwitchToRegister}>
                 Sign up
-              </Text>
-            </Text>
+              </span>
+            </p>
           ) : null}
-        </Flex>
-      </form>
+        </form>
+      </CardContent>
     </Card>
   );
 };
-

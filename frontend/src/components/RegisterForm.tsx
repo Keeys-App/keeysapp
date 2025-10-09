@@ -1,9 +1,13 @@
 import { useState } from 'react';
 import type { FC, FormEvent } from 'react';
 import { useMutation } from '@apollo/client';
-import { Box, Button, Card, Flex, Heading, Text, TextField, Callout } from '@radix-ui/themes';
 import { REGISTER_MUTATION } from '../graphql/auth';
 import { useAuth } from '../contexts/AuthContext';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface RegisterFormProps {
   onSuccess?: () => void;
@@ -16,7 +20,7 @@ export const RegisterForm: FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
-  
+
   const { login } = useAuth();
   const [registerMutation, { loading }] = useMutation(REGISTER_MUTATION);
 
@@ -63,7 +67,7 @@ export const RegisterForm: FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin
           isActive: data.register.user.isActive,
           isSuperuser: data.register.user.isSuperuser,
         });
-        
+
         if (onSuccess) {
           onSuccess();
         }
@@ -76,23 +80,22 @@ export const RegisterForm: FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin
   };
 
   return (
-    <Card size="3" style={{ maxWidth: 450, width: '100%' }}>
-      <form onSubmit={handleSubmit}>
-        <Flex direction="column" gap="4">
-          <Heading size="6" align="center">Create Account</Heading>
-          
+    <Card className="w-full max-w-md">
+      <CardHeader>
+        <CardTitle className="text-center text-2xl">Create Account</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
           {error ? (
-            <Callout.Root color="red">
-              <Callout.Text>{error}</Callout.Text>
-            </Callout.Root>
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           ) : null}
 
-          <Box>
-            <Text as="label" size="2" weight="medium" mb="2">
-              Email
-            </Text>
-            <TextField.Root
-              size="3"
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
               type="email"
               placeholder="your@email.com"
               value={email}
@@ -103,14 +106,12 @@ export const RegisterForm: FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin
               required
               autoComplete="email"
             />
-          </Box>
+          </div>
 
-          <Box>
-            <Text as="label" size="2" weight="medium" mb="2">
-              Username
-            </Text>
-            <TextField.Root
-              size="3"
+          <div className="space-y-2">
+            <Label htmlFor="username">Username</Label>
+            <Input
+              id="username"
               type="text"
               placeholder="johndoe"
               value={username}
@@ -121,14 +122,12 @@ export const RegisterForm: FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin
               required
               autoComplete="username"
             />
-          </Box>
+          </div>
 
-          <Box>
-            <Text as="label" size="2" weight="medium" mb="2">
-              Password
-            </Text>
-            <TextField.Root
-              size="3"
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
               type="password"
               placeholder="••••••••"
               value={password}
@@ -140,14 +139,12 @@ export const RegisterForm: FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin
               autoComplete="new-password"
               maxLength={72}
             />
-          </Box>
+          </div>
 
-          <Box>
-            <Text as="label" size="2" weight="medium" mb="2">
-              Confirm Password
-            </Text>
-            <TextField.Root
-              size="3"
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword">Confirm Password</Label>
+            <Input
+              id="confirmPassword"
               type="password"
               placeholder="••••••••"
               value={confirmPassword}
@@ -159,28 +156,22 @@ export const RegisterForm: FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin
               autoComplete="new-password"
               maxLength={72}
             />
-          </Box>
+          </div>
 
-          <Button size="3" type="submit" disabled={loading}>
+          <Button type="submit" disabled={loading} className="w-full">
             {loading ? 'Creating account...' : 'Create Account'}
           </Button>
 
           {onSwitchToLogin ? (
-            <Text size="2" align="center" color="gray">
+            <p className="text-center text-sm text-muted-foreground">
               Already have an account?{' '}
-              <Text
-                as="span"
-                color="blue"
-                style={{ cursor: 'pointer' }}
-                onClick={onSwitchToLogin}
-              >
+              <span className="text-primary cursor-pointer hover:underline" onClick={onSwitchToLogin}>
                 Sign in
-              </Text>
-            </Text>
+              </span>
+            </p>
           ) : null}
-        </Flex>
-      </form>
+        </form>
+      </CardContent>
     </Card>
   );
 };
-

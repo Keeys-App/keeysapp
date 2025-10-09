@@ -1,8 +1,17 @@
 import type { FC } from 'react';
-import { Card, Flex, Heading, Text, Badge, Box, DropdownMenu, IconButton } from '@radix-ui/themes';
-import { DotsHorizontalIcon, Pencil1Icon, TrashIcon, PersonIcon } from '@radix-ui/react-icons';
+import { MoreHorizontal, Pencil, Trash2, User } from 'lucide-react';
 import type { Project } from '../types/project';
 import { ProjectStatus } from '../types/project';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 
 interface ProjectCardProps {
   project: Project;
@@ -11,12 +20,7 @@ interface ProjectCardProps {
   onClick?: (project: Project) => void;
 }
 
-export const ProjectCard: FC<ProjectCardProps> = ({
-  project,
-  onEdit,
-  onDelete,
-  onClick,
-}) => {
+export const ProjectCard: FC<ProjectCardProps> = ({ project, onEdit, onDelete, onClick }) => {
   const handleCardClick = () => {
     if (onClick) {
       onClick(project);
@@ -40,13 +44,13 @@ export const ProjectCard: FC<ProjectCardProps> = ({
   const getStatusColor = (status: string) => {
     switch (status) {
       case ProjectStatus.ACTIVE:
-        return 'green';
+        return 'default';
       case ProjectStatus.ARCHIVED:
-        return 'gray';
+        return 'secondary';
       case ProjectStatus.DRAFT:
-        return 'yellow';
+        return 'outline';
       default:
-        return 'blue';
+        return 'default';
     }
   };
 
@@ -65,102 +69,74 @@ export const ProjectCard: FC<ProjectCardProps> = ({
 
   return (
     <Card
-      style={{
-        cursor: onClick ? 'pointer' : 'default',
-        transition: 'all 0.2s',
-        position: 'relative',
-      }}
+      className={`relative cursor-pointer transition-all hover:shadow-md ${onClick ? '' : 'cursor-default'}`}
       onClick={handleCardClick}
     >
       {/* Color bar */}
-      <Box
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: '4px',
-          backgroundColor: project.color,
-          borderRadius: '8px 8px 0 0',
-        }}
+      <div
+        className="absolute top-0 left-0 right-0 h-1 rounded-t-lg"
+        style={{ backgroundColor: project.color }}
       />
 
-      <Flex direction="column" gap="3" pt="2">
-        {/* Header with title and actions */}
-        <Flex justify="between" align="start">
-          <Flex direction="column" gap="1" style={{ flex: 1 }}>
-            <Heading size="4">{project.name}</Heading>
+      <CardHeader className="pt-4">
+        <div className="flex justify-between items-start">
+          <div className="flex-1">
+            <CardTitle className="text-xl">{project.name}</CardTitle>
             {project.description ? (
-              <Text size="2" color="gray" style={{
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden',
-              }}>
-                {project.description}
-              </Text>
+              <CardDescription className="mt-1 line-clamp-2">{project.description}</CardDescription>
             ) : null}
-          </Flex>
+          </div>
 
           {project.canEdit ? (
-            <DropdownMenu.Root>
-              <DropdownMenu.Trigger>
-                <IconButton
-                  variant="ghost"
-                  size="1"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                  }}
-                >
-                  <DotsHorizontalIcon />
-                </IconButton>
-              </DropdownMenu.Trigger>
-              <DropdownMenu.Content>
-                <DropdownMenu.Item onClick={handleEdit}>
-                  <Pencil1Icon /> Edit
-                </DropdownMenu.Item>
-                <DropdownMenu.Separator />
-                <DropdownMenu.Item color="red" onClick={handleDelete}>
-                  <TrashIcon /> Delete
-                </DropdownMenu.Item>
-              </DropdownMenu.Content>
-            </DropdownMenu.Root>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleEdit}>
+                  <Pencil className="h-4 w-4" />
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleDelete} className="text-destructive">
+                  <Trash2 className="h-4 w-4" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : null}
-        </Flex>
+        </div>
+      </CardHeader>
 
+      <CardContent className="space-y-3">
         {/* Languages */}
         {project.languages.length > 0 ? (
-          <Flex gap="2" wrap="wrap">
+          <div className="flex gap-2 flex-wrap">
             {project.languages.slice(0, 5).map((lang) => {
               return (
-                <Badge key={lang} variant="soft" size="1">
+                <Badge key={lang} variant="secondary">
                   {lang.toUpperCase()}
                 </Badge>
               );
             })}
             {project.languages.length > 5 ? (
-              <Badge variant="soft" size="1" color="gray">
-                +{project.languages.length - 5} more
-              </Badge>
+              <Badge variant="outline">+{project.languages.length - 5} more</Badge>
             ) : null}
-          </Flex>
+          </div>
         ) : null}
 
         {/* Footer with status and members */}
-        <Flex justify="between" align="center" pt="2">
-          <Badge color={getStatusColor(project.status)} variant="soft" size="1">
-            {getStatusLabel(project.status)}
-          </Badge>
+        <div className="flex justify-between items-center pt-2 border-t">
+          <Badge variant={getStatusColor(project.status)}>{getStatusLabel(project.status)}</Badge>
 
-          <Flex align="center" gap="1">
-            <PersonIcon width="14" height="14" />
-            <Text size="1" color="gray">
-              {project.members.length + 1}
-            </Text>
-          </Flex>
-        </Flex>
-      </Flex>
+          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+            <User className="h-3.5 w-3.5" />
+            <span>{project.members.length + 1}</span>
+          </div>
+        </div>
+      </CardContent>
     </Card>
   );
 };
-
