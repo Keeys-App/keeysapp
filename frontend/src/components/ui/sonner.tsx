@@ -1,4 +1,4 @@
-import { ComponentProps } from "react"
+import { type ComponentProps } from "react"
 import { useTheme } from "@/contexts/ThemeContext"
 import { Toaster as Sonner } from "sonner"
 
@@ -11,13 +11,21 @@ const Toaster = ({ ...props }: ToasterProps) => {
     <Sonner
       theme={theme as ToasterProps["theme"]}
       className="toaster group"
-      style={
-        {
-          "--normal-bg": "var(--popover)",
-          "--normal-text": "var(--popover-foreground)",
-          "--normal-border": "var(--border)",
-        } as React.CSSProperties
-      }
+      position="top-right"
+      richColors
+      closeButton
+      toastOptions={{
+        classNames: {
+          toast: "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg",
+          description: "group-[.toast]:text-muted-foreground",
+          actionButton: "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
+          cancelButton: "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
+          success: "group-[.toast]:text-green-600 dark:group-[.toast]:text-green-400",
+          error: "group-[.toast]:text-red-600 dark:group-[.toast]:text-red-400",
+          info: "group-[.toast]:text-blue-600 dark:group-[.toast]:text-blue-400",
+          warning: "group-[.toast]:text-yellow-600 dark:group-[.toast]:text-yellow-400",
+        },
+      }}
       {...props}
     />
   )
