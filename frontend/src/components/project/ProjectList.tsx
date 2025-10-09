@@ -1,6 +1,6 @@
 import { useState, type FC } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { Plus, FolderOpen, ArrowUpRightIcon } from 'lucide-react';
 import { useQuery, useMutation } from '@apollo/client';
 import { GET_PROJECTS, DELETE_PROJECT, type GetProjectsData, type Project } from '@/graphql/projects';
 import { ProjectCard } from './ProjectCard';
@@ -9,6 +9,14 @@ import { EditProjectDialog } from './EditProjectDialog';
 import { PATHS } from '@/constants/paths';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -101,22 +109,48 @@ export const ProjectList: FC = () => {
 
         {/* Projects Grid */}
         {projects.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-4 min-h-[40vh] border-2 border-dashed rounded-lg p-12">
-            <div>
-              <h3 className="text-2xl font-semibold text-center mb-2">No projects yet</h3>
-              <p className="text-sm text-muted-foreground text-center">
-                Create your first project to start managing translations
-              </p>
-            </div>
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <FolderOpen />
+              </EmptyMedia>
+              <EmptyTitle>No Projects Yet</EmptyTitle>
+              <EmptyDescription>
+                You haven&apos;t created any projects yet. Get started by
+                creating your first project.
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => {
+                    return setCreateDialogOpen(true);
+                  }}
+                >
+                  Create Project
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    // TODO: Implement import functionality
+                    alert('Import functionality coming soon!');
+                  }}
+                >
+                  Import Project
+                </Button>
+              </div>
+            </EmptyContent>
             <Button
-              size="lg"
+              variant="link"
+              className="text-muted-foreground cursor-pointer"
+              size="sm"
               onClick={() => {
-                return setCreateDialogOpen(true);
+                // TODO: Link to documentation
               }}
             >
-              <Plus className="h-4 w-4" /> Create Your First Project
+              Learn More <ArrowUpRightIcon />
             </Button>
-          </div>
+          </Empty>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {projects.map((project) => {
