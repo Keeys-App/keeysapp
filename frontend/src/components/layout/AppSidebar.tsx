@@ -79,7 +79,7 @@ export const AppSidebar: FC = () => {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupContent className="px-2">
+          <SidebarGroupContent className="px-2 transition-[padding] group-data-[collapsible=icon]:px-0">
             <SidebarMenu>
               {navItems.map((item) => {
                 return (
