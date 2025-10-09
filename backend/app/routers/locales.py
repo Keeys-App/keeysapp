@@ -17,7 +17,7 @@ async def get_locales(
     namespace: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    """Получить список локализаций с фильтрацией"""
+    """Get list of locales with filtering"""
     query = db.query(Locale)
     
     if language:
@@ -31,17 +31,17 @@ async def get_locales(
 
 @router.get("/{locale_id}", response_model=LocaleResponse)
 async def get_locale(locale_id: int, db: Session = Depends(get_db)):
-    """Получить локализацию по ID"""
+    """Get locale by ID"""
     locale = db.query(Locale).filter(Locale.id == locale_id).first()
     if not locale:
-        raise HTTPException(status_code=404, detail="Локализация не найдена")
+        raise HTTPException(status_code=404, detail="Locale not found")
     return locale
 
 
 @router.post("/", response_model=LocaleResponse)
 async def create_locale(locale: LocaleCreate, db: Session = Depends(get_db)):
-    """Создать новую локализацию"""
-    # Проверяем, не существует ли уже такая комбинация key + language + namespace
+    """Create new locale"""
+    # Check if combination of key + language + namespace already exists
     existing = db.query(Locale).filter(
         Locale.key == locale.key,
         Locale.language == locale.language,
@@ -51,7 +51,7 @@ async def create_locale(locale: LocaleCreate, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(
             status_code=400, 
-            detail="Локализация с таким ключом, языком и пространством имен уже существует"
+            detail="Locale with such key, language and namespace already exists"
         )
     
     db_locale = Locale(**locale.dict())
@@ -67,10 +67,10 @@ async def update_locale(
     locale_update: LocaleUpdate, 
     db: Session = Depends(get_db)
 ):
-    """Обновить локализацию"""
+    """Update locale"""
     db_locale = db.query(Locale).filter(Locale.id == locale_id).first()
     if not db_locale:
-        raise HTTPException(status_code=404, detail="Локализация не найдена")
+        raise HTTPException(status_code=404, detail="Locale not found")
     
     update_data = locale_update.dict(exclude_unset=True)
     for field, value in update_data.items():
@@ -83,14 +83,14 @@ async def update_locale(
 
 @router.delete("/{locale_id}")
 async def delete_locale(locale_id: int, db: Session = Depends(get_db)):
-    """Удалить локализацию"""
+    """Delete locale"""
     db_locale = db.query(Locale).filter(Locale.id == locale_id).first()
     if not db_locale:
-        raise HTTPException(status_code=404, detail="Локализация не найдена")
+        raise HTTPException(status_code=404, detail="Locale not found")
     
     db.delete(db_locale)
     db.commit()
-    return {"message": "Локализация успешно удалена"}
+    return {"message": "Locale successfully deleted"}
 
 
 @router.get("/export/{language}")
@@ -99,8 +99,8 @@ async def export_locales(
     namespace: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    """Экспортировать локализации в формате JSON"""
-    query = db.query(Locale).filter(Locale.language == language, Locale.is_active == True)
+    """Export locales in JSON format"""
+    query = db.query(Locale).filter(Locale.language == language, Locale.is_active)
     
     if namespace:
         query = query.filter(Locale.namespace == namespace)

@@ -30,7 +30,7 @@ const LocaleManager: React.FC = () => {
       setLocales(response.data);
       setError(null);
     } catch (err) {
-      setError('Ошибка при загрузке локализаций');
+      setError('Error loading locales');
       console.error(err);
     } finally {
       setLoading(false);
@@ -38,37 +38,37 @@ const LocaleManager: React.FC = () => {
   };
 
   if (loading) {
-    return <div>Загрузка...</div>;
+    return <div>Loading...</div>;
   }
 
   if (error) {
     return (
       <div style={{ color: 'red' }}>
         {error}
-        <button onClick={fetchLocales}>Повторить</button>
+        <button onClick={fetchLocales}>Retry</button>
       </div>
     );
   }
 
   return (
     <div style={{ padding: '20px' }}>
-      <h1>Управление локализацией</h1>
-      <button onClick={fetchLocales}>Обновить</button>
+      <h1>Localization Management</h1>
+      <button onClick={fetchLocales}>Refresh</button>
       
       <div style={{ marginTop: '20px' }}>
-        <h2>Локализации ({locales.length})</h2>
+        <h2>Locales ({locales.length})</h2>
         {locales.length === 0 ? (
-          <p>Локализации не найдены</p>
+          <p>No locales found</p>
         ) : (
           <table style={{ borderCollapse: 'collapse', width: '100%' }}>
             <thead>
               <tr style={{ backgroundColor: '#f5f5f5' }}>
                 <th style={{ border: '1px solid #ddd', padding: '8px' }}>ID</th>
-                <th style={{ border: '1px solid #ddd', padding: '8px' }}>Ключ</th>
-                <th style={{ border: '1px solid #ddd', padding: '8px' }}>Значение</th>
-                <th style={{ border: '1px solid #ddd', padding: '8px' }}>Язык</th>
-                <th style={{ border: '1px solid #ddd', padding: '8px' }}>Пространство</th>
-                <th style={{ border: '1px solid #ddd', padding: '8px' }}>Активна</th>
+                <th style={{ border: '1px solid #ddd', padding: '8px' }}>Key</th>
+                <th style={{ border: '1px solid #ddd', padding: '8px' }}>Value</th>
+                <th style={{ border: '1px solid #ddd', padding: '8px' }}>Language</th>
+                <th style={{ border: '1px solid #ddd', padding: '8px' }}>Namespace</th>
+                <th style={{ border: '1px solid #ddd', padding: '8px' }}>Active</th>
               </tr>
             </thead>
             <tbody>

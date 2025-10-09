@@ -1,143 +1,143 @@
-# Locales Монорепо
+# Locales Monorepo
 
-Монорепо для управления локализацией с фронтендом на React + TypeScript и бекендом на Python + FastAPI.
+Monorepo for localization management with React + TypeScript frontend and Python + FastAPI backend.
 
-## Структура проекта
+## Project Structure
 
 ```
 locales/
 ├── frontend/          # React + TypeScript + Vite
 ├── backend/           # Python + FastAPI
-├── docker-compose.yml # Docker конфигурация
-├── package.json       # Корневые скрипты
+├── docker-compose.yml # Docker configuration
+├── package.json       # Root scripts
 └── README.md
 ```
 
-## Технологии
+## Technologies
 
-### Фронтенд
-- **React 18** - UI библиотека
-- **TypeScript** - типизация
-- **Vite** - сборщик и dev сервер
-- **Axios** - HTTP клиент
-- **React Router** - маршрутизация
+### Frontend
+- **React 18** - UI library
+- **TypeScript** - type system
+- **Vite** - build tool and dev server
+- **Axios** - HTTP client
+- **React Router** - routing
 
-### Бекенд
-- **FastAPI** - веб фреймворк
+### Backend
+- **FastAPI** - web framework
 - **SQLAlchemy** - ORM
-- **PostgreSQL** - база данных
-- **Alembic** - миграции
-- **Pydantic** - валидация данных
+- **PostgreSQL** - database
+- **Alembic** - migrations
+- **Pydantic** - data validation
 
-### Инфраструктура
-- **Docker** - контейнеризация
-- **Docker Compose** - оркестрация
+### Infrastructure
+- **Docker** - containerization
+- **Docker Compose** - orchestration
 
-## Быстрый старт
+## Quick Start
 
-### Предварительные требования
+### Prerequisites
 - Node.js 18+
 - Python 3.11+
-- Docker и Docker Compose
+- Docker and Docker Compose
 
-### Установка
+### Installation
 
-1. **Клонируйте репозиторий и установите зависимости:**
+1. **Clone the repository and install dependencies:**
 ```bash
 git clone <repository-url>
 cd locales
 npm run install:all
 ```
 
-2. **Запустите проект с помощью Docker:**
+2. **Run the project with Docker:**
 ```bash
 docker-compose up --build
 ```
 
-Или запустите локально:
+Or run locally:
 
-3. **Запустите PostgreSQL:**
+3. **Start PostgreSQL:**
 ```bash
 docker-compose up postgres -d
 ```
 
-4. **Запустите бекенд:**
+4. **Start backend:**
 ```bash
 cd backend
 pip install -r requirements.txt
 python main.py
 ```
 
-5. **Запустите фронтенд:**
+5. **Start frontend:**
 ```bash
 cd frontend
 npm run dev
 ```
 
-## Доступные сервисы
+## Available Services
 
-- **Фронтенд**: http://localhost:3000
-- **Бекенд API**: http://localhost:8000
-- **API документация**: http://localhost:8000/docs
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8000
+- **API Documentation**: http://localhost:8000/docs
 - **PostgreSQL**: localhost:5432
 
 ## API Endpoints
 
-### Локализации
+### Localizations
 
-- `GET /api/v1/locales/` - Получить список локализаций
-- `GET /api/v1/locales/{id}` - Получить локализацию по ID
-- `POST /api/v1/locales/` - Создать новую локализацию
-- `PUT /api/v1/locales/{id}` - Обновить локализацию
-- `DELETE /api/v1/locales/{id}` - Удалить локализацию
-- `GET /api/v1/locales/export/{language}` - Экспортировать локализации
+- `GET /api/v1/locales/` - Get list of localizations
+- `GET /api/v1/locales/{id}` - Get localization by ID
+- `POST /api/v1/locales/` - Create new localization
+- `PUT /api/v1/locales/{id}` - Update localization
+- `DELETE /api/v1/locales/{id}` - Delete localization
+- `GET /api/v1/locales/export/{language}` - Export localizations
 
-### Параметры запросов
+### Query Parameters
 
-- `skip` - количество записей для пропуска (пагинация)
-- `limit` - максимальное количество записей (по умолчанию 100)
-- `language` - фильтр по языку (например: 'ru', 'en')
-- `namespace` - фильтр по пространству имен
+- `skip` - number of records to skip (pagination)
+- `limit` - maximum number of records (default 100)
+- `language` - filter by language (e.g.: 'ru', 'en')
+- `namespace` - filter by namespace
 
-## Разработка
+## Development
 
-### Скрипты
+### Scripts
 
 ```bash
-# Установить все зависимости
+# Install all dependencies
 npm run install:all
 
-# Запустить все сервисы в режиме разработки
+# Run all services in development mode
 npm run dev
 
-# Запустить только фронтенд
+# Run only frontend
 npm run dev:frontend
 
-# Запустить только бекенд
+# Run only backend
 npm run dev:backend
 
-# Собрать фронтенд для продакшена
+# Build frontend for production
 npm run build
 
-# Очистить node_modules
+# Clean node_modules
 npm run clean
 ```
 
-### Структура базы данных
+### Database Structure
 
-Таблица `locales`:
-- `id` - уникальный идентификатор
-- `key` - ключ локализации
-- `value` - значение локализации
-- `language` - язык (ru, en, etc.)
-- `namespace` - пространство имен (default, admin, etc.)
-- `is_active` - активна ли локализация
-- `created_at` - дата создания
-- `updated_at` - дата обновления
+`locales` table:
+- `id` - unique identifier
+- `key` - localization key
+- `value` - localization value
+- `language` - language (ru, en, etc.)
+- `namespace` - namespace (default, admin, etc.)
+- `is_active` - whether localization is active
+- `created_at` - creation date
+- `updated_at` - update date
 
-### Переменные окружения
+### Environment Variables
 
-Создайте файл `.env` в папке `backend/` на основе `env.example`:
+Create `.env` file in `backend/` folder based on `env.example`:
 
 ```bash
 cp backend/env.example backend/.env
@@ -145,35 +145,35 @@ cp backend/env.example backend/.env
 
 ## Docker
 
-### Сборка и запуск
+### Build and Run
 ```bash
-# Сборка всех сервисов
+# Build all services
 docker-compose build
 
-# Запуск всех сервисов
+# Run all services
 docker-compose up
 
-# Запуск в фоновом режиме
+# Run in background
 docker-compose up -d
 
-# Остановка сервисов
+# Stop services
 docker-compose down
 
-# Остановка с удалением volumes
+# Stop with volume removal
 docker-compose down -v
 ```
 
-### Логи
+### Logs
 ```bash
-# Просмотр логов всех сервисов
+# View logs for all services
 docker-compose logs
 
-# Просмотр логов конкретного сервиса
+# View logs for specific service
 docker-compose logs backend
 docker-compose logs frontend
 docker-compose logs postgres
 ```
 
-## Лицензия
+## License
 
 MIT

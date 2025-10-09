@@ -21,7 +21,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Locales API",
-    description="API для управления локализацией",
+    description="API for localization management",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -29,7 +29,7 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # В продакшене лучше указать конкретные домены
+    allow_origins=["*"],  # In production, specify specific domains
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -41,7 +41,7 @@ app.include_router(api_router, prefix="/api/v1")
 
 @app.get("/")
 async def root():
-    return {"message": "Добро пожаловать в Locales API!"}
+    return {"message": "Welcome to Locales API!"}
 
 
 @app.get("/health")
