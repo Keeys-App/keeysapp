@@ -1,6 +1,6 @@
 import type { FC } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, FolderKanban, Settings, Sun, Moon, LogOut } from 'lucide-react';
+import { LayoutDashboard, Settings, Sun, Moon, LogOut, Languages, Folder } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { PATHS } from '@/constants/paths';
@@ -42,7 +42,7 @@ export const AppSidebar: FC = () => {
     {
       title: 'Projects',
       url: PATHS.DASHBOARD,
-      icon: FolderKanban,
+      icon: Folder,
       isActive: location.pathname.startsWith('/project'),
     },
     {
@@ -65,11 +65,11 @@ export const AppSidebar: FC = () => {
             <SidebarMenuButton size="lg" asChild>
               <a href="/">
                 <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <FolderKanban className="size-4" />
+                  <Languages className="size-5" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">Locales</span>
-                  <span className="truncate text-xs">Dashboard</span>
+                  <span className="truncate text-xs">Beta</span>
                 </div>
               </a>
             </SidebarMenuButton>
