@@ -67,9 +67,9 @@ export const ProjectCard: FC<ProjectCardProps> = ({
   const projectUrl = PATHS.PROJECT.replace(":id", project.id);
 
   return (
-    <Link to={projectUrl} className="block">
-      <Card className="relative cursor-pointer h-full transition-all group overflow-hidden shadow-none">
-        <CardHeader>
+    <Link to={projectUrl} className="block h-[160px]">
+      <Card className="relative p-4 gap-0 cursor-pointer h-full justify-between transition-all group overflow-hidden shadow-none">
+        <CardHeader className="p-0">
           <CardTitle className="flex items-center gap-2">
             <div className="flex items-center gap-2">
               <div
@@ -79,7 +79,7 @@ export const ProjectCard: FC<ProjectCardProps> = ({
             </div>
             {project.name}
           </CardTitle>
-          <CardDescription>{project.description}</CardDescription>
+          <CardDescription>{project.description || "No description"}</CardDescription>
           <CardAction>
             {project.canEdit ? (
               <DropdownMenu>
@@ -114,31 +114,27 @@ export const ProjectCard: FC<ProjectCardProps> = ({
           </CardAction>
         </CardHeader>
 
-        <CardContent>
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-sm text-muted-foreground">
+        <CardContent className="p-0">
+          <div className="flex flex-wrap items-center gap-x-3 text-sm text-muted-foreground">
+            <ProjectStatus status={project.status} />
+            <span className="">
               {project.keysCount} keys
             </span>
-          </div>
-          <div className="flex items-center gap-5 text-sm font-medium text-gray-500">
-            <ProjectStatus status={project.status} />
             <div className="flex items-center gap-1">
-              <Users2 className="h-4 w-4" />
-              {project.members.length + 1}
+              {project.members.length + 1} mem
             </div>
             <div className="flex items-center gap-1">
-              <Languages className="h-4 w-4" />
-              {project.languages.length}
+              {project.languages.length} lan
             </div>
           </div>
         </CardContent>
 
-        <CardFooter>
+        <CardFooter className="p-0">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="w-full">
-                  <Progress value={project.translationProgress} className="h-2" />
+                  <Progress value={project.translationProgress} className="h-1.5" />
                 </div>
               </TooltipTrigger>
               <TooltipContent>

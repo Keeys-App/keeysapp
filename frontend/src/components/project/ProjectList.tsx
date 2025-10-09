@@ -109,7 +109,7 @@ export const ProjectList: FC = () => {
 
             {/* Create Project Card */}
             <div
-              className="bg-card flex min-h-[180px] cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border p-6 transition-colors"
+              className="bg-card flex h-[160px] cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border p-6 transition-colors"
               onClick={() => {
                 return setCreateDialogOpen(true);
               }}
