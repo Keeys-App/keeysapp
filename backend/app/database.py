@@ -3,7 +3,9 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
 
-engine = create_engine(settings.database_url)
+# Заменяем postgresql:// на postgresql+psycopg:// для psycopg3
+database_url = settings.database_url.replace("postgresql://", "postgresql+psycopg://")
+engine = create_engine(database_url)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
