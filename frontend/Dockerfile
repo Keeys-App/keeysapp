@@ -7,7 +7,7 @@ WORKDIR /app
 RUN corepack enable
 
 # Copy all frontend files first
-COPY frontend/ .
+COPY . .
 
 # Install dependencies
 RUN yarn install --frozen-lockfile
@@ -23,8 +23,8 @@ FROM nginx:alpine
 # Copy built files from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy nginx configuration from frontend directory
-COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
+# Copy nginx configuration
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Expose port 80
 EXPOSE 80
