@@ -19,22 +19,26 @@ export type {
 } from '../graphql/projects';
 
 /**
- * Project status enum.
+ * Project status constants.
  */
-export enum ProjectStatus {
-  ACTIVE = 'active',
-  ARCHIVED = 'archived',
-  DRAFT = 'draft',
-}
+export const ProjectStatus = {
+  ACTIVE: 'active',
+  ARCHIVED: 'archived',
+  DRAFT: 'draft',
+} as const;
+
+export type ProjectStatusType = typeof ProjectStatus[keyof typeof ProjectStatus];
 
 /**
- * Project member role enum.
+ * Project member role constants.
  */
-export enum ProjectMemberRole {
-  ADMIN = 'admin',
-  EDITOR = 'editor',
-  VIEWER = 'viewer',
-}
+export const ProjectMemberRole = {
+  ADMIN: 'admin',
+  EDITOR: 'editor',
+  VIEWER: 'viewer',
+} as const;
+
+export type ProjectMemberRoleType = typeof ProjectMemberRole[keyof typeof ProjectMemberRole];
 
 /**
  * Default project colors.
