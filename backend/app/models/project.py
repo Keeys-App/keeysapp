@@ -27,6 +27,7 @@ class Project(Base):
     # Relationships
     owner = relationship("User", back_populates="owned_projects")
     members = relationship("ProjectMember", back_populates="project", cascade="all, delete-orphan")
+    keys = relationship("Key", back_populates="project", cascade="all, delete-orphan")
 
 
 class ProjectMember(Base):

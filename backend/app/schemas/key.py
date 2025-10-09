@@ -1,0 +1,407 @@
+import strawberry
+from typing import Optional, List, Dict
+from datetime import datetime
+from strawberry.types import Info
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError, OperationalError
+import logging
+
+from app.database import get_db
+from app.services.key_service import KeyService
+from app.core.exceptions import (
+    AuthenticationError,
+    UnauthorizedError,
+    DatabaseError,
+    handle_database_exception
+)
+from app.schemas.project import get_current_user_id
+
+logger = logging.getLogger(__name__)
+
+
+@strawberry.type
+class TranslationType:
+    """
+    GraphQL type for Translation.
+    """
+    language: str
+    value: str
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+
+@strawberry.type
+class KeyType:
+    """
+    GraphQL type for Key.
+    """
+    id: str  # UUID as string for public API
+    key: str
+    description: Optional[str]
+    translations: List[TranslationType]
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+
+@strawberry.input
+class CreateKeyInput:
+    """
+    Input type for creating a key.
+    """
+    project_id: str  # Project UUID
+    key: str
+    description: Optional[str] = None
+    translations: Optional[strawberry.scalars.JSON] = None  # Dict[str, str]
+
+
+@strawberry.input
+class UpdateKeyInput:
+    """
+    Input type for updating a key.
+    """
+    id: str  # Key UUID
+    key: Optional[str] = None
+    description: Optional[str] = None
+
+
+@strawberry.input
+class SetTranslationInput:
+    """
+    Input type for setting a translation.
+    """
+    key_id: str  # Key UUID
+    language: str
+    value: str
+
+
+@strawberry.input
+class DeleteTranslationInput:
+    """
+    Input type for deleting a translation.
+    """
+    key_id: str  # Key UUID
+    language: str
+
+
+def build_key_type(key) -> KeyType:
+    """
+    Build KeyType from Key model.
+    
+    Args:
+        key: Key model instance
+        
+    Returns:
+        KeyType
+    """
+    # Build translations
+    translations = []
+    for translation in key.translations:
+        translations.append(TranslationType(
+            language=translation.language,
+            value=translation.value,
+            created_at=translation.created_at,
+            updated_at=translation.updated_at
+        ))
+    
+    return KeyType(
+        id=str(key.public_id),
+        key=key.key,
+        description=key.description,
+        translations=translations,
+        created_at=key.created_at,
+        updated_at=key.updated_at
+    )
+
+
+@strawberry.type
+class KeyQuery:
+    """
+    GraphQL queries for keys.
+    """
+
+    @strawberry.field
+    def project_keys(self, info: Info, project_id: str) -> List[KeyType]:
+        """
+        Get all keys for a project.
+        
+        Args:
+            info: GraphQL info object
+            project_id: Project UUID
+            
+        Returns:
+            List of keys
+            
+        Raises:
+            UnauthorizedError: If user is not authenticated
+        """
+        try:
+            current_user_id = get_current_user_id(info)
+            if not current_user_id:
+                raise UnauthorizedError("Authentication required to access keys")
+            
+            db: Session = next(get_db())
+            try:
+                keys = KeyService.get_project_keys(db, project_id, current_user_id)
+                if keys is None:
+                    return []
+                
+                return [build_key_type(key) for key in keys]
+            finally:
+                db.close()
+        except UnauthorizedError:
+            raise
+        except Exception as e:
+            logger.error(f"Error in project_keys query: {type(e).__name__}: {str(e)}")
+            return []
+
+    @strawberry.field
+    def key(self, info: Info, id: str) -> Optional[KeyType]:
+        """
+        Get a specific key by ID.
+        
+        Args:
+            info: GraphQL info object
+            id: Key UUID
+            
+        Returns:
+            Key or None
+        """
+        try:
+            current_user_id = get_current_user_id(info)
+            if not current_user_id:
+                return None
+            
+            db: Session = next(get_db())
+            try:
+                key = KeyService.get_key_by_public_id(db, id)
+                if not key:
+                    return None
+                
+                # Check access through project
+                from app.services.project_service import ProjectService
+                if not ProjectService.check_project_access(db, key.project_id, current_user_id):
+                    return None
+                
+                return build_key_type(key)
+            finally:
+                db.close()
+        except Exception as e:
+            logger.error(f"Error in key query: {type(e).__name__}: {str(e)}")
+            return None
+
+
+@strawberry.type
+class KeyMutation:
+    """
+    GraphQL mutations for keys.
+    """
+
+    @strawberry.mutation
+    def create_key(self, input: CreateKeyInput, info: Info) -> Optional[KeyType]:
+        """
+        Create a new key.
+        
+        Args:
+            input: Key creation input
+            info: GraphQL info object
+            
+        Returns:
+            Created key
+            
+        Raises:
+            UnauthorizedError: If user is not authenticated
+            DatabaseError: If database operation fails
+        """
+        current_user_id = get_current_user_id(info)
+        if not current_user_id:
+            raise UnauthorizedError("User must be authenticated to create keys")
+        
+        db: Session = next(get_db())
+        
+        try:
+            key = KeyService.create_key(
+                db=db,
+                project_public_id=input.project_id,
+                key=input.key,
+                description=input.description,
+                translations=input.translations,
+                user_id=current_user_id
+            )
+            
+            if not key:
+                return None
+            
+            return build_key_type(key)
+        except (UnauthorizedError, AuthenticationError):
+            raise
+        except (IntegrityError, OperationalError) as e:
+            handle_database_exception(e, "key creation")
+        except Exception as e:
+            handle_database_exception(e, "key creation")
+        finally:
+            db.close()
+
+    @strawberry.mutation
+    def update_key(self, input: UpdateKeyInput, info: Info) -> Optional[KeyType]:
+        """
+        Update an existing key.
+        
+        Args:
+            input: Key update input
+            info: GraphQL info object
+            
+        Returns:
+            Updated key or None
+            
+        Raises:
+            UnauthorizedError: If user is not authenticated
+            DatabaseError: If database operation fails
+        """
+        current_user_id = get_current_user_id(info)
+        if not current_user_id:
+            raise UnauthorizedError("User must be authenticated to update keys")
+        
+        db: Session = next(get_db())
+        
+        try:
+            key = KeyService.update_key(
+                db=db,
+                public_id=input.id,
+                key=input.key,
+                description=input.description,
+                user_id=current_user_id
+            )
+            
+            if not key:
+                return None
+            
+            return build_key_type(key)
+        except (UnauthorizedError, AuthenticationError):
+            raise
+        except (IntegrityError, OperationalError) as e:
+            handle_database_exception(e, "key update")
+        except Exception as e:
+            handle_database_exception(e, "key update")
+        finally:
+            db.close()
+
+    @strawberry.mutation
+    def delete_key(self, id: str, info: Info) -> bool:
+        """
+        Delete a key.
+        
+        Args:
+            id: Key UUID
+            info: GraphQL info object
+            
+        Returns:
+            True if deleted, False otherwise
+            
+        Raises:
+            UnauthorizedError: If user is not authenticated
+            DatabaseError: If database operation fails
+        """
+        current_user_id = get_current_user_id(info)
+        if not current_user_id:
+            raise UnauthorizedError("User must be authenticated to delete keys")
+        
+        db: Session = next(get_db())
+        
+        try:
+            return KeyService.delete_key(db, id, current_user_id)
+        except (UnauthorizedError, AuthenticationError):
+            raise
+        except (IntegrityError, OperationalError) as e:
+            handle_database_exception(e, "key deletion")
+        except Exception as e:
+            handle_database_exception(e, "key deletion")
+        finally:
+            db.close()
+
+    @strawberry.mutation
+    def set_translation(self, input: SetTranslationInput, info: Info) -> Optional[TranslationType]:
+        """
+        Set or update a translation.
+        
+        Args:
+            input: Translation input
+            info: GraphQL info object
+            
+        Returns:
+            Created/updated translation or None
+            
+        Raises:
+            UnauthorizedError: If user is not authenticated
+            DatabaseError: If database operation fails
+        """
+        current_user_id = get_current_user_id(info)
+        if not current_user_id:
+            raise UnauthorizedError("User must be authenticated to set translations")
+        
+        db: Session = next(get_db())
+        
+        try:
+            translation = KeyService.set_translation(
+                db=db,
+                key_public_id=input.key_id,
+                language=input.language,
+                value=input.value,
+                user_id=current_user_id
+            )
+            
+            if not translation:
+                return None
+            
+            return TranslationType(
+                language=translation.language,
+                value=translation.value,
+                created_at=translation.created_at,
+                updated_at=translation.updated_at
+            )
+        except (UnauthorizedError, AuthenticationError):
+            raise
+        except (IntegrityError, OperationalError) as e:
+            handle_database_exception(e, "translation update")
+        except Exception as e:
+            handle_database_exception(e, "translation update")
+        finally:
+            db.close()
+
+    @strawberry.mutation
+    def delete_translation(self, input: DeleteTranslationInput, info: Info) -> bool:
+        """
+        Delete a translation.
+        
+        Args:
+            input: Delete translation input
+            info: GraphQL info object
+            
+        Returns:
+            True if deleted, False otherwise
+            
+        Raises:
+            UnauthorizedError: If user is not authenticated
+            DatabaseError: If database operation fails
+        """
+        current_user_id = get_current_user_id(info)
+        if not current_user_id:
+            raise UnauthorizedError("User must be authenticated to delete translations")
+        
+        db: Session = next(get_db())
+        
+        try:
+            return KeyService.delete_translation(
+                db=db,
+                key_public_id=input.key_id,
+                language=input.language,
+                user_id=current_user_id
+            )
+        except (UnauthorizedError, AuthenticationError):
+            raise
+        except (IntegrityError, OperationalError) as e:
+            handle_database_exception(e, "translation deletion")
+        except Exception as e:
+            handle_database_exception(e, "translation deletion")
+        finally:
+            db.close()
+

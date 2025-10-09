@@ -2,6 +2,7 @@ import strawberry
 from typing import Optional, List
 from app.schemas.auth import AuthQuery, AuthMutation, UserType
 from app.schemas.project import ProjectQuery, ProjectMutation, ProjectType
+from app.schemas.key import KeyQuery, KeyMutation, KeyType
 
 
 @strawberry.type
@@ -23,6 +24,10 @@ class Query:
     # Include project queries
     projects: List[ProjectType] = strawberry.field(resolver=ProjectQuery.projects)
     project: Optional[ProjectType] = strawberry.field(resolver=ProjectQuery.project)
+    
+    # Include key queries
+    project_keys: List[KeyType] = strawberry.field(resolver=KeyQuery.project_keys)
+    key: Optional[KeyType] = strawberry.field(resolver=KeyQuery.key)
 
 
 @strawberry.type
@@ -40,6 +45,13 @@ class Mutation:
     update_project = strawberry.field(resolver=ProjectMutation.update_project)
     delete_project = strawberry.field(resolver=ProjectMutation.delete_project)
     add_project_member = strawberry.field(resolver=ProjectMutation.add_project_member)
+    
+    # Include key mutations
+    create_key = strawberry.field(resolver=KeyMutation.create_key)
+    update_key = strawberry.field(resolver=KeyMutation.update_key)
+    delete_key = strawberry.field(resolver=KeyMutation.delete_key)
+    set_translation = strawberry.field(resolver=KeyMutation.set_translation)
+    delete_translation = strawberry.field(resolver=KeyMutation.delete_translation)
 
 
 schema = strawberry.Schema(query=Query, mutation=Mutation)

@@ -6,6 +6,7 @@ import { PATHS } from '@/constants/paths';
 import { useAuth, useBreadcrumbs } from '@/contexts';
 import { useEffect, type FC } from 'react';
 import { Button } from '@/components/ui/button';
+import { KeyList, CreateKeyForm } from '@/components/key';
 
 export const ProjectPage: FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -78,8 +79,10 @@ export const ProjectPage: FC = () => {
           ) : null}
         </div>
       </div>
-      <div className="rounded-lg border p-4">
-        <p className="text-muted-foreground">Keys content coming soon...</p>
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold">Translation Keys</h2>
+        <CreateKeyForm projectId={project.id} />
+        <KeyList projectId={project.id} />
       </div>
     </div>
   );
