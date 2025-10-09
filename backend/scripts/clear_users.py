@@ -8,7 +8,7 @@ from app.database import engine, SessionLocal
 from app.models.user import User
 
 def clear_users():
-    """Clear all users from the database."""
+    """Clear all users 11 from the database."""
     db = SessionLocal()
     try:
         # Delete all users
