@@ -18,7 +18,8 @@ import {
   FieldLabel,
 } from '@/components/ui/field';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircleIcon } from 'lucide-react';
 
 interface RegisterFormProps {
   onSuccess?: () => void;
@@ -109,6 +110,8 @@ export const RegisterForm: FC<RegisterFormProps> = ({
           <FieldGroup>
             {error ? (
               <Alert variant="destructive">
+                <AlertCircleIcon /> 
+                <AlertTitle>Registration error</AlertTitle>
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             ) : null}

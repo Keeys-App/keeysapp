@@ -18,7 +18,8 @@ import {
   FieldLabel,
 } from '@/components/ui/field';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircleIcon } from 'lucide-react';
 
 interface LoginFormProps {
   onSuccess?: () => void;
@@ -91,6 +92,8 @@ export const LoginForm: FC<LoginFormProps> = ({
           <FieldGroup>
             {error ? (
               <Alert variant="destructive">
+                <AlertCircleIcon /> 
+                <AlertTitle>Authentication error</AlertTitle>
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             ) : null}
