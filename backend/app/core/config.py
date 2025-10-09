@@ -26,6 +26,16 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = False
+        env_prefix = ""
 
 
 settings = Settings()
+
+# Debug: print database URL (without password for security)
+if settings.database_url:
+    # Hide password in logs
+    import re
+    safe_url = re.sub(r':[^:@]+@', ':***@', settings.database_url)
+    print(f"Database URL: {safe_url}")
+else:
+    print("No DATABASE_URL found!")
