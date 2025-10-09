@@ -12,6 +12,8 @@ source venv/bin/activate
 python scripts/<script_name>.py
 ```
 
+
+
 ## Доступные скрипты
 
 ### list_users.py
