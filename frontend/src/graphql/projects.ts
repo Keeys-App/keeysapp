@@ -44,6 +44,7 @@ export const PROJECT_FRAGMENT = gql`
     }
     canEdit
     keysCount
+    translationProgress
     createdAt
     updatedAt
   }
@@ -135,6 +136,7 @@ export interface Project {
   members: ProjectMember[];
   canEdit: boolean;
   keysCount: number;
+  translationProgress: number;
   createdAt: string;
   updatedAt?: string | null;
 }

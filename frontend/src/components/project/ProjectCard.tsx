@@ -27,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { ProjectStatus } from "@/components/blocks";
 import { PATHS } from "@/constants/paths";
 
@@ -104,7 +105,17 @@ export const ProjectCard: FC<ProjectCardProps> = ({
         </CardHeader>
 
         <CardContent>
-          {project.keysCount} keys
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm text-muted-foreground">
+              {project.keysCount} keys
+            </span>
+            <div className="flex items-center gap-2 flex-1 max-w-[140px]">
+              <Progress value={project.translationProgress} className="h-2" />
+              <span className="text-sm font-medium whitespace-nowrap">
+                {project.translationProgress}%
+              </span>
+            </div>
+          </div>
         </CardContent>
 
         <CardFooter>

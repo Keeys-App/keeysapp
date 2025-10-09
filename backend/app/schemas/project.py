@@ -47,6 +47,7 @@ class ProjectType:
     members: List[ProjectMemberType]
     can_edit: bool
     keys_count: int
+    translation_progress: int  # Percentage of completed translations (0-100)
     created_at: datetime
     updated_at: Optional[datetime]
 
@@ -180,6 +181,17 @@ def build_project_type(project, current_user_id: int) -> ProjectType:
                 can_edit = True
                 break
     
+    # Calculate translation progress
+    keys_count = len(project.keys) if project.keys else 0
+    languages_count = len(project.languages) if project.languages else 0
+    
+    if keys_count == 0 or languages_count == 0:
+        translation_progress = 0
+    else:
+        total_required = keys_count * languages_count
+        total_translated = sum(len(key.translations) for key in project.keys)
+        translation_progress = int((total_translated / total_required) * 100) if total_required > 0 else 0
+    
     return ProjectType(
         id=str(project.public_id),
         name=project.name,
@@ -190,7 +202,8 @@ def build_project_type(project, current_user_id: int) -> ProjectType:
         owner=owner,
         members=members,
         can_edit=can_edit,
-        keys_count=len(project.keys) if project.keys else 0,
+        keys_count=keys_count,
+        translation_progress=translation_progress,
         created_at=project.created_at,
         updated_at=project.updated_at
     )
