@@ -3,11 +3,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import uvicorn
 import os
+from strawberry.fastapi import GraphQLRouter
 
 from app.database import engine
 from app.models.base import Base
 from app.routers import api_router
-from app.core.config import settings
+from app.schemas.schema import schema
 
 
 @asynccontextmanager
@@ -37,6 +38,10 @@ app.add_middleware(
 
 # Include routers
 app.include_router(api_router, prefix="/api/v1")
+
+# GraphQL endpoint
+graphql_app = GraphQLRouter(schema)
+app.include_router(graphql_app, prefix="/graphql")
 
 
 @app.get("/")
