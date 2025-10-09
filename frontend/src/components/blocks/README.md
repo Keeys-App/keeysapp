@@ -40,3 +40,24 @@ import { ColorPicker } from '@/components/blocks';
 />
 ```
 
+### Combobox
+
+Универсальный компонент выпадающего списка с поиском. Можно использовать с любыми данными.
+
+```tsx
+import { Combobox } from '@/components/blocks';
+
+const options = [
+  { value: 'en', label: 'English' },
+  { value: 'ru', label: 'Russian' },
+];
+
+<Combobox 
+  options={options}
+  value={selectedValue}
+  onSelect={setSelectedValue}
+  placeholder="Select language..."
+  searchPlaceholder="Search languages..."
+/>
+```
+

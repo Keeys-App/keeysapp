@@ -5,7 +5,7 @@ import { X } from 'lucide-react';
 import { CREATE_PROJECT, GET_PROJECTS, type CreateProjectInput } from '@/graphql/projects';
 import { DEFAULT_PROJECT_COLORS, COMMON_LANGUAGES, ProjectStatus } from '@/types/project';
 import { useAuth } from '@/contexts/AuthContext';
-import { ColorPicker } from '@/components/blocks';
+import { ColorPicker, Combobox, type ComboboxOption } from '@/components/blocks';
 import {
   Dialog,
   DialogContent,
@@ -19,13 +19,7 @@ import { Field, FieldLabel } from '@/components/ui/field';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface CreateProjectDialogProps {
   open: boolean;
@@ -42,6 +36,14 @@ export const CreateProjectDialog: FC<CreateProjectDialogProps> = ({ open, onOpen
 
   const navigate = useNavigate();
   const { logout } = useAuth();
+
+  // Prepare language options for Combobox
+  const languageOptions: ComboboxOption[] = COMMON_LANGUAGES.map((lang) => {
+    return {
+      value: lang.code,
+      label: `${lang.name} (${lang.code})`,
+    };
+  });
 
   const [createProject, { loading }] = useMutation(CREATE_PROJECT, {
     refetchQueries: [{ query: GET_PROJECTS }],
@@ -174,20 +176,15 @@ export const CreateProjectDialog: FC<CreateProjectDialogProps> = ({ open, onOpen
             ) : null}
 
             {/* Language selector */}
-            <Select value="" onValueChange={handleAddLanguage} disabled={loading}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select languages..." />
-              </SelectTrigger>
-              <SelectContent>
-                {COMMON_LANGUAGES.map((lang) => {
-                  return (
-                    <SelectItem key={lang.code} value={lang.code}>
-                      {lang.name} ({lang.code})
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
+            <Combobox
+              options={languageOptions}
+              value=""
+              onSelect={handleAddLanguage}
+              placeholder="Select languages..."
+              searchPlaceholder="Search languages..."
+              emptyText="No language found."
+              disabled={loading}
+            />
 
             {/* Custom language input */}
             <div className="flex gap-2 mt-2">

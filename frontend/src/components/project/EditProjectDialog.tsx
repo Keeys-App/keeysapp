@@ -3,7 +3,7 @@ import { useMutation } from '@apollo/client';
 import { X } from 'lucide-react';
 import { UPDATE_PROJECT, GET_PROJECTS, type UpdateProjectInput, type Project } from '@/graphql/projects';
 import { COMMON_LANGUAGES, ProjectStatus } from '@/types/project';
-import { ColorPicker } from '@/components/blocks';
+import { ColorPicker, Combobox, type ComboboxOption } from '@/components/blocks';
 import {
   Dialog,
   DialogContent,
@@ -32,6 +32,14 @@ export const EditProjectDialog: FC<EditProjectDialogProps> = ({ open, onOpenChan
   const [color, setColor] = useState('#6366f1');
   const [status, setStatus] = useState<string>(ProjectStatus.ACTIVE);
   const [languageInput, setLanguageInput] = useState('');
+
+  // Prepare language options for Combobox
+  const languageOptions: ComboboxOption[] = COMMON_LANGUAGES.map((lang) => {
+    return {
+      value: lang.code,
+      label: `${lang.name} (${lang.code})`,
+    };
+  });
 
   // Initialize form with project data
   useEffect(() => {
@@ -167,20 +175,15 @@ export const EditProjectDialog: FC<EditProjectDialogProps> = ({ open, onOpenChan
             ) : null}
 
             {/* Language selector */}
-            <Select value="" onValueChange={handleAddLanguage} disabled={loading}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select languages..." />
-              </SelectTrigger>
-              <SelectContent>
-                {COMMON_LANGUAGES.map((lang) => {
-                  return (
-                    <SelectItem key={lang.code} value={lang.code}>
-                      {lang.name} ({lang.code})
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
+            <Combobox
+              options={languageOptions}
+              value=""
+              onSelect={handleAddLanguage}
+              placeholder="Select languages..."
+              searchPlaceholder="Search languages..."
+              emptyText="No language found."
+              disabled={loading}
+            />
 
             {/* Custom language input */}
             <div className="flex gap-2 mt-2">

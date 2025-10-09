@@ -5,4 +5,5 @@
 
 export { ProjectStatus, getProjectStatusInfo } from './ProjectStatus';
 export { ColorPicker } from './ColorPicker';
+export { Combobox, type ComboboxOption } from './Combobox';
 
