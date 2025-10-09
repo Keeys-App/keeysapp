@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useMutation } from '@apollo/client';
+import { toast } from 'sonner';
 import { CREATE_KEY, GET_PROJECT_KEYS } from '@/graphql/keys';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,9 +19,10 @@ export function CreateKeyForm({ projectId }: CreateKeyFormProps) {
     onCompleted: () => {
       setKey('');
       setDescription('');
+      toast.success('Key created successfully');
     },
     onError: (error) => {
-      alert(`Error: ${error.message}`);
+      toast.error(`Error: ${error.message}`);
     },
   });
 
@@ -28,7 +30,7 @@ export function CreateKeyForm({ projectId }: CreateKeyFormProps) {
     e.preventDefault();
     
     if (!key.trim()) {
-      alert('Please enter a key');
+      toast.error('Please enter a key');
       return;
     }
 

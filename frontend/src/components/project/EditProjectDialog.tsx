@@ -1,5 +1,6 @@
 import { useState, useEffect, type FC } from 'react';
 import { useMutation } from '@apollo/client';
+import { toast } from 'sonner';
 import { X } from 'lucide-react';
 import { UPDATE_PROJECT, GET_PROJECTS, type UpdateProjectInput, type Project } from '@/graphql/projects';
 import { COMMON_LANGUAGES, ProjectStatus } from '@/types/project';
@@ -56,10 +57,11 @@ export const EditProjectDialog: FC<EditProjectDialogProps> = ({ open, onOpenChan
     refetchQueries: [{ query: GET_PROJECTS }],
     onCompleted: () => {
       onOpenChange(false);
+      toast.success('Project updated successfully');
     },
     onError: (error) => {
       console.error('Error updating project:', error);
-      alert('Failed to update project. Please try again.');
+      toast.error('Failed to update project. Please try again.');
     },
   });
 

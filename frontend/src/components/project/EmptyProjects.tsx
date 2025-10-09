@@ -1,4 +1,5 @@
 import type { FC } from 'react';
+import { toast } from 'sonner';
 import { FolderOpen, ArrowUpRightIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -34,7 +35,7 @@ export const EmptyProjects: FC<EmptyProjectsProps> = ({ onCreateProject }) => {
               variant="outline"
               onClick={() => {
                 // TODO: Implement import functionality
-                alert('Import functionality coming soon!');
+                toast.info('Import functionality coming soon!');
               }}
             >
               Import Project

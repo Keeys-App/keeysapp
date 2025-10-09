@@ -1,6 +1,7 @@
 import { useState, type FC } from 'react';
 import { useMutation } from '@apollo/client';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { X } from 'lucide-react';
 import { CREATE_PROJECT, GET_PROJECTS, type CreateProjectInput } from '@/graphql/projects';
 import { DEFAULT_PROJECT_COLORS, COMMON_LANGUAGES, ProjectStatus } from '@/types/project';
@@ -56,6 +57,7 @@ export const CreateProjectDialog: FC<CreateProjectDialogProps> = ({ open, onOpen
       setStatus(ProjectStatus.ACTIVE);
       setLanguageInput('');
       onOpenChange(false);
+      toast.success('Project created successfully');
     },
     onError: (error) => {
       console.error('Error creating project:', error);
@@ -67,7 +69,7 @@ export const CreateProjectDialog: FC<CreateProjectDialogProps> = ({ open, onOpen
         return;
       }
 
-      alert('Failed to create project. Please try again.');
+      toast.error('Failed to create project. Please try again.');
     },
   });
 
@@ -75,7 +77,7 @@ export const CreateProjectDialog: FC<CreateProjectDialogProps> = ({ open, onOpen
     e.preventDefault();
 
     if (!name.trim()) {
-      alert('Please enter a project name');
+      toast.error('Please enter a project name');
       return;
     }
 

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useMutation } from '@apollo/client';
+import { toast } from 'sonner';
 import { SET_TRANSLATION, GET_PROJECT_KEYS } from '@/graphql/keys';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,9 +20,10 @@ export function TranslationEditor({ keyId, language, currentValue, projectId }: 
     refetchQueries: [{ query: GET_PROJECT_KEYS, variables: { projectId } }],
     onCompleted: () => {
       setIsEditing(false);
+      toast.success('Translation updated successfully');
     },
     onError: (error) => {
-      alert(`Error: ${error.message}`);
+      toast.error(`Error: ${error.message}`);
     },
   });
 

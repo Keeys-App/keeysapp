@@ -1,6 +1,7 @@
 import { useState, type FC } from "react";
 import { Plus } from "lucide-react";
 import { useQuery, useMutation } from "@apollo/client";
+import { toast } from "sonner";
 import {
   GET_PROJECTS,
   DELETE_PROJECT,
@@ -40,10 +41,11 @@ export const ProjectList: FC = () => {
     onCompleted: () => {
       setDeleteDialogOpen(false);
       setProjectToDelete(null);
+      toast.success("Project deleted successfully");
     },
     onError: (error) => {
       console.error("Error deleting project:", error);
-      alert("Failed to delete project. Please try again.");
+      toast.error("Failed to delete project. Please try again.");
     },
   });
 

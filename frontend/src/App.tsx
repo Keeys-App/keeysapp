@@ -5,6 +5,7 @@ import { AuthPage } from '@/pages/AuthPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { ProjectPage } from '@/pages/ProjectPage';
 import { PATHS } from '@/constants/paths';
+import { Toaster } from '@/components/ui/sonner';
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
           <Route path="*" element={<Navigate to={PATHS.HOME} replace />} />
         </Routes>
       </AuthProvider>
+      <Toaster />
     </Router>
   );
 }
