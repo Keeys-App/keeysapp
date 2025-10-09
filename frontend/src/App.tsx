@@ -4,13 +4,14 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { Layout } from './components/Layout';
 import { AuthPage } from './pages/AuthPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { PATHS } from './constants/paths';
 
 function App() {
   return (
     <Router>
       <AuthProvider>
         <Routes>
-          <Route path="/auth" element={<AuthPage />} />
+          <Route path={PATHS.AUTH} element={<AuthPage />} />
           <Route
             element={
               <ProtectedRoute>
@@ -18,9 +19,9 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route path="/" element={<DashboardPage />} />
+            <Route path={PATHS.DASHBOARD} element={<DashboardPage />} />
           </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to={PATHS.HOME} replace />} />
         </Routes>
       </AuthProvider>
     </Router>

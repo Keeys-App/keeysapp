@@ -2,6 +2,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Box, Flex, Spinner } from '@radix-ui/themes';
 import type { FC, ReactNode } from 'react';
+import { PATHS } from '../constants/paths';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -19,7 +20,7 @@ export const ProtectedRoute: FC<ProtectedRouteProps> = ({ children }) => {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to={PATHS.AUTH} replace />;
   }
 
   return <Box>{children}</Box>;

@@ -1,6 +1,7 @@
 import { ApolloClient, InMemoryCache, createHttpLink, from } from '@apollo/client';
 import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
+import { PATHS } from '../constants/paths';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -36,7 +37,7 @@ const errorLink = onError(({ graphQLErrors, networkError }) => {
         // Clear auth data and redirect to login
         localStorage.removeItem('authToken');
         localStorage.removeItem('authUser');
-        window.location.href = '/auth';
+        window.location.href = PATHS.AUTH;
         return;
       }
     }
@@ -50,7 +51,7 @@ const errorLink = onError(({ graphQLErrors, networkError }) => {
         // Clear auth data and redirect to login
         localStorage.removeItem('authToken');
         localStorage.removeItem('authUser');
-        window.location.href = '/auth';
+        window.location.href = PATHS.AUTH;
         return;
       }
     }
