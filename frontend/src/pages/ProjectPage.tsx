@@ -55,36 +55,7 @@ export const ProjectPage: FC = () => {
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex flex-col gap-4 mb-6">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" onClick={handleBackClick}>
-            <ArrowLeft className="h-4 w-4" /> Back
-          </Button>
-          <div
-            className="w-1 h-8 rounded-sm"
-            style={{
-              backgroundColor: project.color,
-            }}
-          />
-          <div className="flex flex-col gap-1">
-            <h2 className="text-3xl font-bold">{project.name}</h2>
-            {project.description ? <p className="text-lg text-muted-foreground">{project.description}</p> : null}
-          </div>
-        </div>
-      </div>
-
-      {/* Project Keys Section */}
-      <div>
-        <h3 className="text-2xl font-semibold mb-4">Translation Keys</h3>
-
-        {/* Placeholder for keys list - will be implemented later */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-          <div className="p-8 border-2 border-dashed rounded-lg text-center">
-            <p className="text-lg text-muted-foreground">Keys list will be implemented here</p>
-          </div>
-        </div>
-      </div>
+      Keys
     </div>
   );
 };
