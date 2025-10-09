@@ -5,8 +5,12 @@ alwaysApply: true
 
 # Project Standards & Best Practices
 
-## UI 
-- Always use HeroUI
+## UI
+
+- Always use Shadcn
+- Always reuse small parts do not make small things from scratch every time you make new components
+- Split big components into modules
+- Use Atomic design pattern
 
 ## Docs
 
