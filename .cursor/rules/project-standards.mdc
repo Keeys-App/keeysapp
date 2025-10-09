@@ -6,7 +6,7 @@ alwaysApply: true
 # Project Standards & Best Practices
 
 ## UI 
-- Always use Radix UI
+- Always use HeroUI
 
 ## Docs
 
