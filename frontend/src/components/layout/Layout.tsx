@@ -1,5 +1,5 @@
-import type { FC } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Fragment, type FC } from 'react';
+import { Outlet } from 'react-router-dom';
 import { AppSidebar } from './AppSidebar';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
@@ -11,14 +11,13 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
+import { useBreadcrumbs } from '@/contexts';
 
 export const Layout: FC = () => {
-  const location = useLocation();
+  const { breadcrumbs } = useBreadcrumbs();
 
   const getBreadcrumbs = () => {
-    const path = location.pathname;
-
-    if (path === '/') {
+    if (breadcrumbs.length === 0) {
       return (
         <BreadcrumbItem>
           <BreadcrumbPage>Dashboard</BreadcrumbPage>
@@ -26,25 +25,22 @@ export const Layout: FC = () => {
       );
     }
 
-    if (path.startsWith('/project/')) {
-      return (
-        <>
-          <BreadcrumbItem className="hidden md:block">
-            <BreadcrumbLink href="/">Dashboard</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator className="hidden md:block" />
-          <BreadcrumbItem>
-            <BreadcrumbPage>Project</BreadcrumbPage>
-          </BreadcrumbItem>
-        </>
-      );
-    }
+    return breadcrumbs.map((item, index) => {
+      const isLast = index === breadcrumbs.length - 1;
 
-    return (
-      <BreadcrumbItem>
-        <BreadcrumbPage>Dashboard</BreadcrumbPage>
-      </BreadcrumbItem>
-    );
+      return (
+        <Fragment key={`breadcrumb-${index}`}>
+          {index > 0 ? <BreadcrumbSeparator className="hidden md:block" /> : null}
+          <BreadcrumbItem className={index > 0 ? 'hidden md:block' : ''}>
+            {isLast || !item.href ? (
+              <BreadcrumbPage>{item.label}</BreadcrumbPage>
+            ) : (
+              <BreadcrumbLink href={item.href}>{item.label}</BreadcrumbLink>
+            )}
+          </BreadcrumbItem>
+        </Fragment>
+      );
+    });
   };
 
   return (

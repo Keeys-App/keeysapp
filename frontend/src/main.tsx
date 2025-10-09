@@ -11,12 +11,15 @@ import './index.css';
 import App from './App.tsx';
 import { apolloClient } from './lib/apollo';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { BreadcrumbProvider } from './contexts';
 
 function AppWithProviders() {
   return (
     <ApolloProvider client={apolloClient}>
       <ThemeProvider>
-        <App />
+        <BreadcrumbProvider>
+          <App />
+        </BreadcrumbProvider>
       </ThemeProvider>
     </ApolloProvider>
   );

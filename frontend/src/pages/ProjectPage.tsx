@@ -3,19 +3,36 @@ import { useQuery } from '@apollo/client';
 import { ArrowLeft } from 'lucide-react';
 import { GET_PROJECT, type GetProjectData } from '@/graphql/projects';
 import { PATHS } from '@/constants/paths';
-import { useAuth } from '@/contexts/AuthContext';
-import type { FC } from 'react';
+import { useAuth, useBreadcrumbs } from '@/contexts';
+import { useEffect, type FC } from 'react';
 import { Button } from '@/components/ui/button';
 
 export const ProjectPage: FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { setBreadcrumbs } = useBreadcrumbs();
 
   const { data, loading, error } = useQuery<GetProjectData>(GET_PROJECT, {
     variables: { id },
     skip: !id || !isAuthenticated || authLoading,
   });
+
+  const project = data?.project;
+
+  useEffect(() => {
+    if (project) {
+      setBreadcrumbs([
+        { label: 'Dashboard', href: PATHS.DASHBOARD },
+        { label: project.name },
+      ]);
+    } else {
+      setBreadcrumbs([
+        { label: 'Dashboard', href: PATHS.DASHBOARD },
+        { label: 'Project' },
+      ]);
+    }
+  }, [project, setBreadcrumbs]);
 
   const handleBackClick = () => {
     navigate(PATHS.DASHBOARD);
@@ -40,7 +57,7 @@ export const ProjectPage: FC = () => {
     );
   }
 
-  if (!data?.project) {
+  if (!project) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
         <p className="text-lg text-muted-foreground">Project not found</p>
@@ -51,11 +68,19 @@ export const ProjectPage: FC = () => {
     );
   }
 
-  const project = data.project;
-
   return (
-    <div>
-      Keys
+    <div className="flex flex-1 flex-col gap-4 p-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
+          {project.description ? (
+            <p className="text-muted-foreground mt-2">{project.description}</p>
+          ) : null}
+        </div>
+      </div>
+      <div className="rounded-lg border p-4">
+        <p className="text-muted-foreground">Keys content coming soon...</p>
+      </div>
     </div>
   );
 };
