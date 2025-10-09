@@ -1,9 +1,9 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@apollo/client';
 import { ArrowLeft } from 'lucide-react';
-import { GET_PROJECT, type GetProjectData } from '../graphql/projects';
-import { PATHS } from '../constants/paths';
-import { useAuth } from '../contexts/AuthContext';
+import { GET_PROJECT, type GetProjectData } from '@/graphql/projects';
+import { PATHS } from '@/constants/paths';
+import { useAuth } from '@/contexts/AuthContext';
 import type { FC } from 'react';
 import { Button } from '@/components/ui/button';
 

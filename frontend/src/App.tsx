@@ -1,11 +1,10 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
-import { ProtectedRoute } from './components/ProtectedRoute';
-import { Layout } from './components/Layout';
-import { AuthPage } from './pages/AuthPage';
-import { DashboardPage } from './pages/DashboardPage';
-import { ProjectPage } from './pages/ProjectPage';
-import { PATHS } from './constants/paths';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { ProtectedRoute, Layout } from '@/components/layout';
+import { AuthPage } from '@/pages/AuthPage';
+import { DashboardPage } from '@/pages/DashboardPage';
+import { ProjectPage } from '@/pages/ProjectPage';
+import { PATHS } from '@/constants/paths';
 
 function App() {
   return (

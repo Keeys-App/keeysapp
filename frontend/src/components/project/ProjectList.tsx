@@ -2,12 +2,12 @@ import { useState, type FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { useQuery, useMutation } from '@apollo/client';
-import { GET_PROJECTS, DELETE_PROJECT, type GetProjectsData, type Project } from '../graphql/projects';
+import { GET_PROJECTS, DELETE_PROJECT, type GetProjectsData, type Project } from '@/graphql/projects';
 import { ProjectCard } from './ProjectCard';
 import { CreateProjectDialog } from './CreateProjectDialog';
 import { EditProjectDialog } from './EditProjectDialog';
-import { PATHS } from '../constants/paths';
-import { useAuth } from '../contexts/AuthContext';
+import { PATHS } from '@/constants/paths';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,

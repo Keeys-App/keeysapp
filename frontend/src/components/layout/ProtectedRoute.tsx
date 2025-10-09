@@ -1,8 +1,8 @@
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
 import type { FC, ReactNode } from 'react';
-import { PATHS } from '../constants/paths';
+import { PATHS } from '@/constants/paths';
 
 interface ProtectedRouteProps {
   children: ReactNode;

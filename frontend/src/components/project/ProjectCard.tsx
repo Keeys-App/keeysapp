@@ -1,7 +1,7 @@
 import type { FC } from 'react';
 import { MoreHorizontal, Pencil, Trash2, User } from 'lucide-react';
-import type { Project } from '../types/project';
-import { ProjectStatus } from '../types/project';
+import type { Project } from '@/types/project';
+import { ProjectStatus } from '@/types/project';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {

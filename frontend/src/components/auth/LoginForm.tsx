@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import type { FC, FormEvent } from 'react';
 import { useMutation } from '@apollo/client';
-import { LOGIN_MUTATION } from '../graphql/auth';
-import { useAuth } from '../contexts/AuthContext';
+import { LOGIN_MUTATION } from '@/graphql/auth';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -95,7 +95,7 @@ export const LoginForm: FC<LoginFormProps> = ({ onSuccess, onSwitchToRegister })
             <Input
               id="password"
               type="password"
-              placeholder="••••••••"
+              placeholder=""
               value={password}
               onChange={(e) => {
                 setPassword(e.target.value);

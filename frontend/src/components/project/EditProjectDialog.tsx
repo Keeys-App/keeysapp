@@ -1,10 +1,8 @@
-import { useState, type FC } from 'react';
+import { useState, useEffect, type FC } from 'react';
 import { useMutation } from '@apollo/client';
-import { useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
-import { CREATE_PROJECT, GET_PROJECTS, type CreateProjectInput } from '../graphql/projects';
-import { DEFAULT_PROJECT_COLORS, COMMON_LANGUAGES, ProjectStatus } from '../types/project';
-import { useAuth } from '../contexts/AuthContext';
+import { UPDATE_PROJECT, GET_PROJECTS, type UpdateProjectInput, type Project } from '@/graphql/projects';
+import { DEFAULT_PROJECT_COLORS, COMMON_LANGUAGES, ProjectStatus } from '@/types/project';
 import {
   Dialog,
   DialogContent,
@@ -18,20 +16,15 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-interface CreateProjectDialogProps {
+interface EditProjectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  project: Project | null;
 }
 
-export const CreateProjectDialog: FC<CreateProjectDialogProps> = ({ open, onOpenChange }) => {
+export const EditProjectDialog: FC<EditProjectDialogProps> = ({ open, onOpenChange, project }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [languages, setLanguages] = useState<string[]>([]);
@@ -39,44 +32,37 @@ export const CreateProjectDialog: FC<CreateProjectDialogProps> = ({ open, onOpen
   const [status, setStatus] = useState<string>(ProjectStatus.ACTIVE);
   const [languageInput, setLanguageInput] = useState('');
 
-  const navigate = useNavigate();
-  const { logout } = useAuth();
+  // Initialize form with project data
+  useEffect(() => {
+    if (project) {
+      setName(project.name);
+      setDescription(project.description || '');
+      setLanguages(project.languages || []);
+      setColor(project.color);
+      setStatus(project.status);
+    }
+  }, [project]);
 
-  const [createProject, { loading }] = useMutation(CREATE_PROJECT, {
+  const [updateProject, { loading }] = useMutation(UPDATE_PROJECT, {
     refetchQueries: [{ query: GET_PROJECTS }],
     onCompleted: () => {
-      // Reset form
-      setName('');
-      setDescription('');
-      setLanguages([]);
-      setColor(DEFAULT_PROJECT_COLORS[0]);
-      setStatus(ProjectStatus.ACTIVE);
-      setLanguageInput('');
       onOpenChange(false);
     },
     onError: (error) => {
-      console.error('Error creating project:', error);
-
-      // Check if it's an authentication error
-      if (error.message.includes('Authentication required')) {
-        logout();
-        navigate('/auth');
-        return;
-      }
-
-      alert('Failed to create project. Please try again.');
+      console.error('Error updating project:', error);
+      alert('Failed to update project. Please try again.');
     },
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name.trim()) {
-      alert('Please enter a project name');
+    if (!project || !name.trim()) {
       return;
     }
 
-    const input: CreateProjectInput = {
+    const input: UpdateProjectInput = {
+      id: project.id,
       name: name.trim(),
       description: description.trim() || null,
       languages,
@@ -84,7 +70,7 @@ export const CreateProjectDialog: FC<CreateProjectDialogProps> = ({ open, onOpen
       status: status as 'active' | 'archived' | 'draft',
     };
 
-    await createProject({ variables: { input } });
+    await updateProject({ variables: { input } });
   };
 
   const handleAddLanguage = (langCode: string) => {
@@ -109,12 +95,16 @@ export const CreateProjectDialog: FC<CreateProjectDialogProps> = ({ open, onOpen
     }
   };
 
+  if (!project) {
+    return null;
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create New Project</DialogTitle>
-          <DialogDescription>Create a new localization project to manage your translations.</DialogDescription>
+          <DialogTitle>Edit Project</DialogTitle>
+          <DialogDescription>Update your project settings.</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -261,7 +251,7 @@ export const CreateProjectDialog: FC<CreateProjectDialogProps> = ({ open, onOpen
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? 'Creating...' : 'Create Project'}
+              {loading ? 'Saving...' : 'Save Changes'}
             </Button>
           </DialogFooter>
         </form>
