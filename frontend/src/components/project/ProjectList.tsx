@@ -1,17 +1,17 @@
-import { useState, type FC } from 'react';
-import { Plus } from 'lucide-react';
-import { useQuery, useMutation } from '@apollo/client';
+import { useState, type FC } from "react";
+import { Plus } from "lucide-react";
+import { useQuery, useMutation } from "@apollo/client";
 import {
   GET_PROJECTS,
   DELETE_PROJECT,
   type GetProjectsData,
   type Project,
-} from '@/graphql/projects';
-import { ProjectCard } from './ProjectCard';
-import { CreateProjectDialog } from './CreateProjectDialog';
-import { EditProjectDialog } from './EditProjectDialog';
-import { EmptyProjects } from './EmptyProjects';
-import { useAuth } from '@/contexts/AuthContext';
+} from "@/graphql/projects";
+import { ProjectCard } from "./ProjectCard";
+import { CreateProjectDialog } from "./CreateProjectDialog";
+import { EditProjectDialog } from "./EditProjectDialog";
+import { EmptyProjects } from "./EmptyProjects";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,7 +21,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from "@/components/ui/alert-dialog";
 
 export const ProjectList: FC = () => {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -95,9 +95,21 @@ export const ProjectList: FC = () => {
       ) : (
         <div className="flex flex-col gap-4 p-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {/* Existing Projects */}
+            {projects.map((project) => {
+              return (
+                <ProjectCard
+                  key={project.id}
+                  project={project}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                />
+              );
+            })}
+
             {/* Create Project Card */}
             <div
-              className="bg-card border-dashed hover:bg-accent hover:border-primary flex min-h-[180px] cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border-2 p-6 transition-colors"
+              className="bg-card flex min-h-[180px] cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border p-6 transition-colors"
               onClick={() => {
                 return setCreateDialogOpen(true);
               }}
@@ -112,18 +124,6 @@ export const ProjectList: FC = () => {
                 </p>
               </div>
             </div>
-
-            {/* Existing Projects */}
-            {projects.map((project) => {
-              return (
-                <ProjectCard
-                  key={project.id}
-                  project={project}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                />
-              );
-            })}
           </div>
         </div>
       )}
