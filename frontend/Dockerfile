@@ -3,6 +3,9 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
+# Enable Corepack for Yarn 4
+RUN corepack enable
+
 # Copy package files from frontend directory
 COPY frontend/package.json frontend/yarn.lock* ./
 
