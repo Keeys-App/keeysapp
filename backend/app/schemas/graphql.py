@@ -1,52 +1,35 @@
 import strawberry
-from typing import Optional, List
-from datetime import datetime
+from typing import List
 
 
 @strawberry.type
-class LocaleType:
+class User:
     id: int
-    key: str
-    value: str
-    language: str
-    namespace: str
-    is_active: bool
-    created_at: datetime
-    updated_at: Optional[datetime] = None
-
-
-@strawberry.input
-class LocaleCreateInput:
-    key: str
-    value: str
-    language: str
-    namespace: str = "default"
-    is_active: bool = True
-
-
-@strawberry.input
-class LocaleUpdateInput:
-    key: Optional[str] = None
-    value: Optional[str] = None
-    language: Optional[str] = None
-    namespace: Optional[str] = None
-    is_active: Optional[bool] = None
-
-
-@strawberry.input
-class LocaleFilter:
-    language: Optional[str] = None
-    namespace: Optional[str] = None
-    is_active: Optional[bool] = None
+    name: str
+    email: str
 
 
 @strawberry.type
-class LocaleConnection:
-    edges: List[strawberry.relay.Edge[LocaleType]]
-    page_info: strawberry.relay.PageInfo
+class Query:
+    @strawberry.field
+    def hello(self) -> str:
+        return "Hello from GraphQL!"
+    
+    @strawberry.field
+    def users(self) -> List[User]:
+        # Demo data - replace with real data source
+        return [
+            User(id=1, name="John Doe", email="john@example.com"),
+            User(id=2, name="Jane Smith", email="jane@example.com"),
+        ]
 
 
 @strawberry.type
-class DeleteResponse:
-    success: bool
-    message: str
+class Mutation:
+    @strawberry.mutation
+    def create_user(self, name: str, email: str) -> User:
+        # Demo mutation - replace with real implementation
+        return User(id=3, name=name, email=email)
+
+
+schema = strawberry.Schema(query=Query, mutation=Mutation)

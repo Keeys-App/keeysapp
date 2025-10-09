@@ -7,8 +7,7 @@ from strawberry.fastapi import GraphQLRouter
 
 from app.database import engine
 from app.models.base import Base
-from app.routers import api_router
-from app.schemas.schema import schema
+from app.schemas.graphql import schema
 
 
 @asynccontextmanager
@@ -36,17 +35,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
-app.include_router(api_router, prefix="/api/v1")
-
 # GraphQL endpoint
 graphql_app = GraphQLRouter(schema)
 app.include_router(graphql_app, prefix="/graphql")
 
+# TODO: Add your REST API routers here
+
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome to Locales API!"}
+    return {"message": "Welcome to FastAPI + GraphQL Boilerplate!"}
 
 
 @app.get("/health")
