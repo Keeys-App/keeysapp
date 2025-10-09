@@ -1,22 +1,19 @@
 import { useState, type FC } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, FolderOpen, ArrowUpRightIcon } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useQuery, useMutation } from '@apollo/client';
-import { GET_PROJECTS, DELETE_PROJECT, type GetProjectsData, type Project } from '@/graphql/projects';
+import {
+  GET_PROJECTS,
+  DELETE_PROJECT,
+  type GetProjectsData,
+  type Project,
+} from '@/graphql/projects';
 import { ProjectCard } from './ProjectCard';
 import { CreateProjectDialog } from './CreateProjectDialog';
 import { EditProjectDialog } from './EditProjectDialog';
+import { EmptyProjects } from './EmptyProjects';
 import { PATHS } from '@/constants/paths';
 import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from '@/components/ui/empty';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,8 +45,8 @@ export const ProjectList: FC = () => {
       setProjectToDelete(null);
     },
     onError: (error) => {
-      console.error('Error deleting project:', error);
-      alert('Failed to delete project. Please try again.');
+      console.error("Error deleting project:", error);
+      alert("Failed to delete project. Please try again.");
     },
   });
 
@@ -64,7 +61,7 @@ export const ProjectList: FC = () => {
   };
 
   const handleProjectClick = (project: Project) => {
-    navigate(PATHS.PROJECT.replace(':id', project.id));
+    navigate(PATHS.PROJECT.replace(":id", project.id));
   };
 
   const confirmDelete = async () => {
@@ -85,7 +82,9 @@ export const ProjectList: FC = () => {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh]">
-        <p className="text-lg text-destructive">Error loading projects. Please try again.</p>
+        <p className="text-lg text-destructive">
+          Error loading projects. Please try again.
+        </p>
       </div>
     );
   }
@@ -94,57 +93,14 @@ export const ProjectList: FC = () => {
 
   return (
     <>
-      <div className="flex flex-col gap-4">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <h2 className="text-3xl font-bold">Projects</h2>
-        </div>
-
-        {/* Projects Grid */}
-        {projects.length === 0 ? (
-          <Empty>
-            <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <FolderOpen />
-              </EmptyMedia>
-              <EmptyTitle>No Projects Yet</EmptyTitle>
-              <EmptyDescription>
-                You haven&apos;t created any projects yet. Get started by
-                creating your first project.
-              </EmptyDescription>
-            </EmptyHeader>
-            <EmptyContent>
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => {
-                    return setCreateDialogOpen(true);
-                  }}
-                >
-                  Create Project
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    // TODO: Implement import functionality
-                    alert('Import functionality coming soon!');
-                  }}
-                >
-                  Import Project
-                </Button>
-              </div>
-            </EmptyContent>
-            <Button
-              variant="link"
-              className="text-muted-foreground cursor-pointer"
-              size="sm"
-              onClick={() => {
-                // TODO: Link to documentation
-              }}
-            >
-              Learn More <ArrowUpRightIcon />
-            </Button>
-          </Empty>
-        ) : (
+      {projects.length === 0 ? (
+        <EmptyProjects
+          onCreateProject={() => {
+            return setCreateDialogOpen(true);
+          }}
+        />
+      ) : (
+        <div className="flex flex-col gap-4 p-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {/* Create Project Card */}
             <div
@@ -177,14 +133,21 @@ export const ProjectList: FC = () => {
               );
             })}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Create Project Dialog */}
-      <CreateProjectDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
+      <CreateProjectDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+      />
 
       {/* Edit Project Dialog */}
-      <EditProjectDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} project={selectedProject} />
+      <EditProjectDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        project={selectedProject}
+      />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -192,14 +155,19 @@ export const ProjectList: FC = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Project</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete <strong>{projectToDelete?.name}</strong>? This action cannot be undone
-              and will delete all project data including translations.
+              Are you sure you want to delete{" "}
+              <strong>{projectToDelete?.name}</strong>? This action cannot be
+              undone and will delete all project data including translations.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              {deleting ? 'Deleting...' : 'Delete Project'}
+            <AlertDialogAction
+              onClick={confirmDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Deleting..." : "Delete Project"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
