@@ -62,14 +62,16 @@ export const AppSidebar: FC = () => {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" className="md:h-8 md:p-0">
-              <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                <FolderKanban className="size-4" />
-              </div>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">Locales</span>
-                <span className="truncate text-xs">Dashboard</span>
-              </div>
+            <SidebarMenuButton size="lg" asChild>
+              <a href="/">
+                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                  <FolderKanban className="size-4" />
+                </div>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-medium">Locales</span>
+                  <span className="truncate text-xs">Dashboard</span>
+                </div>
+              </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -77,7 +79,7 @@ export const AppSidebar: FC = () => {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupContent className="px-1.5 md:px-0">
+          <SidebarGroupContent className="px-2">
             <SidebarMenu>
               {navItems.map((item) => {
                 return (
@@ -93,7 +95,6 @@ export const AppSidebar: FC = () => {
                         }
                       }}
                       isActive={item.isActive}
-                      className="px-2.5 md:px-2"
                     >
                       <item.icon />
                       <span>{item.title}</span>
@@ -113,7 +114,7 @@ export const AppSidebar: FC = () => {
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton
                   size="lg"
-                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground md:h-8 md:p-0"
+                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
                   <Avatar className="h-8 w-8 rounded-lg">
                     <AvatarFallback className="rounded-lg">
