@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import { TrendingUp, Archive, FileText, type LucideIcon } from 'lucide-react';
+import { TrendingUp, Archive, FileText, type LucideIcon, Check } from 'lucide-react';
 import { ProjectStatus as ProjectStatusEnum } from '@/types/project';
 
 interface ProjectStatusProps {
@@ -23,7 +23,7 @@ export const getProjectStatusInfo = (status: string): StatusInfo => {
     case ProjectStatusEnum.ACTIVE:
       return {
         label: 'Active',
-        icon: TrendingUp,
+        icon: Check,
         className: 'text-emerald-600 dark:text-emerald-400',
       };
     case ProjectStatusEnum.ARCHIVED:

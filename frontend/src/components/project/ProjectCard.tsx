@@ -2,7 +2,15 @@ import type { FC } from "react";
 import { Link } from "react-router-dom";
 import { MoreHorizontal, Pencil, Trash2, Users, Languages } from "lucide-react";
 import type { Project } from "@/types/project";
-import { Card } from "@/components/ui/card";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
@@ -12,7 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { ProjectStatus, getProjectStatusInfo } from "@/components/blocks";
+import { ProjectStatus } from "@/components/blocks";
 import { PATHS } from "@/constants/paths";
 
 interface ProjectCardProps {
@@ -46,16 +54,11 @@ export const ProjectCard: FC<ProjectCardProps> = ({
 
   return (
     <Link to={projectUrl} className="block">
-      <Card className="relative cursor-pointer transition-all hover:shadow-lg hover:border-gray-300 dark:hover:border-gray-600 group overflow-hidden">
-        <div className="p-6 space-y-4">
-          {/* Header with title and menu */}
-          <div className="flex justify-between items-start gap-3">
-            <div className="flex-1 min-w-0">
-              <h3 className="text-base font-medium text-gray-600 dark:text-gray-400 truncate">
-                {project.name}
-              </h3>
-            </div>
-
+      <Card className="relative cursor-pointer transition-all group overflow-hidden">
+        <CardHeader>
+          <CardTitle>{project.name}</CardTitle>
+          <CardDescription>{project.description}</CardDescription>
+          <CardAction>
             {project.canEdit ? (
               <DropdownMenu>
                 <DropdownMenuTrigger
@@ -63,7 +66,7 @@ export const ProjectCard: FC<ProjectCardProps> = ({
                   onClick={(e) => e.stopPropagation()}
                 >
                   <Button
-                    variant="ghost"
+                    variant="secondary"
                     size="icon"
                     className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                   >
@@ -86,46 +89,48 @@ export const ProjectCard: FC<ProjectCardProps> = ({
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : null}
-          </div>
+          </CardAction>
+        </CardHeader>
 
-          {/* Main metric - Languages count */}
-          <div className="space-y-2">
-            <div className="flex items-baseline gap-3">
-              <div className="text-4xl font-bold tracking-tight">
-                {project.languages.length}
-              </div>
-              <Badge variant="secondary" className="text-xs px-2 py-0.5">
-                <Languages className="h-3 w-3 mr-1" />
-                {project.languages.length === 1 ? "language" : "languages"}
-              </Badge>
+        <CardContent>
+          <p>Card Content</p>
+        </CardContent>
+
+        <CardFooter>
+          <ProjectStatus status={project.status} />
+          {project.color}
+        </CardFooter>
+
+        {/* Main metric - Languages count */}
+        <div className="space-y-2">
+          <div className="flex items-baseline gap-3">
+            <div className="text-4xl font-bold tracking-tight">
+              {project.languages.length}
             </div>
-
-            {/* Status trend */}
-            <ProjectStatus status={project.status} />
+            <Badge variant="secondary" className="text-xs px-2 py-0.5">
+              <Languages className="h-3 w-3 mr-1" />
+              {project.languages.length === 1 ? "language" : "languages"}
+            </Badge>
           </div>
 
-          {/* Bottom info */}
-          <div className="pt-2 space-y-1">
-            {project.description ? (
-              <p className="text-sm text-gray-500 dark:text-gray-500 line-clamp-2">
-                {project.description}
-              </p>
-            ) : null}
-            <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-500">
-              <Users className="h-3.5 w-3.5" />
-              <span>
-                {project.members.length + 1}{" "}
-                {project.members.length === 0 ? "member" : "members"}
-              </span>
-            </div>
-          </div>
+          {/* Status trend */}
         </div>
 
-        {/* Subtle color accent */}
-        <div
-          className="absolute bottom-0 left-0 right-0 h-1"
-          style={{ backgroundColor: project.color }}
-        />
+        {/* Bottom info */}
+        <div className="pt-2 space-y-1">
+          {project.description ? (
+            <p className="text-sm text-gray-500 dark:text-gray-500 line-clamp-2">
+              {project.description}
+            </p>
+          ) : null}
+          <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-500">
+            <Users className="h-3.5 w-3.5" />
+            <span>
+              {project.members.length + 1}{" "}
+              {project.members.length === 0 ? "member" : "members"}
+            </span>
+          </div>
+        </div>
       </Card>
     </Link>
   );
