@@ -7,6 +7,7 @@ from sqlalchemy.orm import sessionmaker
 from app.models.base import Base
 from app.models.user import User  # Import User so table is registered
 from app.models.project import Project, ProjectMember  # Import Project models
+from app.models.key import Key, Translation  # Import Key models
 
 
 # Use in-memory SQLite for tests

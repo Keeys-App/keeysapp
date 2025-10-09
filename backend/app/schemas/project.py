@@ -189,11 +189,13 @@ def build_project_type(project, current_user_id: int) -> ProjectType:
         translation_progress = 0
     else:
         total_required = keys_count * languages_count
-        # Count only translations with non-empty values
+        # Count only translations with non-empty values AND in project languages
+        project_languages_set = set(project.languages) if project.languages else set()
         total_translated = sum(
             1 for key in project.keys 
             for translation in key.translations 
-            if translation.value and translation.value.strip()
+            if translation.language in project_languages_set
+            and translation.value and translation.value.strip()
         )
         translation_progress = int((total_translated / total_required) * 100) if total_required > 0 else 0
     
