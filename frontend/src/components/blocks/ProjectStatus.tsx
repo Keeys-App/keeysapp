@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import { TrendingUp, Archive, FileText, type LucideIcon, Check } from 'lucide-react';
+import { TrendingUp, Archive, FileText, type LucideIcon, Check, DraftingCompass } from 'lucide-react';
 import { ProjectStatus as ProjectStatusEnum } from '@/types/project';
 
 interface ProjectStatusProps {
@@ -35,8 +35,8 @@ export const getProjectStatusInfo = (status: string): StatusInfo => {
     case ProjectStatusEnum.DRAFT:
       return {
         label: 'Draft',
-        icon: FileText,
-        className: 'text-amber-600 dark:text-amber-400',
+        icon: DraftingCompass,
+        className: 'text-gray-500',
       };
     default:
       return {
@@ -61,7 +61,7 @@ export const ProjectStatus: FC<ProjectStatusProps> = ({
   const StatusIcon = statusInfo.icon;
 
   return (
-    <div className={`flex items-center gap-2 ${className}`}>
+    <div className={`flex items-center gap-1 ${className}`}>
       {showIcon ? <StatusIcon className={`h-4 w-4 ${statusInfo.className}`} /> : null}
       {showLabel ? (
         <span className={`text-sm font-medium ${statusInfo.className}`}>

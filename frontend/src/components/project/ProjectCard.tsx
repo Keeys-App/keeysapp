@@ -1,6 +1,13 @@
 import type { FC } from "react";
 import { Link } from "react-router-dom";
-import { MoreHorizontal, Pencil, Trash2, Users, Languages } from "lucide-react";
+import {
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+  Users,
+  Languages,
+  Users2,
+} from "lucide-react";
 import type { Project } from "@/types/project";
 import {
   Card,
@@ -56,7 +63,11 @@ export const ProjectCard: FC<ProjectCardProps> = ({
     <Link to={projectUrl} className="block">
       <Card className="relative cursor-pointer transition-all group overflow-hidden">
         <CardHeader>
-          <CardTitle>{project.name}</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-3 rounded-full" style={{ backgroundColor: project.color }} />
+            </div>
+            {project.name}</CardTitle>
           <CardDescription>{project.description}</CardDescription>
           <CardAction>
             {project.canEdit ? (
@@ -93,44 +104,22 @@ export const ProjectCard: FC<ProjectCardProps> = ({
         </CardHeader>
 
         <CardContent>
-          <p>Card Content</p>
+          Keys
         </CardContent>
 
         <CardFooter>
-          <ProjectStatus status={project.status} />
-          {project.color}
-        </CardFooter>
-
-        {/* Main metric - Languages count */}
-        <div className="space-y-2">
-          <div className="flex items-baseline gap-3">
-            <div className="text-4xl font-bold tracking-tight">
+          <div className="flex items-center gap-5 text-sm font-medium text-gray-500">
+            <ProjectStatus status={project.status} />
+            <div className="flex items-center gap-1">
+              <Users2 className="h-4 w-4" />
+              {project.members.length + 1}
+            </div>
+            <div className="flex items-center gap-1">
+              <Languages className="h-4 w-4" />
               {project.languages.length}
             </div>
-            <Badge variant="secondary" className="text-xs px-2 py-0.5">
-              <Languages className="h-3 w-3 mr-1" />
-              {project.languages.length === 1 ? "language" : "languages"}
-            </Badge>
           </div>
-
-          {/* Status trend */}
-        </div>
-
-        {/* Bottom info */}
-        <div className="pt-2 space-y-1">
-          {project.description ? (
-            <p className="text-sm text-gray-500 dark:text-gray-500 line-clamp-2">
-              {project.description}
-            </p>
-          ) : null}
-          <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-500">
-            <Users className="h-3.5 w-3.5" />
-            <span>
-              {project.members.length + 1}{" "}
-              {project.members.length === 0 ? "member" : "members"}
-            </span>
-          </div>
-        </div>
+        </CardFooter>
       </Card>
     </Link>
   );
