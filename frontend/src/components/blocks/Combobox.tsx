@@ -8,13 +8,13 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from '@/components/ui/command';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 export interface ComboboxOption {
   value: string;
@@ -71,10 +71,10 @@ export const Combobox: FC<ComboboxProps> = ({
         align="start"
         onWheel={(e) => e.stopPropagation()}
       >
-        <Command shouldFilter={false}>
+        <Command>
           <CommandInput placeholder={searchPlaceholder} className="h-9" />
-          <CommandEmpty>{emptyText}</CommandEmpty>
-          <ScrollArea className="h-[300px]">
+          <CommandList className="max-h-[300px]">
+            <CommandEmpty>{emptyText}</CommandEmpty>
             <CommandGroup>
               {options.map((option) => {
                 return (
@@ -98,7 +98,7 @@ export const Combobox: FC<ComboboxProps> = ({
                 );
               })}
             </CommandGroup>
-          </ScrollArea>
+          </CommandList>
         </Command>
       </PopoverContent>
     </Popover>
