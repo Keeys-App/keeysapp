@@ -104,7 +104,7 @@ export const ProjectCard: FC<ProjectCardProps> = ({
         </CardHeader>
 
         <CardContent>
-          3,200 keys
+          {project.keysCount} keys
         </CardContent>
 
         <CardFooter>

@@ -43,6 +43,7 @@ export const PROJECT_FRAGMENT = gql`
       ...ProjectMemberFields
     }
     canEdit
+    keysCount
     createdAt
     updatedAt
   }
@@ -133,6 +134,7 @@ export interface Project {
   owner: User;
   members: ProjectMember[];
   canEdit: boolean;
+  keysCount: number;
   createdAt: string;
   updatedAt?: string | null;
 }

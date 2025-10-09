@@ -46,6 +46,7 @@ class ProjectType:
     owner: UserType
     members: List[ProjectMemberType]
     can_edit: bool
+    keys_count: int
     created_at: datetime
     updated_at: Optional[datetime]
 
@@ -189,6 +190,7 @@ def build_project_type(project, current_user_id: int) -> ProjectType:
         owner=owner,
         members=members,
         can_edit=can_edit,
+        keys_count=len(project.keys) if project.keys else 0,
         created_at=project.created_at,
         updated_at=project.updated_at
     )
