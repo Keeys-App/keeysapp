@@ -13,14 +13,23 @@ from app.schemas.graphql import schema
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
+    print("🚀 Starting application...")
+    
+    print("📦 Creating database tables...")
     Base.metadata.create_all(bind=engine)
+    print("✅ Database tables ready")
     
     # Run migrations automatically
+    print("🔄 Running migrations...")
     from migrations.auto_migrate import run_all_migrations
     run_all_migrations()
+    print("✅ Migrations complete")
+    
+    print("✅ Application startup complete!")
     
     yield
     # Shutdown
+    print("👋 Shutting down application...")
     pass
 
 
@@ -67,12 +76,25 @@ async def health_check():
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
-    print(f"Starting server on port: {port}")
+    print(f"🌐 Starting server on port: {port}")
     print(f"PORT environment variable: {os.getenv('PORT', 'NOT SET')}")
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=port,
-        reload=True,  # Auto-reload on code changes
-        reload_dirs=["app"]  # Watch app directory for changes
-    )
+    
+    # Use reload only in development
+    is_dev = os.getenv("ENVIRONMENT", "production") == "development"
+    
+    config = {
+        "app": "main:app",
+        "host": "0.0.0.0",
+        "port": port,
+        "reload": is_dev,
+    }
+    
+    if is_dev:
+        config["reload_dirs"] = ["app"]
+    else:
+        # Production settings
+        config["workers"] = 1  # Railway starter plan, use 1 worker
+        config["log_level"] = "info"
+    
+    print(f"🔧 Configuration: {config}")
+    uvicorn.run(**config)
