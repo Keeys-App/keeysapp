@@ -4,8 +4,8 @@ import os
 
 
 class Settings(BaseSettings):
-    # Database
-    database_url: str = "postgresql://locales_user:locales_password@localhost:5432/locales_db"
+    # Database - Railway will provide DATABASE_URL automatically
+    DATABASE_URL: str = "postgresql://locales_user:locales_password@localhost:5432/locales_db"
     
     # API
     api_v1_str: str = "/api/v1"
@@ -32,10 +32,10 @@ class Settings(BaseSettings):
 settings = Settings()
 
 # Debug: print database URL (without password for security)
-if settings.database_url:
+if settings.DATABASE_URL:
     # Hide password in logs
     import re
-    safe_url = re.sub(r':[^:@]+@', ':***@', settings.database_url)
+    safe_url = re.sub(r':[^:@]+@', ':***@', settings.DATABASE_URL)
     print(f"Database URL: {safe_url}")
 else:
     print("No DATABASE_URL found!")
