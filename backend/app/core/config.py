@@ -5,7 +5,7 @@ import os
 
 class Settings(BaseSettings):
     # Database - Railway will provide DATABASE_URL automatically
-    DATABASE_URL: str = "postgresql://locales_user:locales_password@localhost:5432/locales_db"
+    DATABASE_URL: str
     
     # API
     api_v1_str: str = "/api/v1"
