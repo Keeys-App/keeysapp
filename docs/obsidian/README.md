@@ -16,7 +16,9 @@
 
 ### Разработка
 - [[Backend Development]] - Разработка backend
+- [[Backend Organization]] - Организация папок backend
 - [[Frontend Development]] - Разработка frontend
+- [[Railway Deployment]] - Деплой на Railway
 
 ## 🚀 Быстрый старт
 

@@ -14,6 +14,11 @@ from app.schemas.graphql import schema
 async def lifespan(app: FastAPI):
     # Startup
     Base.metadata.create_all(bind=engine)
+    
+    # Run migrations automatically
+    from migrations.auto_migrate import run_all_migrations
+    run_all_migrations()
+    
     yield
     # Shutdown
     pass

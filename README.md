@@ -163,21 +163,24 @@ mutation {
 
 ```
 Locales/
-├── backend/          # FastAPI + GraphQL
-│   ├── app/         # Код приложения
-│   │   ├── models/     # SQLAlchemy модели
-│   │   ├── schemas/    # GraphQL схемы
-│   │   ├── services/   # Бизнес-логика
-│   │   └── core/       # Конфигурация, JWT
-│   └── tests/       # 28 тестов
-├── frontend/        # React + TypeScript
+├── backend/                  # FastAPI + GraphQL
+│   ├── app/                 # Код приложения
+│   │   ├── models/          # SQLAlchemy модели
+│   │   ├── schemas/         # GraphQL схемы
+│   │   ├── services/        # Бизнес-логика
+│   │   └── core/            # Config, JWT, Exceptions
+│   ├── tests/               # Unit тесты (51)
+│   ├── migrations/          # БД миграции (авто)
+│   ├── scripts/             # Утилиты
+│   └── integration_tests/   # Интеграционные тесты
+├── frontend/                # React + TypeScript
 │   └── src/
-│       ├── components/  # React компоненты
-│       ├── contexts/    # React contexts
-│       ├── pages/       # Страницы
-│       └── graphql/     # GraphQL queries
+│       ├── components/      # React компоненты
+│       ├── contexts/        # React contexts
+│       ├── pages/           # Страницы
+│       └── graphql/         # GraphQL queries
 └── docs/
-    └── obsidian/    # Документация
+    └── obsidian/            # Документация
 ```
 
 Подробнее: [Project Structure](docs/obsidian/Project%20Structure.md)
@@ -201,11 +204,18 @@ cd backend
 source venv/bin/activate
 python main.py
 
-# Тесты
+# Unit тесты
 pytest -v
 
 # Coverage
 pytest --cov=app --cov-report=html
+
+# Утилиты
+python scripts/list_users.py
+python scripts/clear_users.py
+
+# Миграции (автоматически при старте или вручную)
+python migrations/migrate_add_public_id.py
 ```
 
 ### Frontend

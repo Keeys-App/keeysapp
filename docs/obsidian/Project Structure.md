@@ -19,42 +19,47 @@ Locales/
 
 ```
 backend/
-├── app/
-│   ├── __init__.py
+├── app/                      # Основной код приложения
 │   ├── core/
-│   │   ├── __init__.py
-│   │   ├── config.py          # Настройки приложения
-│   │   └── security.py        # JWT и безопасность
+│   │   ├── config.py          # Настройки
+│   │   ├── security.py        # JWT утилиты
+│   │   └── exceptions.py      # Кастомные исключения (безопасные)
 │   ├── database.py            # Подключение к БД
 │   ├── models/
-│   │   ├── __init__.py
-│   │   ├── base.py           # Базовая модель SQLAlchemy
-│   │   └── user.py           # Модель User
-│   ├── resolvers/            # GraphQL resolvers (пустая)
-│   ├── routers/              # REST API routers (пустая)
+│   │   ├── base.py           # Базовая модель
+│   │   └── user.py           # Модель User (с UUID)
 │   ├── schemas/
-│   │   ├── __init__.py
 │   │   ├── auth.py           # GraphQL auth схемы
 │   │   └── graphql.py        # Корневая GraphQL схема
 │   └── services/
-│       └── user_service.py   # Бизнес-логика пользователей
-├── tests/
-│   ├── __init__.py
-│   ├── conftest.py           # Pytest fixtures
-│   ├── test_models.py        # Тесты моделей
-│   ├── test_security.py      # Тесты безопасности
-│   ├── test_services.py      # Тесты сервисов
-│   └── README.md             # Документация тестов
+│       └── user_service.py   # Бизнес-логика
+├── tests/                    # Unit тесты (pytest)
+│   ├── conftest.py           # Fixtures
+│   ├── test_models.py        # Тесты моделей (10)
+│   ├── test_security.py      # Тесты JWT (7)
+│   ├── test_services.py      # Тесты сервисов (11)
+│   ├── test_user_service_uuid.py  # Тесты UUID (5)
+│   └── test_error_handling.py     # Тесты безопасности (18)
+├── migrations/               # Миграции БД
+│   ├── auto_migrate.py       # Автоматические миграции
+│   ├── migrate_add_public_id.py   # Добавить UUID
+│   ├── recreate_tables.py    # Пересоздать таблицы
+│   └── README.md
+├── scripts/                  # Утилиты
+│   ├── clear_users.py        # Очистка пользователей
+│   ├── list_users.py         # Список пользователей
+│   └── README.md
+├── integration_tests/        # Интеграционные тесты
+│   ├── check_error_safety.py # Проверка безопасности ошибок
+│   └── README.md
 ├── venv/                     # Виртуальное окружение
-├── clear_users.py            # Утилита очистки пользователей
-├── list_users.py             # Утилита просмотра пользователей
 ├── Dockerfile                # Docker образ
-├── env.example               # Пример .env файла
-├── main.py                   # Точка входа приложения
+├── env.example               # Пример .env
+├── main.py                   # Точка входа
 ├── pytest.ini                # Конфигурация pytest
-├── railway.json              # Конфигурация Railway
-├── requirements.txt          # Python зависимости
-└── run_tests.sh             # Скрипт запуска тестов
+├── railway.json              # Railway config
+├── requirements.txt          # Зависимости
+└── run_tests.sh             # Запуск тестов с coverage
 ```
 
 ### Backend - Ключевые файлы
@@ -63,11 +68,15 @@ backend/
 |------|----------|
 | `main.py` | Точка входа, настройка FastAPI и GraphQL |
 | `app/database.py` | Подключение к PostgreSQL через SQLAlchemy |
-| `app/models/user.py` | Модель User с хэшированием паролей |
+| `app/models/user.py` | Модель User с UUID и хэшированием паролей |
 | `app/services/user_service.py` | CRUD операции для пользователей |
 | `app/schemas/auth.py` | GraphQL типы и мутации для авторизации |
 | `app/core/security.py` | JWT создание и верификация |
+| `app/core/exceptions.py` | Безопасные кастомные исключения |
 | `app/core/config.py` | Настройки из .env |
+| `migrations/auto_migrate.py` | Автоматические миграции при старте |
+| `scripts/list_users.py` | Утилита просмотра пользователей |
+| `scripts/clear_users.py` | Утилита очистки пользователей |
 
 ## Frontend
 
@@ -258,16 +267,33 @@ VITE_API_URL=http://localhost:8000
 
 ### Backend
 
+#### Скрипты управления (scripts/)
 ```bash
 # Просмотр пользователей
-python list_users.py
+python scripts/list_users.py
 
 # Очистка пользователей
-python clear_users.py
+python scripts/clear_users.py
+```
 
-# Запуск тестов
+#### Миграции (migrations/)
+```bash
+# Автоматически при старте приложения
+# Или вручную:
+python migrations/migrate_add_public_id.py
+python migrations/recreate_tables.py
+```
+
+#### Тесты
+```bash
+# Unit тесты
 pytest
+
+# С coverage
 ./run_tests.sh
+
+# Интеграционные тесты
+python integration_tests/check_error_safety.py
 ```
 
 ### Frontend
