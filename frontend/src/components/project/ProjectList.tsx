@@ -1,5 +1,4 @@
 import { useState, type FC } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { useQuery, useMutation } from '@apollo/client';
 import {
@@ -12,7 +11,6 @@ import { ProjectCard } from './ProjectCard';
 import { CreateProjectDialog } from './CreateProjectDialog';
 import { EditProjectDialog } from './EditProjectDialog';
 import { EmptyProjects } from './EmptyProjects';
-import { PATHS } from '@/constants/paths';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   AlertDialog,
@@ -26,7 +24,6 @@ import {
 } from '@/components/ui/alert-dialog';
 
 export const ProjectList: FC = () => {
-  const navigate = useNavigate();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -58,10 +55,6 @@ export const ProjectList: FC = () => {
   const handleDelete = (project: Project) => {
     setProjectToDelete(project);
     setDeleteDialogOpen(true);
-  };
-
-  const handleProjectClick = (project: Project) => {
-    navigate(PATHS.PROJECT.replace(":id", project.id));
   };
 
   const confirmDelete = async () => {
@@ -128,7 +121,6 @@ export const ProjectList: FC = () => {
                   project={project}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
-                  onClick={handleProjectClick}
                 />
               );
             })}
