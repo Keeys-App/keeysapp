@@ -1,10 +1,24 @@
-import { Box, Button, Card, Flex, Heading, Text, TextField } from '@radix-ui/themes'
+import { Box, Button, Card, Flex, Heading, Text, TextField, IconButton } from '@radix-ui/themes'
+import { SunIcon, MoonIcon } from '@radix-ui/react-icons'
+import { useTheme } from './contexts/ThemeContext'
 
 function App() {
+  const { theme, toggleTheme } = useTheme()
+
   return (
     <Box p="6" style={{ minHeight: '100vh' }}>
       <Flex direction="column" gap="6" align="center">
-        <Heading size="8">React + GraphQL + Radix UI</Heading>
+        <Flex align="center" gap="4" style={{ width: '100%', maxWidth: 600 }}>
+          <Heading size="8" style={{ flex: 1 }}>React + GraphQL + Radix UI</Heading>
+          <IconButton 
+            variant="ghost" 
+            size="3"
+            onClick={toggleTheme}
+            aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
+          >
+            {theme === 'light' ? <MoonIcon /> : <SunIcon />}
+          </IconButton>
+        </Flex>
         
         <Card size="3" style={{ maxWidth: 600, width: '100%' }}>
           <Flex direction="column" gap="4">
@@ -17,20 +31,13 @@ function App() {
             </Text>
             
             <Flex direction="column" gap="3" mt="4">
-              <TextField.Root placeholder="Enter your email" />
+              <TextField.Root size="3" placeholder="Enter your email" />
               <Button size="3" style={{ width: '100%' }}>
                 Get Started
               </Button>
             </Flex>
           </Flex>
         </Card>
-
-        <Flex gap="3" wrap="wrap" justify="center">
-          <Button variant="solid">Solid Button</Button>
-          <Button variant="soft">Soft Button</Button>
-          <Button variant="outline">Outline Button</Button>
-          <Button variant="ghost">Ghost Button</Button>
-        </Flex>
       </Flex>
     </Box>
   )
