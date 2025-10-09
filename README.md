@@ -1,179 +1,240 @@
-# Locales Monorepo
+# Locales - Translation Management System
 
-Monorepo for localization management with React + TypeScript frontend and Python + FastAPI backend.
+> Система управления локализацией с полноценной системой авторизации
 
-## Project Structure
+## 🚀 Быстрый старт
 
-```
-locales/
-├── frontend/          # React + TypeScript + Vite
-├── backend/           # Python + FastAPI
-├── docker-compose.yml # Docker configuration
-├── package.json       # Root scripts
-└── README.md
-```
-
-## Technologies
-
-### Frontend
-- **React 18** - UI library
-- **TypeScript** - type system
-- **Vite** - build tool and dev server
-- **Axios** - HTTP client
-- **React Router** - routing
-
-### Backend
-- **FastAPI** - web framework
-- **SQLAlchemy** - ORM
-- **PostgreSQL** - database
-- **Alembic** - migrations
-- **Pydantic** - data validation
-
-### Infrastructure
-- **Docker** - containerization
-- **Docker Compose** - orchestration
-
-## Quick Start
-
-### Prerequisites
+### Требования
+- Python 3.12+
 - Node.js 18+
-- Python 3.11+
-- Docker and Docker Compose
+- PostgreSQL
+- Yarn
 
-### Installation
-
-1. **Clone the repository and install dependencies:**
-```bash
-git clone <repository-url>
-cd locales
-npm run install:all
-```
-
-2. **Run the project with Docker:**
-```bash
-docker-compose up --build
-```
-
-Or run locally:
-
-3. **Start PostgreSQL:**
-```bash
-docker-compose up postgres -d
-```
-
-4. **Start backend:**
+### Запуск Backend
 ```bash
 cd backend
-pip install -r requirements.txt
+source venv/bin/activate
 python main.py
 ```
+Backend: http://localhost:8000
 
-5. **Start frontend:**
+### Запуск Frontend
 ```bash
 cd frontend
-npm run dev
+yarn dev
 ```
+Frontend: http://localhost:5173
 
-## Available Services
+## 📚 Документация
 
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8000
-- **API Documentation**: http://localhost:8000/docs
-- **PostgreSQL**: localhost:5432
+Полная документация находится в **Obsidian Vault**: `docs/obsidian/`
 
-## API Endpoints
+### 📖 Основные документы
 
-### Localizations
+| Документ | Описание |
+|----------|----------|
+| [README](docs/obsidian/README.md) | Главная страница документации |
+| [Quick Start](docs/obsidian/Quick%20Start.md) | Подробный быстрый старт |
+| [Authentication Setup](docs/obsidian/Authentication%20Setup.md) | Полная настройка системы авторизации |
+| [Authentication Cheatsheet](docs/obsidian/Authentication%20Cheatsheet.md) | Быстрая справка по авторизации |
+| [Testing Guide](docs/obsidian/Testing%20Guide.md) | Руководство по тестированию (28 тестов) |
+| [Project Structure](docs/obsidian/Project%20Structure.md) | Детальная структура проекта |
 
-- `GET /api/v1/locales/` - Get list of localizations
-- `GET /api/v1/locales/{id}` - Get localization by ID
-- `POST /api/v1/locales/` - Create new localization
-- `PUT /api/v1/locales/{id}` - Update localization
-- `DELETE /api/v1/locales/{id}` - Delete localization
-- `GET /api/v1/locales/export/{language}` - Export localizations
+### 🔍 Как использовать документацию
 
-### Query Parameters
+**В Obsidian (рекомендуется):**
+1. Откройте Obsidian
+2. "Open folder as vault"
+3. Выберите `docs/obsidian`
+4. Используйте внутренние ссылки для навигации
 
-- `skip` - number of records to skip (pagination)
-- `limit` - maximum number of records (default 100)
-- `language` - filter by language (e.g.: 'ru', 'en')
-- `namespace` - filter by namespace
+**В редакторе кода:**
+- Просто открывайте `.md` файлы в `docs/obsidian/`
 
-## Development
+## 🏗️ Технологический стек
 
-### Scripts
+### Backend
+- **FastAPI** - Современный веб-фреймворк
+- **Strawberry GraphQL** - GraphQL для Python
+- **PostgreSQL** - База данных
+- **SQLAlchemy** - ORM
+- **JWT** (pyjwt) - Авторизация
+- **bcrypt** - Хэширование паролей
+- **pytest** - Тестирование
+
+### Frontend
+- **React 19** - UI библиотека
+- **TypeScript** - Типизация
+- **Radix UI** - Компоненты UI
+- **Apollo Client** - GraphQL клиент
+- **React Router** - Маршрутизация
+- **Vite** - Сборка
+
+## ✅ Реализовано
+
+### Система авторизации
+- ✅ Регистрация пользователей
+- ✅ Вход с JWT токенами
+- ✅ Защищенные маршруты
+- ✅ Хэширование паролей (bcrypt)
+- ✅ GraphQL API (queries & mutations)
+- ✅ Контекст авторизации на frontend
+- ✅ Автоматическое обновление токенов в headers
+- ✅ Валидация форм
+
+### Тестирование
+- ✅ 28 автоматических тестов
+- ✅ Покрытие кода ~95%
+- ✅ Тесты моделей (10)
+- ✅ Тесты сервисов (11)
+- ✅ Тесты безопасности (7)
+
+### UI/UX
+- ✅ Красивые формы с Radix UI
+- ✅ Темная/светлая тема
+- ✅ Валидация на клиенте
+- ✅ Обработка ошибок
+- ✅ Адаптивный дизайн
+
+## 🧪 Тестирование
 
 ```bash
-# Install all dependencies
-npm run install:all
+cd backend
+source venv/bin/activate
 
-# Run all services in development mode
-npm run dev
+# Все тесты
+pytest
 
-# Run only frontend
-npm run dev:frontend
+# С подробным выводом
+pytest -v
 
-# Run only backend
-npm run dev:backend
-
-# Build frontend for production
-npm run build
-
-# Clean node_modules
-npm run clean
+# С покрытием
+pytest --cov=app --cov-report=html
 ```
 
-### Database Structure
+**Результат:** ✅ 28 passed in 6.01s (~95% coverage)
 
-`locales` table:
-- `id` - unique identifier
-- `key` - localization key
-- `value` - localization value
-- `language` - language (ru, en, etc.)
-- `namespace` - namespace (default, admin, etc.)
-- `is_active` - whether localization is active
-- `created_at` - creation date
-- `updated_at` - update date
+Подробнее: [Testing Guide](docs/obsidian/Testing%20Guide.md)
 
-### Environment Variables
+## 🔐 Авторизация
 
-Create `.env` file in `backend/` folder based on `env.example`:
+### GraphQL Playground
+http://localhost:8000/graphql
 
+**Регистрация:**
+```graphql
+mutation {
+  register(input: {
+    email: "user@example.com"
+    username: "johndoe"
+    password: "password123"
+  }) {
+    accessToken
+    user { id username email }
+  }
+}
+```
+
+**Вход:**
+```graphql
+mutation {
+  login(input: {
+    email: "user@example.com"
+    password: "password123"
+  }) {
+    accessToken
+    user { username }
+  }
+}
+```
+
+Подробнее: [Authentication Setup](docs/obsidian/Authentication%20Setup.md)
+
+## 📁 Структура проекта
+
+```
+Locales/
+├── backend/          # FastAPI + GraphQL
+│   ├── app/         # Код приложения
+│   │   ├── models/     # SQLAlchemy модели
+│   │   ├── schemas/    # GraphQL схемы
+│   │   ├── services/   # Бизнес-логика
+│   │   └── core/       # Конфигурация, JWT
+│   └── tests/       # 28 тестов
+├── frontend/        # React + TypeScript
+│   └── src/
+│       ├── components/  # React компоненты
+│       ├── contexts/    # React contexts
+│       ├── pages/       # Страницы
+│       └── graphql/     # GraphQL queries
+└── docs/
+    └── obsidian/    # Документация
+```
+
+Подробнее: [Project Structure](docs/obsidian/Project%20Structure.md)
+
+## 🔗 Полезные ссылки
+
+| Сервис | URL |
+|--------|-----|
+| Backend API | http://localhost:8000 |
+| GraphQL Playground | http://localhost:8000/graphql |
+| Frontend App | http://localhost:5173 |
+| API Docs | http://localhost:8000/docs |
+| Health Check | http://localhost:8000/health |
+
+## 🛠️ Разработка
+
+### Backend
 ```bash
-cp backend/env.example backend/.env
+# Запуск с автоперезагрузкой
+cd backend
+source venv/bin/activate
+python main.py
+
+# Тесты
+pytest -v
+
+# Coverage
+pytest --cov=app --cov-report=html
 ```
 
-## Docker
-
-### Build and Run
+### Frontend
 ```bash
-# Build all services
-docker-compose build
+# Dev сервер
+cd frontend
+yarn dev
 
-# Run all services
-docker-compose up
+# Линтинг
+yarn lint
 
-# Run in background
-docker-compose up -d
-
-# Stop services
-docker-compose down
-
-# Stop with volume removal
-docker-compose down -v
+# Сборка
+yarn build
 ```
 
-### Logs
-```bash
-# View logs for all services
-docker-compose logs
+## 🔄 Следующие шаги
 
-# View logs for specific service
-docker-compose logs backend
-docker-compose logs frontend
-docker-compose logs postgres
-```
+- [ ] Добавить восстановление пароля
+- [ ] Реализовать подтверждение email
+- [ ] Добавить OAuth (Google, GitHub)
+- [ ] Реализовать refresh tokens
+- [ ] Добавить управление профилем
+- [ ] RBAC (Role-Based Access Control)
+- [ ] Функционал управления переводами
+- [ ] API документация
 
-## License
+## 🤝 Вклад в проект
 
-MIT
+1. Изучите документацию в `docs/obsidian/`
+2. Создайте feature branch
+3. Напишите код и тесты
+4. Убедитесь что все тесты проходят
+5. Создайте Pull Request
+
+## 📝 Лицензия
+
+Все права защищены © 2025
+
+---
+
+**Документация:** [docs/obsidian/](docs/obsidian/) | **Тесты:** ✅ 28 passed (~95% coverage)
