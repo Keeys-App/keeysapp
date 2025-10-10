@@ -221,6 +221,42 @@ class KeyQuery:
             logger.error(f"Error in key query: {type(e).__name__}: {str(e)}")
             return None
 
+    @strawberry.field
+    def check_key_exists(self, info: Info, project_id: str, key: str) -> bool:
+        """
+        Check if a key already exists in a project.
+        
+        Args:
+            info: GraphQL info object
+            project_id: Project UUID
+            key: Key string to check
+            
+        Returns:
+            True if key exists, False otherwise
+            
+        Raises:
+            UnauthorizedError: If user is not authenticated
+        """
+        try:
+            current_user_id = get_current_user_id(info)
+            if not current_user_id:
+                raise UnauthorizedError("Authentication required to check keys")
+            
+            db: Session = next(get_db())
+            try:
+                exists = KeyService.check_key_exists(db, project_id, key, current_user_id)
+                if exists is None:
+                    return False
+                
+                return exists
+            finally:
+                db.close()
+        except UnauthorizedError:
+            raise
+        except Exception as e:
+            logger.error(f"Error in check_key_exists query: {type(e).__name__}: {str(e)}")
+            return False
+
 
 @strawberry.type
 class KeyMutation:

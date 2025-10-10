@@ -121,6 +121,37 @@ class KeyService:
         return keys
 
     @staticmethod
+    def check_key_exists(db: Session, project_public_id: str, key: str, user_id: int) -> Optional[bool]:
+        """
+        Check if a key already exists in a project.
+        
+        Args:
+            db: Database session
+            project_public_id: Public UUID of the project
+            key: Translation key string to check
+            user_id: User ID requesting the check
+            
+        Returns:
+            True if key exists, False if not, None if no access
+        """
+        # Get project
+        project = ProjectService.get_project_by_public_id(db, project_public_id)
+        if not project:
+            return None
+        
+        # Check access
+        if not ProjectService.check_project_access(db, project.id, user_id):
+            return None
+        
+        # Check if key exists
+        existing_key = db.query(Key).filter(
+            Key.project_id == project.id,
+            Key.key == key
+        ).first()
+        
+        return existing_key is not None
+
+    @staticmethod
     def update_key(
         db: Session,
         public_id: str,

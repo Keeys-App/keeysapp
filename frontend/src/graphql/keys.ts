@@ -36,6 +36,12 @@ export const GET_KEY = gql`
   }
 `;
 
+export const CHECK_KEY_EXISTS = gql`
+  query CheckKeyExists($projectId: String!, $key: String!) {
+    checkKeyExists(projectId: $projectId, key: $key)
+  }
+`;
+
 export const CREATE_KEY = gql`
   mutation CreateKey($input: CreateKeyInput!) {
     createKey(input: $input) {

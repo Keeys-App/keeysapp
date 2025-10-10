@@ -28,6 +28,7 @@ class Query:
     # Include key queries
     project_keys: List[KeyType] = strawberry.field(resolver=KeyQuery.project_keys)
     key: Optional[KeyType] = strawberry.field(resolver=KeyQuery.key)
+    check_key_exists: bool = strawberry.field(resolver=KeyQuery.check_key_exists)
 
 
 @strawberry.type
