@@ -29,14 +29,16 @@ export function Key({
 
   return (
     <div 
-      className={`border-b grid grid-cols-[minmax(300px,300px)_minmax(300px,3fr)] relative cursor-pointer transition-colors ${
-        isSelected ? 'bg-muted/50' : 'hover:bg-muted/30'
-      }`}
+      className="border-b grid grid-cols-[minmax(300px,300px)_minmax(300px,3fr)] relative cursor-pointer"
       onClick={handleClick}
-    >
+    >      
       <div className="border-r relative">
         <div className="font-mono text-sm break-words sticky bg-background top-[2px] z-10 py-2 px-4">
-          {keyData.key}
+          <span className={`transition-colors px-1 ${
+            isSelected ? 'bg-primary/10 text-primary py-0.5 rounded' : ''
+          }`}>
+            {keyData.key}
+          </span>
         </div>
         {keyData.description ? (
           <p className="text-xs text-muted-foreground px-4 py-2">{keyData.description}</p>
