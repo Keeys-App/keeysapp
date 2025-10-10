@@ -52,8 +52,8 @@ export function KeyList({
   const keys: TranslationKey[] = data?.projectKeys || [];
 
   return (
-    <div className="relative h-full overflow-y-auto">
-      <div className="">
+    <>
+      <div className="sticky top-12 z-10">
         <KeyControls projectId={projectId} onCreateKey={onCreateKey} />
       </div>
       {keys.length === 0 ? (
@@ -70,6 +70,6 @@ export function KeyList({
           />
         ))
       )}
-    </div>
+    </>
   );
 }

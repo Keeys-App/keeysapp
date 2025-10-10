@@ -527,7 +527,7 @@ class ProjectService:
             'config': {
                 'description': project.description or '',
                 'languages': project.languages,
-                'defaultLanguage': project.default_language or '',
+                'defaultLanguage': project.default_language,  # Don't convert None to empty string
                 'color': project.color,
                 'status': project.status
             },
@@ -559,6 +559,11 @@ class ProjectService:
             keys_data = project_data.get('keys', [])
             locales = project_data.get('locales', [])
             
+            # Get default language and convert empty string to None
+            default_language = config.get('defaultLanguage')
+            if default_language == '':
+                default_language = None
+            
             # Create project
             project = ProjectService.create_project(
                 db=db,
@@ -566,7 +571,7 @@ class ProjectService:
                 name=name,
                 description=config.get('description'),
                 languages=config.get('languages', []),
-                default_language=config.get('defaultLanguage'),
+                default_language=default_language,
                 color=config.get('color', '#6366f1'),
                 status=config.get('status', 'active')
             )

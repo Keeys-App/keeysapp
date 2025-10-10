@@ -1,5 +1,5 @@
 import { useState, type FC } from 'react';
-import { X, Edit2, Check } from 'lucide-react';
+import { X, Edit2, Check, Star } from 'lucide-react';
 import { LANGUAGE_CONFIGS } from '@/types/project';
 import type { LanguageConfigInput } from '@/graphql/projects';
 import { Button } from '@/components/ui/button';
@@ -7,16 +7,22 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Combobox, type ComboboxOption } from '@/components/blocks';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 
 interface LanguageConfigEditorProps {
   languages: LanguageConfigInput[];
   onChange: (languages: LanguageConfigInput[]) => void;
+  defaultLanguage?: string;
+  onDefaultLanguageChange?: (languageCode: string) => void;
   disabled?: boolean;
 }
 
 export const LanguageConfigEditor: FC<LanguageConfigEditorProps> = ({
   languages,
   onChange,
+  defaultLanguage,
+  onDefaultLanguageChange,
   disabled = false,
 }) => {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -92,56 +98,87 @@ export const LanguageConfigEditor: FC<LanguageConfigEditorProps> = ({
       {/* Selected languages */}
       {languages.length > 0 ? (
         <div className="space-y-2">
-          {languages.map((lang, index) => {
-            const langInfo = getLanguageInfo(lang.code);
-            return (
-              <div
-                key={`${lang.code}-${index}`}
-                className="flex items-center justify-between p-3 border rounded-lg bg-card"
-              >
-                <div className="flex items-center gap-3 flex-1">
-                  <span className="text-2xl">{langInfo?.flag || '🏳️'}</span>
-                  <div className="flex-1">
+          <RadioGroup
+            value={defaultLanguage || ''}
+            onValueChange={(value) => {
+              if (onDefaultLanguageChange) {
+                onDefaultLanguageChange(value);
+              }
+            }}
+            disabled={disabled}
+          >
+            {languages.map((lang, index) => {
+              const langInfo = getLanguageInfo(lang.code);
+              const isDefault = defaultLanguage === lang.code;
+              return (
+                <div
+                  key={`${lang.code}-${index}`}
+                  className={`flex items-center justify-between p-3 border rounded-lg bg-card ${
+                    isDefault ? 'border-primary ring-1 ring-primary' : ''
+                  }`}
+                >
+                  <div className="flex items-center gap-3 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium">{langInfo?.name || lang.code}</span>
-                      <Badge variant="outline" className="text-xs">
-                        {lang.code}
-                      </Badge>
+                      <RadioGroupItem
+                        value={lang.code}
+                        id={`lang-${lang.code}`}
+                        disabled={disabled}
+                      />
+                      <Label
+                        htmlFor={`lang-${lang.code}`}
+                        className="cursor-pointer flex items-center gap-2"
+                      >
+                        <span className="text-2xl">{langInfo?.flag || '🏳️'}</span>
+                      </Label>
                     </div>
-                    <div className="text-sm text-muted-foreground mt-1">
-                      Locale: <code className="px-1 py-0.5 bg-muted rounded">{lang.locale}</code>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{langInfo?.name || lang.code}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {lang.code}
+                        </Badge>
+                        {isDefault && (
+                          <Badge variant="default" className="text-xs">
+                            <Star className="h-3 w-3 mr-1" />
+                            Default
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="text-sm text-muted-foreground mt-1">
+                        Locale: <code className="px-1 py-0.5 bg-muted rounded">{lang.locale}</code>
+                      </div>
                     </div>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        return handleStartEdit(index);
+                      }}
+                      disabled={disabled}
+                      title="Edit locale"
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        return handleRemoveLanguage(index);
+                      }}
+                      disabled={disabled}
+                      title="Remove language"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      return handleStartEdit(index);
-                    }}
-                    disabled={disabled}
-                    title="Edit locale"
-                  >
-                    <Edit2 className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      return handleRemoveLanguage(index);
-                    }}
-                    disabled={disabled}
-                    title="Remove language"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </RadioGroup>
         </div>
       ) : (
         <div className="text-sm text-muted-foreground p-4 border rounded-lg text-center">

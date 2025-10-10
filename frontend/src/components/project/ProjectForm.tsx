@@ -39,6 +39,16 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, project, onSuccess, on
   const [color, setColor] = useState(DEFAULT_PROJECT_COLORS[0]);
   const [status, setStatus] = useState<string>(ProjectStatus.ACTIVE);
 
+  // Store original values for edit mode
+  const [originalValues, setOriginalValues] = useState<{
+    name: string;
+    description: string;
+    languages: LanguageConfigInput[];
+    defaultLanguage: string;
+    color: string;
+    status: string;
+  } | null>(null);
+
   const navigate = useNavigate();
   const { logout } = useAuth();
 
@@ -71,9 +81,21 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, project, onSuccess, on
       });
       
       setLanguages(normalizedLanguages);
-      setDefaultLanguage(project.defaultLanguage || '');
+      // Use actual value from project, including null/undefined - convert to empty string only if truly empty
+      const defaultLang = project.defaultLanguage ?? '';
+      setDefaultLanguage(defaultLang);
       setColor(project.color);
       setStatus(project.status);
+
+      // Store original values for comparison
+      setOriginalValues({
+        name: project.name,
+        description: project.description || '',
+        languages: normalizedLanguages,
+        defaultLanguage: defaultLang,
+        color: project.color,
+        status: project.status,
+      });
     }
   }, [mode, project]);
 
@@ -181,6 +203,45 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, project, onSuccess, on
     }
   };
 
+  // Check if form has changes (for edit mode)
+  const hasChanges = (): boolean => {
+    if (mode === 'create' || !originalValues) {
+      return true;
+    }
+
+    // Compare primitive values
+    if (
+      name !== originalValues.name ||
+      description !== originalValues.description ||
+      defaultLanguage !== originalValues.defaultLanguage ||
+      color !== originalValues.color ||
+      status !== originalValues.status
+    ) {
+      return true;
+    }
+
+    // Compare languages arrays
+    if (languages.length !== originalValues.languages.length) {
+      return true;
+    }
+
+    // Deep compare languages (order-independent)
+    // Sort both arrays by code for consistent comparison
+    const sortedLanguages = [...languages].sort((a, b) => {
+      return a.code.localeCompare(b.code);
+    });
+    const sortedOriginalLanguages = [...originalValues.languages].sort((a, b) => {
+      return a.code.localeCompare(b.code);
+    });
+
+    const languagesChanged = sortedLanguages.some((lang, index) => {
+      const originalLang = sortedOriginalLanguages[index];
+      return lang.code !== originalLang?.code || lang.locale !== originalLang?.locale;
+    });
+
+    return languagesChanged;
+  };
+
   const handleLanguagesChange = (newLanguages: LanguageConfigInput[]) => {
     setLanguages(newLanguages);
     
@@ -195,6 +256,10 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, project, onSuccess, on
     })) {
       setDefaultLanguage(newLanguages.length > 0 ? newLanguages[0].code : '');
     }
+  };
+
+  const handleDefaultLanguageChange = (langCode: string) => {
+    setDefaultLanguage(langCode);
   };
 
   const handleCancel = () => {
@@ -217,7 +282,7 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, project, onSuccess, on
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form key={mode === 'edit' && project ? project.id : 'create'} onSubmit={handleSubmit} className="space-y-4">
             {/* Name */}
             <Field>
               <FieldLabel>
@@ -253,38 +318,16 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, project, onSuccess, on
               <FieldLabel>
                 Languages <span className="text-destructive">*</span>
               </FieldLabel>
+              <p className="text-sm text-muted-foreground mb-2">
+                Add languages and select default language using radio buttons
+              </p>
               <LanguageConfigEditor
                 languages={languages}
                 onChange={handleLanguagesChange}
+                defaultLanguage={defaultLanguage}
+                onDefaultLanguageChange={handleDefaultLanguageChange}
                 disabled={loading}
               />
-            </Field>
-
-            {/* Default Language */}
-            <Field>
-              <FieldLabel>
-                Default Language <span className="text-destructive">*</span>
-              </FieldLabel>
-              <Select
-                value={defaultLanguage}
-                onValueChange={setDefaultLanguage}
-                disabled={loading || languages.length === 0}
-              >
-                <SelectTrigger>
-                  <SelectValue
-                    placeholder={languages.length === 0 ? 'Add languages first' : 'Select default language'}
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {languages.map((lang) => {
-                    return (
-                      <SelectItem key={lang.code} value={lang.code}>
-                        {lang.code.toUpperCase()}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
             </Field>
 
             {/* Color */}
@@ -312,7 +355,7 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, project, onSuccess, on
               <Button type="button" variant="outline" onClick={handleCancel} disabled={loading}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={loading || !name.trim() || !defaultLanguage}>
+              <Button type="submit" disabled={loading || !name.trim() || !defaultLanguage || !hasChanges()}>
                 {loading
                   ? mode === 'create'
                     ? 'Creating...'
