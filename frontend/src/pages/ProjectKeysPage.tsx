@@ -3,7 +3,7 @@ import { useQuery } from "@apollo/client";
 import { GET_PROJECT, type GetProjectData } from "@/graphql/projects";
 import { PATHS } from "@/constants/paths";
 import { useAuth, useBreadcrumbs } from "@/contexts";
-import { useEffect, useState, useMemo, type FC } from "react";
+import { useEffect, useState, useMemo, useCallback, type FC } from "react";
 import { KeyList, CreateKeyDialog, KeyManagement } from "@/components/key";
 import { COMMON_LANGUAGES, LANGUAGE_CONFIGS } from "@/types/project";
 import { LoadingState, ErrorState, NotFoundState } from "@/components/blocks";
@@ -53,9 +53,13 @@ export const ProjectKeysPage: FC = () => {
     navigate(PATHS.DASHBOARD);
   };
 
-  const handleCreateKey = () => {
+  const handleCreateKey = useCallback(() => {
     setIsCreateDialogOpen(true);
-  };
+  }, []);
+
+  const handleSelectKey = useCallback((key: TranslationKey) => {
+    setSelectedKey(key);
+  }, []);
 
   // Build enhanced language list with locale information
   const projectLanguages = useMemo(() => {
@@ -109,7 +113,7 @@ export const ProjectKeysPage: FC = () => {
           projectLanguages={projectLanguages}
           onCreateKey={handleCreateKey}
           selectedKey={selectedKey}
-          onSelectKey={setSelectedKey}
+          onSelectKey={handleSelectKey}
         />
       </div>
 

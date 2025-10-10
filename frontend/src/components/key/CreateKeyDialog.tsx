@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, type FC } from "react";
-import { useMutation, useLazyQuery } from "@apollo/client";
+import { useMutation, useLazyQuery, gql } from "@apollo/client";
 import { toast } from "sonner";
 import { Check, Info } from "lucide-react";
 import { CREATE_KEY, GET_PROJECT_KEYS, CHECK_KEY_EXISTS } from "@/graphql/keys";
@@ -123,7 +123,36 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
     key.trim() === lastCheckedKey; // Ensure current key has been checked
 
   const [createKey, { data: createKeyData, error: createKeyError }] = useMutation(CREATE_KEY, {
-    refetchQueries: [{ query: GET_PROJECT_KEYS, variables: { projectId } }],
+    update(cache, { data }) {
+      if (data?.createKey) {
+        // Add new key to the cache
+        cache.modify({
+          fields: {
+            projectKeys(existingKeys = []) {
+              const newKeyRef = cache.writeFragment({
+                data: data.createKey,
+                fragment: gql`
+                  fragment NewKey on TranslationKey {
+                    id
+                    key
+                    description
+                    translations {
+                      language
+                      value
+                      createdAt
+                      updatedAt
+                    }
+                    createdAt
+                    updatedAt
+                  }
+                `,
+              });
+              return [...existingKeys, newKeyRef];
+            },
+          },
+        });
+      }
+    },
   });
   
   const withSaving = useSaving();

@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TranslationEditor } from "./TranslationEditor";
 import type { TranslationKey } from "@/types/translationKey";
@@ -14,7 +15,7 @@ interface KeyProps {
 /**
  * Component for displaying a single translation key with its translations
  */
-export function Key({ 
+export const Key = memo(function Key({ 
   keyData, 
   projectId, 
   projectLanguages,
@@ -41,7 +42,7 @@ export function Key({
           </span>
         </div>
         {keyData.description ? (
-          <p className="text-sm text-muted-foreground px-4 py-2">{keyData.description}</p>
+          <p className="text-sm break-words text-muted-foreground px-4 py-2">{keyData.description}</p>
         ) : null}
       </div>
       <div className="flex flex-col">
@@ -81,4 +82,15 @@ export function Key({
       </div>
     </div>
   );
-}
+}, (prevProps, nextProps) => {
+  // Custom comparison function to prevent unnecessary re-renders
+  // Only re-render if the key data actually changed
+  return (
+    prevProps.keyData.id === nextProps.keyData.id &&
+    prevProps.keyData.key === nextProps.keyData.key &&
+    prevProps.keyData.description === nextProps.keyData.description &&
+    prevProps.keyData.updatedAt === nextProps.keyData.updatedAt &&
+    prevProps.isSelected === nextProps.isSelected &&
+    prevProps.projectId === nextProps.projectId
+  );
+});

@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client";
-import { useRef } from "react";
+import { useRef, useMemo } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { GET_PROJECT_KEYS } from "@/graphql/keys";
 import type { TranslationKey } from "@/types/translationKey";
@@ -30,10 +30,23 @@ export function KeyList({
   const { data, loading, error } = useQuery(GET_PROJECT_KEYS, {
     variables: { projectId },
     skip: !projectId,
+    fetchPolicy: 'cache-first', // Use cache when available
+    nextFetchPolicy: 'cache-first',
+    notifyOnNetworkStatusChange: false, // Don't trigger re-renders on network status changes
   });
 
   const parentRef = useRef<HTMLDivElement>(null);
-  const keys: TranslationKey[] = data?.projectKeys || [];
+  
+  // Memoize keys array to prevent unnecessary re-renders
+  // Only update if the array length or individual key IDs/updatedAt changed
+  const keys: TranslationKey[] = useMemo(() => {
+    const projectKeys = data?.projectKeys || [];
+    return projectKeys;
+  }, [
+    data?.projectKeys?.length,
+    // Create a stable key based on IDs and update times
+    data?.projectKeys?.map((k) => `${k.id}-${k.updatedAt}`).join(','),
+  ]);
 
   // Calculate estimated size based on number of languages
   // Each language row is approximately 60px, plus some padding
@@ -97,7 +110,7 @@ export function KeyList({
               const key = keys[virtualItem.index];
               return (
                 <div
-                  key={virtualItem.key}
+                  key={key.id}
                   data-index={virtualItem.index}
                   ref={virtualizer.measureElement}
                 >

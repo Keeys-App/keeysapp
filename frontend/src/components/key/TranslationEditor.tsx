@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { useMutation } from "@apollo/client";
 import { toast } from "sonner";
 import { SET_TRANSLATION, GET_PROJECT_KEYS } from "@/graphql/keys";
@@ -16,7 +16,7 @@ interface TranslationEditorProps {
   projectId: string;
 }
 
-export function TranslationEditor({
+export const TranslationEditor = memo(function TranslationEditor({
   keyData,
   language,
   currentValue,
@@ -25,7 +25,28 @@ export function TranslationEditor({
   const [value, setValue] = useState(currentValue);
 
   const [setTranslation, { data: translationData, error: translationError }] = useMutation(SET_TRANSLATION, {
-    refetchQueries: [{ query: GET_PROJECT_KEYS, variables: { projectId } }],
+    update(cache, { data }) {
+      if (data?.setTranslation) {
+        // Update only the specific translation in cache
+        const keyId = cache.identify({ __typename: 'TranslationKey', id: keyData.id });
+        
+        cache.modify({
+          id: keyId,
+          fields: {
+            translations(existingTranslations = []) {
+              const newTranslation = data.setTranslation;
+              const otherTranslations = existingTranslations.filter(
+                (t: any) => t.language !== newTranslation.language
+              );
+              return [...otherTranslations, newTranslation];
+            },
+            updatedAt() {
+              return new Date().toISOString();
+            },
+          },
+        });
+      }
+    },
   });
 
   const withSaving = useSaving();
@@ -85,4 +106,11 @@ export function TranslationEditor({
       </Button>
     </div>
   );
-}
+}, (prevProps, nextProps) => {
+  // Only re-render if current value or key ID changed
+  return (
+    prevProps.currentValue === nextProps.currentValue &&
+    prevProps.keyData.id === nextProps.keyData.id &&
+    prevProps.language.code === nextProps.language.code
+  );
+});
