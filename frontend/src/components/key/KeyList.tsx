@@ -1,4 +1,6 @@
 import { useQuery } from "@apollo/client";
+import { useRef } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { GET_PROJECT_KEYS } from "@/graphql/keys";
 import type { TranslationKey } from "@/types/translationKey";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,6 +27,27 @@ export function KeyList({
     skip: !projectId,
   });
 
+  const parentRef = useRef<HTMLDivElement>(null);
+  const keys: TranslationKey[] = data?.projectKeys || [];
+
+  // Calculate estimated size based on number of languages
+  // Each language row is approximately 60px, plus some padding
+  const estimateSize = () => {
+    return projectLanguages.length * 60 + 40;
+  };
+
+  const virtualizer = useVirtualizer({
+    count: keys.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize,
+    overscan: 5,
+    measureElement:
+      typeof window !== "undefined" &&
+      navigator.userAgent.indexOf("Firefox") === -1
+        ? (element) => element?.getBoundingClientRect().height
+        : undefined,
+  });
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -49,27 +72,51 @@ export function KeyList({
     );
   }
 
-  const keys: TranslationKey[] = data?.projectKeys || [];
-
   return (
-    <>
-      <div className="sticky top-12 z-10">
-        <KeyControls projectId={projectId} onCreateKey={onCreateKey} />
-      </div>
+    <div className="flex flex-col h-full">
+      <KeyControls projectId={projectId} onCreateKey={onCreateKey} />
       {keys.length === 0 ? (
-        <div className="flex flex-col h-full min-h-[50vh]">
+        <div className="flex flex-col flex-1 min-h-[50vh]">
           <EmptyKeys projectId={projectId} onCreateKey={onCreateKey} />
         </div>
       ) : (
-        keys.map((key) => (
-          <Key
-            key={key.id}
-            keyData={key}
-            projectId={projectId}
-            projectLanguages={projectLanguages}
-          />
-        ))
+        <div
+          ref={parentRef}
+          className="flex-1 overflow-auto"
+        >
+          <div
+            style={{
+              height: `${virtualizer.getTotalSize()}px`,
+              width: "100%",
+              position: "relative",
+            }}
+          >
+            {virtualizer.getVirtualItems().map((virtualItem) => {
+              const key = keys[virtualItem.index];
+              return (
+                <div
+                  key={virtualItem.key}
+                  data-index={virtualItem.index}
+                  ref={virtualizer.measureElement}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    transform: `translateY(${virtualItem.start}px)`,
+                  }}
+                >
+                  <Key
+                    keyData={key}
+                    projectId={projectId}
+                    projectLanguages={projectLanguages}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
       )}
-    </>
+    </div>
   );
 }

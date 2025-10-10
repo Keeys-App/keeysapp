@@ -91,7 +91,7 @@ export const ProjectKeysPage: FC = () => {
   }
 
   return (
-    <div className="h-full">
+    <div className="flex flex-col" style={{ height: 'calc(100vh - 48px)' }}>
       <KeyList
         projectId={project.id}
         projectLanguages={projectLanguages}
