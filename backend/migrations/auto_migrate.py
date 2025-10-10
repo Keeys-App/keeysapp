@@ -184,6 +184,62 @@ def migrate_create_key_logs_table_if_needed():
         return False
 
 
+def migrate_add_import_action_type_if_needed():
+    """
+    Add IMPORT action type to keyactiontype enum if it doesn't exist.
+    Safe to run multiple times.
+    """
+    try:
+        with engine.connect() as connection:
+            # Check if 'IMPORT' value already exists
+            result = connection.execute(text("""
+                SELECT EXISTS (
+                    SELECT 1 
+                    FROM pg_enum 
+                    WHERE enumlabel = 'IMPORT' 
+                    AND enumtypid = (
+                        SELECT oid 
+                        FROM pg_type 
+                        WHERE typname = 'keyactiontype'
+                    )
+                );
+            """))
+            
+            exists = result.scalar()
+            
+            if exists:
+                logger.info("✅ Migration: IMPORT action type already exists, skipping")
+                return True
+            
+            logger.info("🔄 Migration: Adding IMPORT action type to keyactiontype enum")
+            
+            # Remove lowercase 'import' if it exists
+            try:
+                connection.execute(text("""
+                    DELETE FROM pg_enum 
+                    WHERE enumlabel = 'import' 
+                    AND enumtypid = (
+                        SELECT oid 
+                        FROM pg_type 
+                        WHERE typname = 'keyactiontype'
+                    )
+                """))
+                connection.commit()
+            except Exception:
+                pass  # Ignore if doesn't exist
+            
+            # Add 'IMPORT' value to enum
+            connection.execute(text("ALTER TYPE keyactiontype ADD VALUE 'IMPORT'"))
+            connection.commit()
+            
+            logger.info("✅ Migration: IMPORT action type added successfully")
+            return True
+            
+    except Exception as e:
+        logger.error(f"❌ Migration failed: {type(e).__name__}: {str(e)}")
+        return False
+
+
 def run_all_migrations():
     """
     Run all pending migrations.
@@ -196,6 +252,7 @@ def run_all_migrations():
         ("add_default_language", migrate_add_default_language_if_needed),
         ("add_tags_support", migrate_add_tags_support_if_needed),
         ("create_key_logs_table", migrate_create_key_logs_table_if_needed),
+        ("add_import_action_type", migrate_add_import_action_type_if_needed),
         # Add more migrations here as needed
     ]
     
