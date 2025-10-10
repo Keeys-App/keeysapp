@@ -7,6 +7,7 @@ import { UPDATE_KEY } from "@/graphql/keys";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Field, FieldLabel } from "@/components/ui/field";
 import { useSaving, useSavingStore } from "@/stores";
 
 interface KeyManagementProps {
@@ -25,6 +26,7 @@ export const KeyManagement: FC<KeyManagementProps> = ({
 }) => {
   const [description, setDescription] = useState("");
   const [keyName, setKeyName] = useState("");
+  const [displayKeyName, setDisplayKeyName] = useState("");
 
   const [updateKey, { data, error }] = useMutation(UPDATE_KEY);
   const withSaving = useSaving();
@@ -35,6 +37,7 @@ export const KeyManagement: FC<KeyManagementProps> = ({
     if (selectedKey) {
       setDescription(selectedKey.description || "");
       setKeyName(selectedKey.key);
+      setDisplayKeyName(selectedKey.key);
     }
   }, [selectedKey]);
 
@@ -42,6 +45,10 @@ export const KeyManagement: FC<KeyManagementProps> = ({
   useEffect(() => {
     if (data) {
       toast("Key updated successfully");
+      // Update display name if key was updated
+      if (data.updateKey?.key) {
+        setDisplayKeyName(data.updateKey.key);
+      }
     }
   }, [data]);
 
@@ -117,7 +124,7 @@ export const KeyManagement: FC<KeyManagementProps> = ({
       <div className="px-4 py-3">
         <h2 className="text-base font-semibold">Key Management</h2>
         <div className="text-sm mt-1 text-muted-foreground font-mono w-full break-words pr-8">
-          {selectedKey.key}
+          {displayKeyName}
         </div>
       </div>
       <div className="flex-1 p-4 overflow-auto">
@@ -128,43 +135,43 @@ export const KeyManagement: FC<KeyManagementProps> = ({
           </TabsList>
 
           <TabsContent value="meta" className="space-y-4 mt-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Description</label>
+            <Field>
+              <FieldLabel>Description</FieldLabel>
               <Textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Enter key description..."
                 className="min-h-[120px]"
               />
-              <Button
-                onClick={handleUpdateDescription}
-                disabled={isSaving || description === selectedKey.description}
-                size="sm"
-                variant="outline"
-              >
-                Save Description
-              </Button>
-            </div>
+            </Field>
+            <Button
+              onClick={handleUpdateDescription}
+              disabled={isSaving || description === selectedKey.description}
+              size="sm"
+              variant="outline"
+            >
+              Save Description
+            </Button>
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-4 mt-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Key Name</label>
+            <Field>
+              <FieldLabel>Key Name</FieldLabel>
               <Textarea
                 value={keyName}
                 onChange={(e) => setKeyName(e.target.value)}
                 placeholder="Enter key name..."
                 className="min-h-[80px] font-mono"
               />
-              <Button
-                onClick={handleUpdateKeyName}
-                disabled={isSaving || keyName === selectedKey.key || !keyName.trim()}
-                size="sm"
-                variant="outline"
-              >
-                Update Key Name
-              </Button>
-            </div>
+            </Field>
+            <Button
+              onClick={handleUpdateKeyName}
+              disabled={isSaving || keyName === selectedKey.key || !keyName.trim()}
+              size="sm"
+              variant="outline"
+            >
+              Update Key Name
+            </Button>
           </TabsContent>
         </Tabs>
       </div>

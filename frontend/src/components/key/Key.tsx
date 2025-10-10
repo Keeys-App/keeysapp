@@ -41,7 +41,7 @@ export function Key({
           </span>
         </div>
         {keyData.description ? (
-          <p className="text-xs text-muted-foreground px-4 py-2">{keyData.description}</p>
+          <p className="text-sm text-muted-foreground px-4 py-2">{keyData.description}</p>
         ) : null}
       </div>
       <div className="flex flex-col">
@@ -50,7 +50,7 @@ export function Key({
             return (
               <div
                 key={language.code}
-                className="grid grid-cols-[120px_1fr] even:bg-muted/50 border-b last:border-b-0"
+                className="grid grid-cols-[120px_1fr] even:bg-muted/50 border-b"
               >
                 <div className="flex flex-col border-r p-2">
                   <div className="text-sm">{language.name}</div>
