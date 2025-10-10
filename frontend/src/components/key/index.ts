@@ -1,4 +1,6 @@
 export { KeyList } from './KeyList';
-export { CreateKeyForm } from './CreateKeyForm';
+export { CreateKeyDialog } from './CreateKeyDialog';
 export { TranslationEditor } from './TranslationEditor';
+export { EmptyKeys } from './EmptyKeys';
+export { KeyControls } from './KeyControls';
 

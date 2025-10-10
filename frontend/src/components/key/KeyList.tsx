@@ -5,13 +5,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { TranslationEditor } from './TranslationEditor';
+import { EmptyKeys } from './EmptyKeys';
 
 interface KeyListProps {
   projectId: string;
   projectLanguages: string[];
+  onCreateKey: () => void;
 }
 
-export function KeyList({ projectId, projectLanguages }: KeyListProps) {
+export function KeyList({ projectId, projectLanguages, onCreateKey }: KeyListProps) {
   const { data, loading, error } = useQuery(GET_PROJECT_KEYS, {
     variables: { projectId },
     skip: !projectId,
@@ -20,6 +22,8 @@ export function KeyList({ projectId, projectLanguages }: KeyListProps) {
   if (loading) {
     return (
       <div className="space-y-4">
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-32 w-full" />
         <Skeleton className="h-32 w-full" />
         <Skeleton className="h-32 w-full" />
         <Skeleton className="h-32 w-full" />
@@ -41,13 +45,9 @@ export function KeyList({ projectId, projectLanguages }: KeyListProps) {
 
   if (keys.length === 0) {
     return (
-      <Card>
-        <CardContent className="pt-6">
-          <p className="text-center text-muted-foreground">
-            No keys found. Create your first translation key.
-          </p>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col h-full min-h-[50vh]">
+        <EmptyKeys onCreateKey={onCreateKey} />
+      </div>
     );
   }
 
