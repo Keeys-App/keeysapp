@@ -3,9 +3,9 @@ import { useQuery } from "@apollo/client";
 import { GET_PROJECT, type GetProjectData } from "@/graphql/projects";
 import { PATHS } from "@/constants/paths";
 import { useAuth, useBreadcrumbs } from "@/contexts";
-import { useEffect, useState, type FC } from "react";
+import { useEffect, useState, useMemo, type FC } from "react";
 import { KeyList, CreateKeyDialog } from "@/components/key";
-import { COMMON_LANGUAGES } from "@/types/project";
+import { COMMON_LANGUAGES, LANGUAGE_CONFIGS } from "@/types/project";
 import { LoadingState, ErrorState, NotFoundState } from "@/components/blocks";
 
 export const ProjectKeysPage: FC = () => {
@@ -46,11 +46,25 @@ export const ProjectKeysPage: FC = () => {
     setIsCreateDialogOpen(true);
   };
 
-  const projectLanguages = COMMON_LANGUAGES.filter((language) => {
-    return project?.languages.some((lang) => {
-      return lang.code === language.code;
+  // Build enhanced language list with locale information
+  const projectLanguages = useMemo(() => {
+    if (!project?.languages) {
+      return [];
+    }
+    
+    return project.languages.map((langConfig) => {
+      const commonLang = COMMON_LANGUAGES.find((l) => {
+        return l.code === langConfig.code;
+      });
+      
+      return {
+        code: langConfig.code,
+        name: commonLang?.name || langConfig.code,
+        flag: commonLang?.flag || '🏳️',
+        locale: langConfig.locale,
+      };
     });
-  });
+  }, [project?.languages]);
 
   if (loading) {
     return <LoadingState message="Loading project..." />;

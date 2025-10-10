@@ -16,6 +16,7 @@ from app.core.exceptions import (
     handle_database_exception
 )
 from app.schemas.auth import UserType
+from app.constants.languages import DEFAULT_LANGUAGE_LOCALES
 
 logger = logging.getLogger(__name__)
 
@@ -215,16 +216,7 @@ def build_project_type(project, current_user_id: int, stats: Optional[dict] = No
             elif isinstance(lang, str):
                 # Old format (backward compatibility): "en"
                 # Use default locale based on language code
-                default_locales = {
-                    'en': 'en-US', 'es': 'es-ES', 'fr': 'fr-FR', 'de': 'de-DE',
-                    'it': 'it-IT', 'pt': 'pt-PT', 'ru': 'ru-RU', 'zh': 'zh-CN',
-                    'ja': 'ja-JP', 'ko': 'ko-KR', 'ar': 'ar-SA', 'hi': 'hi-IN',
-                    'nl': 'nl-NL', 'pl': 'pl-PL', 'tr': 'tr-TR', 'vi': 'vi-VN',
-                    'th': 'th-TH', 'sv': 'sv-SE', 'no': 'no-NO', 'da': 'da-DK',
-                    'fi': 'fi-FI', 'cs': 'cs-CZ', 'hu': 'hu-HU', 'ro': 'ro-RO',
-                    'uk': 'uk-UA'
-                }
-                locale = default_locales.get(lang, f'{lang}-{lang.upper()}')
+                locale = DEFAULT_LANGUAGE_LOCALES.get(lang, f'{lang}-{lang.upper()}')
                 languages.append(LanguageConfigType(code=lang, locale=locale))
     
     # Calculate translation progress using SQL stats (much faster!)

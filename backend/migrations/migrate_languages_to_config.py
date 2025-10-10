@@ -14,36 +14,7 @@ from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
 from app.database import get_db
 from app.models.project import Project
-
-
-# Default locale mappings
-DEFAULT_LOCALES = {
-    'en': 'en-US',
-    'es': 'es-ES',
-    'fr': 'fr-FR',
-    'de': 'de-DE',
-    'it': 'it-IT',
-    'pt': 'pt-PT',
-    'ru': 'ru-RU',
-    'zh': 'zh-CN',
-    'ja': 'ja-JP',
-    'ko': 'ko-KR',
-    'ar': 'ar-SA',
-    'hi': 'hi-IN',
-    'nl': 'nl-NL',
-    'pl': 'pl-PL',
-    'tr': 'tr-TR',
-    'vi': 'vi-VN',
-    'th': 'th-TH',
-    'sv': 'sv-SE',
-    'no': 'no-NO',
-    'da': 'da-DK',
-    'fi': 'fi-FI',
-    'cs': 'cs-CZ',
-    'hu': 'hu-HU',
-    'ro': 'ro-RO',
-    'uk': 'uk-UA'
-}
+from app.constants.languages import DEFAULT_LANGUAGE_LOCALES
 
 
 def convert_languages_to_config(language_codes: list) -> list:
@@ -60,7 +31,7 @@ def convert_languages_to_config(language_codes: list) -> list:
     for code in language_codes:
         if isinstance(code, str):
             # It's an old format string code
-            locale = DEFAULT_LOCALES.get(code, f'{code}-{code.upper()}')
+            locale = DEFAULT_LANGUAGE_LOCALES.get(code, f'{code}-{code.upper()}')
             result.append({
                 'code': code,
                 'locale': locale

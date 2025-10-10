@@ -12,7 +12,7 @@ import {
   type Project,
   type LanguageConfigInput,
 } from '@/graphql/projects';
-import { DEFAULT_PROJECT_COLORS, ProjectStatus } from '@/types/project';
+import { DEFAULT_PROJECT_COLORS, ProjectStatus, LANGUAGE_CONFIGS } from '@/types/project';
 import { useAuth } from '@/contexts/AuthContext';
 import { ColorPicker } from '@/components/blocks';
 import { getUserFriendlyErrorMessage } from '@/lib/utils';
@@ -47,7 +47,30 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, project, onSuccess, on
     if (mode === 'edit' && project) {
       setName(project.name);
       setDescription(project.description || '');
-      setLanguages(project.languages || []);
+      
+      // Normalize languages data - ensure it's in the correct format
+      const normalizedLanguages = (project.languages || []).map((lang): LanguageConfigInput => {
+        // If it's already an object with code and locale, use it
+        if (typeof lang === 'object' && lang && 'code' in lang && 'locale' in lang) {
+          return {
+            code: lang.code,
+            locale: lang.locale,
+          };
+        }
+        
+        // Fallback: treat as code and apply default locale from LANGUAGE_CONFIGS
+        const code = String(lang);
+        const langConfig = LANGUAGE_CONFIGS.find((l) => {
+          return l.code === code;
+        });
+        
+        return {
+          code: code,
+          locale: langConfig?.locale || `${code}-${code.toUpperCase()}`,
+        };
+      });
+      
+      setLanguages(normalizedLanguages);
       setDefaultLanguage(project.defaultLanguage || '');
       setColor(project.color);
       setStatus(project.status);

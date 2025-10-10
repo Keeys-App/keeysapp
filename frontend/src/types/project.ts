@@ -16,6 +16,7 @@ export type {
   UpdateProjectData,
   DeleteProjectData,
   AddProjectMemberData,
+  LanguageConfig as ProjectLanguageConfig,
 } from '../graphql/projects';
 
 /**
@@ -76,6 +77,13 @@ export type LanguageConfig = {
 };
 
 export type Language = Pick<LanguageConfig, 'code' | 'name' | 'flag'>;
+
+/**
+ * Extended language type with locale information for UI components.
+ */
+export interface LanguageWithLocale extends Language {
+  locale: string;
+}
 
 /**
  * Complete language configurations with detection patterns.

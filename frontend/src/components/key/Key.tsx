@@ -1,12 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TranslationEditor } from "./TranslationEditor";
 import type { TranslationKey } from "@/types/translationKey";
-import type { Language } from "@/types/project";
+import type { Language, LanguageWithLocale } from "@/types/project";
 
 interface KeyProps {
   keyData: TranslationKey;
   projectId: string;
-  projectLanguages: Language[];
+  projectLanguages: (Language | LanguageWithLocale)[];
 }
 
 /**
@@ -32,7 +32,11 @@ export function Key({ keyData, projectId, projectLanguages }: KeyProps) {
                 <div className="flex flex-col border-r p-2">
                   <div className="text-sm">{language.name}</div>
                   <div className="text-muted-foreground text-xs">
-                    {language.code}
+                    {'locale' in language ? (
+                      language.locale
+                    ) : (
+                      language.code
+                    )}
                   </div>
                 </div>
                 <div className="text-sm p-2">

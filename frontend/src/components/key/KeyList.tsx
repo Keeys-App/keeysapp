@@ -6,12 +6,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { EmptyKeys } from "./EmptyKeys";
 import { Key } from "./Key";
 import { KeyControls } from "./KeyControls";
-import type { Language } from "@/types/project";
+import type { Language, LanguageWithLocale } from "@/types/project";
 import { getUserFriendlyErrorMessage } from "@/lib/utils";
 
 interface KeyListProps {
   projectId: string;
-  projectLanguages: Language[];
+  projectLanguages: (Language | LanguageWithLocale)[];
   onCreateKey: () => void;
 }
 
