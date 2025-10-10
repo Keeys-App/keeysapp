@@ -111,74 +111,65 @@ export const KeyManagement: FC<KeyManagementProps> = ({
     keyName !== savedKeyName ||
     JSON.stringify([...tags].sort()) !== JSON.stringify([...savedTags].sort());
 
-  if (!selectedKey) {
-    return (
-      <div className="h-full flex flex-col">
-        <div className="px-4 py-3">
-          <h2 className="text-base font-semibold">Key Management</h2>
-        </div>
-        <div className="flex-1 p-4">
-          <p className="text-muted-foreground text-sm">
-            Click on any translation key from the list to view and manage it
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="h-full flex flex-col">
       <div className="px-4 py-3 border-b h-12 box-border">
         <h2 className="text-base font-semibold">Key Management</h2>
       </div>
-      <div className="flex-1 p-4 overflow-auto">
-        <div className="space-y-4">
-          <Field>
-            <FieldLabel>Key Name</FieldLabel>
-            <Textarea
-              value={keyName}
-              onChange={(e) => {
-                return setKeyName(e.target.value);
-              }}
-              placeholder="Enter key name..."
-              className="min-h-[80px] font-mono"
-              disabled={isSaving}
-            />
-          </Field>
+      <div className={`flex-1 p-4 ${selectedKey ? 'overflow-auto' : ''}`}>
+        {!selectedKey ? (
+          <p className="text-muted-foreground text-sm">
+            Click on any translation key from the list to view and manage it
+          </p>
+        ) : (
+          <div className="space-y-4">
+            <Field>
+              <FieldLabel>Key Name</FieldLabel>
+              <Textarea
+                value={keyName}
+                onChange={(e) => {
+                  return setKeyName(e.target.value);
+                }}
+                placeholder="Enter key name..."
+                className="min-h-[80px] font-mono"
+                disabled={isSaving}
+              />
+            </Field>
 
-          <Field>
-            <FieldLabel>Description</FieldLabel>
-            <Textarea
-              value={description}
-              onChange={(e) => {
-                return setDescription(e.target.value);
-              }}
-              placeholder="Enter key description..."
-              className="min-h-[120px]"
-              disabled={isSaving}
-            />
-          </Field>
-          
-          <Field>
-            <FieldLabel>Tags</FieldLabel>
-            <TagsEditor
-              selectedTags={tags}
-              availableTags={availableTags}
-              onChange={setTags}
-              disabled={isSaving}
-              placeholder="Select or create tags..."
-            />
-          </Field>
+            <Field>
+              <FieldLabel>Description</FieldLabel>
+              <Textarea
+                value={description}
+                onChange={(e) => {
+                  return setDescription(e.target.value);
+                }}
+                placeholder="Enter key description..."
+                className="min-h-[120px]"
+                disabled={isSaving}
+              />
+            </Field>
+            
+            <Field>
+              <FieldLabel>Tags</FieldLabel>
+              <TagsEditor
+                selectedTags={tags}
+                availableTags={availableTags}
+                onChange={setTags}
+                disabled={isSaving}
+                placeholder="Select or create tags..."
+              />
+            </Field>
 
-          <Button
-            onClick={handleSaveChanges}
-            disabled={isSaving || !hasChanges || !keyName.trim()}
-            size="sm"
-            className="w-full"
-          >
-            Save Changes
-          </Button>
-        </div>
+            <Button
+              onClick={handleSaveChanges}
+              disabled={isSaving || !hasChanges || !keyName.trim()}
+              size="sm"
+              className="w-full"
+            >
+              Save Changes
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
