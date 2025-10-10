@@ -124,3 +124,48 @@ toast("Translation updated", {
   description: <div>Details here</div>
 });
 ```
+
+## Loading States and Saving Indicator
+
+- Use global `useSaving()` hook from `@/stores` to manage saving states across the application.
+- The saving indicator is shown in the global footer (Layout component), not in individual buttons.
+- Buttons should only be disabled during saving operations using `isSaving` from `useSavingStore`.
+- Never show spinners directly in buttons - the global footer shows the saving status.
+
+```typescript
+// ❌ BAD - Local loading state with spinner in button
+import { Spinner } from "@/components/ui/spinner";
+
+const [updateKey, { loading }] = useMutation(UPDATE_KEY);
+
+<Button disabled={loading} onClick={() => updateKey()}>
+  {loading ? <Spinner /> : null}
+  Save
+</Button>
+
+// ✅ GOOD - Global saving state
+import { useSaving, useSavingStore } from "@/stores";
+
+const [updateKey] = useMutation(UPDATE_KEY);
+const withSaving = useSaving();
+const { isSaving } = useSavingStore();
+
+const handleSave = async () => {
+  await withSaving(
+    async () => {
+      await updateKey({ variables: { input: data } });
+    },
+    "Saving changes..." // Optional custom message
+  );
+};
+
+<Button disabled={isSaving} onClick={handleSave} variant="outline">
+  Save
+</Button>
+```
+
+### Key Points:
+- Wrap async operations with `withSaving()` to show global saving indicator
+- Use `isSaving` to disable buttons during save operations
+- Provide descriptive messages for better UX (e.g., "Updating description...", "Saving project...")
+- The global footer automatically shows/hides based on saving state

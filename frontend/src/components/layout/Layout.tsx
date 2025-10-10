@@ -12,9 +12,12 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
 import { useBreadcrumbs } from '@/contexts';
+import { useSavingStore } from '@/stores';
+import { Spinner } from '@/components/ui/spinner';
 
 export const Layout: FC = () => {
   const { breadcrumbs } = useBreadcrumbs();
+  const { isSaving, savingMessage } = useSavingStore();
 
   const getBreadcrumbs = () => {
     if (breadcrumbs.length === 0) {
@@ -57,6 +60,12 @@ export const Layout: FC = () => {
         <div className="flex flex-1 flex-col">
           <Outlet />
         </div>
+        {isSaving ? (
+          <footer className="bg-background h-10 border-t box-border sticky z-10 bottom-0 flex shrink-0 items-center gap-2 px-4 py-2">
+            <Spinner className="h-4 w-4" />
+            <span className="text-sm text-muted-foreground">{savingMessage}</span>
+          </footer>
+        ) : null}
       </SidebarInset>
     </SidebarProvider>
   );
