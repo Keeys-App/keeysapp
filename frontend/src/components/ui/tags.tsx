@@ -114,7 +114,7 @@ export const TagsTrigger = ({
 }: TagsTriggerProps) => (
   <PopoverTrigger asChild>
     <Button
-      className={cn("h-auto min-h-10 w-full justify-start p-2", className)}
+      className={cn("h-auto min-h-10 w-full justify-start p-2 hover:bg-accent/50", className)}
       role="combobox"
       variant="outline"
       {...props}

@@ -24,7 +24,10 @@ export const ProjectKeysPage: FC = () => {
   const { setBreadcrumbs } = useBreadcrumbs();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedKey, setSelectedKey] = useState<TranslationKey | null>(null);
-  const [isPanelOpen, setIsPanelOpen] = useState(true);
+  const [isPanelOpen, setIsPanelOpen] = useState(() => {
+    const saved = localStorage.getItem('keyManagementPanelOpen');
+    return saved !== null ? saved === 'true' : true;
+  });
 
   const { data, loading, error } = useQuery<GetProjectData>(GET_PROJECT, {
     variables: { id },
@@ -126,7 +129,9 @@ export const ProjectKeysPage: FC = () => {
               size="icon"
               className="absolute cursor-pointer right-2 top-2 z-20 bg-background/80 backdrop-blur-sm hover:bg-muted"
               onClick={() => {
-                setIsPanelOpen(!isPanelOpen);
+                const newState = !isPanelOpen;
+                setIsPanelOpen(newState);
+                localStorage.setItem('keyManagementPanelOpen', String(newState));
               }}
             >
               {isPanelOpen ? (

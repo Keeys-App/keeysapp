@@ -3,9 +3,9 @@ import { useRef, useMemo } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { GET_PROJECT_KEYS } from "@/graphql/keys";
 import type { TranslationKey } from "@/types/translationKey";
-import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyKeys } from "./EmptyKeys";
 import { Key } from "./Key";
+import { KeySkeleton } from "./KeySkeleton";
 import { KeyControls } from "./KeyControls";
 import type { Language, LanguageWithLocale } from "@/types/project";
 import { getUserFriendlyErrorMessage } from "@/lib/utils";
@@ -67,12 +67,15 @@ export function KeyList({
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-32 w-full" />
+      <div className="flex flex-col h-full">
+        <KeyControls projectId={projectId} onCreateKey={onCreateKey} />
+        <div className="flex-1 overflow-auto">
+          <KeySkeleton languagesCount={projectLanguages.length || 5} />
+          <KeySkeleton languagesCount={projectLanguages.length || 5} />
+          <KeySkeleton languagesCount={projectLanguages.length || 5} />
+          <KeySkeleton languagesCount={projectLanguages.length || 5} />
+          <KeySkeleton languagesCount={projectLanguages.length || 5} />
+        </div>
       </div>
     );
   }
