@@ -114,6 +114,47 @@ def migrate_add_default_language_if_needed():
         return False
 
 
+def migrate_add_tags_support_if_needed():
+    """
+    Add tags column to keys table and available_tags column to projects table if they don't exist.
+    Safe to run multiple times.
+    """
+    try:
+        keys_has_tags = check_column_exists('keys', 'tags')
+        projects_has_tags = check_column_exists('projects', 'available_tags')
+        
+        if keys_has_tags and projects_has_tags:
+            logger.info("✅ Migration: tags support already exists, skipping")
+            return True
+        
+        logger.info("🔄 Migration: Adding tags support to keys and projects")
+        
+        with engine.connect() as connection:
+            # Add tags column to keys table
+            if not keys_has_tags:
+                logger.info("Adding tags column to keys table...")
+                connection.execute(text("""
+                    ALTER TABLE keys 
+                    ADD COLUMN IF NOT EXISTS tags JSON DEFAULT '[]'::json NOT NULL
+                """))
+            
+            # Add available_tags column to projects table
+            if not projects_has_tags:
+                logger.info("Adding available_tags column to projects table...")
+                connection.execute(text("""
+                    ALTER TABLE projects 
+                    ADD COLUMN IF NOT EXISTS available_tags JSON DEFAULT '[]'::json NOT NULL
+                """))
+            
+            connection.commit()
+            logger.info("✅ Migration: tags support added successfully")
+            return True
+            
+    except Exception as e:
+        logger.error(f"❌ Migration failed: {type(e).__name__}: {str(e)}")
+        return False
+
+
 def run_all_migrations():
     """
     Run all pending migrations.
@@ -124,6 +165,7 @@ def run_all_migrations():
     migrations = [
         ("add_public_id", migrate_add_public_id_if_needed),
         ("add_default_language", migrate_add_default_language_if_needed),
+        ("add_tags_support", migrate_add_tags_support_if_needed),
         # Add more migrations here as needed
     ]
     
