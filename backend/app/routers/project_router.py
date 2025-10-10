@@ -10,7 +10,6 @@ from app.database import get_db
 from app.services.project_service import ProjectService
 from app.services.user_service import UserService
 from app.core.security import decode_access_token
-from app.core.exceptions import UnauthorizedError
 
 logger = logging.getLogger(__name__)
 
@@ -90,8 +89,9 @@ async def export_project(
         return JSONResponse(
             content=project_data,
             headers={
-                # Use RFC 5987 format: filename*=UTF-8''encoded_name
-                'Content-Disposition': f'attachment; filename="{project_name}_export.json"; filename*=UTF-8\'\'{encoded_filename}'
+                # Use only filename* with UTF-8 encoding to avoid latin-1 encoding issues
+                # Regular filename uses ASCII-safe fallback
+                'Content-Disposition': f'attachment; filename="project_export.json"; filename*=UTF-8\'\'{encoded_filename}'
             }
         )
     except HTTPException:
