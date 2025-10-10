@@ -58,12 +58,6 @@ class ProjectService:
             elif isinstance(lang, dict):
                 # It's already a dict
                 languages_data.append(lang)
-            elif isinstance(lang, str):
-                # It's a simple string (language code)
-                languages_data.append({
-                    'code': lang,
-                    'locale': lang
-                })
             
         project = Project(
             name=name,
@@ -261,12 +255,6 @@ class ProjectService:
                 elif isinstance(lang, dict):
                     # It's already a dict
                     languages_data.append(lang)
-                elif isinstance(lang, str):
-                    # It's a simple string (language code)
-                    languages_data.append({
-                        'code': lang,
-                        'locale': lang
-                    })
             project.languages = languages_data
         if default_language is not None:
             project.default_language = default_language

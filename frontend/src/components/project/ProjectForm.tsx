@@ -440,7 +440,6 @@ export const ProjectForm: FC<ProjectFormProps> = ({
               </Button>
               <Button
                 type="submit"
-                variant="outline"
                 disabled={
                   isSaving || !name.trim() || !defaultLanguage || !hasChanges()
                 }
