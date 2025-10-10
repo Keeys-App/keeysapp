@@ -102,6 +102,7 @@ export const ProjectKeysPage: FC = () => {
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
         projectId={project.id}
+        defaultLanguage={project.defaultLanguage}
       />
     </div>
   );

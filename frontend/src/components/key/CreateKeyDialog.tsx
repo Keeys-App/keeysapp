@@ -28,15 +28,18 @@ interface CreateKeyDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   projectId: string;
+  defaultLanguage?: string | null;
 }
 
 export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
   open,
   onOpenChange,
   projectId,
+  defaultLanguage,
 }) => {
   const [key, setKey] = useState("");
   const [description, setDescription] = useState("");
+  const [defaultValue, setDefaultValue] = useState("");
   const [addAnother, setAddAnother] = useState(false);
   const [isDuplicate, setIsDuplicate] = useState(false);
   const [lastCheckedKey, setLastCheckedKey] = useState<string>("");
@@ -93,6 +96,7 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
     if (!open) {
       setKey("");
       setDescription("");
+      setDefaultValue("");
       setIsDuplicate(false);
       setLastCheckedKey("");
     }
@@ -111,6 +115,7 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
       // Reset form
       setKey("");
       setDescription("");
+      setDefaultValue("");
       setIsDuplicate(false);
       setLastCheckedKey(""); // Reset last checked key
 
@@ -147,12 +152,18 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
       return;
     }
 
+    // Build translations object if default value is provided
+    const translations = defaultLanguage && defaultValue.trim()
+      ? { [defaultLanguage]: defaultValue.trim() }
+      : undefined;
+
     await createKey({
       variables: {
         input: {
           projectId,
           key: key.trim(),
           description: description.trim() || undefined,
+          translations,
         },
       },
     });
@@ -200,6 +211,23 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
               rows={3}
             />
           </Field>
+
+          {/* Default Language Value */}
+          {defaultLanguage ? (
+            <Field>
+              <FieldLabel>
+                Default Value ({defaultLanguage.toUpperCase()})
+              </FieldLabel>
+              <Textarea
+                placeholder={`Enter translation...`}
+                value={defaultValue}
+                onChange={(e) => {
+                  return setDefaultValue(e.target.value);
+                }}
+                disabled={loading}
+              />
+            </Field>
+          ) : null}
 
           {/* Add Another Key */}
           <div className="flex items-center gap-2">
