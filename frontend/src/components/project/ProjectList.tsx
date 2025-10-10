@@ -1,5 +1,4 @@
 import { useState, type FC } from "react";
-import { Plus } from "lucide-react";
 import { useQuery, useMutation } from "@apollo/client";
 import { toast } from "sonner";
 import {
@@ -9,20 +8,12 @@ import {
   type Project,
 } from "@/graphql/projects";
 import { ProjectCard } from "./ProjectCard";
+import { CreateProjectCard } from "./CreateProjectCard";
 import { CreateProjectDialog } from "./CreateProjectDialog";
 import { EditProjectDialog } from "./EditProjectDialog";
 import { EmptyProjects } from "./EmptyProjects";
+import { DeleteConfirmationDialog } from "@/components/blocks";
 import { useAuth } from "@/contexts/AuthContext";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 export const ProjectList: FC = () => {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -110,22 +101,11 @@ export const ProjectList: FC = () => {
             })}
 
             {/* Create Project Card */}
-            <div
-              className="bg-card flex h-[160px] cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border p-6 transition-colors"
+            <CreateProjectCard
               onClick={() => {
                 return setCreateDialogOpen(true);
               }}
-            >
-              <div className="bg-muted flex size-12 items-center justify-center rounded-lg">
-                <Plus className="text-muted-foreground size-6" />
-              </div>
-              <div className="text-center">
-                <h3 className="font-semibold">Create Project</h3>
-                <p className="text-muted-foreground text-sm">
-                  Add a new project
-                </p>
-              </div>
-            </div>
+            />
           </div>
         </div>
       )}
@@ -144,28 +124,21 @@ export const ProjectList: FC = () => {
       />
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Project</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete{" "}
-              <strong>{projectToDelete?.name}</strong>? This action cannot be
-              undone and will delete all project data including translations.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              disabled={deleting}
-              className="bg-destructive text-white hover:bg-destructive/90"
-            >
-              {deleting ? "Deleting..." : "Delete Project"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteConfirmationDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Delete Project"
+        description={
+          <>
+            Are you sure you want to delete{" "}
+            <strong>{projectToDelete?.name}</strong>? This action cannot be
+            undone and will delete all project data including translations.
+          </>
+        }
+        onConfirm={confirmDelete}
+        confirmButtonText="Delete Project"
+        isDeleting={deleting}
+      />
     </>
   );
 };
