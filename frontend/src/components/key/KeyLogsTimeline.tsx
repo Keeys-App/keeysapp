@@ -125,21 +125,24 @@ export const KeyLogsTimeline: FC<KeyLogsTimelineProps> = ({
 
   return (
     <div className="relative">
-      {/* Timeline line */}
-      <div className="absolute left-3 top-3 bottom-3 w-px bg-border" />
-
       {/* Timeline items */}
       <div className="space-y-4">
         {logs.map((log, index) => {
           const Icon = actionIcons[log.action] || History;
           const colorClass = actionColors[log.action] || "bg-gray-500";
           const label = actionLabels[log.action] || log.action;
+          const isLast = index === logs.length - 1;
 
           return (
             <div key={log.id} className="relative flex gap-3 pl-0">
+              {/* Timeline line - show for all except last, starting from icon center */}
+              {!isLast ? (
+                <div className="absolute left-3 top-6 bottom-[-1rem] w-px bg-border" />
+              ) : null}
+              
               {/* Icon */}
               <div
-                className={`flex-shrink-0 w-6 h-6 rounded-full ${colorClass} flex items-center justify-center z-10`}
+                className={`flex-shrink-0 w-6 h-6 rounded-full ${colorClass} flex items-center justify-center z-10 relative`}
               >
                 <Icon className="w-3 h-3 text-white" />
               </div>
