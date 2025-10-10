@@ -489,16 +489,22 @@ class ProjectService:
         # Get all keys with translations
         keys = db.query(Key).filter(Key.project_id == project.id).all()
         
-        # Build locales structure
+        # Build keys array with descriptions
+        keys_list = []
+        for key in keys:
+            keys_list.append({
+                'key': key.key,
+                'description': key.description or ''
+            })
+        
+        # Build locales structure (translations only, no locale duplication)
         locales = []
         for lang in project.languages:
             if isinstance(lang, dict):
                 code = lang.get('code', '')
-                locale = lang.get('locale', '')
             else:
                 # Old format support
                 code = lang
-                locale = f'{lang}-{lang.upper()}'
             
             # Collect translations for this language
             translations = {}
@@ -513,7 +519,6 @@ class ProjectService:
             
             locales.append({
                 'code': code,
-                'locale': locale,
                 'keys': translations
             })
         
@@ -526,6 +531,7 @@ class ProjectService:
                 'color': project.color,
                 'status': project.status
             },
+            'keys': keys_list,
             'locales': locales
         }
 
@@ -550,6 +556,7 @@ class ProjectService:
             # Extract project config
             name = project_data.get('name', 'Imported Project')
             config = project_data.get('config', {})
+            keys_data = project_data.get('keys', [])
             locales = project_data.get('locales', [])
             
             # Create project
@@ -564,54 +571,60 @@ class ProjectService:
                 status=config.get('status', 'active')
             )
             
-            # Import keys and translations
+            # Create keys with descriptions first
+            created_keys = {}
+            for key_item in keys_data:
+                key_str = key_item.get('key')
+                description = key_item.get('description', '')
+                
+                if not key_str:
+                    continue
+                
+                new_key = Key(
+                    key=key_str,
+                    description=description,
+                    project_id=project.id
+                )
+                db.add(new_key)
+                db.flush()
+                created_keys[key_str] = new_key
+            
+            # Import translations
             for locale_data in locales:
                 language_code = locale_data.get('code')
-                keys_data = locale_data.get('keys', {})
+                translations_data = locale_data.get('keys', {})
                 
                 if not language_code:
                     continue
                 
-                # Process each key
-                for key_str, translation_value in keys_data.items():
-                    # Check if key already exists
-                    existing_key = db.query(Key).filter(
-                        Key.project_id == project.id,
-                        Key.key == key_str
-                    ).first()
+                # Process each translation
+                for key_str, translation_value in translations_data.items():
+                    # Get the key (it should exist from the keys array)
+                    key_obj = created_keys.get(key_str)
                     
-                    if existing_key:
-                        # Update translation
-                        translation = db.query(Translation).filter(
-                            Translation.key_id == existing_key.id,
-                            Translation.language == language_code
+                    if not key_obj:
+                        # If key not in keys array, create it without description
+                        key_obj = db.query(Key).filter(
+                            Key.project_id == project.id,
+                            Key.key == key_str
                         ).first()
                         
-                        if translation:
-                            translation.value = translation_value
-                        else:
-                            translation = Translation(
-                                key_id=existing_key.id,
-                                language=language_code,
-                                value=translation_value
+                        if not key_obj:
+                            key_obj = Key(
+                                key=key_str,
+                                project_id=project.id
                             )
-                            db.add(translation)
-                    else:
-                        # Create new key
-                        new_key = Key(
-                            key=key_str,
-                            project_id=project.id
-                        )
-                        db.add(new_key)
-                        db.flush()
-                        
-                        # Create translation
-                        translation = Translation(
-                            key_id=new_key.id,
-                            language=language_code,
-                            value=translation_value
-                        )
-                        db.add(translation)
+                            db.add(key_obj)
+                            db.flush()
+                            created_keys[key_str] = key_obj
+                    
+                    # Create translation
+                    translation = Translation(
+                        key_id=key_obj.id,
+                        language=language_code,
+                        value=translation_value
+                    )
+                    db.add(translation)
             
             db.commit()
             db.refresh(project)

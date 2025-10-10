@@ -6,7 +6,7 @@ This feature allows users to export entire projects to JSON files for backup or 
 
 ## Export Format
 
-The export format follows the i18n structure:
+The export format follows the i18n structure with separate keys and translations sections:
 
 ```json
 {
@@ -27,10 +27,19 @@ The export format follows the i18n structure:
     "color": "#6366f1",
     "status": "active"
   },
+  "keys": [
+    {
+      "key": "button.submit",
+      "description": "Submit button label"
+    },
+    {
+      "key": "button.cancel",
+      "description": "Cancel button label"
+    }
+  ],
   "locales": [
     {
       "code": "en",
-      "locale": "en-US",
       "keys": {
         "button.submit": "Submit",
         "button.cancel": "Cancel"
@@ -38,7 +47,6 @@ The export format follows the i18n structure:
     },
     {
       "code": "ru",
-      "locale": "ru-RU",
       "keys": {
         "button.submit": "Отправить",
         "button.cancel": "Отмена"
@@ -47,6 +55,34 @@ The export format follows the i18n structure:
   ]
 }
 ```
+
+### Format Structure
+
+1. **`name`**: Project name
+2. **`config`**: Project configuration
+   - `description`: Project description
+   - `languages`: Array of language objects with `code` and `locale` (supports custom locales!)
+   - `defaultLanguage`: Default language code
+   - `color`: Project color (hex)
+   - `status`: Project status
+3. **`keys`**: Array of all translation keys with descriptions
+   - Each key has: `key` (the key string) and `description` (optional description)
+4. **`locales`**: Array of translations organized by language
+   - Each locale has: `code` (to match with `config.languages`) and `keys` (object with translations)
+   - Note: `locale` info is not duplicated here - it's already in `config.languages`
+
+**Why this structure?**
+- **`config.languages`** stores language metadata (code + custom locale)
+- **`keys`** provides descriptions in one place (not duplicated per language)
+- **`locales`** focuses only on translations, referencing languages by `code`
+- No data duplication - each piece of information in one place
+
+### Backward Compatibility
+
+The import supports files without the `keys` array. In this case:
+- Keys will be created from translations in `locales`
+- Descriptions will be empty
+- All keys will still be imported successfully
 
 ## Backend Implementation
 
@@ -71,14 +107,15 @@ The export format follows the i18n structure:
 Exports project data including:
 - Project metadata (name, description, color, status)
 - Language configurations
-- All translation keys
-- All translations organized by language
+- All translation keys with descriptions (in `keys` array)
+- All translations organized by language (in `locales` array)
 
 #### `ProjectService.import_project_data()`
 Imports project data:
 - Creates a new project with the provided configuration
-- Creates all translation keys
-- Creates all translations for each key and language
+- Creates all translation keys with descriptions from `keys` array
+- Creates all translations for each key and language from `locales` array
+- Maintains key descriptions during import
 - Uses transactions to ensure data consistency
 
 ## Frontend Implementation
