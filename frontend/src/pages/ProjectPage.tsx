@@ -27,11 +27,13 @@ export const ProjectPage: FC = () => {
       setBreadcrumbs([
         { label: "Dashboard", href: PATHS.DASHBOARD },
         { label: project.name },
+        { label: "Keys" },
       ]);
     } else {
       setBreadcrumbs([
         { label: "Dashboard", href: PATHS.DASHBOARD },
         { label: "Project" },
+        { label: "Keys" },
       ]);
     }
   }, [project, setBreadcrumbs]);

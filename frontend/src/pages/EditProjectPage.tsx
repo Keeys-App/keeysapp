@@ -14,14 +14,6 @@ export const EditProjectPage: FC = () => {
 
   const { data, loading, error } = useQuery(GET_PROJECTS);
 
-  if (loading) {
-    return <LoadingState />;
-  }
-
-  if (error) {
-    return <ErrorState message="Failed to load project" />;
-  }
-
   const project = data?.projects?.find((p: Project) => {
     return p.id === id;
   });
@@ -41,6 +33,14 @@ export const EditProjectPage: FC = () => {
       ]);
     }
   }, [project, setBreadcrumbs, id]);
+
+  if (loading) {
+    return <LoadingState />;
+  }
+
+  if (error) {
+    return <ErrorState message="Failed to load project" />;
+  }
 
   if (!project) {
     return <NotFoundState message="Project not found" />;

@@ -1,5 +1,5 @@
 import type { FC } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Menubar,
@@ -17,7 +17,10 @@ interface KeyControlsProps {
   onCreateKey: () => void;
 }
 
-export const KeyControls: FC<KeyControlsProps> = ({ projectId, onCreateKey }) => {
+export const KeyControls: FC<KeyControlsProps> = ({
+  projectId,
+  onCreateKey,
+}) => {
   const navigate = useNavigate();
 
   const handleExportClick = () => {
@@ -32,16 +35,19 @@ export const KeyControls: FC<KeyControlsProps> = ({ projectId, onCreateKey }) =>
     <div className="py-2 px-4 flex gap-2 bg-muted border-b">
       <Menubar>
         <MenubarMenu>
-          <MenubarTrigger>Keys</MenubarTrigger>
+          <MenubarTrigger>Actions</MenubarTrigger>
           <MenubarContent>
             <MenubarItem onClick={handleImportClick}>Import</MenubarItem>
             <MenubarItem onClick={handleExportClick}>Export</MenubarItem>
           </MenubarContent>
         </MenubarMenu>
+        <MenubarMenu>
+          <Link to={PATHS.PROJECT_EDIT.replace(":id", projectId)}>
+            <MenubarTrigger>Settings</MenubarTrigger>
+          </Link>
+        </MenubarMenu>
       </Menubar>
-      <Button onClick={onCreateKey}>
-        Add key
-      </Button>
+      <Button onClick={onCreateKey}>Add key</Button>
     </div>
   );
 };

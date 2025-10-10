@@ -7,7 +7,7 @@ export const PATHS = {
   AUTH: '/auth',
   HOME: '/',
   DASHBOARD: '/',
-  PROJECT: '/project/:id',
+  PROJECT: '/project/:id/keys',
   PROJECT_CREATE: '/project/create',
   PROJECT_EDIT: '/project/:id/edit',
   EXPORT: '/project/:id/export',
