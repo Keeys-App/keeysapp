@@ -149,7 +149,6 @@ export const ImportProjectDialog: FC<ImportProjectDialogProps> = ({
           </Button>
           <Button
             type="button"
-            variant="outline"
             onClick={handleImport}
             disabled={!file || isSaving}
           >

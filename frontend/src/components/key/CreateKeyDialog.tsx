@@ -310,7 +310,7 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={!isFormValid || isSaving} variant="outline">
+              <Button type="submit" disabled={!isFormValid || isSaving}>
                 Create Key
               </Button>
             </div>

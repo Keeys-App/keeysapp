@@ -132,6 +132,12 @@ toast("Translation updated", {
 - Buttons should only be disabled during saving operations using `isSaving` from `useSavingStore`.
 - Never show spinners directly in buttons - the global footer shows the saving status.
 
+## Button Variants in Dialogs
+
+- In modal dialogs (Dialog, AlertDialog), the submit/confirm button should use `variant="default"` (or no variant specified, as default is the default).
+- Cancel buttons should use `variant="outline"`.
+- This creates a clear visual hierarchy and guides users to the primary action.
+
 ```typescript
 // ❌ BAD - Local loading state with spinner in button
 import { Spinner } from "@/components/ui/spinner";
@@ -162,6 +168,16 @@ const handleSave = async () => {
 <Button disabled={isSaving} onClick={handleSave} variant="outline">
   Save
 </Button>
+
+// ✅ GOOD - Dialog buttons
+<DialogFooter>
+  <Button variant="outline" onClick={onCancel}>
+    Cancel
+  </Button>
+  <Button type="submit" disabled={isSaving}>
+    Save
+  </Button>
+</DialogFooter>
 ```
 
 ### Key Points:
