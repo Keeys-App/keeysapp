@@ -1,6 +1,15 @@
-import type { FC } from 'react';
-import { Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import type { FC } from "react";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Menubar,
+  MenubarContent,
+  MenubarItem,
+  MenubarMenu,
+  MenubarSeparator,
+  MenubarShortcut,
+  MenubarTrigger,
+} from "../ui/menubar";
 
 interface KeyControlsProps {
   onCreateKey: () => void;
@@ -8,13 +17,25 @@ interface KeyControlsProps {
 
 export const KeyControls: FC<KeyControlsProps> = ({ onCreateKey }) => {
   return (
-    <div className="flex justify-between items-center">
-      <h2 className="text-2xl font-bold">Translation Keys</h2>
+    <div className="py-4 px-4 flex gap-2">
+      <Menubar>
+        <MenubarMenu>
+          <MenubarTrigger>Keys</MenubarTrigger>
+          <MenubarContent>
+            <MenubarItem>
+              New Tab <MenubarShortcut>⌘T</MenubarShortcut>
+            </MenubarItem>
+            <MenubarItem>New Window</MenubarItem>
+            <MenubarSeparator />
+            <MenubarItem>Share</MenubarItem>
+            <MenubarSeparator />
+            <MenubarItem>Print</MenubarItem>
+          </MenubarContent>
+        </MenubarMenu>
+      </Menubar>
       <Button onClick={onCreateKey}>
-        <Plus className="h-4 w-4 mr-2" />
-        Create Key
+        Add key
       </Button>
     </div>
   );
 };
-
