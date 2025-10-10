@@ -14,13 +14,13 @@ interface KeyProps {
  */
 export function Key({ keyData, projectId, projectLanguages }: KeyProps) {
   return (
-    <div className="border-b grid grid-cols-[minmax(300px,300px)_minmax(300px,3fr)]">
-      <div className="border-r">
-        <div className="font-mono text-sm break-words bg-background py-2 px-4">
+    <div className="border-b grid grid-cols-[minmax(300px,300px)_minmax(300px,3fr)] relative">
+      <div className="border-r relative">
+        <div className="font-mono text-sm break-words sticky bg-background top-[2px] z-10 py-2 px-4">
           {keyData.key}
         </div>
         {keyData.description ? (
-          <p className="text-xs text-muted-foreground px-4 pb-2">{keyData.description}</p>
+          <p className="text-xs text-muted-foreground px-4 py-2">{keyData.description}</p>
         ) : null}
       </div>
       <div className="flex flex-col">

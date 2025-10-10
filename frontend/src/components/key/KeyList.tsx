@@ -83,9 +83,10 @@ export function KeyList({
         >
           <div
             style={{
-              height: `${virtualizer.getTotalSize()}px`,
-              width: "100%",
-              position: "relative",
+              paddingTop: virtualizer.getVirtualItems()[0]?.start || 0,
+              paddingBottom: 
+                virtualizer.getTotalSize() - 
+                (virtualizer.getVirtualItems()[virtualizer.getVirtualItems().length - 1]?.end || 0),
             }}
           >
             {virtualizer.getVirtualItems().map((virtualItem) => {
@@ -95,13 +96,6 @@ export function KeyList({
                   key={virtualItem.key}
                   data-index={virtualItem.index}
                   ref={virtualizer.measureElement}
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    transform: `translateY(${virtualItem.start}px)`,
-                  }}
                 >
                   <Key
                     keyData={key}
