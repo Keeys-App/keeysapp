@@ -14,9 +14,9 @@ interface KeyProps {
  */
 export function Key({ keyData, projectId, projectLanguages }: KeyProps) {
   return (
-    <div className="border-b grid grid-cols-[minmax(200px,300px)_minmax(300px,3fr)]">
-      <div className="border-r py-2 px-4 ">
-        <div className="font-mono text-sm break-words">{keyData.key}</div>
+    <div className="border-b grid grid-cols-[minmax(300px,300px)_minmax(300px,3fr)]">
+      <div className="border-r">
+        <div className="font-mono text-sm break-words sticky bg-background top-26 left-0 w-[299px] py-2 px-4 z-1">{keyData.key}</div>
         {keyData.description ? (
           <p className="text-xs text-muted-foreground">{keyData.description}</p>
         ) : null}
