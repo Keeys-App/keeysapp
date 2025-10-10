@@ -11,18 +11,21 @@ import {
 import { ProjectCard } from "./ProjectCard";
 import { CreateProjectCard } from "./CreateProjectCard";
 import { EmptyProjects } from "./EmptyProjects";
+import { ImportProjectDialog } from "./ImportProjectDialog";
 import { DeleteConfirmationDialog } from "@/components/blocks";
 import { useAuth } from "@/contexts/AuthContext";
 import { getUserFriendlyErrorMessage } from "@/lib/utils";
 import { PATHS } from "@/constants/paths";
+import { Button } from "@/components/ui/button";
 
 export const ProjectList: FC = () => {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
 
-  const { data, loading, error } = useQuery<GetProjectsData>(GET_PROJECTS, {
+  const { data, loading, error, refetch } = useQuery<GetProjectsData>(GET_PROJECTS, {
     skip: !isAuthenticated || authLoading,
   });
 
@@ -55,6 +58,10 @@ export const ProjectList: FC = () => {
     await deleteProject({ variables: { id: projectToDelete.id } });
   };
 
+  const handleImportSuccess = () => {
+    refetch();
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh]">
@@ -78,13 +85,35 @@ export const ProjectList: FC = () => {
   return (
     <>
       {projects.length === 0 ? (
-        <EmptyProjects
-          onCreateProject={() => {
-            return navigate(PATHS.PROJECT_CREATE);
-          }}
-        />
+        <div className="flex flex-col gap-4">
+          <div className="flex justify-end p-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                return setImportDialogOpen(true);
+              }}
+            >
+              Import Project
+            </Button>
+          </div>
+          <EmptyProjects
+            onCreateProject={() => {
+              return navigate(PATHS.PROJECT_CREATE);
+            }}
+          />
+        </div>
       ) : (
         <div className="flex flex-col gap-4 p-4">
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              onClick={() => {
+                return setImportDialogOpen(true);
+              }}
+            >
+              Import Project
+            </Button>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {/* Existing Projects */}
             {projects.map((project) => {
@@ -107,6 +136,13 @@ export const ProjectList: FC = () => {
           </div>
         </div>
       )}
+
+      {/* Import Project Dialog */}
+      <ImportProjectDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        onImportSuccess={handleImportSuccess}
+      />
 
       {/* Delete Confirmation Dialog */}
       <DeleteConfirmationDialog

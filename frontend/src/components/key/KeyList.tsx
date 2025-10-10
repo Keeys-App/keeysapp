@@ -38,37 +38,38 @@ export function KeyList({
   }
 
   if (error) {
-    const errorMessage = getUserFriendlyErrorMessage(error, 'Failed to load translation keys. Please try again.');
+    const errorMessage = getUserFriendlyErrorMessage(
+      error,
+      "Failed to load translation keys. Please try again."
+    );
     return (
       <Alert variant="destructive">
-        <AlertDescription>
-          {errorMessage}
-        </AlertDescription>
+        <AlertDescription>{errorMessage}</AlertDescription>
       </Alert>
     );
   }
 
   const keys: TranslationKey[] = data?.projectKeys || [];
 
-  if (keys.length === 0) {
-    return (
-      <div className="flex flex-col h-full min-h-[50vh]">
-        <EmptyKeys projectId={projectId} onCreateKey={onCreateKey} />
-      </div>
-    );
-  }
-
   return (
-    <div>
-      <KeyControls projectId={projectId} onCreateKey={onCreateKey} />
-      {keys.map((key) => (
-        <Key
-          key={key.id}
-          keyData={key}
-          projectId={projectId}
-          projectLanguages={projectLanguages}
-        />
-      ))}
+    <div className="relative h-full overflow-y-auto">
+      <div className="">
+        <KeyControls projectId={projectId} onCreateKey={onCreateKey} />
+      </div>
+      {keys.length === 0 ? (
+        <div className="flex flex-col h-full min-h-[50vh]">
+          <EmptyKeys projectId={projectId} onCreateKey={onCreateKey} />
+        </div>
+      ) : (
+        keys.map((key) => (
+          <Key
+            key={key.id}
+            keyData={key}
+            projectId={projectId}
+            projectLanguages={projectLanguages}
+          />
+        ))
+      )}
     </div>
   );
 }

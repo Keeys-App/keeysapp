@@ -464,3 +464,160 @@ class ProjectService:
         db.commit()
         return True
 
+    @staticmethod
+    def export_project_data(db: Session, project_public_id: str, user_id: int) -> Optional[dict]:
+        """
+        Export project data in i18n format for backup or sharing.
+        
+        Args:
+            db: Database session
+            project_public_id: Public UUID of the project
+            user_id: User ID requesting the export
+            
+        Returns:
+            Dict with project data or None if no access
+        """
+        # Get project
+        project = ProjectService.get_project_by_public_id(db, project_public_id)
+        if not project:
+            return None
+        
+        # Check access
+        if not ProjectService.check_project_access(db, project.id, user_id):
+            return None
+        
+        # Get all keys with translations
+        keys = db.query(Key).filter(Key.project_id == project.id).all()
+        
+        # Build locales structure
+        locales = []
+        for lang in project.languages:
+            if isinstance(lang, dict):
+                code = lang.get('code', '')
+                locale = lang.get('locale', '')
+            else:
+                # Old format support
+                code = lang
+                locale = f'{lang}-{lang.upper()}'
+            
+            # Collect translations for this language
+            translations = {}
+            for key in keys:
+                translation = db.query(Translation).filter(
+                    Translation.key_id == key.id,
+                    Translation.language == code
+                ).first()
+                
+                if translation and translation.value:
+                    translations[key.key] = translation.value
+            
+            locales.append({
+                'code': code,
+                'locale': locale,
+                'keys': translations
+            })
+        
+        return {
+            'name': project.name,
+            'config': {
+                'description': project.description or '',
+                'languages': project.languages,
+                'defaultLanguage': project.default_language or '',
+                'color': project.color,
+                'status': project.status
+            },
+            'locales': locales
+        }
+
+    @staticmethod
+    def import_project_data(
+        db: Session,
+        owner_id: int,
+        project_data: dict
+    ) -> Optional[Project]:
+        """
+        Import project data from exported JSON format.
+        
+        Args:
+            db: Database session
+            owner_id: ID of the user creating the project
+            project_data: Dict with project data in export format
+            
+        Returns:
+            Created project or None if failed
+        """
+        try:
+            # Extract project config
+            name = project_data.get('name', 'Imported Project')
+            config = project_data.get('config', {})
+            locales = project_data.get('locales', [])
+            
+            # Create project
+            project = ProjectService.create_project(
+                db=db,
+                owner_id=owner_id,
+                name=name,
+                description=config.get('description'),
+                languages=config.get('languages', []),
+                default_language=config.get('defaultLanguage'),
+                color=config.get('color', '#6366f1'),
+                status=config.get('status', 'active')
+            )
+            
+            # Import keys and translations
+            for locale_data in locales:
+                language_code = locale_data.get('code')
+                keys_data = locale_data.get('keys', {})
+                
+                if not language_code:
+                    continue
+                
+                # Process each key
+                for key_str, translation_value in keys_data.items():
+                    # Check if key already exists
+                    existing_key = db.query(Key).filter(
+                        Key.project_id == project.id,
+                        Key.key == key_str
+                    ).first()
+                    
+                    if existing_key:
+                        # Update translation
+                        translation = db.query(Translation).filter(
+                            Translation.key_id == existing_key.id,
+                            Translation.language == language_code
+                        ).first()
+                        
+                        if translation:
+                            translation.value = translation_value
+                        else:
+                            translation = Translation(
+                                key_id=existing_key.id,
+                                language=language_code,
+                                value=translation_value
+                            )
+                            db.add(translation)
+                    else:
+                        # Create new key
+                        new_key = Key(
+                            key=key_str,
+                            project_id=project.id
+                        )
+                        db.add(new_key)
+                        db.flush()
+                        
+                        # Create translation
+                        translation = Translation(
+                            key_id=new_key.id,
+                            language=language_code,
+                            value=translation_value
+                        )
+                        db.add(translation)
+            
+            db.commit()
+            db.refresh(project)
+            return project
+            
+        except Exception as e:
+            db.rollback()
+            raise e
+

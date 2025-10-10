@@ -9,6 +9,7 @@ from strawberry.fastapi import GraphQLRouter
 from app.database import engine
 from app.models.base import Base
 from app.schemas.graphql import schema
+from app.routers.project_router import router as project_router
 
 # Configure logging
 logging.basicConfig(
@@ -70,7 +71,8 @@ async def get_context(request: Request):
 graphql_app = GraphQLRouter(schema, context_getter=get_context)
 app.include_router(graphql_app, prefix="/graphql")
 
-# TODO: Add your REST API routers here
+# REST API routers
+app.include_router(project_router)
 
 
 @app.get("/")

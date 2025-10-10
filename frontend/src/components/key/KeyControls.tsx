@@ -11,6 +11,7 @@ import {
   MenubarTrigger,
 } from "../ui/menubar";
 import { PATHS } from "@/constants/paths";
+import { toast } from "sonner";
 
 interface KeyControlsProps {
   projectId: string;
@@ -31,14 +32,65 @@ export const KeyControls: FC<KeyControlsProps> = ({
     navigate(PATHS.IMPORT.replace(":id", projectId));
   };
 
+  const handleExportProjectClick = async () => {
+    try {
+      const token = localStorage.getItem("authToken");
+      if (!token) {
+        toast.error("Authentication required");
+        return;
+      }
+
+      const API_BASE_URL =
+        import.meta.env.VITE_API_URL || "http://localhost:8000";
+      const response = await fetch(
+        `${API_BASE_URL}/api/projects/${projectId}/export`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to export project");
+      }
+
+      const data = await response.json();
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: "application/json",
+      });
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${data.name
+        .replace(/\s+/g, "_")
+        .toLowerCase()}_export.json`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast.success("Project exported successfully");
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.error("Failed to export project");
+    }
+  };
+
   return (
     <div className="py-2 px-4 flex gap-2 bg-muted border-b">
       <Menubar>
         <MenubarMenu>
           <MenubarTrigger>Actions</MenubarTrigger>
           <MenubarContent>
-            <MenubarItem onClick={handleImportClick}>Import</MenubarItem>
-            <MenubarItem onClick={handleExportClick}>Export</MenubarItem>
+            <MenubarItem onClick={handleImportClick}>Import Keys</MenubarItem>
+            <MenubarItem onClick={handleExportClick}>Export Keys</MenubarItem>
+            <MenubarSeparator />
+            <MenubarItem onClick={handleExportProjectClick}>
+              Export Project
+            </MenubarItem>
           </MenubarContent>
         </MenubarMenu>
         <MenubarMenu>
