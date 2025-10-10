@@ -12,8 +12,8 @@ class Settings(BaseSettings):
     project_name: str = "Locales API"
     
     # Security
-    secret_key: str = "your-secret-key-here"
-    algorithm: str = "HS256"
+    jwt_secret_key: str = "your-secret-key-here"
+    jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 525600  # 1 year (365 days * 24 hours * 60 minutes)
     
     # Environment

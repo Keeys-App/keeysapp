@@ -31,9 +31,15 @@ pip install -r requirements.txt
 # Создать .env файл
 cp env.example .env
 
+# Сгенерировать JWT_SECRET_KEY
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+# Скопируйте вывод и используйте как JWT_SECRET_KEY
+
 # Настроить .env:
-# DATABASE_URL=postgresql://user:password@localhost:5432/locales
-# SECRET_KEY=your-random-secret-key-here
+# DATABASE_URL=postgresql://user:password@localhost:5432/locales_db
+# JWT_SECRET_KEY=<сгенерированный_ключ>
+# JWT_ALGORITHM=HS256
+# ACCESS_TOKEN_EXPIRE_MINUTES=10080  # 7 дней
 
 # Запустить сервер
 python main.py
@@ -151,13 +157,26 @@ HTTP Headers:
 - Реализовать role-based access control
 - Добавить функцию восстановления пароля
 
+## Переменные окружения
+
+Полное описание всех переменных смотрите в [[Environment Variables]].
+
+**Обязательные:**
+- `DATABASE_URL` - подключение к PostgreSQL
+- `JWT_SECRET_KEY` - секретный ключ для JWT токенов
+
+**Опциональные (есть дефолтные значения):**
+- `JWT_ALGORITHM` - алгоритм шифрования JWT (по умолчанию: HS256)
+- `ACCESS_TOKEN_EXPIRE_MINUTES` - время жизни токена в минутах (по умолчанию: 525600 = 1 год)
+
 ## Связанные документы
 
+- [[Environment Variables]] - Переменные окружения
 - [[Authentication Setup]] - Подробная документация по авторизации
 - [[Authentication Cheatsheet]] - Шпаргалка по авторизации
 - [[Testing Guide]] - Руководство по тестированию
 
 ---
 
-*Обновлено: 2025-10-09*
+*Обновлено: 2025-10-10*
 

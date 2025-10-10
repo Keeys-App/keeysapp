@@ -1,6 +1,6 @@
 import type { FC } from 'react';
 import { toast } from 'sonner';
-import { Key, ArrowUpRightIcon } from 'lucide-react';
+import { ArrowUpRightIcon, SquareAsterisk } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Empty,
@@ -21,7 +21,7 @@ export const EmptyKeys: FC<EmptyKeysProps> = ({ onCreateKey }) => {
       <Empty>
         <EmptyHeader>
           <EmptyMedia variant="icon">
-            <Key />
+            <SquareAsterisk />
           </EmptyMedia>
           <EmptyTitle>No Translation Keys</EmptyTitle>
           <EmptyDescription>

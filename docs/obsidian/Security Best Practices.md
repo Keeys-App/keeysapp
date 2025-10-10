@@ -97,32 +97,59 @@ def _truncate_password_bytes(password: str) -> bytes:
 
 ## 🎫 JWT Токены
 
-### Хранение SECRET_KEY
+### Хранение JWT_SECRET_KEY
 
 ```env
 # ✅ В .env файле
-SECRET_KEY=randomly-generated-long-secret-key-here
+JWT_SECRET_KEY=randomly-generated-long-secret-key-here
+JWT_ALGORITHM=HS256
 
 # ❌ НЕ в коде
-SECRET_KEY = "hardcoded-secret"  # НИКОГДА!
+JWT_SECRET_KEY = "hardcoded-secret"  # НИКОГДА!
 ```
 
 **Генерация безопасного ключа:**
-```python
+```bash
+# Способ 1: Python
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+
+# Способ 2: OpenSSL
+openssl rand -base64 32
+
+# Способ 3: Python script
+python3 << EOF
 import secrets
-secret_key = secrets.token_urlsafe(32)
-print(secret_key)
+print(secrets.token_urlsafe(32))
+EOF
+```
+
+**Пример вывода:**
+```
+fN3K_5mP9xQ2wR8tY7uI4oP3lK6jH5gF9dS2aQ1w
+```
+
+Скопируйте этот ключ в `.env` файл:
+```env
+JWT_SECRET_KEY=fN3K_5mP9xQ2wR8tY7uI4oP3lK6jH5gF9dS2aQ1w
 ```
 
 ### Время жизни токенов
 
-```python
-# Короткие access tokens
-ACCESS_TOKEN_EXPIRE_MINUTES = 30  # 30 минут
+```env
+# Разработка - длинные токены для удобства
+ACCESS_TOKEN_EXPIRE_MINUTES=10080  # 7 дней
+
+# Production - короткие токены для безопасности
+ACCESS_TOKEN_EXPIRE_MINUTES=30  # 30 минут
 
 # Длинные refresh tokens (если реализовано)
-REFRESH_TOKEN_EXPIRE_DAYS = 7  # 7 дней
+REFRESH_TOKEN_EXPIRE_DAYS=7  # 7 дней
 ```
+
+**Рекомендации:**
+- **Development:** 7 дней (10080 минут) - удобно для разработки
+- **Production:** 30 минут - безопаснее, требует refresh token
+- **Mobile apps:** 1 год - пользователи не любят постоянно логиниться
 
 ### Хранение токенов на клиенте
 
@@ -321,11 +348,12 @@ logger.warning(f"Failed login attempt for email: {email}")
 
 ## Связанные документы
 
+- [[Environment Variables]] - Переменные окружения
 - [[Authentication Setup]] - Настройка авторизации
 - [[Testing Guide]] - Тестирование безопасности
 - [[Project Structure]] - Структура проекта
 
 ---
 
-*Обновлено: 2025-10-09*
+*Обновлено: 2025-10-10*
 
