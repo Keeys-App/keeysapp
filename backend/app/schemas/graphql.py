@@ -52,6 +52,7 @@ class Mutation:
     delete_key = strawberry.field(resolver=KeyMutation.delete_key)
     set_translation = strawberry.field(resolver=KeyMutation.set_translation)
     delete_translation = strawberry.field(resolver=KeyMutation.delete_translation)
+    batch_import_translations = strawberry.field(resolver=KeyMutation.batch_import_translations)
 
 
 schema = strawberry.Schema(query=Query, mutation=Mutation)

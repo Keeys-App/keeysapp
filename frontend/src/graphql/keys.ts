@@ -95,3 +95,15 @@ export const DELETE_TRANSLATION = gql`
   }
 `;
 
+export const BATCH_IMPORT_TRANSLATIONS = gql`
+  mutation BatchImportTranslations($input: BatchImportInput!) {
+    batchImportTranslations(input: $input) {
+      successCount
+      errorCount
+      createdKeys
+      updatedKeys
+      errors
+    }
+  }
+`;
+

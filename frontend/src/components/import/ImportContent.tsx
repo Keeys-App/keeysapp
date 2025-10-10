@@ -4,8 +4,7 @@ import { Upload, ArrowRight, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import type { Project } from "@/types/project";
 import type { TranslationKey } from "@/types/translationKey";
-import { GET_PROJECT_KEYS } from "@/graphql/keys";
-import { SET_TRANSLATION, CREATE_KEY } from "@/graphql/keys";
+import { GET_PROJECT_KEYS, BATCH_IMPORT_TRANSLATIONS } from "@/graphql/keys";
 import { COMMON_LANGUAGES } from "@/types/project";
 import { Button } from "@/components/ui/button";
 import { LoadingState, ErrorState } from "@/components/blocks";
@@ -44,8 +43,9 @@ export const ImportContent: FC<ImportContentProps> = ({ project }) => {
     }
   );
 
-  const [setTranslation] = useMutation(SET_TRANSLATION);
-  const [createKey] = useMutation(CREATE_KEY);
+  const [batchImportTranslations] = useMutation(BATCH_IMPORT_TRANSLATIONS, {
+    refetchQueries: [{ query: GET_PROJECT_KEYS, variables: { projectId: project.id } }],
+  });
 
   const existingKeys = useMemo(() => {
     return data?.projectKeys.map((key) => key.key) || [];
@@ -138,53 +138,53 @@ export const ImportContent: FC<ImportContentProps> = ({ project }) => {
         }
       }
 
-      let successCount = 0;
-      let errorCount = 0;
+      let totalSuccess = 0;
+      let totalErrors = 0;
+      let totalCreated = 0;
+      let totalUpdated = 0;
 
-      // Import for each language
+      // Import for each language using batch mutation
       for (const [language, translations] of translationsByLanguage) {
-        for (const translation of translations) {
-          try {
-            const existingKey = data?.projectKeys.find(
-              (k) => k.key === translation.key
-            );
+        try {
+          const result = await batchImportTranslations({
+            variables: {
+              input: {
+                projectId: project.id,
+                language: language,
+                translations: translations.map((t) => ({
+                  key: t.key,
+                  value: t.value,
+                })),
+                strategy: importOptions.strategy,
+              },
+            },
+          });
 
-            if (existingKey) {
-              await setTranslation({
-                variables: {
-                  input: {
-                    keyId: existingKey.id,
-                    language: language,
-                    value: translation.value,
-                  },
-                },
-              });
-            } else {
-              await createKey({
-                variables: {
-                  input: {
-                    projectId: project.id,
-                    key: translation.key,
-                    translations: {
-                      [language]: translation.value,
-                    },
-                  },
-                },
-              });
+          if (result.data?.batchImportTranslations) {
+            const batchResult = result.data.batchImportTranslations;
+            totalSuccess += batchResult.successCount;
+            totalErrors += batchResult.errorCount;
+            totalCreated += batchResult.createdKeys;
+            totalUpdated += batchResult.updatedKeys;
+
+            if (batchResult.errors.length > 0) {
+              console.error(`Errors importing ${language}:`, batchResult.errors);
             }
-            successCount++;
-          } catch (err) {
-            console.error(`Failed to import key "${translation.key}":`, err);
-            errorCount++;
           }
+        } catch (err) {
+          console.error(`Failed to import translations for ${language}:`, err);
+          totalErrors += translations.length;
         }
       }
 
-      if (errorCount === 0) {
-        toast.success(`Successfully imported ${successCount} translations`);
+      // Show result toast
+      if (totalErrors === 0) {
+        toast.success(
+          `Successfully imported ${totalSuccess} translations (${totalCreated} new, ${totalUpdated} updated)`
+        );
       } else {
         toast.warning(
-          `Imported ${successCount} translations with ${errorCount} errors`
+          `Imported ${totalSuccess} translations with ${totalErrors} errors`
         );
       }
 

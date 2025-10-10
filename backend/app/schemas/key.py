@@ -43,6 +43,18 @@ class KeyType:
     updated_at: Optional[datetime]
 
 
+@strawberry.type
+class BatchImportResult:
+    """
+    Result type for batch import operation.
+    """
+    success_count: int
+    error_count: int
+    created_keys: int
+    updated_keys: int
+    errors: List[str]
+
+
 @strawberry.input
 class CreateKeyInput:
     """
@@ -81,6 +93,26 @@ class DeleteTranslationInput:
     """
     key_id: str  # Key UUID
     language: str
+
+
+@strawberry.input
+class BatchTranslationInput:
+    """
+    Input type for batch translation import.
+    """
+    key: str
+    value: str
+
+
+@strawberry.input
+class BatchImportInput:
+    """
+    Input type for batch importing translations.
+    """
+    project_id: str  # Project UUID
+    language: str
+    translations: List[BatchTranslationInput]
+    strategy: str = "merge"  # 'merge' or 'replace'
 
 
 def build_key_type(key) -> KeyType:
@@ -402,6 +434,58 @@ class KeyMutation:
             handle_database_exception(e, "translation deletion")
         except Exception as e:
             handle_database_exception(e, "translation deletion")
+        finally:
+            db.close()
+
+    @strawberry.mutation
+    def batch_import_translations(self, input: BatchImportInput, info: Info) -> BatchImportResult:
+        """
+        Batch import translations for a specific language.
+        
+        Args:
+            input: Batch import input with translations
+            info: GraphQL info object
+            
+        Returns:
+            Result with success/error counts
+            
+        Raises:
+            UnauthorizedError: If user is not authenticated
+        """
+        current_user_id = get_current_user_id(info)
+        if not current_user_id:
+            raise UnauthorizedError("User must be authenticated to import translations")
+        
+        db: Session = next(get_db())
+        
+        try:
+            result = KeyService.batch_import_translations(
+                db=db,
+                project_public_id=input.project_id,
+                language=input.language,
+                translations=input.translations,
+                strategy=input.strategy,
+                user_id=current_user_id
+            )
+            
+            return BatchImportResult(
+                success_count=result['success_count'],
+                error_count=result['error_count'],
+                created_keys=result['created_keys'],
+                updated_keys=result['updated_keys'],
+                errors=result['errors']
+            )
+        except (UnauthorizedError, AuthenticationError):
+            raise
+        except Exception as e:
+            logger.error(f"Error in batch import: {type(e).__name__}: {str(e)}")
+            return BatchImportResult(
+                success_count=0,
+                error_count=len(input.translations),
+                created_keys=0,
+                updated_keys=0,
+                errors=[str(e)]
+            )
         finally:
             db.close()
 

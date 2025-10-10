@@ -298,3 +298,138 @@ class KeyService:
         db.commit()
         return True
 
+    @staticmethod
+    def batch_import_translations(
+        db: Session,
+        project_public_id: str,
+        language: str,
+        translations: List,
+        strategy: str = "merge",
+        user_id: int = None
+    ) -> Dict:
+        """
+        Batch import translations for a specific language.
+        
+        Args:
+            db: Database session
+            project_public_id: Public UUID of the project
+            language: Language code
+            translations: List of {key: str, value: str}
+            strategy: 'merge' or 'replace'
+            user_id: User ID importing translations
+            
+        Returns:
+            Dict with success_count, error_count, created_keys, updated_keys, errors
+        """
+        from app.services.project_service import ProjectService
+        
+        # Get project
+        project = ProjectService.get_project_by_public_id(db, project_public_id)
+        if not project:
+            return {
+                'success_count': 0,
+                'error_count': len(translations),
+                'created_keys': 0,
+                'updated_keys': 0,
+                'errors': ['Project not found']
+            }
+        
+        # Check permission
+        if user_id and not ProjectService.can_user_edit_project(db, project.id, user_id):
+            return {
+                'success_count': 0,
+                'error_count': len(translations),
+                'created_keys': 0,
+                'updated_keys': 0,
+                'errors': ['User does not have permission to edit this project']
+            }
+        
+        success_count = 0
+        error_count = 0
+        created_keys = 0
+        updated_keys = 0
+        errors = []
+        
+        try:
+            # Get all existing keys for the project
+            existing_keys = db.query(Key).filter(
+                Key.project_id == project.id
+            ).all()
+            existing_keys_dict = {k.key: k for k in existing_keys}
+            
+            # Process each translation
+            for trans_input in translations:
+                try:
+                    key_str = trans_input.key
+                    value = trans_input.value
+                    
+                    # Check if key exists
+                    if key_str in existing_keys_dict:
+                        # Update existing key's translation
+                        key_obj = existing_keys_dict[key_str]
+                        
+                        # Check if translation exists
+                        translation = db.query(Translation).filter(
+                            Translation.key_id == key_obj.id,
+                            Translation.language == language
+                        ).first()
+                        
+                        if translation:
+                            translation.value = value
+                        else:
+                            translation = Translation(
+                                key_id=key_obj.id,
+                                language=language,
+                                value=value
+                            )
+                            db.add(translation)
+                        
+                        updated_keys += 1
+                    else:
+                        # Create new key with translation
+                        new_key = Key(
+                            key=key_str,
+                            project_id=project.id
+                        )
+                        db.add(new_key)
+                        db.flush()  # Get the ID
+                        
+                        # Create translation
+                        translation = Translation(
+                            key_id=new_key.id,
+                            language=language,
+                            value=value
+                        )
+                        db.add(translation)
+                        
+                        # Add to dict for future lookups in this batch
+                        existing_keys_dict[key_str] = new_key
+                        created_keys += 1
+                    
+                    success_count += 1
+                    
+                except Exception as e:
+                    error_count += 1
+                    errors.append(f"Error processing key '{trans_input.key}': {str(e)}")
+            
+            # Commit all changes
+            db.commit()
+            
+        except Exception as e:
+            db.rollback()
+            return {
+                'success_count': 0,
+                'error_count': len(translations),
+                'created_keys': 0,
+                'updated_keys': 0,
+                'errors': [f"Batch import failed: {str(e)}"]
+            }
+        
+        return {
+            'success_count': success_count,
+            'error_count': error_count,
+            'created_keys': created_keys,
+            'updated_keys': updated_keys,
+            'errors': errors
+        }
+
