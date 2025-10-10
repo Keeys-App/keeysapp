@@ -13,7 +13,6 @@ from app.core.security import decode_access_token
 from app.core.exceptions import (
     AuthenticationError,
     UnauthorizedError,
-    DatabaseError,
     handle_database_exception
 )
 from app.schemas.auth import UserType
@@ -141,13 +140,14 @@ def get_current_user_id(info: Info) -> Optional[int]:
         return None
 
 
-def build_project_type(project, current_user_id: int) -> ProjectType:
+def build_project_type(project, current_user_id: int, stats: Optional[dict] = None) -> ProjectType:
     """
     Build ProjectType from Project model.
     
     Args:
         project: Project model instance
         current_user_id: Current user's ID
+        stats: Optional dictionary with 'keys_count' and 'translations_count' from SQL
         
     Returns:
         ProjectType
@@ -184,23 +184,17 @@ def build_project_type(project, current_user_id: int) -> ProjectType:
                 can_edit = True
                 break
     
-    # Calculate translation progress
-    keys_count = len(project.keys) if project.keys else 0
+    # Calculate translation progress using SQL stats (much faster!)
+    keys_count = stats.get('keys_count', 0) if stats else 0
+    translations_count = stats.get('translations_count', 0) if stats else 0
     languages_count = len(project.languages) if project.languages else 0
     
     if keys_count == 0 or languages_count == 0:
         translation_progress = 0
     else:
         total_required = keys_count * languages_count
-        # Count only translations with non-empty values AND in project languages
-        project_languages_set = set(project.languages) if project.languages else set()
-        total_translated = sum(
-            1 for key in project.keys 
-            for translation in key.translations 
-            if translation.language in project_languages_set
-            and translation.value and translation.value.strip()
-        )
-        translation_progress = int((total_translated / total_required) * 100) if total_required > 0 else 0
+        # translations_count already includes only non-empty translations from SQL
+        translation_progress = int((translations_count / total_required) * 100) if total_required > 0 else 0
     
     return ProjectType(
         id=str(project.public_id),
@@ -250,7 +244,12 @@ class ProjectQuery:
             db: Session = next(get_db())
             try:
                 projects = ProjectService.get_user_projects(db, current_user_id)
-                return [build_project_type(project, current_user_id) for project in projects]
+                
+                # Get statistics for all projects in one SQL query
+                project_ids = [p.id for p in projects]
+                stats = ProjectService.get_projects_stats(db, project_ids) if project_ids else {}
+                
+                return [build_project_type(project, current_user_id, stats.get(project.id)) for project in projects]
             finally:
                 db.close()
         except UnauthorizedError:
@@ -290,7 +289,10 @@ class ProjectQuery:
                 if not ProjectService.check_project_access(db, project.id, current_user_id):
                     return None
                 
-                return build_project_type(project, current_user_id)
+                # Get statistics for this project
+                stats = ProjectService.get_projects_stats(db, [project.id])
+                
+                return build_project_type(project, current_user_id, stats.get(project.id))
             finally:
                 db.close()
         except Exception as e:
@@ -338,7 +340,9 @@ class ProjectMutation:
                 status=input.status or "active"
             )
             
-            return build_project_type(project, current_user_id)
+            # New project has no keys/translations yet
+            stats = {'keys_count': 0, 'translations_count': 0}
+            return build_project_type(project, current_user_id, stats)
         except (UnauthorizedError, AuthenticationError):
             raise
         except (IntegrityError, OperationalError) as e:
@@ -386,7 +390,9 @@ class ProjectMutation:
             if not project:
                 return None
             
-            return build_project_type(project, current_user_id)
+            # Get statistics for the updated project
+            stats = ProjectService.get_projects_stats(db, [project.id])
+            return build_project_type(project, current_user_id, stats.get(project.id))
         except (UnauthorizedError, AuthenticationError):
             raise
         except (IntegrityError, OperationalError) as e:
@@ -463,14 +469,21 @@ class ProjectMutation:
             if not member:
                 return None
             
-            # Get updated project
-            from app.models.project import Project as ProjectModel
-            project = db.query(ProjectModel).filter_by(id=member.project_id).first()
+            # Get updated project with eager loading
+            from app.models.project import Project as ProjectModel, ProjectMember
+            from sqlalchemy.orm import joinedload, selectinload
+            
+            project = db.query(ProjectModel).options(
+                joinedload(ProjectModel.owner),
+                selectinload(ProjectModel.members).joinedload(ProjectMember.user)
+            ).filter_by(id=member.project_id).first()
             
             if not project:
                 return None
             
-            return build_project_type(project, current_user_id)
+            # Get statistics for the project
+            stats = ProjectService.get_projects_stats(db, [project.id])
+            return build_project_type(project, current_user_id, stats.get(project.id))
         except (UnauthorizedError, AuthenticationError):
             raise
         except (IntegrityError, OperationalError) as e:

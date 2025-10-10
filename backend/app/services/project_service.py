@@ -1,9 +1,11 @@
 from typing import Optional, List
 from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy import func
 import uuid as uuid_lib
 
 from app.models.project import Project, ProjectMember
 from app.models.user import User
+from app.models.key import Key, Translation
 
 
 class ProjectService:
@@ -60,6 +62,7 @@ class ProjectService:
         """
         Get a project by its public UUID.
         Uses eager loading to prevent N+1 query problems.
+        Note: Does not load keys/translations - use get_projects_stats() for statistics.
         
         Args:
             db: Database session
@@ -70,20 +73,77 @@ class ProjectService:
         """
         try:
             uuid_obj = uuid_lib.UUID(public_id)
-            # Eager load all related data to prevent N+1 queries
+            # Eager load related data except keys/translations (they're heavy and calculated via SQL)
             return db.query(Project).options(
                 joinedload(Project.owner),
-                selectinload(Project.members).joinedload(ProjectMember.user),
-                selectinload(Project.keys).selectinload('translations')
+                selectinload(Project.members).joinedload(ProjectMember.user)
             ).filter(Project.public_id == uuid_obj).first()
         except (ValueError, AttributeError):
             return None
+
+    @staticmethod
+    def get_projects_stats(db: Session, project_ids: List[int]) -> dict:
+        """
+        Get translation statistics for multiple projects efficiently using SQL.
+        Returns a dictionary mapping project_id to (keys_count, translated_count).
+        
+        Args:
+            db: Database session
+            project_ids: List of project IDs
+            
+        Returns:
+            Dict mapping project_id to tuple (keys_count, translations_count)
+        """
+        if not project_ids:
+            return {}
+        
+        # Get keys count for each project
+        keys_stats = db.query(
+            Key.project_id,
+            func.count(Key.id).label('keys_count')
+        ).filter(
+            Key.project_id.in_(project_ids)
+        ).group_by(
+            Key.project_id
+        ).all()
+        
+        # Get translations count for each project
+        # Count only non-empty translations
+        translations_stats = db.query(
+            Key.project_id,
+            func.count(Translation.id).label('translations_count')
+        ).join(
+            Translation, Key.id == Translation.key_id
+        ).filter(
+            Key.project_id.in_(project_ids),
+            Translation.value.isnot(None),
+            Translation.value != ''
+        ).group_by(
+            Key.project_id
+        ).all()
+        
+        # Build result dictionary
+        result = {}
+        
+        # Add keys counts
+        for project_id, keys_count in keys_stats:
+            result[project_id] = {'keys_count': keys_count, 'translations_count': 0}
+        
+        # Add translations counts
+        for project_id, translations_count in translations_stats:
+            if project_id in result:
+                result[project_id]['translations_count'] = translations_count
+            else:
+                result[project_id] = {'keys_count': 0, 'translations_count': translations_count}
+        
+        return result
 
     @staticmethod
     def get_user_projects(db: Session, user_id: int) -> List[Project]:
         """
         Get all projects where user is owner or member.
         Uses eager loading to prevent N+1 query problems.
+        Note: Does not load keys/translations - use get_projects_stats() for statistics.
         
         Args:
             db: Database session
@@ -92,12 +152,10 @@ class ProjectService:
         Returns:
             List of projects
         """
-        # Eager load all related data to prevent N+1 queries
-        # Use selectinload for one-to-many relationships to avoid cartesian products
+        # Eager load related data except keys/translations (they're heavy and calculated via SQL)
         eager_options = [
             joinedload(Project.owner),  # Load owner (many-to-one)
             selectinload(Project.members).joinedload(ProjectMember.user),  # Load members and their users
-            selectinload(Project.keys).selectinload('translations')  # Load keys and their translations
         ]
         
         # Get projects where user is owner

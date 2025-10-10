@@ -3,11 +3,20 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import uvicorn
 import os
+import logging
 from strawberry.fastapi import GraphQLRouter
 
 from app.database import engine
 from app.models.base import Base
 from app.schemas.graphql import schema
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(levelname)s:%(name)s:%(message)s'
+)
+# Uncomment to debug SQL queries:
+# logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 
 
 @asynccontextmanager
