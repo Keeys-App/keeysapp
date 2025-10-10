@@ -103,7 +103,7 @@ export const ProjectKeysPage: FC = () => {
 
   return (
     <div className="flex relative" style={{ height: 'calc(100vh - 48px)' }}>
-      <div className={`flex-1 border-r transition-all duration-300 ${isPanelOpen ? '' : ''}`}>
+      <div className="flex-1 border-r transition-all duration-300">
         <KeyList
           projectId={project.id}
           projectLanguages={projectLanguages}
@@ -140,7 +140,7 @@ export const ProjectKeysPage: FC = () => {
 
       {/* Right Panel */}
       <div
-        className={`bg-background border-l transition-all duration-300 overflow-hidden ${
+        className={`bg-background transition-all duration-300 overflow-hidden ${
           isPanelOpen ? 'w-[400px]' : 'w-0'
         }`}
       >

@@ -31,7 +31,7 @@ export const KeyManagement: FC<KeyManagementProps> = ({
 
   return (
     <div className="h-full flex flex-col">
-      <div className="border-b p-4">
+      <div className="p-4">
         <h2 className="text-lg font-semibold">Key Management</h2>
         <p className="text-sm text-muted-foreground font-mono">{selectedKey.key}</p>
       </div>
