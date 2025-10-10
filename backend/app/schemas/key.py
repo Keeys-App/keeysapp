@@ -379,7 +379,7 @@ class KeyQuery:
                     joinedload(KeyLog.user)
                 ).filter(
                     KeyLog.key_id == key.id
-                ).order_by(KeyLog.created_at.desc()).limit(limit or 50).all()
+                ).order_by(KeyLog.created_at.desc(), KeyLog.id.desc()).limit(limit or 50).all()
                 
                 return [build_key_log_type(log) for log in logs]
             finally:

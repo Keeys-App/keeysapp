@@ -91,8 +91,8 @@ export const KeyLogsTimeline: FC<KeyLogsTimelineProps> = ({
       <div className="space-y-4">
         {[1, 2, 3, 4, 5].map((i) => {
           return (
-            <div key={i} className="flex gap-4">
-              <Skeleton className="w-8 h-8 rounded-full flex-shrink-0" />
+            <div key={i} className="flex gap-3">
+              <Skeleton className="w-6 h-6 rounded-full flex-shrink-0" />
               <div className="flex-1 space-y-2">
                 <Skeleton className="h-4 w-32" />
                 <Skeleton className="h-3 w-full" />
@@ -126,36 +126,36 @@ export const KeyLogsTimeline: FC<KeyLogsTimelineProps> = ({
   return (
     <div className="relative">
       {/* Timeline line */}
-      <div className="absolute left-4 top-4 bottom-4 w-px bg-border" />
+      <div className="absolute left-3 top-3 bottom-3 w-px bg-border" />
 
       {/* Timeline items */}
-      <div className="space-y-6">
+      <div className="space-y-4">
         {logs.map((log, index) => {
           const Icon = actionIcons[log.action] || History;
           const colorClass = actionColors[log.action] || "bg-gray-500";
           const label = actionLabels[log.action] || log.action;
 
           return (
-            <div key={log.id} className="relative flex gap-4 pl-0">
+            <div key={log.id} className="relative flex gap-3 pl-0">
               {/* Icon */}
               <div
-                className={`flex-shrink-0 w-8 h-8 rounded-full ${colorClass} flex items-center justify-center z-10`}
+                className={`flex-shrink-0 w-6 h-6 rounded-full ${colorClass} flex items-center justify-center z-10`}
               >
-                <Icon className="w-4 h-4 text-white" />
+                <Icon className="w-3 h-3 text-white" />
               </div>
 
               {/* Content */}
               <div className="flex-1 pb-2">
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-sm">{label}</span>
+                    <span className="font-medium text-base">{label}</span>
                     {log.user ? (
                       <span className="text-xs text-muted-foreground">
                         by {log.user.username}
                       </span>
                     ) : null}
                   </div>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
                     {formatDistanceToNow(new Date(log.createdAt), {
                       addSuffix: true,
                     })}
