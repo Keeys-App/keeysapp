@@ -20,15 +20,19 @@ import {
   FileDown,
   FileUp,
   Key,
-  ArrowRight
+  ArrowRight,
+  Download
 } from "lucide-react";
 import { COMMON_LANGUAGES } from "@/types/project";
+import { toast } from "sonner";
+import { useSaving } from "@/stores";
 
 export const ProjectPage: FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { setBreadcrumbs } = useBreadcrumbs();
+  const withSaving = useSaving();
 
   const { data, loading, error } = useQuery<GetProjectData>(GET_PROJECT, {
     variables: { id },
@@ -53,6 +57,62 @@ export const ProjectPage: FC = () => {
 
   const handleBackClick = () => {
     navigate(PATHS.DASHBOARD);
+  };
+
+  const handleExportProject = async () => {
+    if (!id) {
+      return;
+    }
+
+    await withSaving(
+      async () => {
+        try {
+          const token = localStorage.getItem("authToken");
+          if (!token) {
+            toast("Authentication required");
+            return;
+          }
+
+          const API_BASE_URL =
+            import.meta.env.VITE_API_URL || "http://localhost:8000";
+          const response = await fetch(
+            `${API_BASE_URL}/api/projects/${id}/export`,
+            {
+              method: "GET",
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+
+          if (!response.ok) {
+            throw new Error("Failed to export project");
+          }
+
+          const data = await response.json();
+          const blob = new Blob([JSON.stringify(data, null, 2)], {
+            type: "application/json",
+          });
+
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `${data.name
+            .replace(/\s+/g, "_")
+            .toLowerCase()}_export.json`;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+
+          toast("Project exported successfully");
+        } catch (error) {
+          console.error("Export error:", error);
+          toast("Failed to export project");
+        }
+      },
+      "Exporting project..."
+    );
   };
 
   if (loading) {
@@ -118,15 +178,24 @@ export const ProjectPage: FC = () => {
             <p className="text-muted-foreground">{project.description}</p>
           ) : null}
         </div>
-        {project.canEdit ? (
+        <div className="flex gap-2">
           <Button
-            onClick={() => navigate(PATHS.PROJECT_EDIT.replace(':id', id!))}
+            onClick={handleExportProject}
             variant="outline"
           >
-            <Edit className="h-4 w-4" />
-            Edit Project
+            <Download className="h-4 w-4" />
+            Export Project
           </Button>
-        ) : null}
+          {project.canEdit ? (
+            <Button
+              onClick={() => navigate(PATHS.PROJECT_EDIT.replace(':id', id!))}
+              variant="outline"
+            >
+              <Edit className="h-4 w-4" />
+              Edit Project
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       {/* Quick Actions */}

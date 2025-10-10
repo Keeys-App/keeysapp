@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from typing import Optional
 import json
 import logging
+from urllib.parse import quote
 
 from app.database import get_db
 from app.services.project_service import ProjectService
@@ -81,12 +82,16 @@ async def export_project(
             raise HTTPException(status_code=404, detail="Project not found or access denied")
         
         # Return JSON response with proper filename
+        # Use RFC 5987 format for UTF-8 encoding in Content-Disposition header
         project_name = project_data.get('name', 'project').replace(' ', '_').lower()
+        # URL encode the filename to handle UTF-8 characters (including Cyrillic)
+        encoded_filename = quote(f'{project_name}_export.json')
         
         return JSONResponse(
             content=project_data,
             headers={
-                'Content-Disposition': f'attachment; filename="{project_name}_export.json"'
+                # Use RFC 5987 format: filename*=UTF-8''encoded_name
+                'Content-Disposition': f'attachment; filename="{project_name}_export.json"; filename*=UTF-8\'\'{encoded_filename}'
             }
         )
     except HTTPException:
