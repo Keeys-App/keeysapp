@@ -120,31 +120,49 @@ async def import_project(
         JSON response with created project ID
     """
     try:
+        logger.info("Starting project import")
+        
         # Get current user
         user_id = get_current_user_id(authorization or "", db)
         if not user_id:
+            logger.warning("Import failed: No authentication")
             raise HTTPException(status_code=401, detail="Authentication required")
+        
+        logger.info(f"Import requested by user_id: {user_id}")
         
         # Validate file type
         if not file.filename.endswith('.json'):
+            logger.warning(f"Import failed: Invalid file type - {file.filename}")
             raise HTTPException(status_code=400, detail="Only JSON files are supported")
+        
+        logger.info(f"File validated: {file.filename}")
         
         # Read and parse JSON
         content = await file.read()
+        logger.info(f"File read successfully, size: {len(content)} bytes")
+        
         try:
             project_data = json.loads(content.decode('utf-8'))
-        except json.JSONDecodeError:
+            logger.info(f"JSON parsed successfully, keys: {list(project_data.keys())}")
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON decode error: {str(e)}")
             raise HTTPException(status_code=400, detail="Invalid JSON format")
         
         # Validate required fields
         if not project_data.get('name'):
+            logger.warning("Import failed: Project name is missing")
             raise HTTPException(status_code=400, detail="Project name is required")
+        
+        logger.info(f"Importing project: {project_data.get('name')}")
         
         # Import project
         project = ProjectService.import_project_data(db, user_id, project_data)
         
         if not project:
+            logger.error("Import failed: ProjectService returned None")
             raise HTTPException(status_code=500, detail="Failed to import project")
+        
+        logger.info(f"Project imported successfully: {project.public_id}")
         
         return {
             'success': True,
@@ -157,6 +175,7 @@ async def import_project(
         raise
     except Exception as e:
         logger.error(f"Error importing project: {type(e).__name__}: {str(e)}")
+        logger.exception("Full traceback:")
         # NEVER expose technical details to users
         raise HTTPException(status_code=500, detail="Failed to import project. Please check the file format and try again.")
 

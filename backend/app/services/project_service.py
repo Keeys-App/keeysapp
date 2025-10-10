@@ -2,10 +2,13 @@ from typing import Optional, List
 from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import func
 import uuid as uuid_lib
+import logging
 
 from app.models.project import Project, ProjectMember
 from app.models.user import User
 from app.models.key import Key, Translation
+
+logger = logging.getLogger(__name__)
 
 
 class ProjectService:
@@ -555,16 +558,22 @@ class ProjectService:
             Created project or None if failed
         """
         try:
+            logger.info(f"Starting import_project_data for owner_id: {owner_id}")
+            
             # Extract project config
             name = project_data.get('name', 'Imported Project')
             config = project_data.get('config', {})
             keys_data = project_data.get('keys', [])
             locales = project_data.get('locales', [])
             
+            logger.info(f"Extracted data - name: {name}, keys: {len(keys_data)}, locales: {len(locales)}")
+            
             # Get default language and convert empty string to None
             default_language = config.get('defaultLanguage')
             if default_language == '':
                 default_language = None
+            
+            logger.info(f"Creating project with languages: {config.get('languages', [])}")
             
             # Create project
             project = ProjectService.create_project(
@@ -578,18 +587,23 @@ class ProjectService:
                 status=config.get('status', 'active')
             )
             
+            logger.info(f"Project created: {project.id}")
+            
             # Set available_tags if present
             if config.get('availableTags'):
                 project.available_tags = config.get('availableTags', [])
+                logger.info(f"Set available_tags: {config.get('availableTags')}")
             
             # Create keys with descriptions and tags first
+            logger.info(f"Creating {len(keys_data)} keys")
             created_keys = {}
-            for key_item in keys_data:
+            for i, key_item in enumerate(keys_data):
                 key_str = key_item.get('key')
                 description = key_item.get('description', '')
                 tags = key_item.get('tags', [])
                 
                 if not key_str:
+                    logger.warning(f"Skipping key {i}: no key string")
                     continue
                 
                 new_key = Key(
@@ -602,13 +616,20 @@ class ProjectService:
                 db.flush()
                 created_keys[key_str] = new_key
             
+            logger.info(f"Created {len(created_keys)} keys successfully")
+            
             # Import translations
+            logger.info(f"Processing {len(locales)} locales")
+            translations_count = 0
             for locale_data in locales:
                 language_code = locale_data.get('code')
                 translations_data = locale_data.get('keys', {})
                 
                 if not language_code:
+                    logger.warning("Skipping locale: no language code")
                     continue
+                
+                logger.info(f"Processing locale {language_code} with {len(translations_data)} translations")
                 
                 # Process each translation
                 for key_str, translation_value in translations_data.items():
@@ -638,12 +659,17 @@ class ProjectService:
                         value=translation_value
                     )
                     db.add(translation)
+                    translations_count += 1
             
+            logger.info(f"Created {translations_count} translations, committing to database")
             db.commit()
             db.refresh(project)
+            logger.info(f"Import completed successfully for project: {project.public_id}")
             return project
             
         except Exception as e:
+            logger.error(f"Import failed with error: {type(e).__name__}: {str(e)}")
+            logger.exception("Full traceback:")
             db.rollback()
             raise e
 
