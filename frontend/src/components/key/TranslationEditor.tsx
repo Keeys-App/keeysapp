@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import { useMutation } from '@apollo/client';
-import { toast } from 'sonner';
-import { SET_TRANSLATION, GET_PROJECT_KEYS } from '@/graphql/keys';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { useState } from "react";
+import { useMutation } from "@apollo/client";
+import { toast } from "sonner";
+import { SET_TRANSLATION, GET_PROJECT_KEYS } from "@/graphql/keys";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 
 interface TranslationEditorProps {
   keyId: string;
@@ -12,7 +12,12 @@ interface TranslationEditorProps {
   projectId: string;
 }
 
-export function TranslationEditor({ keyId, language, currentValue, projectId }: TranslationEditorProps) {
+export function TranslationEditor({
+  keyId,
+  language,
+  currentValue,
+  projectId,
+}: TranslationEditorProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(currentValue);
 
@@ -20,7 +25,7 @@ export function TranslationEditor({ keyId, language, currentValue, projectId }: 
     refetchQueries: [{ query: GET_PROJECT_KEYS, variables: { projectId } }],
     onCompleted: () => {
       setIsEditing(false);
-      toast.success('Translation updated successfully');
+      toast.success("Translation updated successfully");
     },
     onError: (error) => {
       toast.error(`Error: ${error.message}`);
@@ -29,14 +34,14 @@ export function TranslationEditor({ keyId, language, currentValue, projectId }: 
 
   const handleSave = async () => {
     const trimmedValue = value.trim();
-    
+
     // Allow empty value to delete translation
     await setTranslation({
       variables: {
         input: {
           keyId,
-          language,
           value: trimmedValue,
+          language,
         },
       },
     });
@@ -47,54 +52,8 @@ export function TranslationEditor({ keyId, language, currentValue, projectId }: 
     setIsEditing(false);
   };
 
-  if (!isEditing) {
-    return (
-      <div className="flex gap-4 items-start group">
-        <span className="font-medium text-sm w-12 shrink-0">
-          {language}
-        </span>
-        <span className="text-sm flex-1">
-          {currentValue || <span className="text-muted-foreground italic">No translation</span>}
-        </span>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="opacity-0 group-hover:opacity-100 transition-opacity"
-          onClick={() => setIsEditing(true)}
-        >
-          {currentValue ? 'Edit' : 'Add'}
-        </Button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex gap-2 items-center">
-      <span className="font-medium text-sm w-12 shrink-0">
-        {language}
-      </span>
-      <Input
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        disabled={loading}
-        className="flex-1"
-      />
-      <Button
-        size="sm"
-        onClick={handleSave}
-        disabled={loading}
-      >
-        Save
-      </Button>
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={handleCancel}
-        disabled={loading}
-      >
-        Cancel
-      </Button>
-    </div>
-  );
+  return <div className="">
+    <Textarea value={value} onChange={(e) => setValue(e.target.value)} />
+    <Button onClick={handleSave}>Save</Button>
+  </div>;
 }
-

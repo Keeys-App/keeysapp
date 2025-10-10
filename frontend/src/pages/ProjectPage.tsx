@@ -6,7 +6,8 @@ import { PATHS } from "@/constants/paths";
 import { useAuth, useBreadcrumbs } from "@/contexts";
 import { useEffect, useState, type FC } from "react";
 import { Button } from "@/components/ui/button";
-import { KeyList, CreateKeyDialog, KeyControls } from "@/components/key";
+import { KeyList, CreateKeyDialog } from "@/components/key";
+import { COMMON_LANGUAGES } from "@/types/project";
 
 export const ProjectPage: FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -44,6 +45,8 @@ export const ProjectPage: FC = () => {
     setIsCreateDialogOpen(true);
   };
 
+  const projectLanguages = COMMON_LANGUAGES.filter((language) => project?.languages.includes(language.code));
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh]">
@@ -80,7 +83,7 @@ export const ProjectPage: FC = () => {
     <div className="h-full">
       <KeyList
         projectId={project.id}
-        projectLanguages={project.languages || []}
+        projectLanguages={projectLanguages}
         onCreateKey={handleCreateKey}
       />
 

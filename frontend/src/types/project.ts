@@ -56,10 +56,15 @@ export const DEFAULT_PROJECT_COLORS = [
   '#3b82f6', // Blue
 ];
 
+export type Language = {
+  code: string;
+  name: string;
+};
+
 /**
  * Common language codes for localization projects.
  */
-export const COMMON_LANGUAGES = [
+export const COMMON_LANGUAGES: Language[] = [
   { code: 'en', name: 'English' },
   { code: 'es', name: 'Spanish' },
   { code: 'fr', name: 'French' },
