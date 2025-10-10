@@ -25,10 +25,10 @@ export function TranslationEditor({
     refetchQueries: [{ query: GET_PROJECT_KEYS, variables: { projectId } }],
     onCompleted: () => {
       setIsEditing(false);
-      toast.success("Translation updated successfully");
+      toast("Translation updated successfully");
     },
     onError: (error) => {
-      toast.error(`Error: ${error.message}`);
+      toast(`Error: ${error.message}`);
     },
   });
 

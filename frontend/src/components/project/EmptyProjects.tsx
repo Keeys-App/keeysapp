@@ -35,7 +35,7 @@ export const EmptyProjects: FC<EmptyProjectsProps> = ({ onCreateProject }) => {
               variant="outline"
               onClick={() => {
                 // TODO: Implement import functionality
-                toast.info('Import functionality coming soon!');
+                toast('Import functionality coming soon!');
               }}
             >
               Import Project

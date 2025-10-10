@@ -57,7 +57,7 @@ export const CreateProjectDialog: FC<CreateProjectDialogProps> = ({ open, onOpen
       setStatus(ProjectStatus.ACTIVE);
       setLanguageInput('');
       onOpenChange(false);
-      toast.success('Project created successfully');
+      toast('Project created successfully');
     },
     onError: (error) => {
       console.error('Error creating project:', error);
@@ -69,7 +69,7 @@ export const CreateProjectDialog: FC<CreateProjectDialogProps> = ({ open, onOpen
         return;
       }
 
-      toast.error('Failed to create project. Please try again.');
+      toast('Failed to create project. Please try again.');
     },
   });
 
@@ -77,7 +77,7 @@ export const CreateProjectDialog: FC<CreateProjectDialogProps> = ({ open, onOpen
     e.preventDefault();
 
     if (!name.trim()) {
-      toast.error('Please enter a project name');
+      toast('Please enter a project name');
       return;
     }
 

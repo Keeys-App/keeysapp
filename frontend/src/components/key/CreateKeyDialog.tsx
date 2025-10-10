@@ -106,11 +106,11 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({ open, onOpenChange, 
         onOpenChange(false);
       }
       
-      toast.success('Key created successfully');
+      toast('Key created successfully');
     },
     onError: (error) => {
       console.error('Error creating key:', error);
-      toast.error(`Failed to create key: ${error.message}`);
+      toast(`Failed to create key: ${error.message}`);
     },
   });
 
@@ -123,12 +123,12 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({ open, onOpenChange, 
     }
 
     if (!key.trim()) {
-      toast.error('Please enter a key');
+      toast('Please enter a key');
       return;
     }
 
     if (isDuplicate) {
-      toast.error('This key already exists in the project');
+      toast('This key already exists in the project');
       return;
     }
 

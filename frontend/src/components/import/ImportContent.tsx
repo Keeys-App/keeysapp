@@ -179,11 +179,11 @@ export const ImportContent: FC<ImportContentProps> = ({ project }) => {
 
       // Show result toast
       if (totalErrors === 0) {
-        toast.success(
+        toast(
           `Successfully imported ${totalSuccess} translations (${totalCreated} new, ${totalUpdated} updated)`
         );
       } else {
-        toast.warning(
+        toast(
           `Imported ${totalSuccess} translations with ${totalErrors} errors`
         );
       }
@@ -191,7 +191,7 @@ export const ImportContent: FC<ImportContentProps> = ({ project }) => {
       // Reset state
       handleBackToUpload();
     } catch (err) {
-      toast.error("Failed to import translations");
+      toast("Failed to import translations");
       console.error("Import error:", err);
     } finally {
       setIsImporting(false);

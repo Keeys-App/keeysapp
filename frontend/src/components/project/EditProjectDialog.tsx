@@ -57,11 +57,11 @@ export const EditProjectDialog: FC<EditProjectDialogProps> = ({ open, onOpenChan
     refetchQueries: [{ query: GET_PROJECTS }],
     onCompleted: () => {
       onOpenChange(false);
-      toast.success('Project updated successfully');
+      toast('Project updated successfully');
     },
     onError: (error) => {
       console.error('Error updating project:', error);
-      toast.error('Failed to update project. Please try again.');
+      toast('Failed to update project. Please try again.');
     },
   });
 

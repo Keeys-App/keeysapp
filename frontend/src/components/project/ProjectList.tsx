@@ -32,11 +32,11 @@ export const ProjectList: FC = () => {
     onCompleted: () => {
       setDeleteDialogOpen(false);
       setProjectToDelete(null);
-      toast.success("Project deleted successfully");
+      toast("Project deleted successfully");
     },
     onError: (error) => {
       console.error("Error deleting project:", error);
-      toast.error("Failed to delete project. Please try again.");
+      toast("Failed to delete project. Please try again.");
     },
   });
 
