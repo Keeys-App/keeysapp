@@ -82,3 +82,27 @@ alwaysApply: true
 ## React
 
 - Never use namespace import like import * as React from 'react'. Use named import instead like that: import { useState, useEffect, FC } from 'react';
+
+## Apollo Client
+
+- НИКОГДА не используйте устаревшие опции `onCompleted` и `onError` в хуках `useQuery`, `useLazyQuery` и `useMutation`.
+- Вместо этого используйте `useEffect` для обработки `data` и `error`:
+
+```typescript
+// ❌ Устаревший подход
+const [mutation, { loading }] = useMutation(MUTATION, {
+  onCompleted: (data) => { /* ... */ },
+  onError: (error) => { /* ... */ }
+});
+
+// ✅ Правильный подход
+const [mutation, { loading, data, error }] = useMutation(MUTATION);
+
+useEffect(() => {
+  if (data) { /* обработка успеха */ }
+}, [data]);
+
+useEffect(() => {
+  if (error) { /* обработка ошибки */ }
+}, [error]);
+```
