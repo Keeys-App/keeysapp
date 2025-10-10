@@ -14,7 +14,7 @@ interface KeyProps {
  */
 export function Key({ keyData, projectId, projectLanguages }: KeyProps) {
   return (
-    <div className="border-b grid grid-cols-[minmax(300px,1fr)_minmax(300px,3fr)]">
+    <div className="border-b grid grid-cols-[minmax(200px,300px)_minmax(300px,3fr)]">
       <div className="border-r py-2 px-4 ">
         <div className="font-mono text-sm break-words">{keyData.key}</div>
         {keyData.description ? (
@@ -27,7 +27,7 @@ export function Key({ keyData, projectId, projectLanguages }: KeyProps) {
             return (
               <div
                 key={language.code}
-                className="grid grid-cols-[120px_1fr] even:bg-muted border-b last:border-b-0"
+                className="grid grid-cols-[120px_1fr] even:bg-muted/50 border-b last:border-b-0"
               >
                 <div className="flex flex-col border-r p-2">
                   <div className="text-sm">{language.name}</div>
