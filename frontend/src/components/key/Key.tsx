@@ -7,14 +7,33 @@ interface KeyProps {
   keyData: TranslationKey;
   projectId: string;
   projectLanguages: (Language | LanguageWithLocale)[];
+  isSelected?: boolean;
+  onSelect?: (key: TranslationKey) => void;
 }
 
 /**
  * Component for displaying a single translation key with its translations
  */
-export function Key({ keyData, projectId, projectLanguages }: KeyProps) {
+export function Key({ 
+  keyData, 
+  projectId, 
+  projectLanguages,
+  isSelected = false,
+  onSelect,
+}: KeyProps) {
+  const handleClick = () => {
+    if (onSelect) {
+      onSelect(keyData);
+    }
+  };
+
   return (
-    <div className="border-b grid grid-cols-[minmax(300px,300px)_minmax(300px,3fr)] relative">
+    <div 
+      className={`border-b grid grid-cols-[minmax(300px,300px)_minmax(300px,3fr)] relative cursor-pointer transition-colors ${
+        isSelected ? 'bg-muted/50' : 'hover:bg-muted/30'
+      }`}
+      onClick={handleClick}
+    >
       <div className="border-r relative">
         <div className="font-mono text-sm break-words sticky bg-background top-[2px] z-10 py-2 px-4">
           {keyData.key}

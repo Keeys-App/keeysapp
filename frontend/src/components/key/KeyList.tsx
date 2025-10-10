@@ -16,12 +16,16 @@ interface KeyListProps {
   projectId: string;
   projectLanguages: (Language | LanguageWithLocale)[];
   onCreateKey: () => void;
+  selectedKey?: TranslationKey | null;
+  onSelectKey?: (key: TranslationKey) => void;
 }
 
 export function KeyList({
   projectId,
   projectLanguages,
   onCreateKey,
+  selectedKey,
+  onSelectKey,
 }: KeyListProps) {
   const { data, loading, error } = useQuery(GET_PROJECT_KEYS, {
     variables: { projectId },
@@ -101,6 +105,8 @@ export function KeyList({
                     keyData={key}
                     projectId={projectId}
                     projectLanguages={projectLanguages}
+                    isSelected={selectedKey?.id === key.id}
+                    onSelect={onSelectKey}
                   />
                 </div>
               );

@@ -4,9 +4,18 @@ import { GET_PROJECT, type GetProjectData } from "@/graphql/projects";
 import { PATHS } from "@/constants/paths";
 import { useAuth, useBreadcrumbs } from "@/contexts";
 import { useEffect, useState, useMemo, type FC } from "react";
-import { KeyList, CreateKeyDialog } from "@/components/key";
+import { KeyList, CreateKeyDialog, KeyManagement } from "@/components/key";
 import { COMMON_LANGUAGES, LANGUAGE_CONFIGS } from "@/types/project";
 import { LoadingState, ErrorState, NotFoundState } from "@/components/blocks";
+import type { TranslationKey } from "@/types/translationKey";
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { PanelRightClose, PanelRightOpen } from "lucide-react";
 
 export const ProjectKeysPage: FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -14,6 +23,8 @@ export const ProjectKeysPage: FC = () => {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { setBreadcrumbs } = useBreadcrumbs();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [selectedKey, setSelectedKey] = useState<TranslationKey | null>(null);
+  const [isPanelOpen, setIsPanelOpen] = useState(true);
 
   const { data, loading, error } = useQuery<GetProjectData>(GET_PROJECT, {
     variables: { id },
@@ -91,12 +102,56 @@ export const ProjectKeysPage: FC = () => {
   }
 
   return (
-    <div className="flex flex-col" style={{ height: 'calc(100vh - 48px)' }}>
-      <KeyList
-        projectId={project.id}
-        projectLanguages={projectLanguages}
-        onCreateKey={handleCreateKey}
-      />
+    <div className="flex relative" style={{ height: 'calc(100vh - 48px)' }}>
+      <div className={`flex-1 border-r transition-all duration-300 ${isPanelOpen ? '' : ''}`}>
+        <KeyList
+          projectId={project.id}
+          projectLanguages={projectLanguages}
+          onCreateKey={handleCreateKey}
+          selectedKey={selectedKey}
+          onSelectKey={setSelectedKey}
+        />
+      </div>
+
+      {/* Toggle Button */}
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute cursor-pointer right-2 top-2 z-20 bg-background/80 backdrop-blur-sm hover:bg-muted"
+              onClick={() => {
+                setIsPanelOpen(!isPanelOpen);
+              }}
+            >
+              {isPanelOpen ? (
+                <PanelRightClose className="h-4 w-4" />
+              ) : (
+                <PanelRightOpen className="h-4 w-4" />
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {isPanelOpen ? 'Hide management panel' : 'Show management panel'}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
+      {/* Right Panel */}
+      <div
+        className={`bg-background border-l transition-all duration-300 overflow-hidden ${
+          isPanelOpen ? 'w-[400px]' : 'w-0'
+        }`}
+      >
+        {isPanelOpen ? (
+          <KeyManagement
+            selectedKey={selectedKey}
+            projectLanguages={projectLanguages}
+            projectId={project.id}
+          />
+        ) : null}
+      </div>
 
       <CreateKeyDialog
         open={isCreateDialogOpen}
