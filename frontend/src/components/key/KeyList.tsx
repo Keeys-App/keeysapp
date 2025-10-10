@@ -1,10 +1,11 @@
-import { useQuery } from '@apollo/client';
-import { GET_PROJECT_KEYS } from '@/graphql/keys';
-import type { TranslationKey } from '@/types/translationKey';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { EmptyKeys } from './EmptyKeys';
-import { Key } from './Key';
+import { useQuery } from "@apollo/client";
+import { GET_PROJECT_KEYS } from "@/graphql/keys";
+import type { TranslationKey } from "@/types/translationKey";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { EmptyKeys } from "./EmptyKeys";
+import { Key } from "./Key";
+import { KeyControls } from "./KeyControls";
 
 interface KeyListProps {
   projectId: string;
@@ -12,7 +13,11 @@ interface KeyListProps {
   onCreateKey: () => void;
 }
 
-export function KeyList({ projectId, projectLanguages, onCreateKey }: KeyListProps) {
+export function KeyList({
+  projectId,
+  projectLanguages,
+  onCreateKey,
+}: KeyListProps) {
   const { data, loading, error } = useQuery(GET_PROJECT_KEYS, {
     variables: { projectId },
     skip: !projectId,
@@ -51,16 +56,18 @@ export function KeyList({ projectId, projectLanguages, onCreateKey }: KeyListPro
   }
 
   return (
-    <div className="space-y-6">
-      {keys.map((key) => (
-        <Key
-          key={key.id}
-          keyData={key}
-          projectId={projectId}
-          projectLanguages={projectLanguages}
-        />
-      ))}
+    <div>
+      <KeyControls onCreateKey={onCreateKey} />
+      <div className="space-y-6">
+        {keys.map((key) => (
+          <Key
+            key={key.id}
+            keyData={key}
+            projectId={projectId}
+            projectLanguages={projectLanguages}
+          />
+        ))}
+      </div>
     </div>
   );
 }
-

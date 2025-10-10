@@ -78,8 +78,6 @@ export const ProjectPage: FC = () => {
 
   return (
     <div className="h-full">
-      <KeyControls onCreateKey={handleCreateKey} />
-
       <KeyList
         projectId={project.id}
         projectLanguages={project.languages || []}

@@ -1,6 +1,6 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TranslationEditor } from './TranslationEditor';
-import type { TranslationKey } from '@/types/translationKey';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TranslationEditor } from "./TranslationEditor";
+import type { TranslationKey } from "@/types/translationKey";
 
 interface KeyProps {
   keyData: TranslationKey;
@@ -13,14 +13,13 @@ interface KeyProps {
  */
 export function Key({ keyData, projectId, projectLanguages }: KeyProps) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg font-mono">{keyData.key}</CardTitle>
-        {keyData.description ? (
-          <p className="text-sm text-muted-foreground">{keyData.description}</p>
-        ) : null}
-      </CardHeader>
-      <CardContent>
+    <div>
+      <div className="font-mono py-2 px-4">{keyData.key}</div>
+      {keyData.description ? (
+        <p className="text-sm text-muted-foreground">{keyData.description}</p>
+      ) : null}
+
+      {/* <CardContent>
         <div className="border-t pt-4">
           {projectLanguages.length === 0 ? (
             <p className="text-sm text-muted-foreground">No languages configured in project</p>
@@ -41,8 +40,7 @@ export function Key({ keyData, projectId, projectLanguages }: KeyProps) {
             </div>
           )}
         </div>
-      </CardContent>
-    </Card>
+      </CardContent> */}
+    </div>
   );
 }
-
