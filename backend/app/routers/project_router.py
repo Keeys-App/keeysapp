@@ -93,7 +93,8 @@ async def export_project(
         raise
     except Exception as e:
         logger.error(f"Error exporting project: {type(e).__name__}: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to export project")
+        # NEVER expose technical details to users
+        raise HTTPException(status_code=500, detail="Failed to export project. Please try again later.")
 
 
 @router.post("/import")
@@ -151,5 +152,6 @@ async def import_project(
         raise
     except Exception as e:
         logger.error(f"Error importing project: {type(e).__name__}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to import project: {str(e)}")
+        # NEVER expose technical details to users
+        raise HTTPException(status_code=500, detail="Failed to import project. Please check the file format and try again.")
 

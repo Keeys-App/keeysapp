@@ -87,6 +87,33 @@ def migrate_add_public_id_if_needed():
         return False
 
 
+def migrate_add_default_language_if_needed():
+    """
+    Add default_language column to projects table if it doesn't exist.
+    Safe to run multiple times.
+    """
+    try:
+        # Check if column already exists
+        if check_column_exists('projects', 'default_language'):
+            logger.info("✅ Migration: default_language column already exists, skipping")
+            return True
+        
+        logger.info("🔄 Migration: Adding default_language column to projects table")
+        
+        with engine.connect() as connection:
+            connection.execute(text("""
+                ALTER TABLE projects
+                ADD COLUMN IF NOT EXISTS default_language VARCHAR(10)
+            """))
+            connection.commit()
+            logger.info("✅ Migration: default_language column added successfully")
+            return True
+            
+    except Exception as e:
+        logger.error(f"❌ Migration failed: {type(e).__name__}: {str(e)}")
+        return False
+
+
 def run_all_migrations():
     """
     Run all pending migrations.
@@ -96,6 +123,7 @@ def run_all_migrations():
     
     migrations = [
         ("add_public_id", migrate_add_public_id_if_needed),
+        ("add_default_language", migrate_add_default_language_if_needed),
         # Add more migrations here as needed
     ]
     

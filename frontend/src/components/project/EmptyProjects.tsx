@@ -13,9 +13,10 @@ import {
 
 interface EmptyProjectsProps {
   onCreateProject: () => void;
+  onImportProject: () => void;
 }
 
-export const EmptyProjects: FC<EmptyProjectsProps> = ({ onCreateProject }) => {
+export const EmptyProjects: FC<EmptyProjectsProps> = ({ onCreateProject, onImportProject }) => {
   return (
     <div className="flex items-center justify-center flex-1">
       <Empty>
@@ -35,7 +36,7 @@ export const EmptyProjects: FC<EmptyProjectsProps> = ({ onCreateProject }) => {
               variant="outline"
               onClick={() => {
                 // TODO: Implement import functionality
-                toast('Import functionality coming soon!');
+                onImportProject();
               }}
             >
               Import Project

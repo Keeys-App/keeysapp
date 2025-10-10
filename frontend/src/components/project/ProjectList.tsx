@@ -25,9 +25,12 @@ export const ProjectList: FC = () => {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
 
-  const { data, loading, error, refetch } = useQuery<GetProjectsData>(GET_PROJECTS, {
-    skip: !isAuthenticated || authLoading,
-  });
+  const { data, loading, error, refetch } = useQuery<GetProjectsData>(
+    GET_PROJECTS,
+    {
+      skip: !isAuthenticated || authLoading,
+    }
+  );
 
   const [deleteProject, { loading: deleting }] = useMutation(DELETE_PROJECT, {
     refetchQueries: [{ query: GET_PROJECTS }],
@@ -37,13 +40,16 @@ export const ProjectList: FC = () => {
       toast("Project deleted successfully");
     },
     onError: (error) => {
-      const message = getUserFriendlyErrorMessage(error, 'Failed to delete project. Please try again.');
+      const message = getUserFriendlyErrorMessage(
+        error,
+        "Failed to delete project. Please try again."
+      );
       toast.error(message);
     },
   });
 
   const handleEdit = (project: Project) => {
-    navigate(PATHS.PROJECT_EDIT.replace(':id', project.id));
+    navigate(PATHS.PROJECT_EDIT.replace(":id", project.id));
   };
 
   const handleDelete = (project: Project) => {
@@ -85,23 +91,14 @@ export const ProjectList: FC = () => {
   return (
     <>
       {projects.length === 0 ? (
-        <div className="flex flex-col gap-4">
-          <div className="flex justify-end p-4">
-            <Button
-              variant="outline"
-              onClick={() => {
-                return setImportDialogOpen(true);
-              }}
-            >
-              Import Project
-            </Button>
-          </div>
-          <EmptyProjects
-            onCreateProject={() => {
-              return navigate(PATHS.PROJECT_CREATE);
-            }}
-          />
-        </div>
+        <EmptyProjects
+          onImportProject={() => {
+            return setImportDialogOpen(true);
+          }}
+          onCreateProject={() => {
+            return navigate(PATHS.PROJECT_CREATE);
+          }}
+        />
       ) : (
         <div className="flex flex-col gap-4 p-4">
           <div className="flex justify-end">

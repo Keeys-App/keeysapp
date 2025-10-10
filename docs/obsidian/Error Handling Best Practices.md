@@ -1,5 +1,49 @@
 # Error Handling Best Practices
 
+## 🚨 CRITICAL RULE: NEVER EXPOSE TECHNICAL ERRORS TO USERS
+
+**THIS IS THE MOST IMPORTANT RULE IN THE PROJECT!**
+
+### ❌ NEVER DO THIS:
+```python
+except Exception as e:
+    raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+```
+
+### ✅ ALWAYS DO THIS:
+```python
+except Exception as e:
+    logger.error(f"Technical error details: {type(e).__name__}: {str(e)}")
+    # Generic user-friendly message
+    raise HTTPException(status_code=500, detail="Operation failed. Please try again.")
+```
+
+## Why This Matters
+
+1. **Security**: Technical errors expose database structure, SQL queries, file paths
+2. **User Experience**: Users don't understand technical jargon
+3. **Professionalism**: Technical errors look unprofessional
+
+## Examples of What NEVER to Show Users
+
+- ❌ SQL queries and database errors
+- ❌ Python stack traces
+- ❌ File system paths
+- ❌ Internal variable names
+- ❌ Library/framework error messages
+- ❌ Database column names
+
+## User-Friendly Error Messages
+
+Always use simple, actionable messages:
+
+- ✅ "Failed to save changes. Please try again."
+- ✅ "Unable to load data. Please refresh the page."
+- ✅ "File format not supported. Please use JSON files."
+- ✅ "Something went wrong. Please contact support if the problem persists."
+
+# Error Handling Best Practices
+
 ## Критически важно ⚠️
 
 **НИКОГДА не показывайте технические ошибки пользователю напрямую!**
