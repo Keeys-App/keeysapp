@@ -141,7 +141,7 @@ export const TagsValue = ({
   };
 
   return (
-    <Badge className={cn("flex items-center gap-2", className)} {...props}>
+    <Badge variant='secondary' className={cn("flex items-center gap-2", className)} {...props}>
       {children}
       {onRemove ? (
         <div
