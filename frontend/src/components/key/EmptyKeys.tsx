@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 import { ArrowUpRightIcon, SquareAsterisk } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,12 +10,19 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty';
+import { PATHS } from '@/constants/paths';
 
 interface EmptyKeysProps {
+  projectId: string;
   onCreateKey: () => void;
 }
 
-export const EmptyKeys: FC<EmptyKeysProps> = ({ onCreateKey }) => {
+export const EmptyKeys: FC<EmptyKeysProps> = ({ projectId, onCreateKey }) => {
+  const navigate = useNavigate();
+
+  const handleImportClick = () => {
+    navigate(PATHS.IMPORT.replace(':id', projectId));
+  };
   return (
     <div className="flex items-center justify-center flex-1">
       <Empty>
@@ -31,13 +38,7 @@ export const EmptyKeys: FC<EmptyKeysProps> = ({ onCreateKey }) => {
         <EmptyContent>
           <div className="flex gap-2">
             <Button onClick={onCreateKey}>Create Key</Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                // TODO: Implement import functionality
-                toast.info('Import functionality coming soon!');
-              }}
-            >
+            <Button variant="outline" onClick={handleImportClick}>
               Import Keys
             </Button>
           </div>

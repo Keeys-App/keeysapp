@@ -9,5 +9,6 @@ export const PATHS = {
   DASHBOARD: '/',
   PROJECT: '/project/:id',
   EXPORT: '/project/:id/export',
+  IMPORT: '/project/:id/import',
 } as const;
 

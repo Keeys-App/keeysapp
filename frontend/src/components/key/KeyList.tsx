@@ -51,7 +51,7 @@ export function KeyList({
   if (keys.length === 0) {
     return (
       <div className="flex flex-col h-full min-h-[50vh]">
-        <EmptyKeys onCreateKey={onCreateKey} />
+        <EmptyKeys projectId={projectId} onCreateKey={onCreateKey} />
       </div>
     );
   }

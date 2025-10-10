@@ -24,12 +24,17 @@ export const KeyControls: FC<KeyControlsProps> = ({ projectId, onCreateKey }) =>
     navigate(PATHS.EXPORT.replace(":id", projectId));
   };
 
+  const handleImportClick = () => {
+    navigate(PATHS.IMPORT.replace(":id", projectId));
+  };
+
   return (
     <div className="py-2 px-4 flex gap-2 bg-muted border-b">
       <Menubar>
         <MenubarMenu>
           <MenubarTrigger>Keys</MenubarTrigger>
           <MenubarContent>
+            <MenubarItem onClick={handleImportClick}>Import</MenubarItem>
             <MenubarItem onClick={handleExportClick}>Export</MenubarItem>
           </MenubarContent>
         </MenubarMenu>

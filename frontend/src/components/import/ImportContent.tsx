@@ -1,0 +1,295 @@
+import { useState, useMemo, type FC } from "react";
+import { useQuery, useMutation } from "@apollo/client";
+import { Upload, ArrowRight, ArrowLeft } from "lucide-react";
+import { toast } from "sonner";
+import type { Project } from "@/types/project";
+import type { TranslationKey } from "@/types/translationKey";
+import { GET_PROJECT_KEYS } from "@/graphql/keys";
+import { SET_TRANSLATION, CREATE_KEY } from "@/graphql/keys";
+import { COMMON_LANGUAGES } from "@/types/project";
+import { Button } from "@/components/ui/button";
+import { LoadingState, ErrorState } from "@/components/blocks";
+import { ImportUpload, type ImportFile } from "./ImportUpload";
+import { ImportLanguageMatcher, type FileLanguageMapping } from "./ImportLanguageMatcher";
+import { ImportSettings, type ImportOptions } from "./ImportSettings";
+import { ImportPreview } from "./ImportPreview";
+import { parseImport, type ParsedTranslation } from "./utils/importFormats";
+import { getBestLanguageMatch } from "./utils/languageDetector";
+
+interface ImportContentProps {
+  project: Project;
+}
+
+type ImportStep = "upload" | "language" | "preview";
+
+export const ImportContent: FC<ImportContentProps> = ({ project }) => {
+  const projectLanguages = COMMON_LANGUAGES.filter((language) =>
+    project.languages.includes(language.code)
+  );
+
+  const [currentStep, setCurrentStep] = useState<ImportStep>("upload");
+  const [importFiles, setImportFiles] = useState<ImportFile[]>([]);
+  const [fileMappings, setFileMappings] = useState<FileLanguageMapping[]>([]);
+  const [importOptions, setImportOptions] = useState<ImportOptions>({
+    format: "i18n",
+    language: projectLanguages[0]?.code || "en",
+    strategy: "merge",
+  });
+  const [isImporting, setIsImporting] = useState(false);
+
+  const { data, loading, error } = useQuery<{ projectKeys: TranslationKey[] }>(
+    GET_PROJECT_KEYS,
+    {
+      variables: { projectId: project.id },
+    }
+  );
+
+  const [setTranslation] = useMutation(SET_TRANSLATION);
+  const [createKey] = useMutation(CREATE_KEY);
+
+  const existingKeys = useMemo(() => {
+    return data?.projectKeys.map((key) => key.key) || [];
+  }, [data?.projectKeys]);
+
+  // Parse all files and combine translations
+  const parsedData = useMemo(() => {
+    const allTranslations: ParsedTranslation[] = [];
+    let hasError = false;
+    let errorMessage = "";
+
+    for (const mapping of fileMappings) {
+      const result = parseImport(mapping.content, importOptions.format);
+      if (!result.success) {
+        hasError = true;
+        errorMessage = `Error in ${mapping.filename}: ${result.error}`;
+        break;
+      }
+      allTranslations.push(...result.translations);
+    }
+
+    return {
+      translations: allTranslations,
+      error: hasError ? errorMessage : undefined,
+    };
+  }, [fileMappings, importOptions.format]);
+
+  const handleFilesLoaded = (files: ImportFile[]) => {
+    setImportFiles(files);
+    
+    // Create mappings with auto-detected languages
+    const mappings: FileLanguageMapping[] = files.map((file) => {
+      const detected = getBestLanguageMatch(file.filename);
+      return {
+        filename: file.filename,
+        content: file.content,
+        detectedLanguage: detected,
+        selectedLanguage: detected || projectLanguages[0]?.code || "en",
+      };
+    });
+    
+    setFileMappings(mappings);
+
+    // If files loaded, move to language matching step
+    if (files.length > 0) {
+      setCurrentStep("language");
+    }
+  };
+
+  const handleLanguageChange = (filename: string, language: string) => {
+    setFileMappings((prev) =>
+      prev.map((mapping) =>
+        mapping.filename === filename
+          ? { ...mapping, selectedLanguage: language }
+          : mapping
+      )
+    );
+  };
+
+  const handleNextToPreview = () => {
+    setCurrentStep("preview");
+  };
+
+  const handleBackToLanguage = () => {
+    setCurrentStep("language");
+  };
+
+  const handleBackToUpload = () => {
+    setCurrentStep("upload");
+    setImportFiles([]);
+    setFileMappings([]);
+  };
+
+  const handleImport = async () => {
+    if (parsedData.translations.length === 0) {
+      return;
+    }
+
+    setIsImporting(true);
+
+    try {
+      // Group translations by language
+      const translationsByLanguage = new Map<string, ParsedTranslation[]>();
+      
+      for (const mapping of fileMappings) {
+        const result = parseImport(mapping.content, importOptions.format);
+        if (result.success) {
+          const existing = translationsByLanguage.get(mapping.selectedLanguage) || [];
+          translationsByLanguage.set(mapping.selectedLanguage, [...existing, ...result.translations]);
+        }
+      }
+
+      let successCount = 0;
+      let errorCount = 0;
+
+      // Import for each language
+      for (const [language, translations] of translationsByLanguage) {
+        for (const translation of translations) {
+          try {
+            const existingKey = data?.projectKeys.find(
+              (k) => k.key === translation.key
+            );
+
+            if (existingKey) {
+              await setTranslation({
+                variables: {
+                  input: {
+                    keyId: existingKey.id,
+                    language: language,
+                    value: translation.value,
+                  },
+                },
+              });
+            } else {
+              await createKey({
+                variables: {
+                  input: {
+                    projectId: project.id,
+                    key: translation.key,
+                    translations: {
+                      [language]: translation.value,
+                    },
+                  },
+                },
+              });
+            }
+            successCount++;
+          } catch (err) {
+            console.error(`Failed to import key "${translation.key}":`, err);
+            errorCount++;
+          }
+        }
+      }
+
+      if (errorCount === 0) {
+        toast.success(`Successfully imported ${successCount} translations`);
+      } else {
+        toast.warning(
+          `Imported ${successCount} translations with ${errorCount} errors`
+        );
+      }
+
+      // Reset state
+      handleBackToUpload();
+    } catch (err) {
+      toast.error("Failed to import translations");
+      console.error("Import error:", err);
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  if (loading) {
+    return <LoadingState message="Loading project data..." />;
+  }
+
+  if (error) {
+    return <ErrorState message={`Error loading project: ${error.message}`} />;
+  }
+
+  const canProceedToPreview = fileMappings.length > 0 && 
+    fileMappings.every((m) => m.selectedLanguage);
+  const canImport = parsedData.translations.length > 0 && !parsedData.error;
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Import Translations</h2>
+          <p className="text-sm text-muted-foreground">
+            {currentStep === "upload" && "Upload your translation files"}
+            {currentStep === "language" && "Match files to languages"}
+            {currentStep === "preview" && "Review and import"}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          {currentStep === "language" ? (
+            <>
+              <Button variant="outline" onClick={handleBackToUpload}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+              <Button
+                onClick={handleNextToPreview}
+                disabled={!canProceedToPreview}
+              >
+                Next: Preview
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </>
+          ) : null}
+          {currentStep === "preview" ? (
+            <>
+              <Button variant="outline" onClick={handleBackToLanguage}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+              <Button
+                onClick={handleImport}
+                disabled={!canImport || isImporting}
+                size="lg"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                {isImporting ? "Importing..." : "Import Translations"}
+              </Button>
+            </>
+          ) : null}
+        </div>
+      </div>
+
+      {/* Step 1: Upload Files */}
+      {currentStep === "upload" ? (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-1">
+            <ImportSettings
+              languages={projectLanguages}
+              options={importOptions}
+              onOptionsChange={setImportOptions}
+            />
+          </div>
+          <div className="lg:col-span-2">
+            <ImportUpload onFilesLoaded={handleFilesLoaded} />
+          </div>
+        </div>
+      ) : null}
+
+      {/* Step 2: Language Matching */}
+      {currentStep === "language" ? (
+        <ImportLanguageMatcher
+          files={fileMappings}
+          languages={projectLanguages}
+          onLanguageChange={handleLanguageChange}
+        />
+      ) : null}
+
+      {/* Step 3: Preview and Import */}
+      {currentStep === "preview" ? (
+        <ImportPreview
+          translations={parsedData.translations}
+          error={parsedData.error}
+          existingKeys={existingKeys}
+        />
+      ) : null}
+    </div>
+  );
+};
