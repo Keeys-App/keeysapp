@@ -1,5 +1,4 @@
 import type { FC } from "react";
-import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Menubar,
@@ -17,7 +16,7 @@ interface KeyControlsProps {
 
 export const KeyControls: FC<KeyControlsProps> = ({ onCreateKey }) => {
   return (
-    <div className="py-4 px-4 flex gap-2">
+    <div className="py-2 px-4 flex gap-2 bg-muted border-b">
       <Menubar>
         <MenubarMenu>
           <MenubarTrigger>Keys</MenubarTrigger>
