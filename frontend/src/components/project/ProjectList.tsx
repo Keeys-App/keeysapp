@@ -52,7 +52,7 @@ export const ProjectList: FC = () => {
         deleteError,
         "Failed to delete project. Please try again."
       );
-      toast.error(message);
+      toast(message);
     }
   }, [deleteError]);
 

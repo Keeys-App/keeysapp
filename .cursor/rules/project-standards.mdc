@@ -106,3 +106,21 @@ useEffect(() => {
   if (error) { /* обработка ошибки */ }
 }, [error]);
 ```
+
+## Toast Notifications
+
+- Always use plain `toast()` for all notifications. Never use styled variants like `toast.error()`, `toast.success()`, `toast.warning()`, or `toast.info()`.
+- Use `toast()` with optional description for structured content if needed.
+
+```typescript
+// ❌ BAD
+toast.error("Failed to save");
+toast.success("Saved successfully");
+
+// ✅ GOOD
+toast("Failed to save");
+toast("Saved successfully");
+toast("Translation updated", {
+  description: <div>Details here</div>
+});
+```

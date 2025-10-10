@@ -49,7 +49,7 @@ export function TranslationEditor({
         translationError,
         "Failed to update translation. Please try again."
       );
-      toast.error(message);
+      toast(message);
     }
   }, [translationError]);
 

@@ -1,8 +1,8 @@
-import { useState, useEffect, type FC } from 'react';
-import { useMutation } from '@apollo/client';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
-import { ArrowLeft } from 'lucide-react';
+import { useState, useEffect, type FC } from "react";
+import { useMutation } from "@apollo/client";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { ArrowLeft } from "lucide-react";
 import {
   CREATE_PROJECT,
   UPDATE_PROJECT,
@@ -11,31 +11,52 @@ import {
   type UpdateProjectInput,
   type Project,
   type LanguageConfigInput,
-} from '@/graphql/projects';
-import { DEFAULT_PROJECT_COLORS, ProjectStatus, LANGUAGE_CONFIGS } from '@/types/project';
-import { useAuth } from '@/contexts/AuthContext';
-import { ColorPicker } from '@/components/blocks';
-import { getUserFriendlyErrorMessage } from '@/lib/utils';
-import { Input } from '@/components/ui/input';
-import { Field, FieldLabel } from '@/components/ui/field';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { LanguageConfigEditor } from './LanguageConfigEditor';
+} from "@/graphql/projects";
+import {
+  DEFAULT_PROJECT_COLORS,
+  ProjectStatus,
+  LANGUAGE_CONFIGS,
+} from "@/types/project";
+import { useAuth } from "@/contexts/AuthContext";
+import { ColorPicker } from "@/components/blocks";
+import { getUserFriendlyErrorMessage } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { Field, FieldLabel } from "@/components/ui/field";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { LanguageConfigEditor } from "./LanguageConfigEditor";
 
 interface ProjectFormProps {
-  mode: 'create' | 'edit';
+  mode: "create" | "edit";
   project?: Project | null;
   onSuccess?: () => void;
   onCancel?: () => void;
 }
 
-export const ProjectForm: FC<ProjectFormProps> = ({ mode, project, onSuccess, onCancel }) => {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
+export const ProjectForm: FC<ProjectFormProps> = ({
+  mode,
+  project,
+  onSuccess,
+  onCancel,
+}) => {
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [languages, setLanguages] = useState<LanguageConfigInput[]>([]);
-  const [defaultLanguage, setDefaultLanguage] = useState<string>('');
+  const [defaultLanguage, setDefaultLanguage] = useState<string>("");
   const [color, setColor] = useState(DEFAULT_PROJECT_COLORS[0]);
   const [status, setStatus] = useState<string>(ProjectStatus.ACTIVE);
 
@@ -54,35 +75,42 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, project, onSuccess, on
 
   // Initialize form with project data in edit mode
   useEffect(() => {
-    if (mode === 'edit' && project) {
+    if (mode === "edit" && project) {
       setName(project.name);
-      setDescription(project.description || '');
-      
+      setDescription(project.description || "");
+
       // Normalize languages data - ensure it's in the correct format
-      const normalizedLanguages = (project.languages || []).map((lang): LanguageConfigInput => {
-        // If it's already an object with code and locale, use it
-        if (typeof lang === 'object' && lang && 'code' in lang && 'locale' in lang) {
+      const normalizedLanguages = (project.languages || []).map(
+        (lang): LanguageConfigInput => {
+          // If it's already an object with code and locale, use it
+          if (
+            typeof lang === "object" &&
+            lang &&
+            "code" in lang &&
+            "locale" in lang
+          ) {
+            return {
+              code: lang.code,
+              locale: lang.locale,
+            };
+          }
+
+          // Fallback: treat as code and apply default locale from LANGUAGE_CONFIGS
+          const code = String(lang);
+          const langConfig = LANGUAGE_CONFIGS.find((l) => {
+            return l.code === code;
+          });
+
           return {
-            code: lang.code,
-            locale: lang.locale,
+            code: code,
+            locale: langConfig?.locale || `${code}-${code.toUpperCase()}`,
           };
         }
-        
-        // Fallback: treat as code and apply default locale from LANGUAGE_CONFIGS
-        const code = String(lang);
-        const langConfig = LANGUAGE_CONFIGS.find((l) => {
-          return l.code === code;
-        });
-        
-        return {
-          code: code,
-          locale: langConfig?.locale || `${code}-${code.toUpperCase()}`,
-        };
-      });
-      
+      );
+
       setLanguages(normalizedLanguages);
       // Use actual value from project, including null/undefined - convert to empty string only if truly empty
-      const defaultLang = project.defaultLanguage ?? '';
+      const defaultLang = project.defaultLanguage ?? "";
       setDefaultLanguage(defaultLang);
       setColor(project.color);
       setStatus(project.status);
@@ -90,7 +118,7 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, project, onSuccess, on
       // Store original values for comparison
       setOriginalValues({
         name: project.name,
-        description: project.description || '',
+        description: project.description || "",
         languages: normalizedLanguages,
         defaultLanguage: defaultLang,
         color: project.color,
@@ -99,43 +127,55 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, project, onSuccess, on
     }
   }, [mode, project]);
 
-  const [createProject, { loading: createLoading, data: createData, error: createError }] = useMutation(CREATE_PROJECT, {
+  const [
+    createProject,
+    { loading: createLoading, data: createData, error: createError },
+  ] = useMutation(CREATE_PROJECT, {
     refetchQueries: [{ query: GET_PROJECTS }],
   });
 
-  const [updateProject, { loading: updateLoading, data: updateData, error: updateError }] = useMutation(UPDATE_PROJECT, {
+  const [
+    updateProject,
+    { loading: updateLoading, data: updateData, error: updateError },
+  ] = useMutation(UPDATE_PROJECT, {
     refetchQueries: [{ query: GET_PROJECTS }],
   });
 
   // Handle create project success
   useEffect(() => {
     if (createData) {
-      toast.success('Project created successfully');
+      toast("Project created successfully");
       if (onSuccess) {
         onSuccess();
+      } else {
+        // Redirect to the created project page
+        navigate(`/project/${createData.createProject.id}`);
       }
     }
-  }, [createData, onSuccess]);
+  }, [createData, onSuccess, navigate]);
 
   // Handle create project error
   useEffect(() => {
     if (createError) {
       // Check if it's an authentication error
-      if (createError.message.includes('Authentication required')) {
+      if (createError.message.includes("Authentication required")) {
         logout();
-        navigate('/auth');
+        navigate("/auth");
         return;
       }
 
-      const message = getUserFriendlyErrorMessage(createError, 'Failed to create project. Please try again.');
-      toast.error(message);
+      const message = getUserFriendlyErrorMessage(
+        createError,
+        "Failed to create project. Please try again."
+      );
+      toast(message);
     }
   }, [createError, logout, navigate]);
 
   // Handle update project success
   useEffect(() => {
     if (updateData) {
-      toast.success('Project updated successfully');
+      toast("Project updated successfully");
       if (onSuccess) {
         onSuccess();
       }
@@ -145,8 +185,11 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, project, onSuccess, on
   // Handle update project error
   useEffect(() => {
     if (updateError) {
-      const message = getUserFriendlyErrorMessage(updateError, 'Failed to update project. Please try again.');
-      toast.error(message);
+      const message = getUserFriendlyErrorMessage(
+        updateError,
+        "Failed to update project. Please try again."
+      );
+      toast(message);
     }
   }, [updateError]);
 
@@ -156,12 +199,12 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, project, onSuccess, on
     e.preventDefault();
 
     if (!name.trim()) {
-      toast('Please enter a project name');
+      toast("Please enter a project name");
       return;
     }
 
     if (!defaultLanguage) {
-      toast('Please select a default language');
+      toast("Please select a default language");
       return;
     }
 
@@ -173,14 +216,14 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, project, onSuccess, on
       };
     });
 
-    if (mode === 'create') {
+    if (mode === "create") {
       const input: CreateProjectInput = {
         name: name.trim(),
         description: description.trim() || null,
         languages: cleanLanguages,
         defaultLanguage,
         color,
-        status: status as 'active' | 'archived' | 'draft',
+        status: status as "active" | "archived" | "draft",
       };
 
       await createProject({ variables: { input } });
@@ -196,7 +239,7 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, project, onSuccess, on
         languages: cleanLanguages,
         defaultLanguage,
         color,
-        status: status as 'active' | 'archived' | 'draft',
+        status: status as "active" | "archived" | "draft",
       };
 
       await updateProject({ variables: { input } });
@@ -205,7 +248,7 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, project, onSuccess, on
 
   // Check if form has changes (for edit mode)
   const hasChanges = (): boolean => {
-    if (mode === 'create' || !originalValues) {
+    if (mode === "create" || !originalValues) {
       return true;
     }
 
@@ -230,13 +273,17 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, project, onSuccess, on
     const sortedLanguages = [...languages].sort((a, b) => {
       return a.code.localeCompare(b.code);
     });
-    const sortedOriginalLanguages = [...originalValues.languages].sort((a, b) => {
-      return a.code.localeCompare(b.code);
-    });
+    const sortedOriginalLanguages = [...originalValues.languages].sort(
+      (a, b) => {
+        return a.code.localeCompare(b.code);
+      }
+    );
 
     const languagesChanged = sortedLanguages.some((lang, index) => {
       const originalLang = sortedOriginalLanguages[index];
-      return lang.code !== originalLang?.code || lang.locale !== originalLang?.locale;
+      return (
+        lang.code !== originalLang?.code || lang.locale !== originalLang?.locale
+      );
     });
 
     return languagesChanged;
@@ -244,17 +291,20 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, project, onSuccess, on
 
   const handleLanguagesChange = (newLanguages: LanguageConfigInput[]) => {
     setLanguages(newLanguages);
-    
+
     // Auto-select as default if it's the first language
     if (newLanguages.length === 1 && !defaultLanguage) {
       setDefaultLanguage(newLanguages[0].code);
     }
-    
+
     // Clear default language if it was removed
-    if (defaultLanguage && !newLanguages.some((l) => {
-      return l.code === defaultLanguage;
-    })) {
-      setDefaultLanguage(newLanguages.length > 0 ? newLanguages[0].code : '');
+    if (
+      defaultLanguage &&
+      !newLanguages.some((l) => {
+        return l.code === defaultLanguage;
+      })
+    ) {
+      setDefaultLanguage(newLanguages.length > 0 ? newLanguages[0].code : "");
     }
   };
 
@@ -266,7 +316,7 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, project, onSuccess, on
     if (onCancel) {
       onCancel();
     } else {
-      navigate('/');
+      navigate("/");
     }
   };
 
@@ -274,15 +324,21 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, project, onSuccess, on
     <div className="container max-w-2xl py-8">
       <Card>
         <CardHeader>
-          <CardTitle>{mode === 'create' ? 'Create New Project' : 'Edit Project'}</CardTitle>
+          <CardTitle>
+            {mode === "create" ? "Create New Project" : "Edit Project"}
+          </CardTitle>
           <CardDescription>
-            {mode === 'create'
-              ? 'Create a new localization project to manage your translations.'
-              : 'Update your project settings.'}
+            {mode === "create"
+              ? "Create a new localization project to manage your translations."
+              : "Update your project settings."}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form key={mode === 'edit' && project ? project.id : 'create'} onSubmit={handleSubmit} className="space-y-4">
+          <form
+            key={mode === "edit" && project ? project.id : "create"}
+            onSubmit={handleSubmit}
+            className="space-y-4"
+          >
             {/* Name */}
             <Field>
               <FieldLabel>
@@ -333,36 +389,50 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, project, onSuccess, on
             {/* Color */}
             <Field>
               <FieldLabel>Color</FieldLabel>
-              <ColorPicker value={color} onChange={setColor} disabled={loading} />
+              <ColorPicker
+                value={color}
+                onChange={setColor}
+                disabled={loading}
+              />
             </Field>
 
             {/* Status */}
             <Field>
               <FieldLabel>Status</FieldLabel>
-              <Select value={status} onValueChange={setStatus} disabled={loading}>
+              <Select
+                value={status}
+                onValueChange={setStatus}
+                disabled={loading}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={ProjectStatus.ACTIVE}>Active</SelectItem>
                   <SelectItem value={ProjectStatus.DRAFT}>Draft</SelectItem>
-                  <SelectItem value={ProjectStatus.ARCHIVED}>Archived</SelectItem>
+                  <SelectItem value={ProjectStatus.ARCHIVED}>
+                    Archived
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </Field>
 
             <div className="flex gap-2 justify-end pt-4">
-              <Button type="button" variant="outline" onClick={handleCancel} disabled={loading}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCancel}
+                disabled={loading}
+              >
                 Cancel
               </Button>
-              <Button type="submit" disabled={loading || !name.trim() || !defaultLanguage || !hasChanges()}>
-                {loading
-                  ? mode === 'create'
-                    ? 'Creating...'
-                    : 'Saving...'
-                  : mode === 'create'
-                    ? 'Create Project'
-                    : 'Save Changes'}
+              <Button
+                type="submit"
+                disabled={
+                  loading || !name.trim() || !defaultLanguage || !hasChanges()
+                }
+              >
+                {mode === "create" ? "Create Project" : "Save Changes"}
               </Button>
             </div>
           </form>
@@ -371,4 +441,3 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, project, onSuccess, on
     </div>
   );
 };
-

@@ -75,7 +75,7 @@ export const ImportProjectDialog: FC<ImportProjectDialogProps> = ({
 
       const result = await response.json();
 
-      toast.success(`Project "${result.name}" imported successfully`);
+      toast(`Project "${result.name}" imported successfully`);
 
       // Reset form
       setFile(null);
@@ -85,7 +85,7 @@ export const ImportProjectDialog: FC<ImportProjectDialogProps> = ({
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to import project";
       setError(errorMessage);
-      toast.error(errorMessage);
+      toast(errorMessage);
     } finally {
       setIsLoading(false);
     }

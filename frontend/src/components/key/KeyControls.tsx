@@ -36,7 +36,7 @@ export const KeyControls: FC<KeyControlsProps> = ({
     try {
       const token = localStorage.getItem("authToken");
       if (!token) {
-        toast.error("Authentication required");
+        toast("Authentication required");
         return;
       }
 
@@ -72,10 +72,10 @@ export const KeyControls: FC<KeyControlsProps> = ({
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-      toast.success("Project exported successfully");
+      toast("Project exported successfully");
     } catch (error) {
       console.error("Export error:", error);
-      toast.error("Failed to export project");
+      toast("Failed to export project");
     }
   };
 

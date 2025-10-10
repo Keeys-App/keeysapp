@@ -152,7 +152,7 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
   useEffect(() => {
     if (createKeyError) {
       const message = getUserFriendlyErrorMessage(createKeyError, 'Failed to create key. Please try again.');
-      toast.error(message);
+      toast(message);
     }
   }, [createKeyError]);
 
