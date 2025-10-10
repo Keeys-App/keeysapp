@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useSaving, useSavingStore } from "@/stores";
 
 interface ImportProjectDialogProps {
   open: boolean;
@@ -25,8 +26,10 @@ export const ImportProjectDialog: FC<ImportProjectDialogProps> = ({
   onImportSuccess,
 }) => {
   const [file, setFile] = useState<File | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  const withSaving = useSaving();
+  const { isSaving } = useSavingStore();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -47,52 +50,54 @@ export const ImportProjectDialog: FC<ImportProjectDialogProps> = ({
       return;
     }
 
-    setIsLoading(true);
     setError(null);
 
-    try {
-      const token = localStorage.getItem("authToken");
-      if (!token) {
-        throw new Error("Authentication required");
-      }
+    await withSaving(
+      async () => {
+        try {
+          const token = localStorage.getItem("authToken");
+          if (!token) {
+            throw new Error("Authentication required");
+          }
 
-      const formData = new FormData();
-      formData.append("file", file);
+          const formData = new FormData();
+          formData.append("file", file);
 
-      const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
-      const response = await fetch(`${API_BASE_URL}/api/projects/import`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
+          const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+          const response = await fetch(`${API_BASE_URL}/api/projects/import`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            body: formData,
+          });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Failed to import project");
-      }
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || "Failed to import project");
+          }
 
-      const result = await response.json();
+          const result = await response.json();
 
-      toast(`Project "${result.name}" imported successfully`);
+          toast(`Project "${result.name}" imported successfully`);
 
-      // Reset form
-      setFile(null);
-      setError(null);
-      onOpenChange(false);
-      onImportSuccess();
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to import project";
-      setError(errorMessage);
-      toast(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
+          // Reset form
+          setFile(null);
+          setError(null);
+          onOpenChange(false);
+          onImportSuccess();
+        } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : "Failed to import project";
+          setError(errorMessage);
+          toast(errorMessage);
+        }
+      },
+      "Importing project..."
+    );
   };
 
   const handleClose = () => {
-    if (!isLoading) {
+    if (!isSaving) {
       setFile(null);
       setError(null);
       onOpenChange(false);
@@ -117,7 +122,7 @@ export const ImportProjectDialog: FC<ImportProjectDialogProps> = ({
               type="file"
               accept=".json"
               onChange={handleFileChange}
-              disabled={isLoading}
+              disabled={isSaving}
             />
             {file ? (
               <p className="text-sm text-muted-foreground">
@@ -138,16 +143,17 @@ export const ImportProjectDialog: FC<ImportProjectDialogProps> = ({
             type="button"
             variant="outline"
             onClick={handleClose}
-            disabled={isLoading}
+            disabled={isSaving}
           >
             Cancel
           </Button>
           <Button
             type="button"
+            variant="outline"
             onClick={handleImport}
-            disabled={!file || isLoading}
+            disabled={!file || isSaving}
           >
-            {isLoading ? "Importing..." : "Import"}
+            Import
           </Button>
         </DialogFooter>
       </DialogContent>
