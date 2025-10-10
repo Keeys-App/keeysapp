@@ -3,6 +3,7 @@ import type { FC, FormEvent } from 'react';
 import { useMutation } from '@apollo/client';
 import { REGISTER_MUTATION } from '@/graphql/auth';
 import { useAuth } from '@/contexts/AuthContext';
+import { getUserFriendlyErrorMessage } from '@/lib/utils';
 import {
   Card,
   CardContent,
@@ -88,11 +89,7 @@ export const RegisterForm: FC<RegisterFormProps> = ({
         }
       }
     } catch (err: any) {
-      // Handle GraphQL errors and network errors
-      const errorMessage =
-        err?.graphQLErrors?.[0]?.message ||
-        err?.message ||
-        'An error occurred during registration';
+      const errorMessage = getUserFriendlyErrorMessage(err, 'Registration failed. Please try again.');
       setError(errorMessage);
     }
   };

@@ -16,9 +16,9 @@ export function Key({ keyData, projectId, projectLanguages }: KeyProps) {
   return (
     <div className="border-b grid grid-cols-[minmax(300px,1fr)_minmax(300px,3fr)]">
       <div className="border-r py-2 px-4 ">
-        <div className="font-mono">{keyData.key}</div>
+        <div className="font-mono text-sm break-words">{keyData.key}</div>
         {keyData.description ? (
-          <p className="text-sm text-muted-foreground">{keyData.description}</p>
+          <p className="text-xs text-muted-foreground">{keyData.description}</p>
         ) : null}
       </div>
       <div className="flex flex-col">
@@ -30,15 +30,15 @@ export function Key({ keyData, projectId, projectLanguages }: KeyProps) {
                 className="grid grid-cols-[120px_1fr] even:bg-muted border-b last:border-b-0"
               >
                 <div className="flex flex-col border-r p-2">
-                  <div className="">{language.name}</div>
-                  <div className="text-muted-foreground text-sm">
+                  <div className="text-sm">{language.name}</div>
+                  <div className="text-muted-foreground text-xs">
                     {language.code}
                   </div>
                 </div>
                 <div className="text-sm p-2">
                   <TranslationEditor
                     keyId={keyData.id}
-                    language={language.code}
+                    language={language}
                     currentValue={
                       keyData.translations.find(
                         (t) => t.language === language.code

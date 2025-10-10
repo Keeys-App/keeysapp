@@ -14,6 +14,7 @@ import {
   generateExport,
   getExportFilename,
 } from "./utils/exportFormats";
+import { getUserFriendlyErrorMessage } from "@/lib/utils";
 
 interface ExportContentProps {
   project: Project;
@@ -66,7 +67,8 @@ export const ExportContent: FC<ExportContentProps> = ({ project }) => {
   }
 
   if (error) {
-    return <ErrorState message={`Error loading translations: ${error.message}`} />;
+    const errorMessage = getUserFriendlyErrorMessage(error, 'Failed to load translations for export. Please try again.');
+    return <ErrorState message={errorMessage} />;
   }
 
   if (!data?.projectKeys || data.projectKeys.length === 0) {

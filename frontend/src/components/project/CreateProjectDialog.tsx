@@ -7,6 +7,7 @@ import { CREATE_PROJECT, GET_PROJECTS, type CreateProjectInput } from '@/graphql
 import { DEFAULT_PROJECT_COLORS, COMMON_LANGUAGES, ProjectStatus } from '@/types/project';
 import { useAuth } from '@/contexts/AuthContext';
 import { ColorPicker, Combobox, type ComboboxOption } from '@/components/blocks';
+import { getUserFriendlyErrorMessage } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -62,8 +63,6 @@ export const CreateProjectDialog: FC<CreateProjectDialogProps> = ({ open, onOpen
       toast('Project created successfully');
     },
     onError: (error) => {
-      console.error('Error creating project:', error);
-
       // Check if it's an authentication error
       if (error.message.includes('Authentication required')) {
         logout();
@@ -71,7 +70,8 @@ export const CreateProjectDialog: FC<CreateProjectDialogProps> = ({ open, onOpen
         return;
       }
 
-      toast('Failed to create project. Please try again.');
+      const message = getUserFriendlyErrorMessage(error, 'Failed to create project. Please try again.');
+      toast.error(message);
     },
   });
 

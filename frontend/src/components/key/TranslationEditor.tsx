@@ -4,10 +4,12 @@ import { toast } from "sonner";
 import { SET_TRANSLATION, GET_PROJECT_KEYS } from "@/graphql/keys";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { getUserFriendlyErrorMessage } from "@/lib/utils";
+import type { Language } from "@/types/project";
 
 interface TranslationEditorProps {
   keyId: string;
-  language: string;
+  language: Language;
   currentValue: string;
   projectId: string;
 }
@@ -25,10 +27,13 @@ export function TranslationEditor({
     refetchQueries: [{ query: GET_PROJECT_KEYS, variables: { projectId } }],
     onCompleted: () => {
       setIsEditing(false);
-      toast("Translation updated successfully");
+      toast("Translation updated successfully", {
+        description: `${language.name} - ${value}`,
+      });
     },
     onError: (error) => {
-      toast(`Error: ${error.message}`);
+      const message = getUserFriendlyErrorMessage(error, 'Failed to update translation. Please try again.');
+      toast.error(message);
     },
   });
 
@@ -41,7 +46,7 @@ export function TranslationEditor({
         input: {
           keyId,
           value: trimmedValue,
-          language,
+          language: language.code,
         },
       },
     });

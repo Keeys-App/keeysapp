@@ -3,6 +3,7 @@ import { useMutation, useLazyQuery } from "@apollo/client";
 import { toast } from "sonner";
 import { Check, Info } from "lucide-react";
 import { CREATE_KEY, GET_PROJECT_KEYS, CHECK_KEY_EXISTS } from "@/graphql/keys";
+import { getUserFriendlyErrorMessage } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -123,8 +124,8 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
       });
     },
     onError: (error) => {
-      console.error("Error creating key:", error);
-      toast(`Failed to create key: ${error.message}`);
+      const message = getUserFriendlyErrorMessage(error, 'Failed to create key. Please try again.');
+      toast.error(message);
     },
   });
 

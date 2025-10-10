@@ -7,6 +7,7 @@ import { EmptyKeys } from "./EmptyKeys";
 import { Key } from "./Key";
 import { KeyControls } from "./KeyControls";
 import type { Language } from "@/types/project";
+import { getUserFriendlyErrorMessage } from "@/lib/utils";
 
 interface KeyListProps {
   projectId: string;
@@ -37,10 +38,11 @@ export function KeyList({
   }
 
   if (error) {
+    const errorMessage = getUserFriendlyErrorMessage(error, 'Failed to load translation keys. Please try again.');
     return (
       <Alert variant="destructive">
         <AlertDescription>
-          Failed to load keys: {error.message}
+          {errorMessage}
         </AlertDescription>
       </Alert>
     );

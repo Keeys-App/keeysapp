@@ -3,6 +3,7 @@ import type { FC, FormEvent } from 'react';
 import { useMutation } from '@apollo/client';
 import { LOGIN_MUTATION } from '@/graphql/auth';
 import { useAuth } from '@/contexts/AuthContext';
+import { getUserFriendlyErrorMessage } from '@/lib/utils';
 import {
   Card,
   CardContent,
@@ -70,11 +71,7 @@ export const LoginForm: FC<LoginFormProps> = ({
         }
       }
     } catch (err: any) {
-      // Handle GraphQL errors and network errors
-      const errorMessage =
-        err?.graphQLErrors?.[0]?.message ||
-        err?.message ||
-        'An error occurred during login';
+      const errorMessage = getUserFriendlyErrorMessage(err, 'Login failed. Please check your credentials and try again.');
       setError(errorMessage);
     }
   };

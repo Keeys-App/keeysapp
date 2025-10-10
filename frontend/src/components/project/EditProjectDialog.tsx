@@ -5,6 +5,7 @@ import { X } from 'lucide-react';
 import { UPDATE_PROJECT, GET_PROJECTS, type UpdateProjectInput, type Project } from '@/graphql/projects';
 import { COMMON_LANGUAGES, ProjectStatus } from '@/types/project';
 import { ColorPicker, Combobox, type ComboboxOption } from '@/components/blocks';
+import { getUserFriendlyErrorMessage } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -62,8 +63,8 @@ export const EditProjectDialog: FC<EditProjectDialogProps> = ({ open, onOpenChan
       toast('Project updated successfully');
     },
     onError: (error) => {
-      console.error('Error updating project:', error);
-      toast('Failed to update project. Please try again.');
+      const message = getUserFriendlyErrorMessage(error, 'Failed to update project. Please try again.');
+      toast.error(message);
     },
   });
 

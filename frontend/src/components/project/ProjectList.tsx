@@ -14,6 +14,7 @@ import { EditProjectDialog } from "./EditProjectDialog";
 import { EmptyProjects } from "./EmptyProjects";
 import { DeleteConfirmationDialog } from "@/components/blocks";
 import { useAuth } from "@/contexts/AuthContext";
+import { getUserFriendlyErrorMessage } from "@/lib/utils";
 
 export const ProjectList: FC = () => {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -35,8 +36,8 @@ export const ProjectList: FC = () => {
       toast("Project deleted successfully");
     },
     onError: (error) => {
-      console.error("Error deleting project:", error);
-      toast("Failed to delete project. Please try again.");
+      const message = getUserFriendlyErrorMessage(error, 'Failed to delete project. Please try again.');
+      toast.error(message);
     },
   });
 

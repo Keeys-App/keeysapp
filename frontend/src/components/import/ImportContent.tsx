@@ -14,6 +14,7 @@ import { ImportSettings, type ImportOptions } from "./ImportSettings";
 import { ImportPreview } from "./ImportPreview";
 import { parseImport, type ParsedTranslation } from "./utils/importFormats";
 import { getBestLanguageMatch } from "./utils/languageDetector";
+import { getUserFriendlyErrorMessage } from "@/lib/utils";
 
 interface ImportContentProps {
   project: Project;
@@ -203,7 +204,8 @@ export const ImportContent: FC<ImportContentProps> = ({ project }) => {
   }
 
   if (error) {
-    return <ErrorState message={`Error loading project: ${error.message}`} />;
+    const errorMessage = getUserFriendlyErrorMessage(error, 'Failed to load project data for import. Please try again.');
+    return <ErrorState message={errorMessage} />;
   }
 
   const canProceedToPreview = fileMappings.length > 0 && 
