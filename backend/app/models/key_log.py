@@ -7,12 +7,13 @@ import enum
 
 class KeyActionType(str, enum.Enum):
     """Enum for different types of key actions that can be logged"""
-    CREATE = "create"
-    UPDATE_KEY = "update_key"
-    UPDATE_DESCRIPTION = "update_description"
-    UPDATE_TRANSLATION = "update_translation"
-    DELETE_TRANSLATION = "delete_translation"
-    DELETE = "delete"
+    CREATE = "CREATE"
+    UPDATE_KEY = "UPDATE_KEY"
+    UPDATE_DESCRIPTION = "UPDATE_DESCRIPTION"
+    UPDATE_TRANSLATION = "UPDATE_TRANSLATION"
+    DELETE_TRANSLATION = "DELETE_TRANSLATION"
+    DELETE = "DELETE"
+    IMPORT = "IMPORT"
 
 
 class KeyLog(Base):

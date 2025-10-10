@@ -675,11 +675,11 @@ class ProjectService:
                 db.flush()
                 created_keys[key_str] = new_key
                 
-                # Log key creation
+                # Log key import
                 log = KeyLog(
                     key_id=new_key.id,
                     user_id=owner_id,
-                    action=KeyActionType.CREATE,
+                    action=KeyActionType.IMPORT,
                     field_name="key",
                     new_value=key_str
                 )
@@ -721,11 +721,11 @@ class ProjectService:
                             db.flush()
                             created_keys[key_str] = key_obj
                             
-                            # Log key creation
+                            # Log key import
                             log = KeyLog(
                                 key_id=key_obj.id,
                                 user_id=owner_id,
-                                action=KeyActionType.CREATE,
+                                action=KeyActionType.IMPORT,
                                 field_name="key",
                                 new_value=key_str
                             )
@@ -739,11 +739,11 @@ class ProjectService:
                     )
                     db.add(translation)
                     
-                    # Log translation creation
+                    # Log translation import
                     log = KeyLog(
                         key_id=key_obj.id,
                         user_id=owner_id,
-                        action=KeyActionType.UPDATE_TRANSLATION,
+                        action=KeyActionType.IMPORT,
                         field_name="translation",
                         language=language_code,
                         new_value=translation_value

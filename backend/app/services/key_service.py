@@ -569,12 +569,12 @@ class KeyService:
                             old_value = translation.value
                             translation.value = value
                             
-                            # Log translation update
+                            # Log translation import
                             KeyService._create_log(
                                 db=db,
                                 key_id=key_obj.id,
                                 user_id=user_id,
-                                action=KeyActionType.UPDATE_TRANSLATION,
+                                action=KeyActionType.IMPORT,
                                 field_name="translation",
                                 language=language,
                                 old_value=old_value,
@@ -588,12 +588,12 @@ class KeyService:
                             )
                             db.add(translation)
                             
-                            # Log translation creation
+                            # Log translation import
                             KeyService._create_log(
                                 db=db,
                                 key_id=key_obj.id,
                                 user_id=user_id,
-                                action=KeyActionType.UPDATE_TRANSLATION,
+                                action=KeyActionType.IMPORT,
                                 field_name="translation",
                                 language=language,
                                 new_value=value
@@ -627,12 +627,12 @@ class KeyService:
                         )
                         db.add(translation)
                         
-                        # Log translation creation
+                        # Log translation import
                         KeyService._create_log(
                             db=db,
                             key_id=new_key.id,
                             user_id=user_id,
-                            action=KeyActionType.UPDATE_TRANSLATION,
+                            action=KeyActionType.IMPORT,
                             field_name="translation",
                             language=language,
                             new_value=value

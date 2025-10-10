@@ -24,12 +24,13 @@ class KeyActionTypeEnum(str, enum.Enum):
     """
     GraphQL enum for key action types.
     """
-    CREATE = "create"
-    UPDATE_KEY = "update_key"
-    UPDATE_DESCRIPTION = "update_description"
-    UPDATE_TRANSLATION = "update_translation"
-    DELETE_TRANSLATION = "delete_translation"
-    DELETE = "delete"
+    CREATE = "CREATE"
+    UPDATE_KEY = "UPDATE_KEY"
+    UPDATE_DESCRIPTION = "UPDATE_DESCRIPTION"
+    UPDATE_TRANSLATION = "UPDATE_TRANSLATION"
+    DELETE_TRANSLATION = "DELETE_TRANSLATION"
+    DELETE = "DELETE"
+    IMPORT = "IMPORT"
 
 
 # Register as Strawberry enum
@@ -193,14 +194,15 @@ def build_key_log_type(log) -> KeyLogType:
     Returns:
         KeyLogType
     """
-    # Map action to enum
+    # Map action to enum (now using uppercase values)
     action_map = {
-        "create": KeyActionTypeEnum.CREATE,
-        "update_key": KeyActionTypeEnum.UPDATE_KEY,
-        "update_description": KeyActionTypeEnum.UPDATE_DESCRIPTION,
-        "update_translation": KeyActionTypeEnum.UPDATE_TRANSLATION,
-        "delete_translation": KeyActionTypeEnum.DELETE_TRANSLATION,
-        "delete": KeyActionTypeEnum.DELETE,
+        "CREATE": KeyActionTypeEnum.CREATE,
+        "UPDATE_KEY": KeyActionTypeEnum.UPDATE_KEY,
+        "UPDATE_DESCRIPTION": KeyActionTypeEnum.UPDATE_DESCRIPTION,
+        "UPDATE_TRANSLATION": KeyActionTypeEnum.UPDATE_TRANSLATION,
+        "DELETE_TRANSLATION": KeyActionTypeEnum.DELETE_TRANSLATION,
+        "DELETE": KeyActionTypeEnum.DELETE,
+        "IMPORT": KeyActionTypeEnum.IMPORT,
     }
     
     # Build user info if available

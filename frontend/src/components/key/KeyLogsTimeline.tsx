@@ -9,6 +9,7 @@ import {
   Trash2,
   Plus,
   Edit,
+  FileDown,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { InlineDiff } from "./InlineDiff";
@@ -44,6 +45,7 @@ const actionLabels: Record<string, string> = {
   UPDATE_TRANSLATION: "Translation updated",
   DELETE_TRANSLATION: "Translation deleted",
   DELETE: "Deleted",
+  IMPORT: "Imported",
 };
 
 const actionIcons: Record<string, typeof History> = {
@@ -53,6 +55,7 @@ const actionIcons: Record<string, typeof History> = {
   UPDATE_TRANSLATION: Languages,
   DELETE_TRANSLATION: Trash2,
   DELETE: Trash2,
+  IMPORT: FileDown,
 };
 
 const actionColors: Record<string, string> = {
@@ -62,6 +65,7 @@ const actionColors: Record<string, string> = {
   UPDATE_TRANSLATION: "bg-purple-500",
   DELETE_TRANSLATION: "bg-orange-500",
   DELETE: "bg-red-500",
+  IMPORT: "bg-cyan-500",
 };
 
 /**
