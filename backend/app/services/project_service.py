@@ -649,6 +649,10 @@ class ProjectService:
                 project.available_tags = config.get('availableTags', [])
                 logger.info(f"Set available_tags: {config.get('availableTags')}")
             
+            # Import KeyLog model and action types for logging
+            from app.models.key_log import KeyLog
+            from app.models.key import KeyActionType
+            
             # Create keys with descriptions and tags first
             logger.info(f"Creating {len(keys_data)} keys")
             created_keys = {}
@@ -670,6 +674,16 @@ class ProjectService:
                 db.add(new_key)
                 db.flush()
                 created_keys[key_str] = new_key
+                
+                # Log key creation
+                log = KeyLog(
+                    key_id=new_key.id,
+                    user_id=owner_id,
+                    action=KeyActionType.CREATE,
+                    field_name="key",
+                    new_value=key_str
+                )
+                db.add(log)
             
             logger.info(f"Created {len(created_keys)} keys successfully")
             
@@ -706,6 +720,16 @@ class ProjectService:
                             db.add(key_obj)
                             db.flush()
                             created_keys[key_str] = key_obj
+                            
+                            # Log key creation
+                            log = KeyLog(
+                                key_id=key_obj.id,
+                                user_id=owner_id,
+                                action=KeyActionType.CREATE,
+                                field_name="key",
+                                new_value=key_str
+                            )
+                            db.add(log)
                     
                     # Create translation
                     translation = Translation(
@@ -714,6 +738,18 @@ class ProjectService:
                         value=translation_value
                     )
                     db.add(translation)
+                    
+                    # Log translation creation
+                    log = KeyLog(
+                        key_id=key_obj.id,
+                        user_id=owner_id,
+                        action=KeyActionType.UPDATE_TRANSLATION,
+                        field_name="translation",
+                        language=language_code,
+                        new_value=translation_value
+                    )
+                    db.add(log)
+                    
                     translations_count += 1
             
             logger.info(f"Created {translations_count} translations, committing to database")
