@@ -19,6 +19,7 @@
 - [[Backend Development]] - Разработка backend
 - [[Backend Organization]] - Организация папок backend
 - [[Frontend Development]] - Разработка frontend
+- [[Performance Optimization]] - Оптимизация производительности
 - [[Railway Deployment]] - Деплой на Railway
 
 ## 🚀 Быстрый старт

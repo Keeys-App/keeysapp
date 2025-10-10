@@ -1,6 +1,5 @@
 from typing import Optional, List
-from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy.orm import Session, joinedload, selectinload
 import uuid as uuid_lib
 
 from app.models.project import Project, ProjectMember
@@ -60,6 +59,7 @@ class ProjectService:
     def get_project_by_public_id(db: Session, public_id: str) -> Optional[Project]:
         """
         Get a project by its public UUID.
+        Uses eager loading to prevent N+1 query problems.
         
         Args:
             db: Database session
@@ -70,7 +70,12 @@ class ProjectService:
         """
         try:
             uuid_obj = uuid_lib.UUID(public_id)
-            return db.query(Project).filter(Project.public_id == uuid_obj).first()
+            # Eager load all related data to prevent N+1 queries
+            return db.query(Project).options(
+                joinedload(Project.owner),
+                selectinload(Project.members).joinedload(ProjectMember.user),
+                selectinload(Project.keys).selectinload('translations')
+            ).filter(Project.public_id == uuid_obj).first()
         except (ValueError, AttributeError):
             return None
 
@@ -78,6 +83,7 @@ class ProjectService:
     def get_user_projects(db: Session, user_id: int) -> List[Project]:
         """
         Get all projects where user is owner or member.
+        Uses eager loading to prevent N+1 query problems.
         
         Args:
             db: Database session
@@ -86,12 +92,26 @@ class ProjectService:
         Returns:
             List of projects
         """
+        # Eager load all related data to prevent N+1 queries
+        # Use selectinload for one-to-many relationships to avoid cartesian products
+        eager_options = [
+            joinedload(Project.owner),  # Load owner (many-to-one)
+            selectinload(Project.members).joinedload(ProjectMember.user),  # Load members and their users
+            selectinload(Project.keys).selectinload('translations')  # Load keys and their translations
+        ]
+        
         # Get projects where user is owner
-        owned_projects = db.query(Project).filter(Project.owner_id == user_id).all()
+        owned_projects = db.query(Project).options(
+            *eager_options
+        ).filter(
+            Project.owner_id == user_id
+        ).all()
         owned_project_ids = {p.id for p in owned_projects}
         
         # Get projects where user is member
-        member_projects = db.query(Project).join(
+        member_projects = db.query(Project).options(
+            *eager_options
+        ).join(
             ProjectMember, Project.id == ProjectMember.project_id
         ).filter(
             ProjectMember.user_id == user_id
