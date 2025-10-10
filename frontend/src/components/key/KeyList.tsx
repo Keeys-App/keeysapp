@@ -1,11 +1,10 @@
 import { useQuery } from '@apollo/client';
 import { GET_PROJECT_KEYS } from '@/graphql/keys';
 import type { TranslationKey } from '@/types/translationKey';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { TranslationEditor } from './TranslationEditor';
 import { EmptyKeys } from './EmptyKeys';
+import { Key } from './Key';
 
 interface KeyListProps {
   projectId: string;
@@ -53,40 +52,14 @@ export function KeyList({ projectId, projectLanguages, onCreateKey }: KeyListPro
 
   return (
     <div className="space-y-6">
-      {keys.map((key) => {
-        return (
-          <Card key={key.id}>
-            <CardHeader>
-              <CardTitle className="text-lg font-mono">{key.key}</CardTitle>
-              {key.description ? (
-                <p className="text-sm text-muted-foreground">{key.description}</p>
-              ) : null}
-            </CardHeader>
-            <CardContent>
-              <div className="border-t pt-4">
-                {projectLanguages.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No languages configured in project</p>
-                ) : (
-                  <div className="space-y-2">
-                    {projectLanguages.map((language) => {
-                      const translation = key.translations.find(t => t.language === language);
-                      return (
-                        <TranslationEditor
-                          key={language}
-                          keyId={key.id}
-                          language={language}
-                          currentValue={translation?.value || ''}
-                          projectId={projectId}
-                        />
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
+      {keys.map((key) => (
+        <Key
+          key={key.id}
+          keyData={key}
+          projectId={projectId}
+          projectLanguages={projectLanguages}
+        />
+      ))}
     </div>
   );
 }
