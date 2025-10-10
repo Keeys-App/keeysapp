@@ -24,7 +24,9 @@ def test_create_project(db_session, test_user):
     assert project.id is not None
     assert project.name == "Test Project"
     assert project.description == "Test Description"
-    assert project.languages == ["en", "ru"]
+    assert len(project.languages) == 2
+    assert project.languages[0]['code'] == "en"
+    assert project.languages[1]['code'] == "ru"
     assert project.color == "#FF0000"
     assert project.status == "active"
     assert project.owner_id == test_user.id
@@ -148,7 +150,10 @@ def test_update_project(db_session, test_user):
     assert updated_project is not None
     assert updated_project.name == "Updated Name"
     assert updated_project.description == "New Description"
-    assert updated_project.languages == ["en", "ru", "de"]
+    assert len(updated_project.languages) == 3
+    assert updated_project.languages[0]['code'] == "en"
+    assert updated_project.languages[1]['code'] == "ru"
+    assert updated_project.languages[2]['code'] == "de"
 
 
 def test_update_project_without_permission(db_session, test_user):

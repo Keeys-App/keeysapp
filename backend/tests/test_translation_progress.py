@@ -53,7 +53,9 @@ def test_translation_progress_calculation(db_session: Session):
     # Current: 0 translations
     # Progress: 0%
     db_session.refresh(project)
-    project_type = build_project_type(project, user.id)
+    stats = ProjectService.get_projects_stats(db_session, [project.id])
+    project_stats = stats.get(project.id, {'keys_count': 0, 'translations_count': 0})
+    project_type = build_project_type(project, user.id, project_stats)
     assert project_type.translation_progress == 0, "Should be 0% with no translations"
     
     # Add 3 translations (one missing)
@@ -64,7 +66,9 @@ def test_translation_progress_calculation(db_session: Session):
     
     # Expected: 3/4 = 75%
     db_session.refresh(project)
-    project_type = build_project_type(project, user.id)
+    stats = ProjectService.get_projects_stats(db_session, [project.id])
+    project_stats = stats.get(project.id, {'keys_count': 0, 'translations_count': 0})
+    project_type = build_project_type(project, user.id, project_stats)
     print(f"\nProgress with 3/4 translations: {project_type.translation_progress}%")
     assert project_type.translation_progress == 75, f"Should be 75%, got {project_type.translation_progress}%"
     
@@ -73,7 +77,9 @@ def test_translation_progress_calculation(db_session: Session):
     
     # Expected: still 3/4 = 75% (empty translation should be deleted)
     db_session.refresh(project)
-    project_type = build_project_type(project, user.id)
+    stats = ProjectService.get_projects_stats(db_session, [project.id])
+    project_stats = stats.get(project.id, {'keys_count': 0, 'translations_count': 0})
+    project_type = build_project_type(project, user.id, project_stats)
     print(f"Progress after adding empty translation: {project_type.translation_progress}%")
     assert project_type.translation_progress == 75, f"Should still be 75%, got {project_type.translation_progress}%"
     
@@ -89,7 +95,9 @@ def test_translation_progress_calculation(db_session: Session):
     
     # Expected: 4/4 = 100%
     db_session.refresh(project)
-    project_type = build_project_type(project, user.id)
+    stats = ProjectService.get_projects_stats(db_session, [project.id])
+    project_stats = stats.get(project.id, {'keys_count': 0, 'translations_count': 0})
+    project_type = build_project_type(project, user.id, project_stats)
     print(f"Progress with all 4/4 translations: {project_type.translation_progress}%")
     assert project_type.translation_progress == 100, f"Should be 100%, got {project_type.translation_progress}%"
 
@@ -135,7 +143,9 @@ def test_translation_with_whitespace_not_counted(db_session: Session):
     
     # Expected: 0/1 = 0% (whitespace should not count)
     db_session.refresh(project)
-    project_type = build_project_type(project, user.id)
+    stats = ProjectService.get_projects_stats(db_session, [project.id])
+    project_stats = stats.get(project.id, {'keys_count': 0, 'translations_count': 0})
+    project_type = build_project_type(project, user.id, project_stats)
     print(f"\nProgress with whitespace-only translation: {project_type.translation_progress}%")
     assert project_type.translation_progress == 0, f"Should be 0% with whitespace, got {project_type.translation_progress}%"
 
@@ -181,7 +191,9 @@ def test_empty_string_translation_not_counted(db_session: Session):
     
     # Expected: 0/1 = 0% (empty string should not count)
     db_session.refresh(project)
-    project_type = build_project_type(project, user.id)
+    stats = ProjectService.get_projects_stats(db_session, [project.id])
+    project_stats = stats.get(project.id, {'keys_count': 0, 'translations_count': 0})
+    project_type = build_project_type(project, user.id, project_stats)
     print(f"\nProgress with empty string translation: {project_type.translation_progress}%")
     assert project_type.translation_progress == 0, f"Should be 0% with empty string, got {project_type.translation_progress}%"
 

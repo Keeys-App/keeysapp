@@ -58,6 +58,12 @@ class ProjectService:
             elif isinstance(lang, dict):
                 # It's already a dict
                 languages_data.append(lang)
+            elif isinstance(lang, str):
+                # It's a simple string (language code)
+                languages_data.append({
+                    'code': lang,
+                    'locale': lang
+                })
             
         project = Project(
             name=name,
@@ -124,7 +130,7 @@ class ProjectService:
         ).all()
         
         # Get translations count for each project
-        # Count only non-empty translations
+        # Count only non-empty translations (excluding whitespace-only)
         translations_stats = db.query(
             Key.project_id,
             func.count(Translation.id).label('translations_count')
@@ -133,7 +139,8 @@ class ProjectService:
         ).filter(
             Key.project_id.in_(project_ids),
             Translation.value.isnot(None),
-            Translation.value != ''
+            Translation.value != '',
+            func.trim(Translation.value) != ''
         ).group_by(
             Key.project_id
         ).all()
@@ -254,6 +261,12 @@ class ProjectService:
                 elif isinstance(lang, dict):
                     # It's already a dict
                     languages_data.append(lang)
+                elif isinstance(lang, str):
+                    # It's a simple string (language code)
+                    languages_data.append({
+                        'code': lang,
+                        'locale': lang
+                    })
             project.languages = languages_data
         if default_language is not None:
             project.default_language = default_language

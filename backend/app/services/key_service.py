@@ -1,5 +1,5 @@
 from typing import Optional, List, Dict
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 import uuid as uuid_lib
 
 from app.models.key import Key, Translation
@@ -84,20 +84,24 @@ class KeyService:
         return new_key
 
     @staticmethod
-    def get_key_by_public_id(db: Session, public_id: str) -> Optional[Key]:
+    def get_key_by_public_id(db: Session, public_id: str, eager_load_translations: bool = True) -> Optional[Key]:
         """
         Get a key by its public UUID.
         
         Args:
             db: Database session
             public_id: Public UUID of the key
+            eager_load_translations: Whether to load translations eagerly (default: True)
             
         Returns:
             Key or None
         """
         try:
             uuid_obj = uuid_lib.UUID(public_id)
-            return db.query(Key).filter(Key.public_id == uuid_obj).first()
+            query = db.query(Key)
+            if eager_load_translations:
+                query = query.options(joinedload(Key.translations))
+            return query.filter(Key.public_id == uuid_obj).first()
         except (ValueError, AttributeError):
             return None
 
@@ -123,8 +127,11 @@ class KeyService:
         if not ProjectService.check_project_access(db, project.id, user_id):
             return None
         
-        # Get all keys for the project
-        keys = db.query(Key).filter(Key.project_id == project.id).order_by(Key.key).all()
+        # Get all keys for the project with eager loading of translations
+        # This prevents N+1 query problem by loading translations in a single query
+        keys = db.query(Key).options(
+            joinedload(Key.translations)
+        ).filter(Key.project_id == project.id).order_by(Key.key).all()
         return keys
 
     @staticmethod
@@ -398,8 +405,10 @@ class KeyService:
         errors = []
         
         try:
-            # Get all existing keys for the project
-            existing_keys = db.query(Key).filter(
+            # Get all existing keys for the project with eager loading
+            existing_keys = db.query(Key).options(
+                joinedload(Key.translations)
+            ).filter(
                 Key.project_id == project.id
             ).all()
             existing_keys_dict = {k.key: k for k in existing_keys}
