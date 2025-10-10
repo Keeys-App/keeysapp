@@ -75,10 +75,26 @@ python migrations/recreate_tables.py
 
 **Требуется подтверждение:** Нужно ввести `DELETE ALL DATA`
 
+### add_default_language.py
+Добавляет колонку `default_language` в таблицу projects.
+
+```bash
+python migrations/add_default_language.py
+```
+
+**Что делает:**
+1. Добавляет колонку `default_language` типа VARCHAR(10)
+2. Колонка nullable, может быть NULL для существующих проектов
+
+**Когда использовать:**
+- При обновлении до версии с поддержкой дефолтного языка
+- Один раз после обновления кода
+
 ## История миграций
 
 | Дата | Миграция | Описание |
 |------|----------|----------|
+| 2025-10-10 | add_default_language | Добавлен дефолтный язык для проектов |
 | 2025-10-09 | migrate_add_public_id | Добавлен UUID для безопасности |
 | 2025-10-09 | create_projects_tables | Создание модуля проектов |
 

@@ -19,6 +19,7 @@ class ProjectService:
         name: str,
         description: Optional[str] = None,
         languages: Optional[List[str]] = None,
+        default_language: Optional[str] = None,
         color: str = "#6366f1",
         status: str = "active"
     ) -> Project:
@@ -31,6 +32,7 @@ class ProjectService:
             name: Project name
             description: Project description
             languages: List of language codes
+            default_language: Default language code (must be in languages list)
             color: Hex color code for the project
             status: Project status (active, archived, draft)
             
@@ -44,6 +46,7 @@ class ProjectService:
             name=name,
             description=description,
             languages=languages,
+            default_language=default_language,
             color=color,
             status=status,
             owner_id=owner_id
@@ -110,6 +113,7 @@ class ProjectService:
         name: Optional[str] = None,
         description: Optional[str] = None,
         languages: Optional[List[str]] = None,
+        default_language: Optional[str] = None,
         color: Optional[str] = None,
         status: Optional[str] = None
     ) -> Optional[Project]:
@@ -123,6 +127,7 @@ class ProjectService:
             name: New project name
             description: New project description
             languages: New list of language codes
+            default_language: New default language code
             color: New hex color code
             status: New project status
             
@@ -144,6 +149,8 @@ class ProjectService:
             project.description = description
         if languages is not None:
             project.languages = languages
+        if default_language is not None:
+            project.default_language = default_language
         if color is not None:
             project.color = color
         if status is not None:

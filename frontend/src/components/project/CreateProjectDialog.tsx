@@ -31,6 +31,7 @@ export const CreateProjectDialog: FC<CreateProjectDialogProps> = ({ open, onOpen
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [languages, setLanguages] = useState<string[]>([]);
+  const [defaultLanguage, setDefaultLanguage] = useState<string>('');
   const [color, setColor] = useState(DEFAULT_PROJECT_COLORS[0]);
   const [status, setStatus] = useState<string>(ProjectStatus.ACTIVE);
   const [languageInput, setLanguageInput] = useState('');
@@ -53,6 +54,7 @@ export const CreateProjectDialog: FC<CreateProjectDialogProps> = ({ open, onOpen
       setName('');
       setDescription('');
       setLanguages([]);
+      setDefaultLanguage('');
       setColor(DEFAULT_PROJECT_COLORS[0]);
       setStatus(ProjectStatus.ACTIVE);
       setLanguageInput('');
@@ -81,10 +83,16 @@ export const CreateProjectDialog: FC<CreateProjectDialogProps> = ({ open, onOpen
       return;
     }
 
+    if (!defaultLanguage) {
+      toast('Please select a default language');
+      return;
+    }
+
     const input: CreateProjectInput = {
       name: name.trim(),
       description: description.trim() || null,
       languages,
+      defaultLanguage,
       color,
       status: status as 'active' | 'archived' | 'draft',
     };
@@ -94,22 +102,35 @@ export const CreateProjectDialog: FC<CreateProjectDialogProps> = ({ open, onOpen
 
   const handleAddLanguage = (langCode: string) => {
     if (langCode && !languages.includes(langCode)) {
-      setLanguages([...languages, langCode]);
+      const newLanguages = [...languages, langCode];
+      setLanguages(newLanguages);
+      // Auto-select as default if it's the first language
+      if (newLanguages.length === 1) {
+        setDefaultLanguage(langCode);
+      }
     }
   };
 
   const handleRemoveLanguage = (langCode: string) => {
-    setLanguages(
-      languages.filter((l) => {
-        return l !== langCode;
-      })
-    );
+    const newLanguages = languages.filter((l) => {
+      return l !== langCode;
+    });
+    setLanguages(newLanguages);
+    // Clear default language if it was removed
+    if (defaultLanguage === langCode) {
+      setDefaultLanguage(newLanguages.length > 0 ? newLanguages[0] : '');
+    }
   };
 
   const handleAddCustomLanguage = () => {
     const trimmed = languageInput.trim().toLowerCase();
     if (trimmed && !languages.includes(trimmed)) {
-      setLanguages([...languages, trimmed]);
+      const newLanguages = [...languages, trimmed];
+      setLanguages(newLanguages);
+      // Auto-select as default if it's the first language
+      if (newLanguages.length === 1) {
+        setDefaultLanguage(trimmed);
+      }
       setLanguageInput('');
     }
   };
@@ -155,7 +176,9 @@ export const CreateProjectDialog: FC<CreateProjectDialogProps> = ({ open, onOpen
 
           {/* Languages */}
           <Field>
-            <FieldLabel>Languages</FieldLabel>
+            <FieldLabel>
+              Languages <span className="text-destructive">*</span>
+            </FieldLabel>
 
             {/* Selected languages */}
             {languages.length > 0 ? (
@@ -216,6 +239,31 @@ export const CreateProjectDialog: FC<CreateProjectDialogProps> = ({ open, onOpen
             </div>
           </Field>
 
+          {/* Default Language */}
+          <Field>
+            <FieldLabel>
+              Default Language <span className="text-destructive">*</span>
+            </FieldLabel>
+            <Select
+              value={defaultLanguage}
+              onValueChange={setDefaultLanguage}
+              disabled={loading || languages.length === 0}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={languages.length === 0 ? 'Add languages first' : 'Select default language'} />
+              </SelectTrigger>
+              <SelectContent>
+                {languages.map((lang) => {
+                  return (
+                    <SelectItem key={lang} value={lang}>
+                      {lang.toUpperCase()}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          </Field>
+
           {/* Color */}
           <Field>
             <FieldLabel>Color</FieldLabel>
@@ -241,7 +289,7 @@ export const CreateProjectDialog: FC<CreateProjectDialogProps> = ({ open, onOpen
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading || !name.trim() || !defaultLanguage}>
               {loading ? 'Creating...' : 'Create Project'}
             </Button>
           </DialogFooter>

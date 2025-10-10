@@ -12,8 +12,42 @@ export interface ParseResult {
 }
 
 /**
- * Parse i18n format (simple key-value JSON)
- * @example { "welcome": "Welcome!", "hello": "Hello" }
+ * Recursively flatten nested JSON object into dot-notation keys
+ * @example { "AUTH": { "LOGIN": "Login" } } => [{ key: "AUTH.LOGIN", value: "Login" }]
+ */
+function flattenObject(
+  obj: Record<string, unknown>,
+  prefix = ""
+): ParsedTranslation[] {
+  const translations: ParsedTranslation[] = [];
+
+  for (const [key, value] of Object.entries(obj)) {
+    const fullKey = prefix ? `${prefix}.${key}` : key;
+
+    if (typeof value === "string") {
+      // String value - add as translation
+      translations.push({ key: fullKey, value });
+    } else if (
+      typeof value === "object" &&
+      value !== null &&
+      !Array.isArray(value)
+    ) {
+      // Nested object - recursively flatten
+      translations.push(...flattenObject(value as Record<string, unknown>, fullKey));
+    } else if (value !== null && value !== undefined) {
+      // Skip null/undefined, but warn about other types
+      console.warn(
+        `Skipping key "${fullKey}" with unsupported type: ${typeof value}`
+      );
+    }
+  }
+
+  return translations;
+}
+
+/**
+ * Parse i18n format (simple key-value JSON with nested object support)
+ * @example { "welcome": "Welcome!", "AUTH": { "LOGIN": "Login" } }
  */
 export function parseI18nFormat(content: string): ParseResult {
   try {
@@ -27,19 +61,7 @@ export function parseI18nFormat(content: string): ParseResult {
       };
     }
 
-    const translations: ParsedTranslation[] = [];
-
-    for (const [key, value] of Object.entries(data)) {
-      if (typeof value !== "string") {
-        return {
-          success: false,
-          translations: [],
-          error: `Invalid value for key "${key}": Expected a string, got ${typeof value}`,
-        };
-      }
-
-      translations.push({ key, value });
-    }
+    const translations = flattenObject(data);
 
     if (translations.length === 0) {
       return {
@@ -85,6 +107,20 @@ export function parseImport(
 }
 
 /**
+ * Check if value is a valid translation value (string or nested object)
+ */
+function isValidTranslationValue(value: unknown): boolean {
+  if (typeof value === "string") {
+    return true;
+  }
+  if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+    // Check if nested object contains only valid translation values
+    return Object.values(value).every((v) => isValidTranslationValue(v));
+  }
+  return false;
+}
+
+/**
  * Detect format from content
  */
 export function detectFormat(content: string): ImportFormat | null {
@@ -95,7 +131,7 @@ export function detectFormat(content: string): ImportFormat | null {
       if (
         typeof data === "object" &&
         !Array.isArray(data) &&
-        Object.values(data).every((v) => typeof v === "string")
+        Object.values(data).every((v) => isValidTranslationValue(v))
       ) {
         return "i18n";
       }

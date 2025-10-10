@@ -30,6 +30,7 @@ export const EditProjectDialog: FC<EditProjectDialogProps> = ({ open, onOpenChan
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [languages, setLanguages] = useState<string[]>([]);
+  const [defaultLanguage, setDefaultLanguage] = useState<string>('');
   const [color, setColor] = useState('#6366f1');
   const [status, setStatus] = useState<string>(ProjectStatus.ACTIVE);
   const [languageInput, setLanguageInput] = useState('');
@@ -48,6 +49,7 @@ export const EditProjectDialog: FC<EditProjectDialogProps> = ({ open, onOpenChan
       setName(project.name);
       setDescription(project.description || '');
       setLanguages(project.languages || []);
+      setDefaultLanguage(project.defaultLanguage || '');
       setColor(project.color);
       setStatus(project.status);
     }
@@ -72,11 +74,17 @@ export const EditProjectDialog: FC<EditProjectDialogProps> = ({ open, onOpenChan
       return;
     }
 
+    if (!defaultLanguage) {
+      toast('Please select a default language');
+      return;
+    }
+
     const input: UpdateProjectInput = {
       id: project.id,
       name: name.trim(),
       description: description.trim() || null,
       languages,
+      defaultLanguage,
       color,
       status: status as 'active' | 'archived' | 'draft',
     };
@@ -86,22 +94,35 @@ export const EditProjectDialog: FC<EditProjectDialogProps> = ({ open, onOpenChan
 
   const handleAddLanguage = (langCode: string) => {
     if (langCode && !languages.includes(langCode)) {
-      setLanguages([...languages, langCode]);
+      const newLanguages = [...languages, langCode];
+      setLanguages(newLanguages);
+      // Auto-select as default if it's the first language
+      if (newLanguages.length === 1) {
+        setDefaultLanguage(langCode);
+      }
     }
   };
 
   const handleRemoveLanguage = (langCode: string) => {
-    setLanguages(
-      languages.filter((l) => {
-        return l !== langCode;
-      })
-    );
+    const newLanguages = languages.filter((l) => {
+      return l !== langCode;
+    });
+    setLanguages(newLanguages);
+    // Clear default language if it was removed
+    if (defaultLanguage === langCode) {
+      setDefaultLanguage(newLanguages.length > 0 ? newLanguages[0] : '');
+    }
   };
 
   const handleAddCustomLanguage = () => {
     const trimmed = languageInput.trim().toLowerCase();
     if (trimmed && !languages.includes(trimmed)) {
-      setLanguages([...languages, trimmed]);
+      const newLanguages = [...languages, trimmed];
+      setLanguages(newLanguages);
+      // Auto-select as default if it's the first language
+      if (newLanguages.length === 1) {
+        setDefaultLanguage(trimmed);
+      }
       setLanguageInput('');
     }
   };
@@ -154,7 +175,9 @@ export const EditProjectDialog: FC<EditProjectDialogProps> = ({ open, onOpenChan
 
           {/* Languages */}
           <Field>
-            <FieldLabel>Languages</FieldLabel>
+            <FieldLabel>
+              Languages <span className="text-destructive">*</span>
+            </FieldLabel>
 
             {/* Selected languages */}
             {languages.length > 0 ? (
@@ -215,6 +238,31 @@ export const EditProjectDialog: FC<EditProjectDialogProps> = ({ open, onOpenChan
             </div>
           </Field>
 
+          {/* Default Language */}
+          <Field>
+            <FieldLabel>
+              Default Language <span className="text-destructive">*</span>
+            </FieldLabel>
+            <Select
+              value={defaultLanguage}
+              onValueChange={setDefaultLanguage}
+              disabled={loading || languages.length === 0}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={languages.length === 0 ? 'Add languages first' : 'Select default language'} />
+              </SelectTrigger>
+              <SelectContent>
+                {languages.map((lang) => {
+                  return (
+                    <SelectItem key={lang} value={lang}>
+                      {lang.toUpperCase()}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          </Field>
+
           {/* Color */}
           <Field>
             <FieldLabel>Color</FieldLabel>
@@ -240,7 +288,7 @@ export const EditProjectDialog: FC<EditProjectDialogProps> = ({ open, onOpenChan
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading || !name.trim() || !defaultLanguage}>
               {loading ? 'Saving...' : 'Save Changes'}
             </Button>
           </DialogFooter>

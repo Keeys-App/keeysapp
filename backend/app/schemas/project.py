@@ -41,6 +41,7 @@ class ProjectType:
     name: str
     description: Optional[str]
     languages: List[str]
+    default_language: Optional[str]
     color: str
     status: str
     owner: UserType
@@ -60,6 +61,7 @@ class CreateProjectInput:
     name: str
     description: Optional[str] = None
     languages: Optional[List[str]] = None
+    default_language: Optional[str] = None
     color: Optional[str] = "#6366f1"
     status: Optional[str] = "active"
 
@@ -73,6 +75,7 @@ class UpdateProjectInput:
     name: Optional[str] = None
     description: Optional[str] = None
     languages: Optional[List[str]] = None
+    default_language: Optional[str] = None
     color: Optional[str] = None
     status: Optional[str] = None
 
@@ -204,6 +207,7 @@ def build_project_type(project, current_user_id: int) -> ProjectType:
         name=project.name,
         description=project.description,
         languages=project.languages or [],
+        default_language=project.default_language,
         color=project.color,
         status=project.status,
         owner=owner,
@@ -329,6 +333,7 @@ class ProjectMutation:
                 name=input.name,
                 description=input.description,
                 languages=input.languages or [],
+                default_language=input.default_language,
                 color=input.color or "#6366f1",
                 status=input.status or "active"
             )
@@ -373,6 +378,7 @@ class ProjectMutation:
                 name=input.name,
                 description=input.description,
                 languages=input.languages,
+                default_language=input.default_language,
                 color=input.color,
                 status=input.status
             )

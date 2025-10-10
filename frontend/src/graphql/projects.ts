@@ -34,6 +34,7 @@ export const PROJECT_FRAGMENT = gql`
     name
     description
     languages
+    defaultLanguage
     color
     status
     owner {
@@ -130,6 +131,7 @@ export interface Project {
   name: string;
   description?: string | null;
   languages: string[];
+  defaultLanguage?: string | null;
   color: string;
   status: 'active' | 'archived' | 'draft';
   owner: User;
@@ -145,6 +147,7 @@ export interface CreateProjectInput {
   name: string;
   description?: string | null;
   languages?: string[] | null;
+  defaultLanguage?: string | null;
   color?: string | null;
   status?: 'active' | 'archived' | 'draft' | null;
 }
@@ -154,6 +157,7 @@ export interface UpdateProjectInput {
   name?: string | null;
   description?: string | null;
   languages?: string[] | null;
+  defaultLanguage?: string | null;
   color?: string | null;
   status?: 'active' | 'archived' | 'draft' | null;
 }
