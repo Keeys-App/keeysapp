@@ -105,11 +105,71 @@ A dialog component to create new translation keys.
 - Form validation
 - Dialog-based UI for better UX
 
+### KeyManagement
+
+A tabbed component for managing a selected translation key. Displayed in the right panel when a key is selected.
+
+**Props:**
+- `selectedKey` (TranslationKey | null): The currently selected key
+- `projectLanguages` (Language[] | LanguageWithLocale[]): Project languages
+- `projectId` (string): Project UUID
+- `availableTags` (string[]): Available tags for the project
+
+**Features:**
+- **History Tab (default)**: Displays audit trail of all key changes using KeyLogsTimeline
+- **Settings Tab**: Allows editing key name, description, and tags
+- Auto-save functionality with change detection
+- Global saving state integration
+
+**Tabs:**
+1. **History**: Timeline view of all changes made to the key
+2. **Settings**: Form to edit key properties
+
+### KeyLogsTimeline
+
+A timeline component that displays the audit trail of a translation key's changes.
+
+**Props:**
+- `keyId` (string): UUID of the key to display logs for
+- `limit` (number, optional): Maximum number of logs to show (default: 50)
+
+**Features:**
+- Timeline view with colored icons for different action types
+- Shows old and new values for changes
+- Relative time display (e.g., "2 hours ago")
+- Automatic refresh when key changes
+- Color-coded action indicators:
+  - 🟢 Green: CREATE - Key or translation created
+  - 🔵 Blue: UPDATE_KEY, UPDATE_DESCRIPTION - Key or description changed
+  - 🟣 Purple: UPDATE_TRANSLATION - Translation updated
+  - 🟠 Orange: DELETE_TRANSLATION - Translation deleted
+  - 🔴 Red: DELETE - Key deleted
+
+**Action Types:**
+- `CREATE`: Key creation
+- `UPDATE_KEY`: Key name changed
+- `UPDATE_DESCRIPTION`: Description changed
+- `UPDATE_TRANSLATION`: Translation added/updated
+- `DELETE_TRANSLATION`: Translation removed
+- `DELETE`: Key deleted
+
+**Usage:**
+```tsx
+import { KeyLogsTimeline } from '@/components/key';
+
+function KeyHistoryView() {
+  return <KeyLogsTimeline keyId={keyUuid} limit={50} />;
+}
+```
+
 ## Future Enhancements
 
 - Add bulk operations
 - Add search and filtering
 - Add sorting options
 - Add export/import functionality
-- Add translation history
+- ✅ ~~Add translation history~~ (implemented as KeyLogsTimeline)
+- Add ability to revert to previous values from history
+- Add user name display in timeline (currently shows userId)
+- Add filtering in timeline (by action type, date range)
 

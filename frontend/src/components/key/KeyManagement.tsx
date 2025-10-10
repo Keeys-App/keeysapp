@@ -3,12 +3,14 @@ import { useMutation } from "@apollo/client";
 import { toast } from "sonner";
 import type { TranslationKey } from "@/types/translationKey";
 import type { Language, LanguageWithLocale } from "@/types/project";
-import { UPDATE_KEY } from "@/graphql/keys";
+import { UPDATE_KEY, GET_KEY_LOGS } from "@/graphql/keys";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSaving, useSavingStore } from "@/stores";
 import { TagsEditor } from "./TagsEditor";
+import { KeyLogsTimeline } from "./KeyLogsTimeline";
 
 interface KeyManagementProps {
   selectedKey: TranslationKey | null;
@@ -34,7 +36,16 @@ export const KeyManagement: FC<KeyManagementProps> = ({
   const [savedKeyName, setSavedKeyName] = useState("");
   const [savedTags, setSavedTags] = useState<string[]>([]);
 
-  const [updateKey, { data, error }] = useMutation(UPDATE_KEY);
+  const [updateKey, { data, error }] = useMutation(UPDATE_KEY, {
+    refetchQueries: selectedKey
+      ? [
+          {
+            query: GET_KEY_LOGS,
+            variables: { keyId: selectedKey.id, limit: 50 },
+          },
+        ]
+      : [],
+  });
   const withSaving = useSaving();
   const { isSaving } = useSavingStore();
 
@@ -116,59 +127,72 @@ export const KeyManagement: FC<KeyManagementProps> = ({
       <div className="px-4 py-3 border-b h-12 box-border">
         <h2 className="text-base font-semibold">Key Management</h2>
       </div>
-      <div className={`flex-1 p-4 ${selectedKey ? 'overflow-auto' : ''}`}>
+      <div className={`flex-1 ${selectedKey ? 'overflow-auto' : 'p-4'}`}>
         {!selectedKey ? (
           <p className="text-muted-foreground text-sm">
             Click on any translation key from the list to view and manage it
           </p>
         ) : (
-          <div className="space-y-4">
-            <Field>
-              <FieldLabel>Key Name</FieldLabel>
-              <Textarea
-                value={keyName}
-                onChange={(e) => {
-                  return setKeyName(e.target.value);
-                }}
-                placeholder="Enter key name..."
-                className="min-h-[80px] font-mono"
-                disabled={isSaving}
-              />
-            </Field>
+          <Tabs defaultValue="history" className="h-full flex flex-col">
+            <TabsList className="mx-4 mt-4">
+              <TabsTrigger value="history">History</TabsTrigger>
+              <TabsTrigger value="settings">Settings</TabsTrigger>
+            </TabsList>
 
-            <Field>
-              <FieldLabel>Description</FieldLabel>
-              <Textarea
-                value={description}
-                onChange={(e) => {
-                  return setDescription(e.target.value);
-                }}
-                placeholder="Enter key description..."
-                className="min-h-[120px]"
-                disabled={isSaving}
-              />
-            </Field>
-            
-            <Field>
-              <FieldLabel>Tags</FieldLabel>
-              <TagsEditor
-                selectedTags={tags}
-                availableTags={availableTags}
-                onChange={setTags}
-                disabled={isSaving}
-                placeholder="Select or create tags..."
-              />
-            </Field>
+            <TabsContent value="history" className="flex-1 px-4 pb-4 overflow-auto">
+              <KeyLogsTimeline keyId={selectedKey.id} />
+            </TabsContent>
 
-            <Button
-              onClick={handleSaveChanges}
-              disabled={isSaving || !hasChanges || !keyName.trim()}
-              size="sm"
-              className="w-full"
-            >
-              Save Changes
-            </Button>
-          </div>
+            <TabsContent value="settings" className="flex-1 px-4 pb-4 overflow-auto">
+              <div className="space-y-4">
+                <Field>
+                  <FieldLabel>Key Name</FieldLabel>
+                  <Textarea
+                    value={keyName}
+                    onChange={(e) => {
+                      return setKeyName(e.target.value);
+                    }}
+                    placeholder="Enter key name..."
+                    className="min-h-[80px] font-mono"
+                    disabled={isSaving}
+                  />
+                </Field>
+
+                <Field>
+                  <FieldLabel>Description</FieldLabel>
+                  <Textarea
+                    value={description}
+                    onChange={(e) => {
+                      return setDescription(e.target.value);
+                    }}
+                    placeholder="Enter key description..."
+                    className="min-h-[120px]"
+                    disabled={isSaving}
+                  />
+                </Field>
+                
+                <Field>
+                  <FieldLabel>Tags</FieldLabel>
+                  <TagsEditor
+                    selectedTags={tags}
+                    availableTags={availableTags}
+                    onChange={setTags}
+                    disabled={isSaving}
+                    placeholder="Select or create tags..."
+                  />
+                </Field>
+
+                <Button
+                  onClick={handleSaveChanges}
+                  disabled={isSaving || !hasChanges || !keyName.trim()}
+                  size="sm"
+                  className="w-full"
+                >
+                  Save Changes
+                </Button>
+              </div>
+            </TabsContent>
+          </Tabs>
         )}
       </div>
     </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect, memo } from "react";
 import { useMutation } from "@apollo/client";
 import { toast } from "sonner";
-import { SET_TRANSLATION, GET_PROJECT_KEYS } from "@/graphql/keys";
+import { SET_TRANSLATION, GET_PROJECT_KEYS, GET_KEY_LOGS } from "@/graphql/keys";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { getUserFriendlyErrorMessage } from "@/lib/utils";
@@ -26,6 +26,12 @@ export const TranslationEditor = memo(function TranslationEditor({
   const [value, setValue] = useState(currentValue);
 
   const [setTranslation, { data: translationData, error: translationError }] = useMutation(SET_TRANSLATION, {
+    refetchQueries: [
+      {
+        query: GET_KEY_LOGS,
+        variables: { keyId: keyData.id, limit: 50 },
+      },
+    ],
     update(cache, { data }) {
       if (data?.setTranslation) {
         // Update only the specific translation in cache
@@ -102,10 +108,10 @@ export const TranslationEditor = memo(function TranslationEditor({
   return (
     <div className="">
       {value || <span className="text-muted-foreground">&lt;Empty&gt;</span>}
-      {/* <Textarea value={value} onChange={(e) => setValue(e.target.value)} disabled={isSaving} />
+      <Textarea value={value} onChange={(e) => setValue(e.target.value)} disabled={isSaving} />
       <Button onClick={handleSave} disabled={isSaving} variant="outline">
         Save
-      </Button> */}
+      </Button>
     </div>
   );
 }, (prevProps, nextProps) => {

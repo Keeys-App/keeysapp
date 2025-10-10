@@ -155,6 +155,35 @@ def migrate_add_tags_support_if_needed():
         return False
 
 
+def migrate_create_key_logs_table_if_needed():
+    """
+    Create key_logs table if it doesn't exist.
+    Safe to run multiple times.
+    """
+    try:
+        inspector = inspect(engine)
+        existing_tables = inspector.get_table_names()
+        
+        if 'key_logs' in existing_tables:
+            logger.info("✅ Migration: key_logs table already exists, skipping")
+            return True
+        
+        logger.info("🔄 Migration: Creating key_logs table")
+        
+        # Import here to avoid circular imports
+        from app.models.key_log import KeyLog
+        
+        # Create the table
+        KeyLog.__table__.create(bind=engine, checkfirst=True)
+        
+        logger.info("✅ Migration: key_logs table created successfully")
+        return True
+        
+    except Exception as e:
+        logger.error(f"❌ Migration failed: {type(e).__name__}: {str(e)}")
+        return False
+
+
 def run_all_migrations():
     """
     Run all pending migrations.
@@ -166,6 +195,7 @@ def run_all_migrations():
         ("add_public_id", migrate_add_public_id_if_needed),
         ("add_default_language", migrate_add_default_language_if_needed),
         ("add_tags_support", migrate_add_tags_support_if_needed),
+        ("create_key_logs_table", migrate_create_key_logs_table_if_needed),
         # Add more migrations here as needed
     ]
     

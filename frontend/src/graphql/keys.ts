@@ -117,3 +117,24 @@ export const BATCH_IMPORT_TRANSLATIONS = gql`
   }
 `;
 
+export const GET_KEY_LOGS = gql`
+  query GetKeyLogs($keyId: String!, $limit: Int) {
+    keyLogs(keyId: $keyId, limit: $limit) {
+      id
+      keyId
+      userId
+      user {
+        id
+        username
+        email
+      }
+      action
+      fieldName
+      language
+      oldValue
+      newValue
+      createdAt
+    }
+  }
+`;
+

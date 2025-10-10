@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session, joinedload
 import uuid as uuid_lib
 
 from app.models.key import Key, Translation
+from app.models.key_log import KeyLog, KeyActionType
 from app.models.project import Project
 from app.services.project_service import ProjectService
 
@@ -11,6 +12,41 @@ class KeyService:
     """
     Service for managing translation keys and their translations.
     """
+
+    @staticmethod
+    def _create_log(
+        db: Session,
+        key_id: int,
+        user_id: Optional[int],
+        action: KeyActionType,
+        field_name: Optional[str] = None,
+        language: Optional[str] = None,
+        old_value: Optional[str] = None,
+        new_value: Optional[str] = None
+    ) -> None:
+        """
+        Create a log entry for a key action.
+        
+        Args:
+            db: Database session
+            key_id: ID of the key
+            user_id: ID of the user performing the action
+            action: Type of action
+            field_name: Name of the field being changed
+            language: Language code (for translations)
+            old_value: Old value
+            new_value: New value
+        """
+        log_entry = KeyLog(
+            key_id=key_id,
+            user_id=user_id,
+            action=action,
+            field_name=field_name,
+            language=language,
+            old_value=old_value,
+            new_value=new_value
+        )
+        db.add(log_entry)
 
     @staticmethod
     def create_key(
@@ -65,6 +101,16 @@ class KeyService:
         db.add(new_key)
         db.flush()  # Flush to get the ID
         
+        # Log key creation
+        KeyService._create_log(
+            db=db,
+            key_id=new_key.id,
+            user_id=user_id,
+            action=KeyActionType.CREATE,
+            field_name="key",
+            new_value=key
+        )
+        
         # Update project's available_tags
         if tags:
             KeyService._update_project_available_tags(db, project, tags)
@@ -78,6 +124,17 @@ class KeyService:
                     value=value
                 )
                 db.add(translation)
+                
+                # Log translation creation
+                KeyService._create_log(
+                    db=db,
+                    key_id=new_key.id,
+                    user_id=user_id,
+                    action=KeyActionType.UPDATE_TRANSLATION,
+                    field_name="translation",
+                    language=language,
+                    new_value=value
+                )
         
         db.commit()
         db.refresh(new_key)
@@ -209,12 +266,35 @@ class KeyService:
             if existing:
                 return None
             
+            # Log key name change
+            old_key = key_obj.key
             key_obj.key = key
+            KeyService._create_log(
+                db=db,
+                key_id=key_obj.id,
+                user_id=user_id,
+                action=KeyActionType.UPDATE_KEY,
+                field_name="key",
+                old_value=old_key,
+                new_value=key
+            )
         
         if description is not None:
+            # Log description change
+            old_description = key_obj.description
             key_obj.description = description
+            KeyService._create_log(
+                db=db,
+                key_id=key_obj.id,
+                user_id=user_id,
+                action=KeyActionType.UPDATE_DESCRIPTION,
+                field_name="description",
+                old_value=old_description,
+                new_value=description
+            )
         
         if tags is not None:
+            # Update tags but don't log (metadata)
             key_obj.tags = tags
             # Update project's available_tags
             project = db.query(Project).filter(Project.id == key_obj.project_id).first()
@@ -246,6 +326,16 @@ class KeyService:
         # Check permission
         if not ProjectService.can_user_edit_project(db, key_obj.project_id, user_id):
             return False
+        
+        # Log key deletion
+        KeyService._create_log(
+            db=db,
+            key_id=key_obj.id,
+            user_id=user_id,
+            action=KeyActionType.DELETE,
+            field_name="key",
+            old_value=key_obj.key
+        )
         
         db.delete(key_obj)
         db.commit()
@@ -291,13 +381,36 @@ class KeyService:
         # If value is empty, delete the translation
         if not value or not value.strip():
             if translation:
+                # Log translation deletion
+                KeyService._create_log(
+                    db=db,
+                    key_id=key_obj.id,
+                    user_id=user_id,
+                    action=KeyActionType.DELETE_TRANSLATION,
+                    field_name="translation",
+                    language=language,
+                    old_value=translation.value
+                )
                 db.delete(translation)
                 db.commit()
             return None
         
         if translation:
             # Update existing
+            old_value = translation.value
             translation.value = value
+            
+            # Log translation update
+            KeyService._create_log(
+                db=db,
+                key_id=key_obj.id,
+                user_id=user_id,
+                action=KeyActionType.UPDATE_TRANSLATION,
+                field_name="translation",
+                language=language,
+                old_value=old_value,
+                new_value=value
+            )
         else:
             # Create new
             translation = Translation(
@@ -306,6 +419,17 @@ class KeyService:
                 value=value
             )
             db.add(translation)
+            
+            # Log translation creation
+            KeyService._create_log(
+                db=db,
+                key_id=key_obj.id,
+                user_id=user_id,
+                action=KeyActionType.UPDATE_TRANSLATION,
+                field_name="translation",
+                language=language,
+                new_value=value
+            )
         
         db.commit()
         db.refresh(translation)
@@ -347,6 +471,17 @@ class KeyService:
         
         if not translation:
             return False
+        
+        # Log translation deletion
+        KeyService._create_log(
+            db=db,
+            key_id=key_obj.id,
+            user_id=user_id,
+            action=KeyActionType.DELETE_TRANSLATION,
+            field_name="translation",
+            language=language,
+            old_value=translation.value
+        )
         
         db.delete(translation)
         db.commit()
@@ -431,7 +566,20 @@ class KeyService:
                         ).first()
                         
                         if translation:
+                            old_value = translation.value
                             translation.value = value
+                            
+                            # Log translation update
+                            KeyService._create_log(
+                                db=db,
+                                key_id=key_obj.id,
+                                user_id=user_id,
+                                action=KeyActionType.UPDATE_TRANSLATION,
+                                field_name="translation",
+                                language=language,
+                                old_value=old_value,
+                                new_value=value
+                            )
                         else:
                             translation = Translation(
                                 key_id=key_obj.id,
@@ -439,6 +587,17 @@ class KeyService:
                                 value=value
                             )
                             db.add(translation)
+                            
+                            # Log translation creation
+                            KeyService._create_log(
+                                db=db,
+                                key_id=key_obj.id,
+                                user_id=user_id,
+                                action=KeyActionType.UPDATE_TRANSLATION,
+                                field_name="translation",
+                                language=language,
+                                new_value=value
+                            )
                         
                         updated_keys += 1
                     else:
@@ -450,6 +609,16 @@ class KeyService:
                         db.add(new_key)
                         db.flush()  # Get the ID
                         
+                        # Log key creation
+                        KeyService._create_log(
+                            db=db,
+                            key_id=new_key.id,
+                            user_id=user_id,
+                            action=KeyActionType.CREATE,
+                            field_name="key",
+                            new_value=key_str
+                        )
+                        
                         # Create translation
                         translation = Translation(
                             key_id=new_key.id,
@@ -457,6 +626,17 @@ class KeyService:
                             value=value
                         )
                         db.add(translation)
+                        
+                        # Log translation creation
+                        KeyService._create_log(
+                            db=db,
+                            key_id=new_key.id,
+                            user_id=user_id,
+                            action=KeyActionType.UPDATE_TRANSLATION,
+                            field_name="translation",
+                            language=language,
+                            new_value=value
+                        )
                         
                         # Add to dict for future lookups in this batch
                         existing_keys_dict[key_str] = new_key

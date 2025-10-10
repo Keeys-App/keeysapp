@@ -1,22 +1,56 @@
 import strawberry
-from typing import Optional, List, Dict
+from typing import Optional, List
 from datetime import datetime
 from strawberry.types import Info
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import IntegrityError, OperationalError
 import logging
+import enum
 
 from app.database import get_db
 from app.services.key_service import KeyService
 from app.core.exceptions import (
     AuthenticationError,
     UnauthorizedError,
-    DatabaseError,
     handle_database_exception
 )
 from app.schemas.project import get_current_user_id
+from app.schemas.auth import UserType
 
 logger = logging.getLogger(__name__)
+
+
+class KeyActionTypeEnum(str, enum.Enum):
+    """
+    GraphQL enum for key action types.
+    """
+    CREATE = "create"
+    UPDATE_KEY = "update_key"
+    UPDATE_DESCRIPTION = "update_description"
+    UPDATE_TRANSLATION = "update_translation"
+    DELETE_TRANSLATION = "delete_translation"
+    DELETE = "delete"
+
+
+# Register as Strawberry enum
+KeyActionTypeEnum = strawberry.enum(KeyActionTypeEnum)
+
+
+@strawberry.type
+class KeyLogType:
+    """
+    GraphQL type for Key Log (audit trail).
+    """
+    id: int
+    key_id: int
+    user_id: Optional[int]
+    user: Optional['UserType']
+    action: KeyActionTypeEnum
+    field_name: Optional[str]
+    language: Optional[str]
+    old_value: Optional[str]
+    new_value: Optional[str]
+    created_at: datetime
 
 
 @strawberry.type
@@ -149,6 +183,51 @@ def build_key_type(key) -> KeyType:
     )
 
 
+def build_key_log_type(log) -> KeyLogType:
+    """
+    Build KeyLogType from KeyLog model.
+    
+    Args:
+        log: KeyLog model instance
+        
+    Returns:
+        KeyLogType
+    """
+    # Map action to enum
+    action_map = {
+        "create": KeyActionTypeEnum.CREATE,
+        "update_key": KeyActionTypeEnum.UPDATE_KEY,
+        "update_description": KeyActionTypeEnum.UPDATE_DESCRIPTION,
+        "update_translation": KeyActionTypeEnum.UPDATE_TRANSLATION,
+        "delete_translation": KeyActionTypeEnum.DELETE_TRANSLATION,
+        "delete": KeyActionTypeEnum.DELETE,
+    }
+    
+    # Build user info if available
+    user = None
+    if log.user:
+        user = UserType(
+            id=str(log.user.public_id),
+            email=log.user.email,
+            username=log.user.username,
+            is_active=log.user.is_active,
+            is_superuser=log.user.is_superuser
+        )
+    
+    return KeyLogType(
+        id=log.id,
+        key_id=log.key_id,
+        user_id=log.user_id,
+        user=user,
+        action=action_map.get(log.action.value, KeyActionTypeEnum.UPDATE_KEY),
+        field_name=log.field_name,
+        language=log.language,
+        old_value=log.old_value,
+        new_value=log.new_value,
+        created_at=log.created_at
+    )
+
+
 @strawberry.type
 class KeyQuery:
     """
@@ -260,6 +339,56 @@ class KeyQuery:
         except Exception as e:
             logger.error(f"Error in check_key_exists query: {type(e).__name__}: {str(e)}")
             return False
+
+    @strawberry.field
+    def key_logs(self, info: Info, key_id: str, limit: Optional[int] = 50) -> List[KeyLogType]:
+        """
+        Get audit logs for a specific key.
+        
+        Args:
+            info: GraphQL info object
+            key_id: Key UUID
+            limit: Maximum number of logs to return (default: 50)
+            
+        Returns:
+            List of key logs ordered by created_at DESC
+            
+        Raises:
+            UnauthorizedError: If user is not authenticated or doesn't have access
+        """
+        try:
+            current_user_id = get_current_user_id(info)
+            if not current_user_id:
+                raise UnauthorizedError("Authentication required to view logs")
+            
+            db: Session = next(get_db())
+            try:
+                # Get key to check access
+                key = KeyService.get_key_by_public_id(db, key_id, eager_load_translations=False)
+                if not key:
+                    return []
+                
+                # Check access through project
+                from app.services.project_service import ProjectService
+                if not ProjectService.check_project_access(db, key.project_id, current_user_id):
+                    raise UnauthorizedError("You don't have access to this key")
+                
+                # Get logs with eager loading of user
+                from app.models.key_log import KeyLog
+                logs = db.query(KeyLog).options(
+                    joinedload(KeyLog.user)
+                ).filter(
+                    KeyLog.key_id == key.id
+                ).order_by(KeyLog.created_at.desc()).limit(limit or 50).all()
+                
+                return [build_key_log_type(log) for log in logs]
+            finally:
+                db.close()
+        except UnauthorizedError:
+            raise
+        except Exception as e:
+            logger.error(f"Error in key_logs query: {type(e).__name__}: {str(e)}")
+            return []
 
 
 @strawberry.type
