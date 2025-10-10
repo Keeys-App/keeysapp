@@ -15,6 +15,9 @@
   - Добавлены новые константы путей в `PATHS`:
     - `PROJECT_CREATE` - создание проекта
     - `PROJECT_EDIT` - редактирование проекта
+  - Добавлены breadcrumbs для обеих страниц:
+    - CreateProjectPage: Dashboard → Create Project
+    - EditProjectPage: Dashboard → [Project Name] → Edit
 
 #### Преимущества
 - ✅ Единый источник логики для создания и редактирования
