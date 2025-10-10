@@ -4,6 +4,7 @@ import { useMutation } from '@apollo/client';
 import { REGISTER_MUTATION } from '@/graphql/auth';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserFriendlyErrorMessage } from '@/lib/utils';
+import { useSaving, useSavingStore } from '@/stores';
 import {
   Card,
   CardContent,
@@ -38,7 +39,9 @@ export const RegisterForm: FC<RegisterFormProps> = ({
   const [error, setError] = useState('');
 
   const { login } = useAuth();
-  const [registerMutation, { loading }] = useMutation(REGISTER_MUTATION);
+  const [registerMutation] = useMutation(REGISTER_MUTATION);
+  const withSaving = useSaving();
+  const { isSaving } = useSavingStore();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -65,29 +68,34 @@ export const RegisterForm: FC<RegisterFormProps> = ({
     }
 
     try {
-      const { data } = await registerMutation({
-        variables: {
-          input: {
-            email,
-            username,
-            password,
-          },
+      await withSaving(
+        async () => {
+          const { data } = await registerMutation({
+            variables: {
+              input: {
+                email,
+                username,
+                password,
+              },
+            },
+          });
+
+          if (data?.register) {
+            login(data.register.accessToken, {
+              id: data.register.user.id,
+              email: data.register.user.email,
+              username: data.register.user.username,
+              isActive: data.register.user.isActive,
+              isSuperuser: data.register.user.isSuperuser,
+            });
+
+            if (onSuccess) {
+              onSuccess();
+            }
+          }
         },
-      });
-
-      if (data?.register) {
-        login(data.register.accessToken, {
-          id: data.register.user.id,
-          email: data.register.user.email,
-          username: data.register.user.username,
-          isActive: data.register.user.isActive,
-          isSuperuser: data.register.user.isSuperuser,
-        });
-
-        if (onSuccess) {
-          onSuccess();
-        }
-      }
+        "Creating account..."
+      );
     } catch (err: any) {
       const errorMessage = getUserFriendlyErrorMessage(err, 'Registration failed. Please try again.');
       setError(errorMessage);
@@ -123,7 +131,7 @@ export const RegisterForm: FC<RegisterFormProps> = ({
                 onChange={(e) => {
                   setEmail(e.target.value);
                 }}
-                disabled={loading}
+                disabled={isSaving}
                 required
                 autoComplete="email"
               />
@@ -143,7 +151,7 @@ export const RegisterForm: FC<RegisterFormProps> = ({
                 onChange={(e) => {
                   setUsername(e.target.value);
                 }}
-                disabled={loading}
+                disabled={isSaving}
                 required
                 autoComplete="username"
               />
@@ -159,7 +167,7 @@ export const RegisterForm: FC<RegisterFormProps> = ({
                 onChange={(e) => {
                   setPassword(e.target.value);
                 }}
-                disabled={loading}
+                disabled={isSaving}
                 required
                 autoComplete="new-password"
                 maxLength={72}
@@ -181,7 +189,7 @@ export const RegisterForm: FC<RegisterFormProps> = ({
                 onChange={(e) => {
                   setConfirmPassword(e.target.value);
                 }}
-                disabled={loading}
+                disabled={isSaving}
                 required
                 autoComplete="new-password"
                 maxLength={72}
@@ -190,8 +198,8 @@ export const RegisterForm: FC<RegisterFormProps> = ({
             </Field>
 
             <Field>
-              <Button type="submit" disabled={loading} className="w-full">
-                {loading ? 'Creating account...' : 'Create Account'}
+              <Button type="submit" disabled={isSaving} className="w-full" variant="default">
+                Create Account
               </Button>
               {onSwitchToLogin ? (
                 <FieldDescription className="text-center">

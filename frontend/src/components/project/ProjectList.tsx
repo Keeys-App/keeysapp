@@ -17,6 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getUserFriendlyErrorMessage } from "@/lib/utils";
 import { PATHS } from "@/constants/paths";
 import { Button } from "@/components/ui/button";
+import { useSaving, useSavingStore } from "@/stores";
 
 export const ProjectList: FC = () => {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -32,9 +33,12 @@ export const ProjectList: FC = () => {
     }
   );
 
-  const [deleteProject, { loading: deleting, data: deleteData, error: deleteError }] = useMutation(DELETE_PROJECT, {
+  const [deleteProject, { data: deleteData, error: deleteError }] = useMutation(DELETE_PROJECT, {
     refetchQueries: [{ query: GET_PROJECTS }],
   });
+
+  const withSaving = useSaving();
+  const { isSaving } = useSavingStore();
 
   // Handle delete success
   useEffect(() => {
@@ -69,7 +73,12 @@ export const ProjectList: FC = () => {
     if (!projectToDelete) {
       return;
     }
-    await deleteProject({ variables: { id: projectToDelete.id } });
+    await withSaving(
+      async () => {
+        await deleteProject({ variables: { id: projectToDelete.id } });
+      },
+      "Deleting project..."
+    );
   };
 
   const handleImportSuccess = () => {
@@ -163,7 +172,7 @@ export const ProjectList: FC = () => {
         }
         onConfirm={confirmDelete}
         confirmButtonText="Delete Project"
-        isDeleting={deleting}
+        isDeleting={isSaving}
       />
     </>
   );

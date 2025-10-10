@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Check, Info } from "lucide-react";
 import { CREATE_KEY, GET_PROJECT_KEYS, CHECK_KEY_EXISTS } from "@/graphql/keys";
 import { getUserFriendlyErrorMessage } from "@/lib/utils";
+import { useSaving, useSavingStore } from "@/stores";
 import {
   Dialog,
   DialogContent,
@@ -121,9 +122,12 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
     !checkingKey &&
     key.trim() === lastCheckedKey; // Ensure current key has been checked
 
-  const [createKey, { loading, data: createKeyData, error: createKeyError }] = useMutation(CREATE_KEY, {
+  const [createKey, { data: createKeyData, error: createKeyError }] = useMutation(CREATE_KEY, {
     refetchQueries: [{ query: GET_PROJECT_KEYS, variables: { projectId } }],
   });
+  
+  const withSaving = useSaving();
+  const { isSaving } = useSavingStore();
 
   // Handle create key success
   useEffect(() => {
@@ -179,16 +183,21 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
       ? { [defaultLanguage]: defaultValue.trim() }
       : undefined;
 
-    await createKey({
-      variables: {
-        input: {
-          projectId,
-          key: key.trim(),
-          description: description.trim() || undefined,
-          translations,
-        },
+    await withSaving(
+      async () => {
+        await createKey({
+          variables: {
+            input: {
+              projectId,
+              key: key.trim(),
+              description: description.trim() || undefined,
+              translations,
+            },
+          },
+        });
       },
-    });
+      "Creating key..."
+    );
   };
 
   return (
@@ -219,7 +228,7 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
                   onChange={(e) => {
                     return setKey(e.target.value);
                   }}
-                  disabled={loading}
+                  disabled={isSaving}
                   required
                 />
                 {isDuplicate ? (
@@ -239,7 +248,7 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
                     onChange={(e) => {
                       return setDefaultValue(e.target.value);
                     }}
-                    disabled={loading}
+                    disabled={isSaving}
                     rows={3}
                   />
                 </Field>
@@ -256,7 +265,7 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
                   onChange={(e) => {
                     return setDescription(e.target.value);
                   }}
-                  disabled={loading}
+                  disabled={isSaving}
                   rows={5}
                 />
               </Field>
@@ -272,7 +281,7 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
                 onCheckedChange={(checked) => {
                   return setAddAnother(checked === true);
                 }}
-                disabled={loading}
+                disabled={isSaving}
               />
               <label
                 htmlFor="add-another"
@@ -297,11 +306,11 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                disabled={loading}
+                disabled={isSaving}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={!isFormValid || loading}>
+              <Button type="submit" disabled={!isFormValid || isSaving} variant="outline">
                 Create Key
               </Button>
             </div>

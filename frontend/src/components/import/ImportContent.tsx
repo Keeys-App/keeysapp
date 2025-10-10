@@ -15,6 +15,7 @@ import { ImportPreview } from "./ImportPreview";
 import { parseImport, type ParsedTranslation } from "./utils/importFormats";
 import { getBestLanguageMatch } from "./utils/languageDetector";
 import { getUserFriendlyErrorMessage } from "@/lib/utils";
+import { useSaving, useSavingStore } from "@/stores";
 
 interface ImportContentProps {
   project: Project;
@@ -37,7 +38,6 @@ export const ImportContent: FC<ImportContentProps> = ({ project }) => {
     language: projectLanguages[0]?.code || "en",
     strategy: "merge",
   });
-  const [isImporting, setIsImporting] = useState(false);
 
   const { data, loading, error } = useQuery<{ projectKeys: TranslationKey[] }>(
     GET_PROJECT_KEYS,
@@ -49,6 +49,9 @@ export const ImportContent: FC<ImportContentProps> = ({ project }) => {
   const [batchImportTranslations] = useMutation(BATCH_IMPORT_TRANSLATIONS, {
     refetchQueries: [{ query: GET_PROJECT_KEYS, variables: { projectId: project.id } }],
   });
+
+  const withSaving = useSaving();
+  const { isSaving } = useSavingStore();
 
   const existingKeys = useMemo(() => {
     return data?.projectKeys.map((key) => key.key) || [];
@@ -127,78 +130,79 @@ export const ImportContent: FC<ImportContentProps> = ({ project }) => {
       return;
     }
 
-    setIsImporting(true);
-
-    try {
-      // Group translations by language
-      const translationsByLanguage = new Map<string, ParsedTranslation[]>();
-      
-      for (const mapping of fileMappings) {
-        const result = parseImport(mapping.content, importOptions.format);
-        if (result.success) {
-          const existing = translationsByLanguage.get(mapping.selectedLanguage) || [];
-          translationsByLanguage.set(mapping.selectedLanguage, [...existing, ...result.translations]);
-        }
-      }
-
-      let totalSuccess = 0;
-      let totalErrors = 0;
-      let totalCreated = 0;
-      let totalUpdated = 0;
-
-      // Import for each language using batch mutation
-      for (const [language, translations] of translationsByLanguage) {
+    await withSaving(
+      async () => {
         try {
-          const result = await batchImportTranslations({
-            variables: {
-              input: {
-                projectId: project.id,
-                language: language,
-                translations: translations.map((t) => ({
-                  key: t.key,
-                  value: t.value,
-                })),
-                strategy: importOptions.strategy,
-              },
-            },
-          });
-
-          if (result.data?.batchImportTranslations) {
-            const batchResult = result.data.batchImportTranslations;
-            totalSuccess += batchResult.successCount;
-            totalErrors += batchResult.errorCount;
-            totalCreated += batchResult.createdKeys;
-            totalUpdated += batchResult.updatedKeys;
-
-            if (batchResult.errors.length > 0) {
-              console.error(`Errors importing ${language}:`, batchResult.errors);
+          // Group translations by language
+          const translationsByLanguage = new Map<string, ParsedTranslation[]>();
+          
+          for (const mapping of fileMappings) {
+            const result = parseImport(mapping.content, importOptions.format);
+            if (result.success) {
+              const existing = translationsByLanguage.get(mapping.selectedLanguage) || [];
+              translationsByLanguage.set(mapping.selectedLanguage, [...existing, ...result.translations]);
             }
           }
+
+          let totalSuccess = 0;
+          let totalErrors = 0;
+          let totalCreated = 0;
+          let totalUpdated = 0;
+
+          // Import for each language using batch mutation
+          for (const [language, translations] of translationsByLanguage) {
+            try {
+              const result = await batchImportTranslations({
+                variables: {
+                  input: {
+                    projectId: project.id,
+                    language: language,
+                    translations: translations.map((t) => ({
+                      key: t.key,
+                      value: t.value,
+                    })),
+                    strategy: importOptions.strategy,
+                  },
+                },
+              });
+
+              if (result.data?.batchImportTranslations) {
+                const batchResult = result.data.batchImportTranslations;
+                totalSuccess += batchResult.successCount;
+                totalErrors += batchResult.errorCount;
+                totalCreated += batchResult.createdKeys;
+                totalUpdated += batchResult.updatedKeys;
+
+                if (batchResult.errors.length > 0) {
+                  console.error(`Errors importing ${language}:`, batchResult.errors);
+                }
+              }
+            } catch (err) {
+              console.error(`Failed to import translations for ${language}:`, err);
+              totalErrors += translations.length;
+            }
+          }
+
+          // Show result toast
+          if (totalErrors === 0) {
+            toast(
+              `Successfully imported ${totalSuccess} translations (${totalCreated} new, ${totalUpdated} updated)`
+            );
+          } else {
+            toast(
+              `Imported ${totalSuccess} translations with ${totalErrors} errors`
+            );
+          }
+
+          // Reset state
+          handleBackToUpload();
         } catch (err) {
-          console.error(`Failed to import translations for ${language}:`, err);
-          totalErrors += translations.length;
+          toast("Failed to import translations");
+          console.error("Import error:", err);
         }
-      }
-
-      // Show result toast
-      if (totalErrors === 0) {
-        toast(
-          `Successfully imported ${totalSuccess} translations (${totalCreated} new, ${totalUpdated} updated)`
-        );
-      } else {
-        toast(
-          `Imported ${totalSuccess} translations with ${totalErrors} errors`
-        );
-      }
-
-      // Reset state
-      handleBackToUpload();
-    } catch (err) {
-      toast("Failed to import translations");
-      console.error("Import error:", err);
-    } finally {
-      setIsImporting(false);
-    }
+      },
+      "Importing translations..."
+    );
   };
 
   if (loading) {
@@ -250,11 +254,12 @@ export const ImportContent: FC<ImportContentProps> = ({ project }) => {
               </Button>
               <Button
                 onClick={handleImport}
-                disabled={!canImport || isImporting}
+                disabled={!canImport || isSaving}
                 size="lg"
+                variant="outline"
               >
                 <Upload className="h-4 w-4 mr-2" />
-                {isImporting ? "Importing..." : "Import Translations"}
+                Import Translations
               </Button>
             </>
           ) : null}

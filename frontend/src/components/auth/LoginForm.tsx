@@ -4,6 +4,7 @@ import { useMutation } from '@apollo/client';
 import { LOGIN_MUTATION } from '@/graphql/auth';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserFriendlyErrorMessage } from '@/lib/utils';
+import { useSaving, useSavingStore } from '@/stores';
 import {
   Card,
   CardContent,
@@ -36,7 +37,9 @@ export const LoginForm: FC<LoginFormProps> = ({
   const [error, setError] = useState('');
 
   const { login } = useAuth();
-  const [loginMutation, { loading }] = useMutation(LOGIN_MUTATION);
+  const [loginMutation] = useMutation(LOGIN_MUTATION);
+  const withSaving = useSaving();
+  const { isSaving } = useSavingStore();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -48,28 +51,33 @@ export const LoginForm: FC<LoginFormProps> = ({
     }
 
     try {
-      const { data } = await loginMutation({
-        variables: {
-          input: {
-            email,
-            password,
-          },
+      await withSaving(
+        async () => {
+          const { data } = await loginMutation({
+            variables: {
+              input: {
+                email,
+                password,
+              },
+            },
+          });
+
+          if (data?.login) {
+            login(data.login.accessToken, {
+              id: data.login.user.id,
+              email: data.login.user.email,
+              username: data.login.user.username,
+              isActive: data.login.user.isActive,
+              isSuperuser: data.login.user.isSuperuser,
+            });
+
+            if (onSuccess) {
+              onSuccess();
+            }
+          }
         },
-      });
-
-      if (data?.login) {
-        login(data.login.accessToken, {
-          id: data.login.user.id,
-          email: data.login.user.email,
-          username: data.login.user.username,
-          isActive: data.login.user.isActive,
-          isSuperuser: data.login.user.isSuperuser,
-        });
-
-        if (onSuccess) {
-          onSuccess();
-        }
-      }
+        "Signing in..."
+      );
     } catch (err: any) {
       const errorMessage = getUserFriendlyErrorMessage(err, 'Login failed. Please check your credentials and try again.');
       setError(errorMessage);
@@ -105,7 +113,7 @@ export const LoginForm: FC<LoginFormProps> = ({
                 onChange={(e) => {
                   setEmail(e.target.value);
                 }}
-                disabled={loading}
+                disabled={isSaving}
                 required
                 autoComplete="email"
               />
@@ -121,7 +129,7 @@ export const LoginForm: FC<LoginFormProps> = ({
                 onChange={(e) => {
                   setPassword(e.target.value);
                 }}
-                disabled={loading}
+                disabled={isSaving}
                 required
                 autoComplete="current-password"
                 maxLength={72}
@@ -129,8 +137,8 @@ export const LoginForm: FC<LoginFormProps> = ({
             </Field>
 
             <Field>
-              <Button type="submit" disabled={loading} className="w-full">
-                {loading ? 'Signing in...' : 'Sign In'}
+              <Button type="submit" disabled={isSaving} className="w-full" variant="default">
+                Sign In
               </Button>
               {onSwitchToRegister ? (
                 <FieldDescription className="text-center">

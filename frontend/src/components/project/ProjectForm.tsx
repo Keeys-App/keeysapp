@@ -3,6 +3,7 @@ import { useMutation } from "@apollo/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
+import { useSaving, useSavingStore } from "@/stores";
 import {
   CREATE_PROJECT,
   UPDATE_PROJECT,
@@ -129,17 +130,20 @@ export const ProjectForm: FC<ProjectFormProps> = ({
 
   const [
     createProject,
-    { loading: createLoading, data: createData, error: createError },
+    { data: createData, error: createError },
   ] = useMutation(CREATE_PROJECT, {
     refetchQueries: [{ query: GET_PROJECTS }],
   });
 
   const [
     updateProject,
-    { loading: updateLoading, data: updateData, error: updateError },
+    { data: updateData, error: updateError },
   ] = useMutation(UPDATE_PROJECT, {
     refetchQueries: [{ query: GET_PROJECTS }],
   });
+
+  const withSaving = useSaving();
+  const { isSaving } = useSavingStore();
 
   // Handle create project success
   useEffect(() => {
@@ -193,8 +197,6 @@ export const ProjectForm: FC<ProjectFormProps> = ({
     }
   }, [updateError]);
 
-  const loading = createLoading || updateLoading;
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -226,7 +228,12 @@ export const ProjectForm: FC<ProjectFormProps> = ({
         status: status as "active" | "archived" | "draft",
       };
 
-      await createProject({ variables: { input } });
+      await withSaving(
+        async () => {
+          await createProject({ variables: { input } });
+        },
+        "Creating project..."
+      );
     } else {
       if (!project) {
         return;
@@ -242,7 +249,12 @@ export const ProjectForm: FC<ProjectFormProps> = ({
         status: status as "active" | "archived" | "draft",
       };
 
-      await updateProject({ variables: { input } });
+      await withSaving(
+        async () => {
+          await updateProject({ variables: { input } });
+        },
+        "Updating project..."
+      );
     }
   };
 
@@ -350,7 +362,7 @@ export const ProjectForm: FC<ProjectFormProps> = ({
                 onChange={(e) => {
                   return setName(e.target.value);
                 }}
-                disabled={loading}
+                disabled={isSaving}
                 required
               />
             </Field>
@@ -364,7 +376,7 @@ export const ProjectForm: FC<ProjectFormProps> = ({
                 onChange={(e) => {
                   return setDescription(e.target.value);
                 }}
-                disabled={loading}
+                disabled={isSaving}
                 rows={3}
               />
             </Field>
@@ -382,7 +394,7 @@ export const ProjectForm: FC<ProjectFormProps> = ({
                 onChange={handleLanguagesChange}
                 defaultLanguage={defaultLanguage}
                 onDefaultLanguageChange={handleDefaultLanguageChange}
-                disabled={loading}
+                disabled={isSaving}
               />
             </Field>
 
@@ -392,7 +404,7 @@ export const ProjectForm: FC<ProjectFormProps> = ({
               <ColorPicker
                 value={color}
                 onChange={setColor}
-                disabled={loading}
+                disabled={isSaving}
               />
             </Field>
 
@@ -402,7 +414,7 @@ export const ProjectForm: FC<ProjectFormProps> = ({
               <Select
                 value={status}
                 onValueChange={setStatus}
-                disabled={loading}
+                disabled={isSaving}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
@@ -422,14 +434,15 @@ export const ProjectForm: FC<ProjectFormProps> = ({
                 type="button"
                 variant="outline"
                 onClick={handleCancel}
-                disabled={loading}
+                disabled={isSaving}
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
+                variant="outline"
                 disabled={
-                  loading || !name.trim() || !defaultLanguage || !hasChanges()
+                  isSaving || !name.trim() || !defaultLanguage || !hasChanges()
                 }
               >
                 {mode === "create" ? "Create Project" : "Save Changes"}

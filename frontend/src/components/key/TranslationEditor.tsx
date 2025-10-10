@@ -5,6 +5,7 @@ import { SET_TRANSLATION, GET_PROJECT_KEYS } from "@/graphql/keys";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { getUserFriendlyErrorMessage } from "@/lib/utils";
+import { useSaving, useSavingStore } from "@/stores";
 import type { Language } from "@/types/project";
 import type { TranslationKey } from "@/types/translationKey";
 
@@ -23,9 +24,12 @@ export function TranslationEditor({
 }: TranslationEditorProps) {
   const [value, setValue] = useState(currentValue);
 
-  const [setTranslation, { loading, data: translationData, error: translationError }] = useMutation(SET_TRANSLATION, {
+  const [setTranslation, { data: translationData, error: translationError }] = useMutation(SET_TRANSLATION, {
     refetchQueries: [{ query: GET_PROJECT_KEYS, variables: { projectId } }],
   });
+
+  const withSaving = useSaving();
+  const { isSaving } = useSavingStore();
 
   // Handle translation update success
   useEffect(() => {
@@ -57,21 +61,28 @@ export function TranslationEditor({
     const trimmedValue = value.trim();
 
     // Allow empty value to delete translation
-    await setTranslation({
-      variables: {
-        input: {
-          keyId: keyData.id,
-          value: trimmedValue,
-          language: language.code,
-        },
+    await withSaving(
+      async () => {
+        await setTranslation({
+          variables: {
+            input: {
+              keyId: keyData.id,
+              value: trimmedValue,
+              language: language.code,
+            },
+          },
+        });
       },
-    });
+      `Saving translation...`
+    );
   };
 
   return (
     <div className="">
-      <Textarea value={value} onChange={(e) => setValue(e.target.value)} />
-      <Button onClick={handleSave}>Save</Button>
+      <Textarea value={value} onChange={(e) => setValue(e.target.value)} disabled={isSaving} />
+      <Button onClick={handleSave} disabled={isSaving} variant="outline">
+        Save
+      </Button>
     </div>
   );
 }
