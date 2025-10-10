@@ -38,6 +38,7 @@ class KeyType:
     id: str  # UUID as string for public API
     key: str
     description: Optional[str]
+    tags: List[str]
     translations: List[TranslationType]
     created_at: datetime
     updated_at: Optional[datetime]
@@ -63,6 +64,7 @@ class CreateKeyInput:
     project_id: str  # Project UUID
     key: str
     description: Optional[str] = None
+    tags: Optional[List[str]] = None
     translations: Optional[strawberry.scalars.JSON] = None  # Dict[str, str]
 
 
@@ -74,6 +76,7 @@ class UpdateKeyInput:
     id: str  # Key UUID
     key: Optional[str] = None
     description: Optional[str] = None
+    tags: Optional[List[str]] = None
 
 
 @strawberry.input
@@ -139,6 +142,7 @@ def build_key_type(key) -> KeyType:
         id=str(key.public_id),
         key=key.key,
         description=key.description,
+        tags=key.tags or [],
         translations=translations,
         created_at=key.created_at,
         updated_at=key.updated_at
@@ -292,6 +296,7 @@ class KeyMutation:
                 project_public_id=input.project_id,
                 key=input.key,
                 description=input.description,
+                tags=input.tags,
                 translations=input.translations,
                 user_id=current_user_id
             )
@@ -337,6 +342,7 @@ class KeyMutation:
                 public_id=input.id,
                 key=input.key,
                 description=input.description,
+                tags=input.tags,
                 user_id=current_user_id
             )
             

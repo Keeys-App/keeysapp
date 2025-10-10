@@ -153,6 +153,7 @@ export const ProjectKeysPage: FC = () => {
             selectedKey={selectedKey}
             projectLanguages={projectLanguages}
             projectId={project.id}
+            availableTags={project.availableTags || []}
           />
         ) : null}
       </div>
@@ -162,6 +163,7 @@ export const ProjectKeysPage: FC = () => {
         onOpenChange={setIsCreateDialogOpen}
         projectId={project.id}
         defaultLanguage={project.defaultLanguage}
+        availableTags={project.availableTags || []}
       />
     </div>
   );

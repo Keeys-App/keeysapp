@@ -18,6 +18,7 @@ class KeyService:
         project_public_id: str,
         key: str,
         description: Optional[str] = None,
+        tags: Optional[List[str]] = None,
         translations: Optional[Dict[str, str]] = None,
         user_id: int = None
     ) -> Optional[Key]:
@@ -29,6 +30,7 @@ class KeyService:
             project_public_id: Public UUID of the project
             key: Translation key string (e.g., "button.submit")
             description: Optional description for translators
+            tags: Optional list of tag strings
             translations: Optional dict of {language: translation_value}
             user_id: User ID creating the key (for permission check)
             
@@ -57,10 +59,15 @@ class KeyService:
         new_key = Key(
             key=key,
             description=description,
+            tags=tags or [],
             project_id=project.id
         )
         db.add(new_key)
         db.flush()  # Flush to get the ID
+        
+        # Update project's available_tags
+        if tags:
+            KeyService._update_project_available_tags(db, project, tags)
         
         # Create translations if provided
         if translations:
@@ -157,6 +164,7 @@ class KeyService:
         public_id: str,
         key: Optional[str] = None,
         description: Optional[str] = None,
+        tags: Optional[List[str]] = None,
         user_id: int = None
     ) -> Optional[Key]:
         """
@@ -167,6 +175,7 @@ class KeyService:
             public_id: Public UUID of the key
             key: New key string
             description: New description
+            tags: New tags list
             user_id: User ID updating the key
             
         Returns:
@@ -197,6 +206,13 @@ class KeyService:
         
         if description is not None:
             key_obj.description = description
+        
+        if tags is not None:
+            key_obj.tags = tags
+            # Update project's available_tags
+            project = db.query(Project).filter(Project.id == key_obj.project_id).first()
+            if project:
+                KeyService._update_project_available_tags(db, project, tags)
         
         db.commit()
         db.refresh(key_obj)
@@ -463,4 +479,29 @@ class KeyService:
             'updated_keys': updated_keys,
             'errors': errors
         }
+
+    @staticmethod
+    def _update_project_available_tags(db: Session, project: Project, new_tags: List[str]) -> None:
+        """
+        Update project's available_tags to include new tags.
+        
+        Args:
+            db: Database session
+            project: Project instance
+            new_tags: List of new tags to add
+        """
+        if not new_tags:
+            return
+        
+        current_tags = set(project.available_tags or [])
+        updated = False
+        
+        for tag in new_tags:
+            if tag and tag not in current_tags:
+                current_tags.add(tag)
+                updated = True
+        
+        if updated:
+            project.available_tags = sorted(list(current_tags))
+            db.commit()
 

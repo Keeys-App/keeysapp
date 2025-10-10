@@ -45,6 +45,7 @@ export const PROJECT_FRAGMENT = gql`
       ...LanguageConfigFields
     }
     defaultLanguage
+    availableTags
     color
     status
     owner {
@@ -153,6 +154,7 @@ export interface Project {
   description?: string | null;
   languages: LanguageConfig[];
   defaultLanguage?: string | null;
+  availableTags: string[];
   color: string;
   status: 'active' | 'archived' | 'draft';
   owner: User;

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, type FC } from "react";
 import { useMutation, useLazyQuery, gql } from "@apollo/client";
 import { toast } from "sonner";
-import { Check, Info } from "lucide-react";
+import { Info } from "lucide-react";
 import { CREATE_KEY, GET_PROJECT_KEYS, CHECK_KEY_EXISTS } from "@/graphql/keys";
 import { getUserFriendlyErrorMessage } from "@/lib/utils";
 import { useSaving, useSavingStore } from "@/stores";
@@ -30,12 +30,14 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import { TagsEditor } from "./TagsEditor";
 
 interface CreateKeyDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   projectId: string;
   defaultLanguage?: string | null;
+  availableTags?: string[];
 }
 
 export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
@@ -43,10 +45,12 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
   onOpenChange,
   projectId,
   defaultLanguage,
+  availableTags = [],
 }) => {
   const [key, setKey] = useState("");
   const [description, setDescription] = useState("");
   const [defaultValue, setDefaultValue] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
   const [addAnother, setAddAnother] = useState(false);
   const [isDuplicate, setIsDuplicate] = useState(false);
   const [lastCheckedKey, setLastCheckedKey] = useState<string>("");
@@ -110,6 +114,7 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
       setKey("");
       setDescription("");
       setDefaultValue("");
+      setTags([]);
       setIsDuplicate(false);
       setLastCheckedKey("");
     }
@@ -167,6 +172,7 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
       setKey("");
       setDescription("");
       setDefaultValue("");
+      setTags([]);
       setIsDuplicate(false);
       setLastCheckedKey(""); // Reset last checked key
 
@@ -220,6 +226,7 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
               projectId,
               key: key.trim(),
               description: description.trim() || undefined,
+              tags: tags.length > 0 ? tags : undefined,
               translations,
             },
           },
@@ -296,6 +303,18 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
                   }}
                   disabled={isSaving}
                   rows={5}
+                />
+              </Field>
+              
+              {/* Tags */}
+              <Field>
+                <FieldLabel>Tags</FieldLabel>
+                <TagsEditor
+                  selectedTags={tags}
+                  availableTags={availableTags}
+                  onChange={setTags}
+                  disabled={isSaving}
+                  placeholder="Select or create tags..."
                 />
               </Field>
             </TabsContent>

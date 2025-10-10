@@ -6,6 +6,7 @@ export const GET_PROJECT_KEYS = gql`
       id
       key
       description
+      tags
       translations {
         language
         value
@@ -24,6 +25,7 @@ export const GET_KEY = gql`
       id
       key
       description
+      tags
       translations {
         language
         value
@@ -48,6 +50,7 @@ export const CREATE_KEY = gql`
       id
       key
       description
+      tags
       translations {
         language
         value
@@ -66,6 +69,7 @@ export const UPDATE_KEY = gql`
       id
       key
       description
+      tags
       translations {
         language
         value

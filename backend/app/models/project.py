@@ -19,6 +19,7 @@ class Project(Base):
     description = Column(Text, nullable=True)
     languages = Column(JSON, default=list, nullable=False)  # Array of language objects: [{"code": "en", "locale": "en-US"}, ...]
     default_language = Column(String(10), nullable=True)  # Default language code (must be in languages array)
+    available_tags = Column(JSON, default=list, nullable=False)  # Array of tag strings available in project
     color = Column(String(7), default="#6366f1", nullable=False)  # Hex color code
     status = Column(String(20), default="active", nullable=False)  # active, archived, draft
     owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)

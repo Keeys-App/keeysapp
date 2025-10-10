@@ -9,11 +9,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { useSaving, useSavingStore } from "@/stores";
+import { TagsEditor } from "./TagsEditor";
 
 interface KeyManagementProps {
   selectedKey: TranslationKey | null;
   projectLanguages: (Language | LanguageWithLocale)[];
   projectId: string;
+  availableTags?: string[];
 }
 
 /**
@@ -23,12 +25,15 @@ export const KeyManagement: FC<KeyManagementProps> = ({
   selectedKey,
   projectLanguages,
   projectId,
+  availableTags = [],
 }) => {
   const [description, setDescription] = useState("");
   const [keyName, setKeyName] = useState("");
   const [displayKeyName, setDisplayKeyName] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
   const [savedDescription, setSavedDescription] = useState("");
   const [savedKeyName, setSavedKeyName] = useState("");
+  const [savedTags, setSavedTags] = useState<string[]>([]);
 
   const [updateKey, { data, error }] = useMutation(UPDATE_KEY);
   const withSaving = useSaving();
@@ -39,11 +44,14 @@ export const KeyManagement: FC<KeyManagementProps> = ({
     if (selectedKey) {
       const desc = selectedKey.description || "";
       const key = selectedKey.key;
+      const keyTags = selectedKey.tags || [];
       setDescription(desc);
       setKeyName(key);
       setDisplayKeyName(key);
+      setTags(keyTags);
       setSavedDescription(desc);
       setSavedKeyName(key);
+      setSavedTags(keyTags);
     }
   }, [selectedKey]);
 
@@ -58,6 +66,9 @@ export const KeyManagement: FC<KeyManagementProps> = ({
       }
       if (data.updateKey?.description !== undefined) {
         setSavedDescription(data.updateKey.description || "");
+      }
+      if (data.updateKey?.tags !== undefined) {
+        setSavedTags(data.updateKey.tags || []);
       }
     }
   }, [data]);
@@ -114,6 +125,26 @@ export const KeyManagement: FC<KeyManagementProps> = ({
     );
   };
 
+  const handleUpdateTags = async () => {
+    if (!selectedKey) {
+      return;
+    }
+
+    await withSaving(
+      async () => {
+        await updateKey({
+          variables: {
+            input: {
+              id: selectedKey.id,
+              tags: tags,
+            },
+          },
+        });
+      },
+      "Updating tags..."
+    );
+  };
+
   if (!selectedKey) {
     return (
       <div className="h-full flex flex-col">
@@ -149,7 +180,9 @@ export const KeyManagement: FC<KeyManagementProps> = ({
               <FieldLabel>Description</FieldLabel>
               <Textarea
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(e) => {
+                  return setDescription(e.target.value);
+                }}
                 placeholder="Enter key description..."
                 className="min-h-[120px]"
               />
@@ -158,8 +191,28 @@ export const KeyManagement: FC<KeyManagementProps> = ({
               onClick={handleUpdateDescription}
               disabled={isSaving || description === savedDescription}
               size="sm"
+              variant="outline"
             >
               Save Description
+            </Button>
+            
+            <Field>
+              <FieldLabel>Tags</FieldLabel>
+              <TagsEditor
+                selectedTags={tags}
+                availableTags={availableTags}
+                onChange={setTags}
+                disabled={isSaving}
+                placeholder="Select or create tags..."
+              />
+            </Field>
+            <Button
+              onClick={handleUpdateTags}
+              disabled={isSaving || JSON.stringify(tags.sort()) === JSON.stringify(savedTags.sort())}
+              size="sm"
+              variant="outline"
+            >
+              Save Tags
             </Button>
           </TabsContent>
 
@@ -177,6 +230,7 @@ export const KeyManagement: FC<KeyManagementProps> = ({
               onClick={handleUpdateKeyName}
               disabled={isSaving || keyName === savedKeyName || !keyName.trim()}
               size="sm"
+              variant="outline"
             >
               Update Key Name
             </Button>

@@ -60,6 +60,7 @@ class ProjectType:
     description: Optional[str]
     languages: List[LanguageConfigType]
     default_language: Optional[str]
+    available_tags: List[str]
     color: str
     status: str
     owner: UserType
@@ -237,6 +238,7 @@ def build_project_type(project, current_user_id: int, stats: Optional[dict] = No
         description=project.description,
         languages=languages,
         default_language=project.default_language,
+        available_tags=project.available_tags or [],
         color=project.color,
         status=project.status,
         owner=owner,

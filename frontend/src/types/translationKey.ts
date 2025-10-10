@@ -9,6 +9,7 @@ export interface TranslationKey {
   id: string;
   key: string;
   description?: string;
+  tags: string[];
   translations: Translation[];
   createdAt: string;
   updatedAt?: string;
@@ -18,6 +19,7 @@ export interface CreateKeyInput {
   projectId: string;
   key: string;
   description?: string;
+  tags?: string[];
   translations?: Record<string, string>;
 }
 
@@ -25,6 +27,7 @@ export interface UpdateKeyInput {
   id: string;
   key?: string;
   description?: string;
+  tags?: string[];
 }
 
 export interface SetTranslationInput {

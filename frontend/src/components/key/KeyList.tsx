@@ -4,7 +4,6 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { GET_PROJECT_KEYS } from "@/graphql/keys";
 import type { TranslationKey } from "@/types/translationKey";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { EmptyKeys } from "./EmptyKeys";
 import { Key } from "./Key";
 import { KeyControls } from "./KeyControls";

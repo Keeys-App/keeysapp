@@ -489,12 +489,13 @@ class ProjectService:
         # Get all keys with translations
         keys = db.query(Key).filter(Key.project_id == project.id).all()
         
-        # Build keys array with descriptions
+        # Build keys array with descriptions and tags
         keys_list = []
         for key in keys:
             keys_list.append({
                 'key': key.key,
-                'description': key.description or ''
+                'description': key.description or '',
+                'tags': key.tags or []
             })
         
         # Build locales structure (translations only, no locale duplication)
@@ -528,6 +529,7 @@ class ProjectService:
                 'description': project.description or '',
                 'languages': project.languages,
                 'defaultLanguage': project.default_language,  # Don't convert None to empty string
+                'availableTags': project.available_tags or [],
                 'color': project.color,
                 'status': project.status
             },
@@ -576,11 +578,16 @@ class ProjectService:
                 status=config.get('status', 'active')
             )
             
-            # Create keys with descriptions first
+            # Set available_tags if present
+            if config.get('availableTags'):
+                project.available_tags = config.get('availableTags', [])
+            
+            # Create keys with descriptions and tags first
             created_keys = {}
             for key_item in keys_data:
                 key_str = key_item.get('key')
                 description = key_item.get('description', '')
+                tags = key_item.get('tags', [])
                 
                 if not key_str:
                     continue
@@ -588,6 +595,7 @@ class ProjectService:
                 new_key = Key(
                     key=key_str,
                     description=description,
+                    tags=tags,
                     project_id=project.id
                 )
                 db.add(new_key)
