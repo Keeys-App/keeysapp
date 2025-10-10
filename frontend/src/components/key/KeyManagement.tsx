@@ -27,6 +27,8 @@ export const KeyManagement: FC<KeyManagementProps> = ({
   const [description, setDescription] = useState("");
   const [keyName, setKeyName] = useState("");
   const [displayKeyName, setDisplayKeyName] = useState("");
+  const [savedDescription, setSavedDescription] = useState("");
+  const [savedKeyName, setSavedKeyName] = useState("");
 
   const [updateKey, { data, error }] = useMutation(UPDATE_KEY);
   const withSaving = useSaving();
@@ -35,9 +37,13 @@ export const KeyManagement: FC<KeyManagementProps> = ({
   // Update local state when selected key changes
   useEffect(() => {
     if (selectedKey) {
-      setDescription(selectedKey.description || "");
-      setKeyName(selectedKey.key);
-      setDisplayKeyName(selectedKey.key);
+      const desc = selectedKey.description || "";
+      const key = selectedKey.key;
+      setDescription(desc);
+      setKeyName(key);
+      setDisplayKeyName(key);
+      setSavedDescription(desc);
+      setSavedKeyName(key);
     }
   }, [selectedKey]);
 
@@ -45,9 +51,13 @@ export const KeyManagement: FC<KeyManagementProps> = ({
   useEffect(() => {
     if (data) {
       toast("Key updated successfully");
-      // Update display name if key was updated
+      // Update display name and saved values if key was updated
       if (data.updateKey?.key) {
         setDisplayKeyName(data.updateKey.key);
+        setSavedKeyName(data.updateKey.key);
+      }
+      if (data.updateKey?.description !== undefined) {
+        setSavedDescription(data.updateKey.description || "");
       }
     }
   }, [data]);
@@ -146,9 +156,8 @@ export const KeyManagement: FC<KeyManagementProps> = ({
             </Field>
             <Button
               onClick={handleUpdateDescription}
-              disabled={isSaving || description === selectedKey.description}
+              disabled={isSaving || description === savedDescription}
               size="sm"
-              variant="outline"
             >
               Save Description
             </Button>
@@ -166,9 +175,8 @@ export const KeyManagement: FC<KeyManagementProps> = ({
             </Field>
             <Button
               onClick={handleUpdateKeyName}
-              disabled={isSaving || keyName === selectedKey.key || !keyName.trim()}
+              disabled={isSaving || keyName === savedKeyName || !keyName.trim()}
               size="sm"
-              variant="outline"
             >
               Update Key Name
             </Button>
