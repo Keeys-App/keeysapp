@@ -8,26 +8,16 @@ import { KeyList, CreateKeyDialog, KeyManagement } from "@/components/key";
 import { COMMON_LANGUAGES, LANGUAGE_CONFIGS } from "@/types/project";
 import { LoadingState, ErrorState, NotFoundState } from "@/components/blocks";
 import type { TranslationKey } from "@/types/translationKey";
-import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { PanelRightClose, PanelRightOpen } from "lucide-react";
+import { useLayoutStore } from "@/stores";
 
 export const ProjectKeysPage: FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { setBreadcrumbs } = useBreadcrumbs();
+  const { isPanelOpen, setShowPanelToggle } = useLayoutStore();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedKey, setSelectedKey] = useState<TranslationKey | null>(null);
-  const [isPanelOpen, setIsPanelOpen] = useState(() => {
-    const saved = localStorage.getItem('keyManagementPanelOpen');
-    return saved !== null ? saved === 'true' : true;
-  });
 
   const { data, loading, error } = useQuery<GetProjectData>(GET_PROJECT, {
     variables: { id },
@@ -35,6 +25,14 @@ export const ProjectKeysPage: FC = () => {
   });
 
   const project = data?.project;
+
+  // Show/hide panel toggle button when entering/leaving this page
+  useEffect(() => {
+    setShowPanelToggle(true);
+    return () => {
+      setShowPanelToggle(false);
+    };
+  }, [setShowPanelToggle]);
 
   useEffect(() => {
     if (project) {
@@ -119,33 +117,6 @@ export const ProjectKeysPage: FC = () => {
           onSelectKey={handleSelectKey}
         />
       </div>
-
-      {/* Toggle Button */}
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute cursor-pointer right-2 top-2 z-20 bg-background/80 backdrop-blur-sm hover:bg-muted"
-              onClick={() => {
-                const newState = !isPanelOpen;
-                setIsPanelOpen(newState);
-                localStorage.setItem('keyManagementPanelOpen', String(newState));
-              }}
-            >
-              {isPanelOpen ? (
-                <PanelRightClose className="h-4 w-4" />
-              ) : (
-                <PanelRightOpen className="h-4 w-4" />
-              )}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            {isPanelOpen ? 'Hide management panel' : 'Show management panel'}
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
 
       {/* Right Panel */}
       <div
