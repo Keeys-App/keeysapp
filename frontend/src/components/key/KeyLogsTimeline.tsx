@@ -11,6 +11,7 @@ import {
   Edit,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { InlineDiff } from "./InlineDiff";
 
 interface User {
   id: string;
@@ -163,50 +164,17 @@ export const KeyLogsTimeline: FC<KeyLogsTimelineProps> = ({
 
                 {/* Action details */}
                 <div className="text-sm text-muted-foreground space-y-1">
-                  {log.language ? (
-                    <div>
-                      <span className="font-mono bg-muted px-1.5 py-0.5 rounded text-xs">
-                        {log.language}
-                      </span>
-                    </div>
+                  {(log.oldValue || log.newValue) ? (
+                    <InlineDiff 
+                      oldValue={log.oldValue || ''} 
+                      newValue={log.newValue || ''}
+                      language={log.language || undefined}
+                    />
                   ) : null}
-
-                  {log.oldValue && log.newValue ? (
-                    <div className="space-y-1 mt-2">
-                      <div className="text-xs text-muted-foreground/70">
-                        Old:
-                      </div>
-                      <div className="bg-red-500/10 border border-red-500/20 rounded px-2 py-1 text-xs font-mono break-all line-through">
-                        {log.oldValue}
-                      </div>
-                      <div className="text-xs text-muted-foreground/70">
-                        New:
-                      </div>
-                      <div className="bg-green-500/10 border border-green-500/20 rounded px-2 py-1 text-xs font-mono break-all">
-                        {log.newValue}
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {log.oldValue && !log.newValue ? (
-                    <div className="space-y-1 mt-2">
-                      <div className="text-xs text-muted-foreground/70">
-                        Deleted:
-                      </div>
-                      <div className="bg-red-500/10 border border-red-500/20 rounded px-2 py-1 text-xs font-mono break-all line-through">
-                        {log.oldValue}
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {!log.oldValue && log.newValue ? (
-                    <div className="space-y-1 mt-2">
-                      <div className="text-xs text-muted-foreground/70">
-                        Created:
-                      </div>
-                      <div className="bg-green-500/10 border border-green-500/20 rounded px-2 py-1 text-xs font-mono break-all">
-                        {log.newValue}
-                      </div>
+                  
+                  {!log.oldValue && !log.newValue && log.language ? (
+                    <div className="text-xs text-muted-foreground/70">
+                      Language: <span className="font-mono bg-muted px-1.5 py-0.5 rounded">{log.language}</span>
                     </div>
                   ) : null}
                 </div>

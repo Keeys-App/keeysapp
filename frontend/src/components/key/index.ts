@@ -7,4 +7,5 @@ export { EmptyKeys } from './EmptyKeys';
 export { KeyControls } from './KeyControls';
 export { KeyManagement } from './KeyManagement';
 export { KeyLogsTimeline } from './KeyLogsTimeline';
+export { InlineDiff } from './InlineDiff';
 
