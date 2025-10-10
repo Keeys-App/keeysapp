@@ -58,7 +58,7 @@ export function KeyList({
 
   return (
     <div>
-      <KeyControls onCreateKey={onCreateKey} />
+      <KeyControls projectId={projectId} onCreateKey={onCreateKey} />
       {keys.map((key) => (
         <Key
           key={key.id}

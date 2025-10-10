@@ -4,6 +4,9 @@ export * from './auth';
 // Project module
 export * from './project';
 
+// Export module
+export * from './export';
+
 // Layout module
 export * from './layout';
 

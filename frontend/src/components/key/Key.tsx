@@ -27,7 +27,7 @@ export function Key({ keyData, projectId, projectLanguages }: KeyProps) {
             return (
               <div
                 key={language.code}
-                className="grid grid-cols-[120px_1fr] odd:bg-muted border-b last:border-b-0"
+                className="grid grid-cols-[120px_1fr] even:bg-muted border-b last:border-b-0"
               >
                 <div className="flex flex-col border-r p-2">
                   <div className="">{language.name}</div>

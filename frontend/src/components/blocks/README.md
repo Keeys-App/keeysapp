@@ -61,3 +61,42 @@ const options = [
 />
 ```
 
+### LoadingState
+
+Универсальный компонент для отображения состояния загрузки.
+
+```tsx
+import { LoadingState } from '@/components/blocks';
+
+<LoadingState message="Loading project..." />
+<LoadingState message="Loading..." className="min-h-[40vh]" />
+```
+
+### ErrorState
+
+Компонент для отображения ошибок с возможностью добавления кнопки возврата.
+
+```tsx
+import { ErrorState } from '@/components/blocks';
+
+<ErrorState 
+  message="Error loading project"
+  onBack={handleBack}
+  backLabel="Back to Dashboard"
+/>
+```
+
+### NotFoundState
+
+Компонент для отображения состояния "не найдено" с возможностью добавления кнопки возврата.
+
+```tsx
+import { NotFoundState } from '@/components/blocks';
+
+<NotFoundState 
+  message="Project not found"
+  onBack={handleBack}
+  backLabel="Back to Dashboard"
+/>
+```
+

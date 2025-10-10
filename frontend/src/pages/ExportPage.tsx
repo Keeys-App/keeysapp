@@ -1,19 +1,19 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@apollo/client";
+import { ArrowLeft } from "lucide-react";
 import { GET_PROJECT, type GetProjectData } from "@/graphql/projects";
 import { PATHS } from "@/constants/paths";
 import { useAuth, useBreadcrumbs } from "@/contexts";
-import { useEffect, useState, type FC } from "react";
-import { KeyList, CreateKeyDialog } from "@/components/key";
-import { COMMON_LANGUAGES } from "@/types/project";
+import { useEffect, type FC } from "react";
+import { Button } from "@/components/ui/button";
+import { ExportContent } from "@/components/export";
 import { LoadingState, ErrorState, NotFoundState } from "@/components/blocks";
 
-export const ProjectPage: FC = () => {
+export const ExportPage: FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { setBreadcrumbs } = useBreadcrumbs();
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   const { data, loading, error } = useQuery<GetProjectData>(GET_PROJECT, {
     variables: { id },
@@ -26,25 +26,21 @@ export const ProjectPage: FC = () => {
     if (project) {
       setBreadcrumbs([
         { label: "Dashboard", href: PATHS.DASHBOARD },
-        { label: project.name },
+        { label: project.name, href: PATHS.PROJECT.replace(":id", id || "") },
+        { label: "Export" },
       ]);
     } else {
       setBreadcrumbs([
         { label: "Dashboard", href: PATHS.DASHBOARD },
         { label: "Project" },
+        { label: "Export" },
       ]);
     }
-  }, [project, setBreadcrumbs]);
+  }, [project, setBreadcrumbs, id]);
 
   const handleBackClick = () => {
-    navigate(PATHS.DASHBOARD);
+    navigate(PATHS.PROJECT.replace(":id", id || ""));
   };
-
-  const handleCreateKey = () => {
-    setIsCreateDialogOpen(true);
-  };
-
-  const projectLanguages = COMMON_LANGUAGES.filter((language) => project?.languages.includes(language.code));
 
   if (loading) {
     return <LoadingState message="Loading project..." />;
@@ -55,7 +51,7 @@ export const ProjectPage: FC = () => {
       <ErrorState
         message={`Error loading project: ${error.message}`}
         onBack={handleBackClick}
-        backLabel="Back to Dashboard"
+        backLabel="Back to Project"
       />
     );
   }
@@ -65,24 +61,22 @@ export const ProjectPage: FC = () => {
       <NotFoundState
         message="Project not found"
         onBack={handleBackClick}
-        backLabel="Back to Dashboard"
+        backLabel="Back to Project"
       />
     );
   }
 
   return (
-    <div className="h-full">
-      <KeyList
-        projectId={project.id}
-        projectLanguages={projectLanguages}
-        onCreateKey={handleCreateKey}
-      />
-
-      <CreateKeyDialog
-        open={isCreateDialogOpen}
-        onOpenChange={setIsCreateDialogOpen}
-        projectId={project.id}
-      />
+    <div className="container mx-auto p-6">
+      <div className="flex items-center gap-4 mb-6">
+        <Button variant="ghost" size="icon" onClick={handleBackClick}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <h1 className="text-3xl font-bold">Export: {project.name}</h1>
+      </div>
+      
+      <ExportContent project={project} />
     </div>
   );
 };
+
