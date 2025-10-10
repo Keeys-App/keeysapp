@@ -23,13 +23,13 @@ export const EditProjectPage: FC = () => {
       setBreadcrumbs([
         { label: 'Dashboard', href: PATHS.DASHBOARD },
         { label: project.name, href: PATHS.PROJECT.replace(':id', id || '') },
-        { label: 'Edit' },
+        { label: 'Settings' },
       ]);
     } else {
       setBreadcrumbs([
         { label: 'Dashboard', href: PATHS.DASHBOARD },
         { label: 'Project' },
-        { label: 'Edit' },
+        { label: 'Settings' },
       ]);
     }
   }, [project, setBreadcrumbs, id]);

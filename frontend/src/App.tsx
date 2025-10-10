@@ -4,6 +4,7 @@ import { ProtectedRoute, Layout, AuthLayout } from '@/components/layout';
 import { AuthPage } from '@/pages/AuthPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { ProjectPage } from '@/pages/ProjectPage';
+import { ProjectKeysPage } from '@/pages/ProjectKeysPage';
 import { CreateProjectPage } from '@/pages/CreateProjectPage';
 import { EditProjectPage } from '@/pages/EditProjectPage';
 import { ExportPage } from '@/pages/ExportPage';
@@ -30,6 +31,7 @@ function App() {
             <Route path={PATHS.PROJECT_CREATE} element={<CreateProjectPage />} />
             <Route path={PATHS.PROJECT_EDIT} element={<EditProjectPage />} />
             <Route path={PATHS.PROJECT} element={<ProjectPage />} />
+            <Route path={PATHS.PROJECT_KEYS} element={<ProjectKeysPage />} />
             <Route path={PATHS.EXPORT} element={<ExportPage />} />
             <Route path={PATHS.IMPORT} element={<ImportPage />} />
           </Route>

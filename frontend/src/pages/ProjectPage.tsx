@@ -3,17 +3,32 @@ import { useQuery } from "@apollo/client";
 import { GET_PROJECT, type GetProjectData } from "@/graphql/projects";
 import { PATHS } from "@/constants/paths";
 import { useAuth, useBreadcrumbs } from "@/contexts";
-import { useEffect, useState, type FC } from "react";
-import { KeyList, CreateKeyDialog } from "@/components/key";
-import { COMMON_LANGUAGES } from "@/types/project";
+import { useEffect, type FC } from "react";
 import { LoadingState, ErrorState, NotFoundState } from "@/components/blocks";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { 
+  FileText, 
+  Languages, 
+  Users, 
+  Calendar,
+  Edit,
+  FileDown,
+  FileUp,
+  Key,
+  ArrowRight
+} from "lucide-react";
+import { COMMON_LANGUAGES } from "@/types/project";
 
 export const ProjectPage: FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { setBreadcrumbs } = useBreadcrumbs();
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   const { data, loading, error } = useQuery<GetProjectData>(GET_PROJECT, {
     variables: { id },
@@ -27,13 +42,11 @@ export const ProjectPage: FC = () => {
       setBreadcrumbs([
         { label: "Dashboard", href: PATHS.DASHBOARD },
         { label: project.name },
-        { label: "Keys" },
       ]);
     } else {
       setBreadcrumbs([
         { label: "Dashboard", href: PATHS.DASHBOARD },
         { label: "Project" },
-        { label: "Keys" },
       ]);
     }
   }, [project, setBreadcrumbs]);
@@ -41,12 +54,6 @@ export const ProjectPage: FC = () => {
   const handleBackClick = () => {
     navigate(PATHS.DASHBOARD);
   };
-
-  const handleCreateKey = () => {
-    setIsCreateDialogOpen(true);
-  };
-
-  const projectLanguages = COMMON_LANGUAGES.filter((language) => project?.languages.includes(language.code));
 
   if (loading) {
     return <LoadingState message="Loading project..." />;
@@ -72,19 +79,264 @@ export const ProjectPage: FC = () => {
     );
   }
 
-  return (
-    <div className="h-full">
-      <KeyList
-        projectId={project.id}
-        projectLanguages={projectLanguages}
-        onCreateKey={handleCreateKey}
-      />
+  const totalTranslations = project.keysCount * project.languages.length;
+  const completedTranslations = Math.round((totalTranslations * project.translationProgress) / 100);
+  
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
 
-      <CreateKeyDialog
-        open={isCreateDialogOpen}
-        onOpenChange={setIsCreateDialogOpen}
-        projectId={project.id}
-      />
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  return (
+    <div className="container mx-auto p-6 space-y-6">
+      {/* Header Section */}
+      <div className="flex items-start justify-between">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3">
+            <div 
+              className="w-3 h-3 rounded-full" 
+              style={{ backgroundColor: project.color }}
+            />
+            <h1 className="text-3xl font-bold">{project.name}</h1>
+            <Badge variant="outline" className="capitalize">
+              {project.status}
+            </Badge>
+          </div>
+          {project.description ? (
+            <p className="text-muted-foreground">{project.description}</p>
+          ) : null}
+        </div>
+        {project.canEdit ? (
+          <Button
+            onClick={() => navigate(PATHS.PROJECT_EDIT.replace(':id', id!))}
+            variant="outline"
+          >
+            <Edit className="h-4 w-4" />
+            Edit Project
+          </Button>
+        ) : null}
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => navigate(PATHS.PROJECT_KEYS.replace(':id', id!))}>
+          <CardContent className="flex items-center justify-between p-6">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Translation Keys</p>
+              <p className="text-2xl font-bold">{project.keysCount}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Key className="h-8 w-8 text-muted-foreground" />
+              <ArrowRight className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => navigate(PATHS.EXPORT.replace(':id', id!))}>
+          <CardContent className="flex items-center justify-between p-6">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Export</p>
+              <p className="text-sm">Download translations</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <FileDown className="h-8 w-8 text-muted-foreground" />
+              <ArrowRight className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => navigate(PATHS.IMPORT.replace(':id', id!))}>
+          <CardContent className="flex items-center justify-between p-6">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Import</p>
+              <p className="text-sm">Upload translations</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <FileUp className="h-8 w-8 text-muted-foreground" />
+              <ArrowRight className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Translation Progress */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Translation Progress
+            </CardTitle>
+            <CardDescription>
+              Overall completion status of your translations
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Overall Progress</span>
+                <span className="text-2xl font-bold">{project.translationProgress}%</span>
+              </div>
+              <Progress value={project.translationProgress} className="h-3" />
+              <p className="text-sm text-muted-foreground">
+                {completedTranslations} of {totalTranslations} translations completed
+              </p>
+            </div>
+
+            <Separator />
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Total Keys</p>
+                <p className="text-2xl font-bold">{project.keysCount}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Languages</p>
+                <p className="text-2xl font-bold">{project.languages.length}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Completed</p>
+                <p className="text-2xl font-bold text-green-600">{completedTranslations}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Remaining</p>
+                <p className="text-2xl font-bold text-orange-600">{totalTranslations - completedTranslations}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Languages */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Languages className="h-5 w-5" />
+              Languages
+            </CardTitle>
+            <CardDescription>
+              {project.languages.length} language{project.languages.length !== 1 ? 's' : ''} configured
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {project.languages.map((langCode) => {
+              const language = COMMON_LANGUAGES.find(l => l.code === langCode);
+              const isDefault = langCode === project.defaultLanguage;
+              return (
+                <div key={langCode} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">{language?.flag || '🏳️'}</span>
+                    <div>
+                      <p className="text-sm font-medium">{language?.name || langCode}</p>
+                      <p className="text-xs text-muted-foreground">{langCode}</p>
+                    </div>
+                  </div>
+                  {isDefault ? (
+                    <Badge variant="secondary" className="text-xs">
+                      Default
+                    </Badge>
+                  ) : null}
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Team Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Team
+          </CardTitle>
+          <CardDescription>
+            Project owner and members
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {/* Owner */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Avatar>
+                  <AvatarFallback className="bg-primary text-primary-foreground">
+                    {getInitials(project.owner.username)}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="text-sm font-medium">{project.owner.username}</p>
+                  <p className="text-xs text-muted-foreground">{project.owner.email}</p>
+                </div>
+              </div>
+              <Badge>Owner</Badge>
+            </div>
+
+            {/* Members */}
+            {project.members && project.members.length > 0 ? (
+              <>
+                <Separator />
+                {project.members.map((member) => (
+                  <div key={member.user.id} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Avatar>
+                        <AvatarFallback>
+                          {getInitials(member.user.username)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="text-sm font-medium">{member.user.username}</p>
+                        <p className="text-xs text-muted-foreground">{member.user.email}</p>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="capitalize">
+                      {member.role}
+                    </Badge>
+                  </div>
+                ))}
+              </>
+            ) : null}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Project Info */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Project Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Created</span>
+            <span className="text-sm font-medium">{formatDate(project.createdAt)}</span>
+          </div>
+          {project.updatedAt ? (
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Last Updated</span>
+              <span className="text-sm font-medium">{formatDate(project.updatedAt)}</span>
+            </div>
+          ) : null}
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Project ID</span>
+            <span className="text-sm font-mono">{project.id}</span>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

@@ -8,7 +8,8 @@
 pages/
 ├── AuthPage.tsx            # Аутентификация (логин/регистрация)
 ├── DashboardPage.tsx       # Главная страница (список проектов)
-├── ProjectPage.tsx         # Страница проекта (ключи переводов)
+├── ProjectPage.tsx         # Страница обзора проекта (статистика)
+├── ProjectKeysPage.tsx     # Страница ключей переводов
 ├── CreateProjectPage.tsx   # Создание нового проекта
 ├── EditProjectPage.tsx     # Редактирование проекта
 ├── ExportPage.tsx          # Экспорт переводов
@@ -64,12 +65,37 @@ pages/
 - Breadcrumbs динамически обновляются с именем проекта
 
 ### ProjectPage (`/project/:id`)
-Страница проекта с ключами переводов и управлением.
+Страница обзора проекта с общей информацией и статистикой.
+
+**Компоненты:**
+- Статистика перевода (прогресс, количество ключей, языков)
+- Список языков проекта
+- Информация о команде (владелец и члены)
+- Быстрые действия (переход к ключам, экспорт, импорт)
+
+**Breadcrumbs:**
+- Dashboard → [Project Name]
+
+**Особенности:**
+- Визуализация прогресса перевода
+- Отображение количества завершенных и оставшихся переводов
+- Быстрый переход к ключам переводов
+- Отображение всех настроенных языков с отметкой языка по умолчанию
+
+### ProjectKeysPage (`/project/:id/keys`)
+Страница управления ключами переводов проекта.
+
+**Компоненты:**
+- `KeyList` - список ключей переводов
+- `CreateKeyDialog` - диалог создания нового ключа
+
+**Breadcrumbs:**
+- Dashboard → [Project Name] → Keys
 
 **Функции:**
 - Просмотр и редактирование ключей
 - Управление переводами
-- Навигация к экспорту/импорту
+- Создание новых ключей
 
 ### ExportPage (`/project/:id/export`)
 Страница экспорта переводов в различные форматы.
@@ -98,6 +124,7 @@ export const PATHS = {
   HOME: '/',
   DASHBOARD: '/',
   PROJECT: '/project/:id',
+  PROJECT_KEYS: '/project/:id/keys',
   PROJECT_CREATE: '/project/create',
   PROJECT_EDIT: '/project/:id/edit',
   EXPORT: '/project/:id/export',
@@ -120,7 +147,10 @@ export const PATHS = {
   <Route path={PATHS.DASHBOARD} element={<DashboardPage />} />
   <Route path={PATHS.PROJECT_CREATE} element={<CreateProjectPage />} />
   <Route path={PATHS.PROJECT_EDIT} element={<EditProjectPage />} />
-  {/* ... другие защищенные роуты */}
+  <Route path={PATHS.PROJECT} element={<ProjectPage />} />
+  <Route path={PATHS.PROJECT_KEYS} element={<ProjectKeysPage />} />
+  <Route path={PATHS.EXPORT} element={<ExportPage />} />
+  <Route path={PATHS.IMPORT} element={<ImportPage />} />
 </Route>
 ```
 
@@ -140,6 +170,8 @@ import { Link } from 'react-router-dom';
 import { PATHS } from '@/constants/paths';
 
 <Link to={PATHS.PROJECT_CREATE}>Create Project</Link>
+<Link to={PATHS.PROJECT.replace(':id', projectId)}>Project Overview</Link>
+<Link to={PATHS.PROJECT_KEYS.replace(':id', projectId)}>Translation Keys</Link>
 <Link to={PATHS.PROJECT_EDIT.replace(':id', projectId)}>Edit</Link>
 ```
 
@@ -152,6 +184,12 @@ const navigate = useNavigate();
 
 // Переход на создание проекта
 navigate(PATHS.PROJECT_CREATE);
+
+// Переход на обзор проекта
+navigate(PATHS.PROJECT.replace(':id', projectId));
+
+// Переход на ключи проекта
+navigate(PATHS.PROJECT_KEYS.replace(':id', projectId));
 
 // Переход на редактирование с ID
 navigate(PATHS.PROJECT_EDIT.replace(':id', projectId));
