@@ -43,7 +43,11 @@ class TestKeyPerformance:
         project = ProjectService.create_project(
             db=db_session,
             name="Performance Test Project",
-            languages=["en", "ru", "de"],
+            languages=[
+                {"code": "en", "locale": "en-US"},
+                {"code": "ru", "locale": "ru-RU"},
+                {"code": "de", "locale": "de-DE"}
+            ],
             owner_id=created_user.id
         )
 

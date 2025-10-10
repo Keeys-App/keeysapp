@@ -16,7 +16,10 @@ def test_create_project(db_session, test_user):
         owner_id=test_user.id,
         name="Test Project",
         description="Test Description",
-        languages=["en", "ru"],
+        languages=[
+            {"code": "en", "locale": "en-US"},
+            {"code": "ru", "locale": "ru-RU"}
+        ],
         color="#FF0000",
         status="active"
     )
@@ -41,7 +44,7 @@ def test_get_project_by_public_id(db_session, test_user):
         db=db_session,
         owner_id=test_user.id,
         name="Test Project",
-        languages=["en"]
+        languages=[{"code": "en", "locale": "en-US"}]
     )
     
     found_project = ProjectService.get_project_by_public_id(
@@ -74,14 +77,14 @@ def test_get_user_projects_as_owner(db_session, test_user):
         db=db_session,
         owner_id=test_user.id,
         name="Project 1",
-        languages=["en"]
+        languages=[{"code": "en", "locale": "en-US"}]
     )
     
     project2 = ProjectService.create_project(
         db=db_session,
         owner_id=test_user.id,
         name="Project 2",
-        languages=["ru"]
+        languages=[{"code": "ru", "locale": "ru-RU"}]
     )
     
     projects = ProjectService.get_user_projects(db=db_session, user_id=test_user.id)
@@ -109,7 +112,7 @@ def test_get_user_projects_as_member(db_session, test_user):
         db=db_session,
         owner_id=owner.id,
         name="Shared Project",
-        languages=["en"]
+        languages=[{"code": "en", "locale": "en-US"}]
     )
     
     # Add test_user as member
@@ -135,7 +138,7 @@ def test_update_project(db_session, test_user):
         db=db_session,
         owner_id=test_user.id,
         name="Original Name",
-        languages=["en"]
+        languages=[{"code": "en", "locale": "en-US"}]
     )
     
     updated_project = ProjectService.update_project(
@@ -144,7 +147,11 @@ def test_update_project(db_session, test_user):
         user_id=test_user.id,
         name="Updated Name",
         description="New Description",
-        languages=["en", "ru", "de"]
+        languages=[
+            {"code": "en", "locale": "en-US"},
+            {"code": "ru", "locale": "ru-RU"},
+            {"code": "de", "locale": "de-DE"}
+        ]
     )
     
     assert updated_project is not None
@@ -173,7 +180,7 @@ def test_update_project_without_permission(db_session, test_user):
         db=db_session,
         owner_id=owner.id,
         name="Owner's Project",
-        languages=["en"]
+        languages=[{"code": "en", "locale": "en-US"}]
     )
     
     # test_user tries to update
@@ -195,7 +202,7 @@ def test_delete_project(db_session, test_user):
         db=db_session,
         owner_id=test_user.id,
         name="To Delete",
-        languages=["en"]
+        languages=[{"code": "en", "locale": "en-US"}]
     )
     
     result = ProjectService.delete_project(
@@ -231,7 +238,7 @@ def test_delete_project_without_permission(db_session, test_user):
         db=db_session,
         owner_id=owner.id,
         name="Owner's Project",
-        languages=["en"]
+        languages=[{"code": "en", "locale": "en-US"}]
     )
     
     # test_user tries to delete
@@ -252,7 +259,7 @@ def test_check_project_access_as_owner(db_session, test_user):
         db=db_session,
         owner_id=test_user.id,
         name="My Project",
-        languages=["en"]
+        languages=[{"code": "en", "locale": "en-US"}]
     )
     
     has_access = ProjectService.check_project_access(
@@ -281,7 +288,7 @@ def test_check_project_access_as_member(db_session, test_user):
         db=db_session,
         owner_id=owner.id,
         name="Shared Project",
-        languages=["en"]
+        languages=[{"code": "en", "locale": "en-US"}]
     )
     
     # Add test_user as member
@@ -319,7 +326,7 @@ def test_check_project_access_no_permission(db_session, test_user):
         db=db_session,
         owner_id=owner.id,
         name="Private Project",
-        languages=["en"]
+        languages=[{"code": "en", "locale": "en-US"}]
     )
     
     has_access = ProjectService.check_project_access(
@@ -339,7 +346,7 @@ def test_can_user_edit_project_as_owner(db_session, test_user):
         db=db_session,
         owner_id=test_user.id,
         name="My Project",
-        languages=["en"]
+        languages=[{"code": "en", "locale": "en-US"}]
     )
     
     can_edit = ProjectService.can_user_edit_project(
@@ -368,7 +375,7 @@ def test_can_user_edit_project_as_admin(db_session, test_user):
         db=db_session,
         owner_id=owner.id,
         name="Shared Project",
-        languages=["en"]
+        languages=[{"code": "en", "locale": "en-US"}]
     )
     
     # Add test_user as admin
@@ -406,7 +413,7 @@ def test_can_user_edit_project_as_editor(db_session, test_user):
         db=db_session,
         owner_id=owner.id,
         name="Shared Project",
-        languages=["en"]
+        languages=[{"code": "en", "locale": "en-US"}]
     )
     
     # Add test_user as editor
@@ -435,7 +442,7 @@ def test_add_project_member(db_session, test_user):
         db=db_session,
         owner_id=test_user.id,
         name="My Project",
-        languages=["en"]
+        languages=[{"code": "en", "locale": "en-US"}]
     )
     
     # Create another user to add as member
@@ -478,7 +485,7 @@ def test_add_project_member_without_permission(db_session, test_user):
         db=db_session,
         owner_id=owner.id,
         name="Owner's Project",
-        languages=["en"]
+        languages=[{"code": "en", "locale": "en-US"}]
     )
     
     # Create user to add
@@ -510,7 +517,7 @@ def test_remove_project_member(db_session, test_user):
         db=db_session,
         owner_id=test_user.id,
         name="My Project",
-        languages=["en"]
+        languages=[{"code": "en", "locale": "en-US"}]
     )
     
     # Create and add a member
@@ -557,7 +564,7 @@ def test_cannot_remove_owner(db_session, test_user):
         db=db_session,
         owner_id=test_user.id,
         name="My Project",
-        languages=["en"]
+        languages=[{"code": "en", "locale": "en-US"}]
     )
     
     # Try to remove owner

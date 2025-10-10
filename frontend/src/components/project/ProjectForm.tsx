@@ -16,7 +16,6 @@ import {
 import {
   DEFAULT_PROJECT_COLORS,
   ProjectStatus,
-  LANGUAGE_CONFIGS,
 } from "@/types/project";
 import { useAuth } from "@/contexts/AuthContext";
 import { ColorPicker } from "@/components/blocks";
@@ -80,36 +79,15 @@ export const ProjectForm: FC<ProjectFormProps> = ({
       setName(project.name);
       setDescription(project.description || "");
 
-      // Normalize languages data - ensure it's in the correct format
-      const normalizedLanguages = (project.languages || []).map(
-        (lang): LanguageConfigInput => {
-          // If it's already an object with code and locale, use it
-          if (
-            typeof lang === "object" &&
-            lang &&
-            "code" in lang &&
-            "locale" in lang
-          ) {
-            return {
-              code: lang.code,
-              locale: lang.locale,
-            };
-          }
-
-          // Fallback: treat as code and apply default locale from LANGUAGE_CONFIGS
-          const code = String(lang);
-          const langConfig = LANGUAGE_CONFIGS.find((l) => {
-            return l.code === code;
-          });
-
-          return {
-            code: code,
-            locale: langConfig?.locale || `${code}-${code.toUpperCase()}`,
-          };
-        }
+      // Languages are always in the correct format: {code: string, locale: string}
+      const languages = (project.languages || []).map(
+        (lang): LanguageConfigInput => ({
+          code: lang.code,
+          locale: lang.locale,
+        })
       );
 
-      setLanguages(normalizedLanguages);
+      setLanguages(languages);
       // Use actual value from project, including null/undefined - convert to empty string only if truly empty
       const defaultLang = project.defaultLanguage ?? "";
       setDefaultLanguage(defaultLang);
@@ -120,7 +98,7 @@ export const ProjectForm: FC<ProjectFormProps> = ({
       setOriginalValues({
         name: project.name,
         description: project.description || "",
-        languages: normalizedLanguages,
+        languages: languages,
         defaultLanguage: defaultLang,
         color: project.color,
         status: project.status,

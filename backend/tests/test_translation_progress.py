@@ -31,7 +31,10 @@ def test_translation_progress_calculation(db_session: Session):
         db=db_session,
         owner_id=user.id,
         name="Test Project",
-        languages=["en", "ru"]
+        languages=[
+            {"code": "en", "locale": "en-US"},
+            {"code": "ru", "locale": "ru-RU"}
+        ]
     )
     
     # Create 2 keys
@@ -121,7 +124,7 @@ def test_translation_with_whitespace_not_counted(db_session: Session):
         db=db_session,
         owner_id=user.id,
         name="Test Project 2",
-        languages=["en"]
+        languages=[{"code": "en", "locale": "en-US"}]
     )
     
     # Create 1 key
@@ -169,7 +172,7 @@ def test_empty_string_translation_not_counted(db_session: Session):
         db=db_session,
         owner_id=user.id,
         name="Test Project 3",
-        languages=["en"]
+        languages=[{"code": "en", "locale": "en-US"}]
     )
     
     # Create 1 key

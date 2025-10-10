@@ -505,11 +505,8 @@ class ProjectService:
         # Build locales structure (translations only, no locale duplication)
         locales = []
         for lang in project.languages:
-            if isinstance(lang, dict):
-                code = lang.get('code', '')
-            else:
-                # Old format support
-                code = lang
+            # lang is always a dict with 'code' and 'locale'
+            code = lang.get('code', '')
             
             # Collect translations for this language
             translations = {}

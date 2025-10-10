@@ -208,17 +208,11 @@ def build_project_type(project, current_user_id: int, stats: Optional[dict] = No
     languages = []
     if project.languages:
         for lang in project.languages:
-            if isinstance(lang, dict):
-                # New format: {"code": "en", "locale": "en-US"}
-                languages.append(LanguageConfigType(
-                    code=lang.get('code', ''),
-                    locale=lang.get('locale', '')
-                ))
-            elif isinstance(lang, str):
-                # Old format (backward compatibility): "en"
-                # Use default locale based on language code
-                locale = DEFAULT_LANGUAGE_LOCALES.get(lang, f'{lang}-{lang.upper()}')
-                languages.append(LanguageConfigType(code=lang, locale=locale))
+            # lang is always a dict with 'code' and 'locale'
+            languages.append(LanguageConfigType(
+                code=lang.get('code', ''),
+                locale=lang.get('locale', '')
+            ))
     
     # Calculate translation progress using SQL stats (much faster!)
     keys_count = stats.get('keys_count', 0) if stats else 0
