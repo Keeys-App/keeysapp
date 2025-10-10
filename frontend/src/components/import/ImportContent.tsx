@@ -23,9 +23,11 @@ interface ImportContentProps {
 type ImportStep = "upload" | "language" | "preview";
 
 export const ImportContent: FC<ImportContentProps> = ({ project }) => {
-  const projectLanguages = COMMON_LANGUAGES.filter((language) =>
-    project.languages.includes(language.code)
-  );
+  const projectLanguages = COMMON_LANGUAGES.filter((language) => {
+    return project.languages.some((lang) => {
+      return lang.code === language.code;
+    });
+  });
 
   const [currentStep, setCurrentStep] = useState<ImportStep>("upload");
   const [importFiles, setImportFiles] = useState<ImportFile[]>([]);

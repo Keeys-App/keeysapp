@@ -17,7 +17,7 @@ class Project(Base):
     public_id = Column(UUID(as_uuid=True), unique=True, index=True, default=uuid.uuid4, nullable=False)
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
-    languages = Column(JSON, default=list, nullable=False)  # Array of language codes: ["en", "ru", "de"]
+    languages = Column(JSON, default=list, nullable=False)  # Array of language objects: [{"code": "en", "locale": "en-US"}, ...]
     default_language = Column(String(10), nullable=True)  # Default language code (must be in languages array)
     color = Column(String(7), default="#6366f1", nullable=False)  # Hex color code
     status = Column(String(20), default="active", nullable=False)  # active, archived, draft

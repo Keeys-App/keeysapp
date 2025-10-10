@@ -46,7 +46,11 @@ export const ProjectKeysPage: FC = () => {
     setIsCreateDialogOpen(true);
   };
 
-  const projectLanguages = COMMON_LANGUAGES.filter((language) => project?.languages.includes(language.code));
+  const projectLanguages = COMMON_LANGUAGES.filter((language) => {
+    return project?.languages.some((lang) => {
+      return lang.code === language.code;
+    });
+  });
 
   if (loading) {
     return <LoadingState message="Loading project..." />;

@@ -46,6 +46,6 @@ export const EditProjectPage: FC = () => {
     return <NotFoundState message="Project not found" />;
   }
 
-  return <ProjectForm mode="edit" project={project} onSuccess={() => navigate(`/project/${id}`)} />;
+  return <ProjectForm mode="edit" project={project} />;
 };
 

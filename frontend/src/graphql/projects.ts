@@ -27,13 +27,23 @@ export const PROJECT_MEMBER_FRAGMENT = gql`
   ${USER_FRAGMENT}
 `;
 
+// Fragment for language config data
+export const LANGUAGE_CONFIG_FRAGMENT = gql`
+  fragment LanguageConfigFields on LanguageConfigType {
+    code
+    locale
+  }
+`;
+
 // Fragment for project data
 export const PROJECT_FRAGMENT = gql`
   fragment ProjectFields on ProjectType {
     id
     name
     description
-    languages
+    languages {
+      ...LanguageConfigFields
+    }
     defaultLanguage
     color
     status
@@ -51,6 +61,7 @@ export const PROJECT_FRAGMENT = gql`
   }
   ${USER_FRAGMENT}
   ${PROJECT_MEMBER_FRAGMENT}
+  ${LANGUAGE_CONFIG_FRAGMENT}
 `;
 
 // Query to get all projects
@@ -126,11 +137,21 @@ export interface ProjectMember {
   createdAt: string;
 }
 
+export interface LanguageConfig {
+  code: string;
+  locale: string;
+}
+
+export interface LanguageConfigInput {
+  code: string;
+  locale: string;
+}
+
 export interface Project {
   id: string;
   name: string;
   description?: string | null;
-  languages: string[];
+  languages: LanguageConfig[];
   defaultLanguage?: string | null;
   color: string;
   status: 'active' | 'archived' | 'draft';
@@ -146,7 +167,7 @@ export interface Project {
 export interface CreateProjectInput {
   name: string;
   description?: string | null;
-  languages?: string[] | null;
+  languages?: LanguageConfigInput[] | null;
   defaultLanguage?: string | null;
   color?: string | null;
   status?: 'active' | 'archived' | 'draft' | null;
@@ -156,7 +177,7 @@ export interface UpdateProjectInput {
   id: string;
   name?: string | null;
   description?: string | null;
-  languages?: string[] | null;
+  languages?: LanguageConfigInput[] | null;
   defaultLanguage?: string | null;
   color?: string | null;
   status?: 'active' | 'archived' | 'draft' | null;

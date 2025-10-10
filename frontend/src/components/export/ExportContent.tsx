@@ -21,9 +21,11 @@ interface ExportContentProps {
 }
 
 export const ExportContent: FC<ExportContentProps> = ({ project }) => {
-  const projectLanguages = COMMON_LANGUAGES.filter((language) =>
-    project.languages.includes(language.code)
-  );
+  const projectLanguages = COMMON_LANGUAGES.filter((language) => {
+    return project.languages.some((lang) => {
+      return lang.code === language.code;
+    });
+  });
 
   const [options, setOptions] = useState<ExportOptions>({
     format: "i18n",

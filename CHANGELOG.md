@@ -1,5 +1,75 @@
 # Changelog
 
+## [2025-10-10] - Language Configuration with Custom Locales
+
+### 🐛 Исправлено
+- **GraphQL `__typename` ошибка:**
+  - Добавлена очистка данных языков от `__typename` перед отправкой в мутации
+  - Исправлена ошибка "Field '__typename' is not defined by type 'LanguageConfigInput'"
+  - Проблема возникала при редактировании существующих проектов
+
+### ✅ Добавлено
+
+#### Backend
+- **Поддержка кастомных локалей для языков:**
+  - Обновлена модель `Project` - языки теперь хранятся как массив объектов `[{"code": "en", "locale": "en-US"}]`
+  - Добавлен `LanguageConfigType` в GraphQL схему с полями `code` и `locale`
+  - Добавлен `LanguageConfigInput` для мутаций создания/обновления проектов
+  - Обновлен `ProjectService` для работы с новой структурой языков
+  - Автоматическая конвертация старого формата в новый для обратной совместимости
+
+- **Миграция данных:**
+  - Создан скрипт миграции `migrations/migrate_languages_to_config.py`
+  - Автоматическое преобразование существующих языков в новый формат
+  - Применение дефолтных локалей на основе кодов языков (en → en-US, ru → ru-RU, и т.д.)
+  - Создана документация `migrations/README_LANGUAGE_CONFIG.md`
+
+#### Frontend
+- **Компонент редактирования языков:**
+  - Создан `LanguageConfigEditor` с визуальным интерфейсом
+  - Отображение флага, названия и кода языка
+  - Редактирование кастомной локали через диалог
+  - Поддержка добавления/удаления языков
+  - Примеры и валидация локалей (en-US, pt-BR, zh-CN, и т.д.)
+
+- **Обновленные компоненты:**
+  - `ProjectForm` - использует новый `LanguageConfigEditor`
+  - `ProjectPage` - отображает код языка и локаль
+  - `ProjectKeysPage` - обновлена фильтрация языков
+  - `ImportContent` - обновлена работа с языками
+  - `ExportContent` - обновлена работа с языками
+
+- **GraphQL типы:**
+  - Добавлен `LanguageConfig` интерфейс
+  - Обновлен `Project.languages` на `LanguageConfig[]`
+  - Добавлен фрагмент `LANGUAGE_CONFIG_FRAGMENT`
+
+### Примеры использования
+
+**Создание проекта с кастомными локалями:**
+- Английский (US): en-US
+- Английский (GB): en-GB
+- Португальский (Бразилия): pt-BR
+- Китайский (упрощенный): zh-CN
+- Китайский (традиционный): zh-TW
+
+**Файлы изменений:**
+- Backend:
+  - `backend/app/models/project.py`
+  - `backend/app/schemas/project.py`
+  - `backend/app/services/project_service.py`
+  - `backend/migrations/migrate_languages_to_config.py`
+- Frontend:
+  - `frontend/src/graphql/projects.ts`
+  - `frontend/src/components/project/LanguageConfigEditor.tsx`
+  - `frontend/src/components/project/ProjectForm.tsx`
+  - `frontend/src/pages/ProjectPage.tsx`
+  - `frontend/src/pages/ProjectKeysPage.tsx`
+  - `frontend/src/components/import/ImportContent.tsx`
+  - `frontend/src/components/export/ExportContent.tsx`
+
+---
+
 ## [2025-10-10] - Project Overview Page
 
 ### ✅ Изменено

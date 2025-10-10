@@ -21,6 +21,24 @@ logger = logging.getLogger(__name__)
 
 
 @strawberry.type
+class LanguageConfigType:
+    """
+    GraphQL type for language configuration with custom locale.
+    """
+    code: str
+    locale: str
+
+
+@strawberry.input
+class LanguageConfigInput:
+    """
+    Input type for language configuration.
+    """
+    code: str
+    locale: str
+
+
+@strawberry.type
 class ProjectMemberType:
     """
     GraphQL type for ProjectMember.
@@ -39,7 +57,7 @@ class ProjectType:
     id: str  # UUID as string for public API
     name: str
     description: Optional[str]
-    languages: List[str]
+    languages: List[LanguageConfigType]
     default_language: Optional[str]
     color: str
     status: str
@@ -59,7 +77,7 @@ class CreateProjectInput:
     """
     name: str
     description: Optional[str] = None
-    languages: Optional[List[str]] = None
+    languages: Optional[List[LanguageConfigInput]] = None
     default_language: Optional[str] = None
     color: Optional[str] = "#6366f1"
     status: Optional[str] = "active"
@@ -73,7 +91,7 @@ class UpdateProjectInput:
     id: str  # UUID
     name: Optional[str] = None
     description: Optional[str] = None
-    languages: Optional[List[str]] = None
+    languages: Optional[List[LanguageConfigInput]] = None
     default_language: Optional[str] = None
     color: Optional[str] = None
     status: Optional[str] = None
@@ -184,6 +202,31 @@ def build_project_type(project, current_user_id: int, stats: Optional[dict] = No
                 can_edit = True
                 break
     
+    # Build languages configuration
+    languages = []
+    if project.languages:
+        for lang in project.languages:
+            if isinstance(lang, dict):
+                # New format: {"code": "en", "locale": "en-US"}
+                languages.append(LanguageConfigType(
+                    code=lang.get('code', ''),
+                    locale=lang.get('locale', '')
+                ))
+            elif isinstance(lang, str):
+                # Old format (backward compatibility): "en"
+                # Use default locale based on language code
+                default_locales = {
+                    'en': 'en-US', 'es': 'es-ES', 'fr': 'fr-FR', 'de': 'de-DE',
+                    'it': 'it-IT', 'pt': 'pt-PT', 'ru': 'ru-RU', 'zh': 'zh-CN',
+                    'ja': 'ja-JP', 'ko': 'ko-KR', 'ar': 'ar-SA', 'hi': 'hi-IN',
+                    'nl': 'nl-NL', 'pl': 'pl-PL', 'tr': 'tr-TR', 'vi': 'vi-VN',
+                    'th': 'th-TH', 'sv': 'sv-SE', 'no': 'no-NO', 'da': 'da-DK',
+                    'fi': 'fi-FI', 'cs': 'cs-CZ', 'hu': 'hu-HU', 'ro': 'ro-RO',
+                    'uk': 'uk-UA'
+                }
+                locale = default_locales.get(lang, f'{lang}-{lang.upper()}')
+                languages.append(LanguageConfigType(code=lang, locale=locale))
+    
     # Calculate translation progress using SQL stats (much faster!)
     keys_count = stats.get('keys_count', 0) if stats else 0
     translations_count = stats.get('translations_count', 0) if stats else 0
@@ -200,7 +243,7 @@ def build_project_type(project, current_user_id: int, stats: Optional[dict] = No
         id=str(project.public_id),
         name=project.name,
         description=project.description,
-        languages=project.languages or [],
+        languages=languages,
         default_language=project.default_language,
         color=project.color,
         status=project.status,

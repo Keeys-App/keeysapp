@@ -2,7 +2,7 @@ import { useState, useEffect, type FC } from 'react';
 import { useMutation } from '@apollo/client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { X, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import {
   CREATE_PROJECT,
   UPDATE_PROJECT,
@@ -10,18 +10,19 @@ import {
   type CreateProjectInput,
   type UpdateProjectInput,
   type Project,
+  type LanguageConfigInput,
 } from '@/graphql/projects';
-import { DEFAULT_PROJECT_COLORS, COMMON_LANGUAGES, ProjectStatus } from '@/types/project';
+import { DEFAULT_PROJECT_COLORS, ProjectStatus } from '@/types/project';
 import { useAuth } from '@/contexts/AuthContext';
-import { ColorPicker, Combobox, type ComboboxOption } from '@/components/blocks';
+import { ColorPicker } from '@/components/blocks';
 import { getUserFriendlyErrorMessage } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Field, FieldLabel } from '@/components/ui/field';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { LanguageConfigEditor } from './LanguageConfigEditor';
 
 interface ProjectFormProps {
   mode: 'create' | 'edit';
@@ -33,22 +34,13 @@ interface ProjectFormProps {
 export const ProjectForm: FC<ProjectFormProps> = ({ mode, project, onSuccess, onCancel }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [languages, setLanguages] = useState<string[]>([]);
+  const [languages, setLanguages] = useState<LanguageConfigInput[]>([]);
   const [defaultLanguage, setDefaultLanguage] = useState<string>('');
   const [color, setColor] = useState(DEFAULT_PROJECT_COLORS[0]);
   const [status, setStatus] = useState<string>(ProjectStatus.ACTIVE);
-  const [languageInput, setLanguageInput] = useState('');
 
   const navigate = useNavigate();
   const { logout } = useAuth();
-
-  // Prepare language options for Combobox
-  const languageOptions: ComboboxOption[] = COMMON_LANGUAGES.map((lang) => {
-    return {
-      value: lang.code,
-      label: `${lang.name} (${lang.code})`,
-    };
-  });
 
   // Initialize form with project data in edit mode
   useEffect(() => {
@@ -65,11 +57,9 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, project, onSuccess, on
   const [createProject, { loading: createLoading }] = useMutation(CREATE_PROJECT, {
     refetchQueries: [{ query: GET_PROJECTS }],
     onCompleted: () => {
-      toast('Project created successfully');
+      toast.success('Project created successfully');
       if (onSuccess) {
         onSuccess();
-      } else {
-        navigate('/');
       }
     },
     onError: (error) => {
@@ -88,11 +78,9 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, project, onSuccess, on
   const [updateProject, { loading: updateLoading }] = useMutation(UPDATE_PROJECT, {
     refetchQueries: [{ query: GET_PROJECTS }],
     onCompleted: () => {
-      toast('Project updated successfully');
+      toast.success('Project updated successfully');
       if (onSuccess) {
         onSuccess();
-      } else {
-        navigate('/');
       }
     },
     onError: (error) => {
@@ -116,11 +104,19 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, project, onSuccess, on
       return;
     }
 
+    // Clean languages data - remove __typename if present
+    const cleanLanguages = languages.map((lang) => {
+      return {
+        code: lang.code,
+        locale: lang.locale,
+      };
+    });
+
     if (mode === 'create') {
       const input: CreateProjectInput = {
         name: name.trim(),
         description: description.trim() || null,
-        languages,
+        languages: cleanLanguages,
         defaultLanguage,
         color,
         status: status as 'active' | 'archived' | 'draft',
@@ -136,7 +132,7 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, project, onSuccess, on
         id: project.id,
         name: name.trim(),
         description: description.trim() || null,
-        languages,
+        languages: cleanLanguages,
         defaultLanguage,
         color,
         status: status as 'active' | 'archived' | 'draft',
@@ -146,38 +142,19 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, project, onSuccess, on
     }
   };
 
-  const handleAddLanguage = (langCode: string) => {
-    if (langCode && !languages.includes(langCode)) {
-      const newLanguages = [...languages, langCode];
-      setLanguages(newLanguages);
-      // Auto-select as default if it's the first language
-      if (newLanguages.length === 1) {
-        setDefaultLanguage(langCode);
-      }
-    }
-  };
-
-  const handleRemoveLanguage = (langCode: string) => {
-    const newLanguages = languages.filter((l) => {
-      return l !== langCode;
-    });
+  const handleLanguagesChange = (newLanguages: LanguageConfigInput[]) => {
     setLanguages(newLanguages);
-    // Clear default language if it was removed
-    if (defaultLanguage === langCode) {
-      setDefaultLanguage(newLanguages.length > 0 ? newLanguages[0] : '');
+    
+    // Auto-select as default if it's the first language
+    if (newLanguages.length === 1 && !defaultLanguage) {
+      setDefaultLanguage(newLanguages[0].code);
     }
-  };
-
-  const handleAddCustomLanguage = () => {
-    const trimmed = languageInput.trim().toLowerCase();
-    if (trimmed && !languages.includes(trimmed)) {
-      const newLanguages = [...languages, trimmed];
-      setLanguages(newLanguages);
-      // Auto-select as default if it's the first language
-      if (newLanguages.length === 1) {
-        setDefaultLanguage(trimmed);
-      }
-      setLanguageInput('');
+    
+    // Clear default language if it was removed
+    if (defaultLanguage && !newLanguages.some((l) => {
+      return l.code === defaultLanguage;
+    })) {
+      setDefaultLanguage(newLanguages.length > 0 ? newLanguages[0].code : '');
     }
   };
 
@@ -191,11 +168,6 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, project, onSuccess, on
 
   return (
     <div className="container max-w-2xl py-8">
-      <Button variant="ghost" onClick={handleCancel} className="mb-4">
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back
-      </Button>
-
       <Card>
         <CardHeader>
           <CardTitle>{mode === 'create' ? 'Create New Project' : 'Edit Project'}</CardTitle>
@@ -242,64 +214,11 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, project, onSuccess, on
               <FieldLabel>
                 Languages <span className="text-destructive">*</span>
               </FieldLabel>
-
-              {/* Selected languages */}
-              {languages.length > 0 ? (
-                <div className="flex gap-2 flex-wrap mb-2">
-                  {languages.map((lang) => {
-                    return (
-                      <Badge
-                        key={lang}
-                        variant="secondary"
-                        className="cursor-pointer"
-                        onClick={() => {
-                          return handleRemoveLanguage(lang);
-                        }}
-                      >
-                        {lang.toUpperCase()} <X className="h-3 w-3 ml-1" />
-                      </Badge>
-                    );
-                  })}
-                </div>
-              ) : null}
-
-              {/* Language selector */}
-              <Combobox
-                options={languageOptions}
-                value=""
-                onSelect={handleAddLanguage}
-                placeholder="Select languages..."
-                searchPlaceholder="Search languages..."
-                emptyText="No language found."
+              <LanguageConfigEditor
+                languages={languages}
+                onChange={handleLanguagesChange}
                 disabled={loading}
               />
-
-              {/* Custom language input */}
-              <div className="flex gap-2 mt-2">
-                <Input
-                  placeholder="Or add custom code (e.g., en-US)"
-                  value={languageInput}
-                  onChange={(e) => {
-                    return setLanguageInput(e.target.value);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleAddCustomLanguage();
-                    }
-                  }}
-                  disabled={loading}
-                  className="flex-1"
-                />
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={handleAddCustomLanguage}
-                  disabled={loading || !languageInput.trim()}
-                >
-                  Add
-                </Button>
-              </div>
             </Field>
 
             {/* Default Language */}
@@ -320,8 +239,8 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, project, onSuccess, on
                 <SelectContent>
                   {languages.map((lang) => {
                     return (
-                      <SelectItem key={lang} value={lang}>
-                        {lang.toUpperCase()}
+                      <SelectItem key={lang.code} value={lang.code}>
+                        {lang.code.toUpperCase()}
                       </SelectItem>
                     );
                   })}

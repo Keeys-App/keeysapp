@@ -19,7 +19,7 @@ class ProjectService:
         owner_id: int,
         name: str,
         description: Optional[str] = None,
-        languages: Optional[List[str]] = None,
+        languages: Optional[List] = None,
         default_language: Optional[str] = None,
         color: str = "#6366f1",
         status: str = "active"
@@ -32,7 +32,7 @@ class ProjectService:
             owner_id: ID of the project owner
             name: Project name
             description: Project description
-            languages: List of language codes
+            languages: List of language configurations (dict with code and locale)
             default_language: Default language code (must be in languages list)
             color: Hex color code for the project
             status: Project status (active, archived, draft)
@@ -42,11 +42,24 @@ class ProjectService:
         """
         if languages is None:
             languages = []
+        
+        # Convert LanguageConfigInput to dict format for JSON storage
+        languages_data = []
+        for lang in languages:
+            if hasattr(lang, 'code') and hasattr(lang, 'locale'):
+                # It's a LanguageConfigInput object
+                languages_data.append({
+                    'code': lang.code,
+                    'locale': lang.locale
+                })
+            elif isinstance(lang, dict):
+                # It's already a dict
+                languages_data.append(lang)
             
         project = Project(
             name=name,
             description=description,
-            languages=languages,
+            languages=languages_data,
             default_language=default_language,
             color=color,
             status=status,
@@ -190,7 +203,7 @@ class ProjectService:
         user_id: int,
         name: Optional[str] = None,
         description: Optional[str] = None,
-        languages: Optional[List[str]] = None,
+        languages: Optional[List] = None,
         default_language: Optional[str] = None,
         color: Optional[str] = None,
         status: Optional[str] = None
@@ -204,7 +217,7 @@ class ProjectService:
             user_id: User ID requesting the update
             name: New project name
             description: New project description
-            languages: New list of language codes
+            languages: New list of language configurations (dict with code and locale)
             default_language: New default language code
             color: New hex color code
             status: New project status
@@ -226,7 +239,19 @@ class ProjectService:
         if description is not None:
             project.description = description
         if languages is not None:
-            project.languages = languages
+            # Convert LanguageConfigInput to dict format for JSON storage
+            languages_data = []
+            for lang in languages:
+                if hasattr(lang, 'code') and hasattr(lang, 'locale'):
+                    # It's a LanguageConfigInput object
+                    languages_data.append({
+                        'code': lang.code,
+                        'locale': lang.locale
+                    })
+                elif isinstance(lang, dict):
+                    # It's already a dict
+                    languages_data.append(lang)
+            project.languages = languages_data
         if default_language is not None:
             project.default_language = default_language
         if color is not None:

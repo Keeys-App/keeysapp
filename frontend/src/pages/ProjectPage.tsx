@@ -79,7 +79,7 @@ export const ProjectPage: FC = () => {
     );
   }
 
-  const totalTranslations = project.keysCount * project.languages.length;
+  const totalTranslations = project.keysCount * (project.languages?.length || 0);
   const completedTranslations = Math.round((totalTranslations * project.translationProgress) / 100);
   
   const formatDate = (dateString: string) => {
@@ -205,7 +205,7 @@ export const ProjectPage: FC = () => {
               </div>
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">Languages</p>
-                <p className="text-2xl font-bold">{project.languages.length}</p>
+                <p className="text-2xl font-bold">{project.languages?.length || 0}</p>
               </div>
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">Completed</p>
@@ -227,30 +227,40 @@ export const ProjectPage: FC = () => {
               Languages
             </CardTitle>
             <CardDescription>
-              {project.languages.length} language{project.languages.length !== 1 ? 's' : ''} configured
+              {project.languages?.length || 0} language{(project.languages?.length || 0) !== 1 ? 's' : ''} configured
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {project.languages.map((langCode) => {
-              const language = COMMON_LANGUAGES.find(l => l.code === langCode);
-              const isDefault = langCode === project.defaultLanguage;
-              return (
-                <div key={langCode} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">{language?.flag || '🏳️'}</span>
-                    <div>
-                      <p className="text-sm font-medium">{language?.name || langCode}</p>
-                      <p className="text-xs text-muted-foreground">{langCode}</p>
+            {project.languages && project.languages.length > 0 ? (
+              project.languages.map((langConfig) => {
+                const language = COMMON_LANGUAGES.find(l => {
+                  return l.code === langConfig.code;
+                });
+                const isDefault = langConfig.code === project.defaultLanguage;
+                return (
+                  <div key={langConfig.code} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">{language?.flag || '🏳️'}</span>
+                      <div>
+                        <p className="text-sm font-medium">{language?.name || langConfig.code}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {langConfig.code} · <code className="px-1 py-0.5 bg-muted rounded text-xs">{langConfig.locale}</code>
+                        </p>
+                      </div>
                     </div>
+                    {isDefault ? (
+                      <Badge variant="secondary" className="text-xs">
+                        Default
+                      </Badge>
+                    ) : null}
                   </div>
-                  {isDefault ? (
-                    <Badge variant="secondary" className="text-xs">
-                      Default
-                    </Badge>
-                  ) : null}
-                </div>
-              );
-            })}
+                );
+              })
+            ) : (
+              <div className="text-sm text-muted-foreground text-center py-4">
+                No languages configured
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
