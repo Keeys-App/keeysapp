@@ -8,6 +8,7 @@ import { getUserFriendlyErrorMessage } from "@/lib/utils";
 import { useSaving, useSavingStore } from "@/stores";
 import type { Language } from "@/types/project";
 import type { TranslationKey } from "@/types/translationKey";
+import { Badge } from "../ui";
 
 interface TranslationEditorProps {
   keyData: TranslationKey;
@@ -100,10 +101,11 @@ export const TranslationEditor = memo(function TranslationEditor({
 
   return (
     <div className="">
-      <Textarea value={value} onChange={(e) => setValue(e.target.value)} disabled={isSaving} />
+      {value || <span className="text-muted-foreground">&lt;Empty&gt;</span>}
+      {/* <Textarea value={value} onChange={(e) => setValue(e.target.value)} disabled={isSaving} />
       <Button onClick={handleSave} disabled={isSaving} variant="outline">
         Save
-      </Button>
+      </Button> */}
     </div>
   );
 }, (prevProps, nextProps) => {

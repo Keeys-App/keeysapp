@@ -35,7 +35,7 @@ export const Key = memo(function Key({
     >      
       <div className="border-r relative">
         <div className="font-mono text-sm break-words sticky bg-background top-[2px] z-10 py-2 px-4">
-          <span className={`transition-colors px-1 ${
+          <span className={`transition-colors ${
             isSelected ? 'bg-primary/10 text-primary py-0.5 rounded' : ''
           }`}>
             {keyData.key}

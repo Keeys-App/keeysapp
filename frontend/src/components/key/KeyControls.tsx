@@ -87,26 +87,8 @@ export const KeyControls: FC<KeyControlsProps> = ({
   };
 
   return (
-    <div className="py-2 px-4 flex gap-2 bg-muted border-b">
-      <Menubar>
-        <MenubarMenu>
-          <MenubarTrigger>Actions</MenubarTrigger>
-          <MenubarContent>
-            <MenubarItem onClick={handleImportClick}>Import Keys</MenubarItem>
-            <MenubarItem onClick={handleExportClick}>Export Keys</MenubarItem>
-            <MenubarSeparator />
-            <MenubarItem onClick={handleExportProjectClick}>
-              Export Project
-            </MenubarItem>
-          </MenubarContent>
-        </MenubarMenu>
-        <MenubarMenu>
-          <Link to={PATHS.PROJECT_EDIT.replace(":id", projectId)}>
-            <MenubarTrigger>Settings</MenubarTrigger>
-          </Link>
-        </MenubarMenu>
-      </Menubar>
-      <Button onClick={onCreateKey}>Add key</Button>
+    <div className="h-12 py-1 px-2 flex gap-2 items-center justify-end bg-muted border-b">
+      <Button size="sm" onClick={onCreateKey}>Add key</Button>
     </div>
   );
 };

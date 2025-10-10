@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import type { TranslationKey } from "@/types/translationKey";
 import type { Language, LanguageWithLocale } from "@/types/project";
 import { UPDATE_KEY } from "@/graphql/keys";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
@@ -80,27 +79,7 @@ export const KeyManagement: FC<KeyManagementProps> = ({
     }
   }, [error]);
 
-  const handleUpdateDescription = async () => {
-    if (!selectedKey) {
-      return;
-    }
-
-    await withSaving(
-      async () => {
-        await updateKey({
-          variables: {
-            input: {
-              id: selectedKey.id,
-              description: description,
-            },
-          },
-        });
-      },
-      "Updating description..."
-    );
-  };
-
-  const handleUpdateKeyName = async () => {
+  const handleSaveChanges = async () => {
     if (!selectedKey) {
       return;
     }
@@ -116,34 +95,21 @@ export const KeyManagement: FC<KeyManagementProps> = ({
           variables: {
             input: {
               id: selectedKey.id,
-              key: keyName,
+              key: keyName !== savedKeyName ? keyName : undefined,
+              description: description !== savedDescription ? description : undefined,
+              tags: JSON.stringify([...tags].sort()) !== JSON.stringify([...savedTags].sort()) ? tags : undefined,
             },
           },
         });
       },
-      "Updating key name..."
+      "Saving changes..."
     );
   };
 
-  const handleUpdateTags = async () => {
-    if (!selectedKey) {
-      return;
-    }
-
-    await withSaving(
-      async () => {
-        await updateKey({
-          variables: {
-            input: {
-              id: selectedKey.id,
-              tags: tags,
-            },
-          },
-        });
-      },
-      "Updating tags..."
-    );
-  };
+  const hasChanges = 
+    description !== savedDescription ||
+    keyName !== savedKeyName ||
+    JSON.stringify([...tags].sort()) !== JSON.stringify([...savedTags].sort());
 
   if (!selectedKey) {
     return (
@@ -162,80 +128,57 @@ export const KeyManagement: FC<KeyManagementProps> = ({
 
   return (
     <div className="h-full flex flex-col">
-      <div className="px-4 py-3">
+      <div className="px-4 py-3 border-b h-12 box-border">
         <h2 className="text-base font-semibold">Key Management</h2>
-        <div className="text-sm mt-1 text-muted-foreground font-mono w-full break-words pr-8">
-          {displayKeyName}
-        </div>
       </div>
       <div className="flex-1 p-4 overflow-auto">
-        <Tabs defaultValue="meta" className="w-full">
-          <TabsList>
-            <TabsTrigger value="meta">Meta</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
-          </TabsList>
+        <div className="space-y-4">
+          <Field>
+            <FieldLabel>Key Name</FieldLabel>
+            <Textarea
+              value={keyName}
+              onChange={(e) => {
+                return setKeyName(e.target.value);
+              }}
+              placeholder="Enter key name..."
+              className="min-h-[80px] font-mono"
+              disabled={isSaving}
+            />
+          </Field>
 
-          <TabsContent value="meta" className="space-y-4 mt-4">
-            <Field>
-              <FieldLabel>Description</FieldLabel>
-              <Textarea
-                value={description}
-                onChange={(e) => {
-                  return setDescription(e.target.value);
-                }}
-                placeholder="Enter key description..."
-                className="min-h-[120px]"
-              />
-            </Field>
-            <Button
-              onClick={handleUpdateDescription}
-              disabled={isSaving || description === savedDescription}
-              size="sm"
-              variant="outline"
-            >
-              Save Description
-            </Button>
-            
-            <Field>
-              <FieldLabel>Tags</FieldLabel>
-              <TagsEditor
-                selectedTags={tags}
-                availableTags={availableTags}
-                onChange={setTags}
-                disabled={isSaving}
-                placeholder="Select or create tags..."
-              />
-            </Field>
-            <Button
-              onClick={handleUpdateTags}
-              disabled={isSaving || JSON.stringify(tags.sort()) === JSON.stringify(savedTags.sort())}
-              size="sm"
-              variant="outline"
-            >
-              Save Tags
-            </Button>
-          </TabsContent>
+          <Field>
+            <FieldLabel>Description</FieldLabel>
+            <Textarea
+              value={description}
+              onChange={(e) => {
+                return setDescription(e.target.value);
+              }}
+              placeholder="Enter key description..."
+              className="min-h-[120px]"
+              disabled={isSaving}
+            />
+          </Field>
+          
+          <Field>
+            <FieldLabel>Tags</FieldLabel>
+            <TagsEditor
+              selectedTags={tags}
+              availableTags={availableTags}
+              onChange={setTags}
+              disabled={isSaving}
+              placeholder="Select or create tags..."
+            />
+          </Field>
 
-          <TabsContent value="settings" className="space-y-4 mt-4">
-            <Field>
-              <FieldLabel>Key Name</FieldLabel>
-              <Textarea
-                value={keyName}
-                onChange={(e) => setKeyName(e.target.value)}
-                placeholder="Enter key name..."
-                className="min-h-[80px] font-mono"
-              />
-            </Field>
-            <Button
-              onClick={handleUpdateKeyName}
-              disabled={isSaving || keyName === savedKeyName || !keyName.trim()}
-              size="sm"
-              variant="outline"
-            >
-              Update Key Name
-            </Button>
-          </TabsContent>
-        </Tabs>
+          <Button
+            onClick={handleSaveChanges}
+            disabled={isSaving || !hasChanges || !keyName.trim()}
+            size="sm"
+            className="w-full"
+          >
+            Save Changes
+          </Button>
+        </div>
       </div>
     </div>
   );
