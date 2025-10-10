@@ -57,6 +57,12 @@ export const PROJECT_FRAGMENT = gql`
     canEdit
     keysCount
     translationProgress
+    languageProgress {
+      code
+      progress
+      completed
+      total
+    }
     createdAt
     updatedAt
   }
@@ -148,6 +154,13 @@ export interface LanguageConfigInput {
   locale: string;
 }
 
+export interface LanguageProgress {
+  code: string;
+  progress: number;
+  completed: number;
+  total: number;
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -162,6 +175,7 @@ export interface Project {
   canEdit: boolean;
   keysCount: number;
   translationProgress: number;
+  languageProgress: LanguageProgress[];
   createdAt: string;
   updatedAt?: string | null;
 }

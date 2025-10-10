@@ -156,6 +156,63 @@ class ProjectService:
         return result
 
     @staticmethod
+    def get_language_progress(db: Session, project_id: int) -> dict:
+        """
+        Get translation progress for each language in the project.
+        
+        Args:
+            db: Database session
+            project_id: Internal project ID
+            
+        Returns:
+            Dict mapping language code to progress percentage and counts
+        """
+        # Get total keys count
+        keys_count = db.query(func.count(Key.id)).filter(
+            Key.project_id == project_id
+        ).scalar() or 0
+        
+        if keys_count == 0:
+            return {}
+        
+        # Get translations count per language
+        language_stats = db.query(
+            Translation.language,
+            func.count(Translation.id).label('translations_count')
+        ).join(
+            Key, Translation.key_id == Key.id
+        ).filter(
+            Key.project_id == project_id,
+            Translation.value.isnot(None),
+            Translation.value != '',
+            func.trim(Translation.value) != ''
+        ).group_by(
+            Translation.language
+        ).all()
+        
+        # Build result dictionary with progress percentage
+        result = {}
+        for language, translations_count in language_stats:
+            if keys_count > 0:
+                # Calculate percentage
+                raw_progress = (translations_count / keys_count) * 100
+                # If there are translations but percentage rounds to 0, show at least 1%
+                if translations_count > 0 and raw_progress < 1:
+                    progress = 1
+                else:
+                    progress = int(raw_progress)
+            else:
+                progress = 0
+            
+            result[language] = {
+                'progress': progress,
+                'completed': translations_count,
+                'total': keys_count
+            }
+        
+        return result
+
+    @staticmethod
     def get_user_projects(db: Session, user_id: int) -> List[Project]:
         """
         Get all projects where user is owner or member.

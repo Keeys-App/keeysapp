@@ -30,6 +30,17 @@ class LanguageConfigType:
     locale: str
 
 
+@strawberry.type
+class LanguageProgressType:
+    """
+    GraphQL type for language translation progress.
+    """
+    code: str
+    progress: int  # Percentage (0-100)
+    completed: int  # Number of completed translations
+    total: int  # Total number of keys
+
+
 @strawberry.input
 class LanguageConfigInput:
     """
@@ -68,6 +79,7 @@ class ProjectType:
     can_edit: bool
     keys_count: int
     translation_progress: int  # Percentage of completed translations (0-100)
+    language_progress: List[LanguageProgressType]  # Progress per language
     created_at: datetime
     updated_at: Optional[datetime]
 
@@ -160,7 +172,7 @@ def get_current_user_id(info: Info) -> Optional[int]:
         return None
 
 
-def build_project_type(project, current_user_id: int, stats: Optional[dict] = None) -> ProjectType:
+def build_project_type(project, current_user_id: int, stats: Optional[dict] = None, db: Optional[Session] = None) -> ProjectType:
     """
     Build ProjectType from Project model.
     
@@ -168,6 +180,7 @@ def build_project_type(project, current_user_id: int, stats: Optional[dict] = No
         project: Project model instance
         current_user_id: Current user's ID
         stats: Optional dictionary with 'keys_count' and 'translations_count' from SQL
+        db: Optional database session for fetching language progress
         
     Returns:
         ProjectType
@@ -226,6 +239,31 @@ def build_project_type(project, current_user_id: int, stats: Optional[dict] = No
         # translations_count already includes only non-empty translations from SQL
         translation_progress = int((translations_count / total_required) * 100) if total_required > 0 else 0
     
+    # Get language-specific progress if database session is provided
+    language_progress = []
+    if db:
+        from app.services.project_service import ProjectService
+        lang_progress_data = ProjectService.get_language_progress(db, project.id)
+        
+        # Build language progress list, ensuring all configured languages are included
+        for lang in project.languages:
+            lang_code = lang.get('code', '')
+            if lang_code in lang_progress_data:
+                language_progress.append(LanguageProgressType(
+                    code=lang_code,
+                    progress=lang_progress_data[lang_code]['progress'],
+                    completed=lang_progress_data[lang_code]['completed'],
+                    total=lang_progress_data[lang_code]['total']
+                ))
+            else:
+                # Language has no translations yet
+                language_progress.append(LanguageProgressType(
+                    code=lang_code,
+                    progress=0,
+                    completed=0,
+                    total=keys_count
+                ))
+    
     return ProjectType(
         id=str(project.public_id),
         name=project.name,
@@ -240,6 +278,7 @@ def build_project_type(project, current_user_id: int, stats: Optional[dict] = No
         can_edit=can_edit,
         keys_count=keys_count,
         translation_progress=translation_progress,
+        language_progress=language_progress,
         created_at=project.created_at,
         updated_at=project.updated_at
     )
@@ -280,7 +319,7 @@ class ProjectQuery:
                 project_ids = [p.id for p in projects]
                 stats = ProjectService.get_projects_stats(db, project_ids) if project_ids else {}
                 
-                return [build_project_type(project, current_user_id, stats.get(project.id)) for project in projects]
+                return [build_project_type(project, current_user_id, stats.get(project.id), db) for project in projects]
             finally:
                 db.close()
         except UnauthorizedError:
@@ -323,7 +362,7 @@ class ProjectQuery:
                 # Get statistics for this project
                 stats = ProjectService.get_projects_stats(db, [project.id])
                 
-                return build_project_type(project, current_user_id, stats.get(project.id))
+                return build_project_type(project, current_user_id, stats.get(project.id), db)
             finally:
                 db.close()
         except Exception as e:
@@ -373,7 +412,7 @@ class ProjectMutation:
             
             # New project has no keys/translations yet
             stats = {'keys_count': 0, 'translations_count': 0}
-            return build_project_type(project, current_user_id, stats)
+            return build_project_type(project, current_user_id, stats, db)
         except (UnauthorizedError, AuthenticationError):
             raise
         except (IntegrityError, OperationalError) as e:
@@ -423,7 +462,7 @@ class ProjectMutation:
             
             # Get statistics for the updated project
             stats = ProjectService.get_projects_stats(db, [project.id])
-            return build_project_type(project, current_user_id, stats.get(project.id))
+            return build_project_type(project, current_user_id, stats.get(project.id), db)
         except (UnauthorizedError, AuthenticationError):
             raise
         except (IntegrityError, OperationalError) as e:
@@ -514,7 +553,7 @@ class ProjectMutation:
             
             # Get statistics for the project
             stats = ProjectService.get_projects_stats(db, [project.id])
-            return build_project_type(project, current_user_id, stats.get(project.id))
+            return build_project_type(project, current_user_id, stats.get(project.id), db)
         except (UnauthorizedError, AuthenticationError):
             raise
         except (IntegrityError, OperationalError) as e:

@@ -299,29 +299,47 @@ export const ProjectPage: FC = () => {
               {project.languages?.length || 0} language{(project.languages?.length || 0) !== 1 ? 's' : ''} configured
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-4">
             {project.languages && project.languages.length > 0 ? (
               project.languages.map((langConfig) => {
                 const language = COMMON_LANGUAGES.find(l => {
                   return l.code === langConfig.code;
                 });
                 const isDefault = langConfig.code === project.defaultLanguage;
+                const langProgress = project.languageProgress?.find(lp => {
+                  return lp.code === langConfig.code;
+                });
+                const progress = langProgress?.progress || 0;
+                const completed = langProgress?.completed || 0;
+                const total = langProgress?.total || 0;
+                
                 return (
-                  <div key={langConfig.code} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl">{language?.flag || '🏳️'}</span>
-                      <div>
-                        <p className="text-sm font-medium">{language?.name || langConfig.code}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {langConfig.code} · <code className="px-1 py-0.5 bg-muted rounded text-xs">{langConfig.locale}</code>
-                        </p>
+                  <div key={langConfig.code} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl">{language?.flag || '🏳️'}</span>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium">{language?.name || langConfig.code}</p>
+                            {isDefault ? (
+                              <Badge variant="secondary" className="text-xs">
+                                Default
+                              </Badge>
+                            ) : null}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {langConfig.code} · <code className="px-1 py-0.5 bg-muted rounded text-xs">{langConfig.locale}</code>
+                          </p>
+                        </div>
                       </div>
+                      <span className="text-sm font-bold">{progress}%</span>
                     </div>
-                    {isDefault ? (
-                      <Badge variant="secondary" className="text-xs">
-                        Default
-                      </Badge>
-                    ) : null}
+                    <div className="space-y-1">
+                      <Progress value={progress} className="h-2" />
+                      <p className="text-xs text-muted-foreground">
+                        {completed} of {total} translations
+                      </p>
+                    </div>
                   </div>
                 );
               })
