@@ -1,5 +1,6 @@
 import { Plus } from "lucide-react";
 import type { FC } from "react";
+import { Item, ItemContent, ItemTitle, ItemDescription } from "@/components/ui/item";
 
 interface CreateProjectCardProps {
   onClick: () => void;
@@ -10,18 +11,21 @@ interface CreateProjectCardProps {
  */
 export const CreateProjectCard: FC<CreateProjectCardProps> = ({ onClick }) => {
   return (
-    <div
-      className="bg-card flex h-[160px] cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border p-6 transition-colors hover:bg-accent"
+    <Item 
+      variant="outline" 
+      className="cursor-pointer justify-center items-center text-center hover:bg-accent/50"
       onClick={onClick}
     >
-      <div className="bg-muted flex size-12 items-center justify-center rounded-lg">
-        <Plus className="text-muted-foreground size-6" />
+      <div className="flex flex-col items-center gap-3">
+        <div className="bg-muted flex size-12 items-center justify-center rounded-lg">
+          <Plus className="text-muted-foreground size-6" />
+        </div>
+        <div>
+          <ItemTitle className="justify-center">Create Project</ItemTitle>
+          <ItemDescription>Add a new project</ItemDescription>
+        </div>
       </div>
-      <div className="text-center">
-        <h3 className="font-semibold">Create Project</h3>
-        <p className="text-muted-foreground text-sm">Add a new project</p>
-      </div>
-    </div>
+    </Item>
   );
 };
 

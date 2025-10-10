@@ -1,24 +1,16 @@
 import type { FC } from "react";
 import { Link } from "react-router-dom";
-import {
-  MoreHorizontal,
-  Pencil,
-  Trash2,
-  Users,
-  Languages,
-  Users2,
-} from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import type { Project } from "@/types/project";
 import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+  Item,
+  ItemMedia,
+  ItemContent,
+  ItemTitle,
+  ItemDescription,
+  ItemFooter,
+  ItemActions,
+} from "@/components/ui/item";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -67,69 +59,65 @@ export const ProjectCard: FC<ProjectCardProps> = ({
   const projectUrl = PATHS.PROJECT.replace(":id", project.id);
 
   return (
-    <Link to={projectUrl} className="block h-[160px]">
-      <Card className="relative p-4 gap-0 cursor-pointer h-full justify-between transition-all group overflow-hidden shadow-none">
-        <CardHeader className="p-0">
-          <CardTitle className="flex items-center gap-2">
-            <div className="flex items-center gap-2">
-              <div
-                className="h-3 w-3 rounded-full"
-                style={{ backgroundColor: project.color }}
-              />
-            </div>
-            {project.name}
-          </CardTitle>
-          <CardDescription>{project.description || "No description"}</CardDescription>
-          <CardAction>
-            {project.canEdit ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  asChild
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={handleEdit}>
-                    <Pencil className="h-4 w-4" />
-                    Edit
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={handleDelete}
-                    className="text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : null}
-          </CardAction>
-        </CardHeader>
+    <Item variant="outline" asChild>
+      <Link to={projectUrl}>
+        <ItemMedia>
+          <div
+            className="h-3 w-3 rounded-full"
+            style={{ backgroundColor: project.color }}
+          />
+        </ItemMedia>
 
-        <CardContent className="p-0">
-          <div className="flex flex-wrap items-center gap-x-3 text-sm text-muted-foreground">
+        <ItemContent>
+          <ItemTitle>{project.name}</ItemTitle>
+          <ItemDescription>
+            {project.description || "No description"}
+          </ItemDescription>
+          <div className="flex flex-wrap items-center gap-x-3 text-sm text-muted-foreground mt-1">
             <ProjectStatus status={project.status} />
-            <span className="">
-              {project.keysCount} keys
-            </span>
-            <div className="flex items-center gap-1">
-              {project.members.length + 1} mem
-            </div>
-            <div className="flex items-center gap-1">
-              {project.languages.length} lan
-            </div>
+            <span>{project.keysCount} keys</span>
+            <span>{project.members.length + 1} mem</span>
+            <span>{project.languages.length} lan</span>
           </div>
-        </CardContent>
+        </ItemContent>
 
-        <CardFooter className="p-0">
+        {project.canEdit ? (
+          <ItemActions>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                asChild
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+              >
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleEdit}>
+                  <Pencil className="h-4 w-4" />
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleDelete}
+                  className="text-destructive"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </ItemActions>
+        ) : null}
+
+        <ItemFooter>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -141,14 +129,14 @@ export const ProjectCard: FC<ProjectCardProps> = ({
                 <p className="text-sm">
                   <span className="font-semibold">{project.translationProgress}%</span> translated
                 </p>
-                <p className="text-xs text-muted">
+                <p className="text-xs text-muted-foreground">
                   {project.keysCount} keys × {project.languages.length} languages
                 </p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-        </CardFooter>
-      </Card>
-    </Link>
+        </ItemFooter>
+      </Link>
+    </Item>
   );
 };
