@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback, type FC } from 'react';
-import { useMutation, useLazyQuery } from '@apollo/client';
-import { toast } from 'sonner';
-import { Info } from 'lucide-react';
-import { CREATE_KEY, GET_PROJECT_KEYS, CHECK_KEY_EXISTS } from '@/graphql/keys';
+import { useState, useEffect, useCallback, type FC } from "react";
+import { useMutation, useLazyQuery } from "@apollo/client";
+import { toast } from "sonner";
+import { Check, Info } from "lucide-react";
+import { CREATE_KEY, GET_PROJECT_KEYS, CHECK_KEY_EXISTS } from "@/graphql/keys";
 import {
   Dialog,
   DialogContent,
@@ -10,13 +10,18 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Field, FieldLabel, FieldError } from '@/components/ui/field';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Field, FieldLabel, FieldError } from "@/components/ui/field";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface CreateKeyDialogProps {
   open: boolean;
@@ -24,41 +29,48 @@ interface CreateKeyDialogProps {
   projectId: string;
 }
 
-export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({ open, onOpenChange, projectId }) => {
-  const [key, setKey] = useState('');
-  const [description, setDescription] = useState('');
+export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
+  open,
+  onOpenChange,
+  projectId,
+}) => {
+  const [key, setKey] = useState("");
+  const [description, setDescription] = useState("");
   const [addAnother, setAddAnother] = useState(false);
   const [isDuplicate, setIsDuplicate] = useState(false);
-  const [lastCheckedKey, setLastCheckedKey] = useState<string>('');
+  const [lastCheckedKey, setLastCheckedKey] = useState<string>("");
 
   // Lazy query to check if key exists
-  const [checkKeyExists, { loading: checkingKey }] = useLazyQuery(CHECK_KEY_EXISTS, {
-    fetchPolicy: 'no-cache', // Don't use cache at all
-    onCompleted: (data) => {
-      if (data?.checkKeyExists !== undefined) {
-        setIsDuplicate(data.checkKeyExists);
-        setLastCheckedKey(key.trim()); // Mark this key as checked
-      }
-    },
-    onError: () => {
-      setIsDuplicate(false);
-      setLastCheckedKey(key.trim()); // Mark as checked even on error
-    },
-  });
+  const [checkKeyExists, { loading: checkingKey }] = useLazyQuery(
+    CHECK_KEY_EXISTS,
+    {
+      fetchPolicy: "no-cache", // Don't use cache at all
+      onCompleted: (data) => {
+        if (data?.checkKeyExists !== undefined) {
+          setIsDuplicate(data.checkKeyExists);
+          setLastCheckedKey(key.trim()); // Mark this key as checked
+        }
+      },
+      onError: () => {
+        setIsDuplicate(false);
+        setLastCheckedKey(key.trim()); // Mark as checked even on error
+      },
+    }
+  );
 
   // Debounced check for key existence
   useEffect(() => {
     const trimmedKey = key.trim();
-    
+
     if (!trimmedKey || !open) {
       setIsDuplicate(false);
-      setLastCheckedKey('');
+      setLastCheckedKey("");
       return;
     }
 
     // Reset states while waiting for new check
     setIsDuplicate(false);
-    setLastCheckedKey(''); // Clear last checked key - new check is starting
+    setLastCheckedKey(""); // Clear last checked key - new check is starting
 
     const timeoutId = setTimeout(() => {
       checkKeyExists({
@@ -78,38 +90,40 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({ open, onOpenChange, 
   // Reset form when dialog closes
   useEffect(() => {
     if (!open) {
-      setKey('');
-      setDescription('');
+      setKey("");
+      setDescription("");
       setIsDuplicate(false);
-      setLastCheckedKey('');
+      setLastCheckedKey("");
     }
   }, [open]);
 
   // Check if form is valid and ready to submit
-  const isFormValid = 
-    key.trim() !== '' && 
-    !isDuplicate && 
-    !checkingKey && 
+  const isFormValid =
+    key.trim() !== "" &&
+    !isDuplicate &&
+    !checkingKey &&
     key.trim() === lastCheckedKey; // Ensure current key has been checked
 
   const [createKey, { loading }] = useMutation(CREATE_KEY, {
     refetchQueries: [{ query: GET_PROJECT_KEYS, variables: { projectId } }],
     onCompleted: () => {
       // Reset form
-      setKey('');
-      setDescription('');
+      setKey("");
+      setDescription("");
       setIsDuplicate(false);
-      setLastCheckedKey(''); // Reset last checked key
-      
+      setLastCheckedKey(""); // Reset last checked key
+
       // Close dialog only if "Add another key" is not checked
       if (!addAnother) {
         onOpenChange(false);
       }
-      
-      toast('Key created successfully');
+
+      toast("Key created successfully", {
+        description: key,
+      });
     },
     onError: (error) => {
-      console.error('Error creating key:', error);
+      console.error("Error creating key:", error);
       toast(`Failed to create key: ${error.message}`);
     },
   });
@@ -123,12 +137,12 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({ open, onOpenChange, 
     }
 
     if (!key.trim()) {
-      toast('Please enter a key');
+      toast("Please enter a key");
       return;
     }
 
     if (isDuplicate) {
-      toast('This key already exists in the project');
+      toast("This key already exists in the project");
       return;
     }
 
@@ -148,19 +162,19 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({ open, onOpenChange, 
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Create New Key</DialogTitle>
-          <DialogDescription>Add a new translation key to your project.</DialogDescription>
+          <DialogDescription>
+            Add a new translation key to your project.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Key */}
           <Field>
-            <FieldLabel>
-              Key
-            </FieldLabel>
+            <FieldLabel>Key</FieldLabel>
             <Input
               placeholder="BUTTON.SUBMIT"
               value={key}
-              className='font-mono'
+              className="font-mono"
               onChange={(e) => {
                 return setKey(e.target.value);
               }}
@@ -215,7 +229,12 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({ open, onOpenChange, 
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={loading}
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={!isFormValid || loading}>
@@ -227,4 +246,3 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({ open, onOpenChange, 
     </Dialog>
   );
 };
-
