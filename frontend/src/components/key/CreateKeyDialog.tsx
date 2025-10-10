@@ -23,6 +23,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 
 interface CreateKeyDialogProps {
   open: boolean;
@@ -180,95 +186,109 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Key */}
-          <Field>
-            <FieldLabel>Key</FieldLabel>
-            <Input
-              placeholder="BUTTON.SUBMIT"
-              value={key}
-              className="font-mono"
-              onChange={(e) => {
-                return setKey(e.target.value);
-              }}
-              disabled={loading}
-              required
-            />
-            {isDuplicate ? (
-              <FieldError>This key already exists in the project</FieldError>
-            ) : null}
-          </Field>
+          <Tabs defaultValue="key" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="key">Key</TabsTrigger>
+              <TabsTrigger value="metadata">Metadata</TabsTrigger>
+            </TabsList>
 
-          {/* Description */}
-          <Field>
-            <FieldLabel>Description</FieldLabel>
-            <Textarea
-              placeholder="Describe the purpose of this key..."
-              value={description}
-              onChange={(e) => {
-                return setDescription(e.target.value);
-              }}
-              disabled={loading}
-              rows={3}
-            />
-          </Field>
+            <TabsContent value="key" className="space-y-4">
+              {/* Key */}
+              <Field>
+                <FieldLabel>Key</FieldLabel>
+                <Input
+                  placeholder="BUTTON.SUBMIT"
+                  value={key}
+                  className="font-mono"
+                  onChange={(e) => {
+                    return setKey(e.target.value);
+                  }}
+                  disabled={loading}
+                  required
+                />
+                {isDuplicate ? (
+                  <FieldError>This key already exists in the project</FieldError>
+                ) : null}
+              </Field>
 
-          {/* Default Language Value */}
-          {defaultLanguage ? (
-            <Field>
-              <FieldLabel>
-                Default Value ({defaultLanguage.toUpperCase()})
-              </FieldLabel>
-              <Textarea
-                placeholder={`Enter translation...`}
-                value={defaultValue}
-                onChange={(e) => {
-                  return setDefaultValue(e.target.value);
+              {/* Default Language Value */}
+              {defaultLanguage ? (
+                <Field>
+                  <FieldLabel>
+                    Default Value ({defaultLanguage.toUpperCase()})
+                  </FieldLabel>
+                  <Textarea
+                    placeholder={`Enter translation...`}
+                    value={defaultValue}
+                    onChange={(e) => {
+                      return setDefaultValue(e.target.value);
+                    }}
+                    disabled={loading}
+                    rows={3}
+                  />
+                </Field>
+              ) : null}
+            </TabsContent>
+
+            <TabsContent value="metadata" className="space-y-4">
+              {/* Description */}
+              <Field>
+                <FieldLabel>Description</FieldLabel>
+                <Textarea
+                  placeholder="Describe the purpose of this key..."
+                  value={description}
+                  onChange={(e) => {
+                    return setDescription(e.target.value);
+                  }}
+                  disabled={loading}
+                  rows={5}
+                />
+              </Field>
+            </TabsContent>
+          </Tabs>
+
+          <DialogFooter className="flex-row items-center justify-between sm:justify-between">
+            {/* Add Another Key */}
+            <div className="flex items-center gap-2 mr-auto">
+              <Checkbox
+                id="add-another"
+                checked={addAnother}
+                onCheckedChange={(checked) => {
+                  return setAddAnother(checked === true);
                 }}
                 disabled={loading}
               />
-            </Field>
-          ) : null}
+              <label
+                htmlFor="add-another"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+              >
+                Add another key
+              </label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Keep the dialog open to add multiple keys in a row</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
 
-          {/* Add Another Key */}
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="add-another"
-              checked={addAnother}
-              onCheckedChange={(checked) => {
-                return setAddAnother(checked === true);
-              }}
-              disabled={loading}
-            />
-            <label
-              htmlFor="add-another"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-            >
-              Add another key
-            </label>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Keep the dialog open to add multiple keys in a row</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={loading}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={!isFormValid || loading}>
-              Create Key
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={loading}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={!isFormValid || loading}>
+                Create Key
+              </Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>
