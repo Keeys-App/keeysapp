@@ -185,3 +185,15 @@ const handleSave = async () => {
 - Use `isSaving` to disable buttons during save operations
 - Provide descriptive messages for better UX (e.g., "Updating description...", "Saving project...")
 - The global footer automatically shows/hides based on saving state
+
+## Database Enums
+
+- **CRITICAL**: Все enum значения в PostgreSQL должны быть в UPPERCASE (например, "CREATE", "UPDATE_KEY", "IMPORT")
+- При добавлении нового значения в enum:
+  1. Обновите Python enum в модели (например, `IMPORT = "IMPORT"`)
+  2. Обновите GraphQL enum в схеме
+  3. Обновите `action_map` в функции `build_*_type`
+  4. **ОБЯЗАТЕЛЬНО** добавьте миграцию в `backend/migrations/auto_migrate.py`
+  5. Добавьте маппинг на frontend (labels, icons, colors)
+- PostgreSQL enums регистрозависимые - lowercase и UPPERCASE это разные значения!
+- После изменения enum ВСЕГДА нужен рестарт backend
