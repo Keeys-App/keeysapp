@@ -153,19 +153,19 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({ open, onOpenChange, 
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Key */}
-          <Field data-invalid={isDuplicate || undefined}>
+          <Field>
             <FieldLabel>
               Key
             </FieldLabel>
             <Input
-              placeholder="button.submit"
+              placeholder="BUTTON.SUBMIT"
               value={key}
+              className='font-mono'
               onChange={(e) => {
                 return setKey(e.target.value);
               }}
               disabled={loading}
               required
-              className={isDuplicate ? 'border-destructive focus-visible:ring-destructive' : ''}
             />
             {isDuplicate ? (
               <FieldError>This key already exists in the project</FieldError>
