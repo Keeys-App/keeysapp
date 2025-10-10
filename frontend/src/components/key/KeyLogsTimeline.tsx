@@ -124,7 +124,7 @@ export const KeyLogsTimeline: FC<KeyLogsTimelineProps> = ({
   }
 
   return (
-    <div className="relative">
+    <div className="relative pt-4">
       {/* Timeline items */}
       <div className="space-y-4">
         {logs.map((log, index) => {
