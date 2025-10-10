@@ -1,5 +1,6 @@
 import { useState, type FC } from "react";
 import { useQuery, useMutation } from "@apollo/client";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
   GET_PROJECTS,
@@ -9,18 +10,15 @@ import {
 } from "@/graphql/projects";
 import { ProjectCard } from "./ProjectCard";
 import { CreateProjectCard } from "./CreateProjectCard";
-import { CreateProjectDialog } from "./CreateProjectDialog";
-import { EditProjectDialog } from "./EditProjectDialog";
 import { EmptyProjects } from "./EmptyProjects";
 import { DeleteConfirmationDialog } from "@/components/blocks";
 import { useAuth } from "@/contexts/AuthContext";
 import { getUserFriendlyErrorMessage } from "@/lib/utils";
+import { PATHS } from "@/constants/paths";
 
 export const ProjectList: FC = () => {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const navigate = useNavigate();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
 
@@ -42,8 +40,7 @@ export const ProjectList: FC = () => {
   });
 
   const handleEdit = (project: Project) => {
-    setSelectedProject(project);
-    setEditDialogOpen(true);
+    navigate(PATHS.PROJECT_EDIT.replace(':id', project.id));
   };
 
   const handleDelete = (project: Project) => {
@@ -83,7 +80,7 @@ export const ProjectList: FC = () => {
       {projects.length === 0 ? (
         <EmptyProjects
           onCreateProject={() => {
-            return setCreateDialogOpen(true);
+            return navigate(PATHS.PROJECT_CREATE);
           }}
         />
       ) : (
@@ -104,25 +101,12 @@ export const ProjectList: FC = () => {
             {/* Create Project Card */}
             <CreateProjectCard
               onClick={() => {
-                return setCreateDialogOpen(true);
+                return navigate(PATHS.PROJECT_CREATE);
               }}
             />
           </div>
         </div>
       )}
-
-      {/* Create Project Dialog */}
-      <CreateProjectDialog
-        open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
-      />
-
-      {/* Edit Project Dialog */}
-      <EditProjectDialog
-        open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
-        project={selectedProject}
-      />
 
       {/* Delete Confirmation Dialog */}
       <DeleteConfirmationDialog

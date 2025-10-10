@@ -1,7 +1,6 @@
 export { ProjectCard } from './ProjectCard';
 export { CreateProjectCard } from './CreateProjectCard';
 export { ProjectList } from './ProjectList';
-export { CreateProjectDialog } from './CreateProjectDialog';
-export { EditProjectDialog } from './EditProjectDialog';
+export { ProjectForm } from './ProjectForm';
 export { EmptyProjects } from './EmptyProjects';
 

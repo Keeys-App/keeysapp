@@ -1,5 +1,45 @@
 # Changelog
 
+## [2025-10-10] - Project Management Refactoring
+
+### ✅ Изменено
+
+#### Frontend
+- ✅ **Рефакторинг создания/редактирования проектов:**
+  - Удалены модальные окна `CreateProjectDialog` и `EditProjectDialog`
+  - Создан общий компонент `ProjectForm` с поддержкой режимов `mode='create'` и `mode='edit'`
+  - Добавлены новые страницы:
+    - `CreateProjectPage` (`/project/create`) - создание проекта
+    - `EditProjectPage` (`/project/:id/edit`) - редактирование проекта
+  - Обновлена навигация в `ProjectList`, `CreateProjectCard` и `EmptyProjects`
+  - Добавлены новые константы путей в `PATHS`:
+    - `PROJECT_CREATE` - создание проекта
+    - `PROJECT_EDIT` - редактирование проекта
+
+#### Преимущества
+- ✅ Единый источник логики для создания и редактирования
+- ✅ Улучшенный UX - отдельные страницы вместо модалок
+- ✅ Возможность использовать браузерную навигацию (назад/вперед)
+- ✅ Прямые ссылки на создание/редактирование проектов
+- ✅ Меньше дублирования кода
+
+#### Файлы
+- **Создано:**
+  - `frontend/src/components/project/ProjectForm.tsx` - общая форма проекта
+  - `frontend/src/pages/CreateProjectPage.tsx` - страница создания
+  - `frontend/src/pages/EditProjectPage.tsx` - страница редактирования
+- **Обновлено:**
+  - `frontend/src/App.tsx` - добавлены новые роуты
+  - `frontend/src/constants/paths.ts` - добавлены новые пути
+  - `frontend/src/components/project/ProjectList.tsx` - навигация вместо диалогов
+  - `frontend/src/components/project/index.ts` - обновлены экспорты
+  - `frontend/src/pages/index.ts` - экспорт новых страниц
+- **Удалено:**
+  - `frontend/src/components/project/CreateProjectDialog.tsx`
+  - `frontend/src/components/project/EditProjectDialog.tsx`
+
+---
+
 ## [2025-10-09] - Authentication System
 
 ### ✅ Добавлено

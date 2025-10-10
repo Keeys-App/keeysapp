@@ -43,12 +43,17 @@ import { LoginForm, RegisterForm } from '@/components/auth';
 **Компоненты:**
 - `ProjectCard` - карточка проекта
 - `ProjectList` - список проектов с управлением
-- `CreateProjectDialog` - диалог создания проекта
-- `EditProjectDialog` - диалог редактирования проекта
+- `ProjectForm` - универсальная форма для создания/редактирования проекта
+- `CreateProjectCard` - карточка для создания нового проекта
+- `EmptyProjects` - компонент пустого состояния
 
 **Использование:**
 ```tsx
-import { ProjectList, ProjectCard } from '@/components/project';
+import { ProjectList, ProjectCard, ProjectForm } from '@/components/project';
+
+// ProjectForm используется на страницах CreateProjectPage и EditProjectPage
+<ProjectForm mode="create" />
+<ProjectForm mode="edit" project={project} />
 ```
 
 ### 🏗️ Layout Module (`layout/`)

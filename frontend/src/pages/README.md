@@ -1,59 +1,154 @@
 # Pages
 
-Страницы приложения - компоненты верхнего уровня, соответствующие маршрутам.
+Страницы приложения организованы по функциональности.
 
 ## Структура
 
 ```
 pages/
-├── index.ts           # Barrel export
-├── AuthPage.tsx       # Страница аутентификации
-├── DashboardPage.tsx  # Главная страница (список проектов)
-└── ProjectPage.tsx    # Страница отдельного проекта
+├── AuthPage.tsx            # Аутентификация (логин/регистрация)
+├── DashboardPage.tsx       # Главная страница (список проектов)
+├── ProjectPage.tsx         # Страница проекта (ключи переводов)
+├── CreateProjectPage.tsx   # Создание нового проекта
+├── EditProjectPage.tsx     # Редактирование проекта
+├── ExportPage.tsx          # Экспорт переводов
+├── ImportPage.tsx          # Импорт переводов
+└── index.ts                # Экспорты
 ```
 
 ## Страницы
 
-### 🔐 AuthPage
-Страница аутентификации с формами входа и регистрации.
+### AuthPage (`/auth`)
+Страница аутентификации с переключением между формами входа и регистрации.
 
-**Маршрут:** `/auth`
+**Компоненты:**
+- `LoginForm` - форма входа
+- `RegisterForm` - форма регистрации
 
-**Функциональность:**
-- Переключение между формами входа и регистрации
-- Редирект на dashboard после успешной авторизации
-- Поддержка темной темы
+### DashboardPage (`/`)
+Главная страница приложения со списком проектов пользователя.
 
-### 🏠 DashboardPage
-Главная страница со списком проектов пользователя.
+**Компоненты:**
+- `ProjectList` - список проектов
+- `ProjectCard` - карточка проекта
+- `CreateProjectCard` - карточка создания проекта
 
-**Маршрут:** `/`
+### CreateProjectPage (`/project/create`)
+Страница создания нового проекта.
 
-**Функциональность:**
-- Отображение списка проектов
-- Создание новых проектов
-- Редактирование и удаление проектов
+**Компоненты:**
+- `ProjectForm` с `mode="create"`
 
-### 📁 ProjectPage
-Страница отдельного проекта с ключами локализации.
+**Особенности:**
+- Отдельная страница вместо модального окна
+- Возможность использовать браузерную навигацию
+- После создания перенаправляет на главную страницу
 
-**Маршрут:** `/project/:id`
+### EditProjectPage (`/project/:id/edit`)
+Страница редактирования существующего проекта.
 
-**Функциональность:**
-- Просмотр деталей проекта
-- Управление ключами перевода (в разработке)
-- Навигация обратно к списку проектов
+**Компоненты:**
+- `ProjectForm` с `mode="edit"`
 
-## Использование
+**Особенности:**
+- Загружает данные проекта из GET_PROJECTS
+- Показывает LoadingState во время загрузки
+- Показывает NotFoundState если проект не найден
+- После сохранения перенаправляет на страницу проекта
 
-```tsx
-import { AuthPage, DashboardPage, ProjectPage } from '@/pages';
+### ProjectPage (`/project/:id`)
+Страница проекта с ключами переводов и управлением.
+
+**Функции:**
+- Просмотр и редактирование ключей
+- Управление переводами
+- Навигация к экспорту/импорту
+
+### ExportPage (`/project/:id/export`)
+Страница экспорта переводов в различные форматы.
+
+**Форматы:**
+- JSON
+- YAML
+- CSV
+- и другие
+
+### ImportPage (`/project/:id/import`)
+Страница импорта переводов из файлов.
+
+**Поддерживаемые форматы:**
+- JSON
+- YAML
+- CSV
+
+## Роутинг
+
+Все роуты определены в `constants/paths.ts`:
+
+```typescript
+export const PATHS = {
+  AUTH: '/auth',
+  HOME: '/',
+  DASHBOARD: '/',
+  PROJECT: '/project/:id',
+  PROJECT_CREATE: '/project/create',
+  PROJECT_EDIT: '/project/:id/edit',
+  EXPORT: '/project/:id/export',
+  IMPORT: '/project/:id/import',
+} as const;
 ```
 
-## Правила
+## Защита роутов
 
-- ✅ Страницы должны быть тонкими слоями над компонентами
-- ✅ Бизнес-логику выносите в компоненты или хуки
-- ✅ Используйте TypeScript с явными типами
-- ✅ Следуйте React Router best practices
+Все страницы кроме `AuthPage` защищены компонентом `ProtectedRoute`:
 
+```tsx
+<Route
+  element={
+    <ProtectedRoute>
+      <Layout />
+    </ProtectedRoute>
+  }
+>
+  <Route path={PATHS.DASHBOARD} element={<DashboardPage />} />
+  <Route path={PATHS.PROJECT_CREATE} element={<CreateProjectPage />} />
+  <Route path={PATHS.PROJECT_EDIT} element={<EditProjectPage />} />
+  {/* ... другие защищенные роуты */}
+</Route>
+```
+
+## Best Practices
+
+- ✅ Используйте константы из `PATHS` вместо hardcoded строк
+- ✅ Используйте `useNavigate` для программной навигации
+- ✅ Используйте `Link` для декларативной навигации
+- ✅ Обрабатывайте состояния загрузки и ошибок
+- ✅ Показывайте fallback UI (LoadingState, ErrorState, NotFoundState)
+
+## Примеры навигации
+
+### С использованием Link
+```tsx
+import { Link } from 'react-router-dom';
+import { PATHS } from '@/constants/paths';
+
+<Link to={PATHS.PROJECT_CREATE}>Create Project</Link>
+<Link to={PATHS.PROJECT_EDIT.replace(':id', projectId)}>Edit</Link>
+```
+
+### С использованием useNavigate
+```tsx
+import { useNavigate } from 'react-router-dom';
+import { PATHS } from '@/constants/paths';
+
+const navigate = useNavigate();
+
+// Переход на создание проекта
+navigate(PATHS.PROJECT_CREATE);
+
+// Переход на редактирование с ID
+navigate(PATHS.PROJECT_EDIT.replace(':id', projectId));
+
+// Назад
+navigate(-1);
+```
