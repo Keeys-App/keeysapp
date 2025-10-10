@@ -67,16 +67,8 @@ export const ExportPage: FC = () => {
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex items-center gap-4 mb-6">
-        <Button variant="ghost" size="icon" onClick={handleBackClick}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="text-3xl font-bold">Export: {project.name}</h1>
-      </div>
-      
+    <div className="container mx-auto p-4">
       <ExportContent project={project} />
     </div>
   );
 };
-
