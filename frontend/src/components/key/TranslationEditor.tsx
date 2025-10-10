@@ -6,33 +6,41 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { getUserFriendlyErrorMessage } from "@/lib/utils";
 import type { Language } from "@/types/project";
+import type { TranslationKey } from "@/types/translationKey";
 
 interface TranslationEditorProps {
-  keyId: string;
+  keyData: TranslationKey;
   language: Language;
   currentValue: string;
   projectId: string;
 }
 
 export function TranslationEditor({
-  keyId,
+  keyData,
   language,
   currentValue,
   projectId,
 }: TranslationEditorProps) {
-  const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(currentValue);
 
   const [setTranslation, { loading }] = useMutation(SET_TRANSLATION, {
     refetchQueries: [{ query: GET_PROJECT_KEYS, variables: { projectId } }],
     onCompleted: () => {
-      setIsEditing(false);
       toast("Translation updated successfully", {
-        description: `${language.name} - ${value}`,
+        description: (
+          <div>
+            <div>{keyData.key}</div>
+            <div>{language.name}</div>
+            <div>{value}</div>
+          </div>
+        ),
       });
     },
     onError: (error) => {
-      const message = getUserFriendlyErrorMessage(error, 'Failed to update translation. Please try again.');
+      const message = getUserFriendlyErrorMessage(
+        error,
+        "Failed to update translation. Please try again."
+      );
       toast.error(message);
     },
   });
@@ -44,7 +52,7 @@ export function TranslationEditor({
     await setTranslation({
       variables: {
         input: {
-          keyId,
+          keyId: keyData.id,
           value: trimmedValue,
           language: language.code,
         },
@@ -52,13 +60,10 @@ export function TranslationEditor({
     });
   };
 
-  const handleCancel = () => {
-    setValue(currentValue);
-    setIsEditing(false);
-  };
-
-  return <div className="">
-    <Textarea value={value} onChange={(e) => setValue(e.target.value)} />
-    <Button onClick={handleSave}>Save</Button>
-  </div>;
+  return (
+    <div className="">
+      <Textarea value={value} onChange={(e) => setValue(e.target.value)} />
+      <Button onClick={handleSave}>Save</Button>
+    </div>
+  );
 }

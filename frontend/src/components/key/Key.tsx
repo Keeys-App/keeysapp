@@ -37,7 +37,7 @@ export function Key({ keyData, projectId, projectLanguages }: KeyProps) {
                 </div>
                 <div className="text-sm p-2">
                   <TranslationEditor
-                    keyId={keyData.id}
+                    keyData={keyData}
                     language={language}
                     currentValue={
                       keyData.translations.find(
