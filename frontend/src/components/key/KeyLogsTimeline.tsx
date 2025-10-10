@@ -146,9 +146,9 @@ export const KeyLogsTimeline: FC<KeyLogsTimelineProps> = ({
 
               {/* Content */}
               <div className="flex-1 pb-2">
-                <div className="flex items-center justify-between gap-2 mb-1">
+                <div className="flex items-center justify-between gap-2 mb-1 pt-0.5">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-base">{label}</span>
+                    <span className="font-medium text-sm">{label}</span>
                     {log.user ? (
                       <span className="text-xs text-muted-foreground">
                         by {log.user.username}
