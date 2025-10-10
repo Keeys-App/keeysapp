@@ -77,40 +77,56 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, project, onSuccess, on
     }
   }, [mode, project]);
 
-  const [createProject, { loading: createLoading }] = useMutation(CREATE_PROJECT, {
+  const [createProject, { loading: createLoading, data: createData, error: createError }] = useMutation(CREATE_PROJECT, {
     refetchQueries: [{ query: GET_PROJECTS }],
-    onCompleted: () => {
+  });
+
+  const [updateProject, { loading: updateLoading, data: updateData, error: updateError }] = useMutation(UPDATE_PROJECT, {
+    refetchQueries: [{ query: GET_PROJECTS }],
+  });
+
+  // Handle create project success
+  useEffect(() => {
+    if (createData) {
       toast.success('Project created successfully');
       if (onSuccess) {
         onSuccess();
       }
-    },
-    onError: (error) => {
+    }
+  }, [createData, onSuccess]);
+
+  // Handle create project error
+  useEffect(() => {
+    if (createError) {
       // Check if it's an authentication error
-      if (error.message.includes('Authentication required')) {
+      if (createError.message.includes('Authentication required')) {
         logout();
         navigate('/auth');
         return;
       }
 
-      const message = getUserFriendlyErrorMessage(error, 'Failed to create project. Please try again.');
+      const message = getUserFriendlyErrorMessage(createError, 'Failed to create project. Please try again.');
       toast.error(message);
-    },
-  });
+    }
+  }, [createError, logout, navigate]);
 
-  const [updateProject, { loading: updateLoading }] = useMutation(UPDATE_PROJECT, {
-    refetchQueries: [{ query: GET_PROJECTS }],
-    onCompleted: () => {
+  // Handle update project success
+  useEffect(() => {
+    if (updateData) {
       toast.success('Project updated successfully');
       if (onSuccess) {
         onSuccess();
       }
-    },
-    onError: (error) => {
-      const message = getUserFriendlyErrorMessage(error, 'Failed to update project. Please try again.');
+    }
+  }, [updateData, onSuccess]);
+
+  // Handle update project error
+  useEffect(() => {
+    if (updateError) {
+      const message = getUserFriendlyErrorMessage(updateError, 'Failed to update project. Please try again.');
       toast.error(message);
-    },
-  });
+    }
+  }, [updateError]);
 
   const loading = createLoading || updateLoading;
 

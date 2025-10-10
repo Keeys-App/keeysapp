@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@apollo/client";
 import { toast } from "sonner";
 import { SET_TRANSLATION, GET_PROJECT_KEYS } from "@/graphql/keys";
@@ -23,9 +23,13 @@ export function TranslationEditor({
 }: TranslationEditorProps) {
   const [value, setValue] = useState(currentValue);
 
-  const [setTranslation, { loading }] = useMutation(SET_TRANSLATION, {
+  const [setTranslation, { loading, data: translationData, error: translationError }] = useMutation(SET_TRANSLATION, {
     refetchQueries: [{ query: GET_PROJECT_KEYS, variables: { projectId } }],
-    onCompleted: () => {
+  });
+
+  // Handle translation update success
+  useEffect(() => {
+    if (translationData) {
       toast("Translation updated successfully", {
         description: (
           <div>
@@ -35,15 +39,19 @@ export function TranslationEditor({
           </div>
         ),
       });
-    },
-    onError: (error) => {
+    }
+  }, [translationData, keyData.key, language.name, value]);
+
+  // Handle translation update error
+  useEffect(() => {
+    if (translationError) {
       const message = getUserFriendlyErrorMessage(
-        error,
+        translationError,
         "Failed to update translation. Please try again."
       );
       toast.error(message);
-    },
-  });
+    }
+  }, [translationError]);
 
   const handleSave = async () => {
     const trimmedValue = value.trim();

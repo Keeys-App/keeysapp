@@ -1,4 +1,4 @@
-import { useState, type FC } from "react";
+import { useState, useEffect, type FC } from "react";
 import { useQuery, useMutation } from "@apollo/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -32,21 +32,29 @@ export const ProjectList: FC = () => {
     }
   );
 
-  const [deleteProject, { loading: deleting }] = useMutation(DELETE_PROJECT, {
+  const [deleteProject, { loading: deleting, data: deleteData, error: deleteError }] = useMutation(DELETE_PROJECT, {
     refetchQueries: [{ query: GET_PROJECTS }],
-    onCompleted: () => {
+  });
+
+  // Handle delete success
+  useEffect(() => {
+    if (deleteData) {
       setDeleteDialogOpen(false);
       setProjectToDelete(null);
       toast("Project deleted successfully");
-    },
-    onError: (error) => {
+    }
+  }, [deleteData]);
+
+  // Handle delete error
+  useEffect(() => {
+    if (deleteError) {
       const message = getUserFriendlyErrorMessage(
-        error,
+        deleteError,
         "Failed to delete project. Please try again."
       );
       toast.error(message);
-    },
-  });
+    }
+  }, [deleteError]);
 
   const handleEdit = (project: Project) => {
     navigate(PATHS.PROJECT_EDIT.replace(":id", project.id));

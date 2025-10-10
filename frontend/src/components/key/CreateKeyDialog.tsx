@@ -51,22 +51,28 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
   const [lastCheckedKey, setLastCheckedKey] = useState<string>("");
 
   // Lazy query to check if key exists
-  const [checkKeyExists, { loading: checkingKey }] = useLazyQuery(
+  const [checkKeyExists, { loading: checkingKey, data: checkKeyData, error: checkKeyError }] = useLazyQuery(
     CHECK_KEY_EXISTS,
     {
       fetchPolicy: "no-cache", // Don't use cache at all
-      onCompleted: (data) => {
-        if (data?.checkKeyExists !== undefined) {
-          setIsDuplicate(data.checkKeyExists);
-          setLastCheckedKey(key.trim()); // Mark this key as checked
-        }
-      },
-      onError: () => {
-        setIsDuplicate(false);
-        setLastCheckedKey(key.trim()); // Mark as checked even on error
-      },
     }
   );
+
+  // Handle check key exists result
+  useEffect(() => {
+    if (checkKeyData?.checkKeyExists !== undefined) {
+      setIsDuplicate(checkKeyData.checkKeyExists);
+      setLastCheckedKey(key.trim()); // Mark this key as checked
+    }
+  }, [checkKeyData, key]);
+
+  // Handle check key exists error
+  useEffect(() => {
+    if (checkKeyError) {
+      setIsDuplicate(false);
+      setLastCheckedKey(key.trim()); // Mark as checked even on error
+    }
+  }, [checkKeyError, key]);
 
   // Debounced check for key existence
   useEffect(() => {
@@ -115,9 +121,15 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
     !checkingKey &&
     key.trim() === lastCheckedKey; // Ensure current key has been checked
 
-  const [createKey, { loading }] = useMutation(CREATE_KEY, {
+  const [createKey, { loading, data: createKeyData, error: createKeyError }] = useMutation(CREATE_KEY, {
     refetchQueries: [{ query: GET_PROJECT_KEYS, variables: { projectId } }],
-    onCompleted: () => {
+  });
+
+  // Handle create key success
+  useEffect(() => {
+    if (createKeyData) {
+      const keyValue = key;
+      
       // Reset form
       setKey("");
       setDescription("");
@@ -131,14 +143,18 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
       }
 
       toast("Key created successfully", {
-        description: key,
+        description: keyValue,
       });
-    },
-    onError: (error) => {
-      const message = getUserFriendlyErrorMessage(error, 'Failed to create key. Please try again.');
+    }
+  }, [createKeyData, addAnother, onOpenChange]);
+
+  // Handle create key error
+  useEffect(() => {
+    if (createKeyError) {
+      const message = getUserFriendlyErrorMessage(createKeyError, 'Failed to create key. Please try again.');
       toast.error(message);
-    },
-  });
+    }
+  }, [createKeyError]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
