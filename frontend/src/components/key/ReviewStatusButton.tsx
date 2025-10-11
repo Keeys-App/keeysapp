@@ -152,7 +152,7 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
 
       if (result.data?.approveTranslation) {
         setComment("");
-        setIsOpen(false);
+        handleOpenChange(false);
         toast("Translation approved");
       }
     }, "Approving...");
@@ -172,7 +172,7 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
 
       if (result.data?.rejectTranslation) {
         setComment("");
-        setIsOpen(false);
+        handleOpenChange(false);
         toast("Translation rejected");
       }
     }, "Rejecting...");
@@ -188,7 +188,7 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
       });
 
       if (result.data?.deleteTranslationReview) {
-        setIsOpen(false);
+        handleOpenChange(false);
         toast("Review reset");
       }
     }, "Revoking...");
