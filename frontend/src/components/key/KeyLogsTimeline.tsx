@@ -12,9 +12,9 @@ import {
   Edit,
   FileDown,
   AlertCircle,
-  MessageHeart,
-  MessageX,
-  MessageOff,
+  MessageSquareHeart,
+  MessageSquareX,
+  MessageSquareOff,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -72,9 +72,9 @@ const actionIcons: Record<string, typeof History> = {
   DELETE_TRANSLATION: Delete,
   DELETE: Trash,
   IMPORT: FileDown,
-  REVIEW_APPROVE: MessageCircleHeart,
-  REVIEW_REJECT: MessageCircleX,
-  REVIEW_DELETE: MessageCircleOff,
+  REVIEW_APPROVE: MessageSquareHeart,
+  REVIEW_REJECT: MessageSquareX,
+  REVIEW_DELETE: MessageSquareOff,
 };
 
 const actionColors: Record<string, string> = {
@@ -82,7 +82,7 @@ const actionColors: Record<string, string> = {
   UPDATE_KEY: "bg-blue-500/10 text-blue-600",
   UPDATE_DESCRIPTION: "bg-blue-500/10 text-blue-600",
   UPDATE_TRANSLATION: "bg-purple-500/10 text-purple-600",
-  DELETE_TRANSLATION: "bg-orange-500/10 text-orange-600",
+  DELETE_TRANSLATION: "bg-red-500/10 text-red-600",
   DELETE: "bg-red-500/10 text-red-600",
   IMPORT: "bg-cyan-500/10 text-cyan-600",
   REVIEW_APPROVE: "bg-green-500/10 text-green-600",

@@ -18,10 +18,10 @@ import { useSaving, useSavingStore } from "@/stores";
 import { toast } from "sonner";
 import type { ReviewStatus } from "@/types/translationKey";
   import {
-    MessageCircleOff,
-    MessageCircleHeart,
-    MessageCircle,
-    MessageCircleX,
+    MessageSquareOff,
+    MessageSquareHeart,
+    MessageSquare,
+    MessageSquareX,
   } from "lucide-react";
 
 interface ReviewStatusButtonProps {
@@ -33,12 +33,12 @@ interface ReviewStatusButtonProps {
 
 const reviewStatusConfig: Record<
   ReviewStatus,
-  { icon: typeof MessageCircle; color: string }
+  { icon: typeof MessageSquare; color: string }
 > = {
-  NOT_REVIEWED: { icon: MessageCircle, color: "text-muted-foreground" },
-  PENDING: { icon: MessageCircle, color: "text-muted-foreground" },
-  APPROVED: { icon: MessageCircleHeart, color: "text-green-600" },
-  REJECTED: { icon: MessageCircleX, color: "text-red-600" },
+  NOT_REVIEWED: { icon: MessageSquare, color: "text-muted-foreground" },
+  PENDING: { icon: MessageSquare, color: "text-muted-foreground" },
+  APPROVED: { icon: MessageSquareHeart, color: "text-green-600" },
+  REJECTED: { icon: MessageSquareX, color: "text-red-600" },
 };
 
 /**
@@ -55,7 +55,7 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
   const withSaving = useSaving();
   const { isSaving } = useSavingStore();
 
-  const StatusIcon = reviewStatusConfig[reviewStatus]?.icon || MessageCircle;
+  const StatusIcon = reviewStatusConfig[reviewStatus]?.icon || MessageSquare;
   const statusColor =
     reviewStatusConfig[reviewStatus]?.color || "text-muted-foreground";
 
@@ -242,7 +242,7 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
                  size="sm"
                  className="justify-start text-green-600 hover:text-green-700 hover:bg-green-50"
                >
-                 <MessageCircleHeart className="h-4 w-4 mr-2" />
+                 <MessageSquareHeart className="h-4 w-4 mr-2" />
                  Approve
                </Button>
                }
@@ -257,7 +257,7 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
                 size="sm"
                 className="justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
               >
-                <MessageCircleX className="h-4 w-4 mr-2" />
+                <MessageSquareX className="h-4 w-4 mr-2" />
                 Reject
               </Button>}
 
@@ -272,7 +272,7 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
                    size="sm"
                    className="w-full justify-start text-muted-foreground hover:text-foreground"
                  >
-                   <MessageCircleOff className="h-4 w-4 mr-2" />
+                   <MessageSquareOff className="h-4 w-4 mr-2" />
                    Revoke
                  </Button>
                ) : null}
