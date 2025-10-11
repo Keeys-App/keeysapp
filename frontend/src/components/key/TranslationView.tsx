@@ -21,7 +21,7 @@ export const TranslationView = memo(function TranslationView({
       className="cursor-pointer h-full hover:bg-muted/70 rounded transition-colors min-h-[2rem]"
       onClick={onEdit}
     >
-      <div className="p-[1px]">
+      <div className="p-2">
         {value ? (
           <span className="whitespace-pre-wrap">{value}</span>
         ) : (
@@ -33,4 +33,3 @@ export const TranslationView = memo(function TranslationView({
     </div>
   );
 });
-

@@ -68,9 +68,10 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
   };
 
   return (
-    <div dir={direction}>
+    <div className="bg-background">
       <Textarea
-        className="bg-background"
+        dir={direction}
+        className="bg-background rounded-none border-none focus-visible:ring-0 focus-visible:ring-offset-0 p-2 shadow-none"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onClick={(e) => e.stopPropagation()}
@@ -79,7 +80,7 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
         rows={3}
         autoFocus
       />
-      <div className="flex gap-2 mt-2">
+      <div className="flex gap-2 p-2 border-t">
         <Button
           onClick={handleSaveClick}
           disabled={isSaving || !hasChanges}
@@ -88,16 +89,6 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
         >
           Save
         </Button>
-        {defaultLanguageValue ? (
-          <Button
-            onClick={handleCopyFromDefault}
-            disabled={isSaving}
-            variant="outline"
-            size="sm"
-          >
-            Copy from default
-          </Button>
-        ) : null}
         <Button
           onClick={handleCancelClick}
           disabled={isSaving}
@@ -106,8 +97,17 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
         >
           Cancel
         </Button>
+        {defaultLanguageValue && defaultLanguageValue !== value ? (
+          <Button
+            onClick={handleCopyFromDefault}
+            disabled={isSaving}
+            variant="ghost"
+            size="sm"
+          >
+            Copy from default
+          </Button>
+        ) : null}
       </div>
     </div>
   );
 };
-
