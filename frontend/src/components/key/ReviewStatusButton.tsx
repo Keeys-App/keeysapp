@@ -29,6 +29,7 @@ interface ReviewStatusButtonProps {
   language: string;
   reviewStatus: ReviewStatus;
   projectId: string;
+  onOpenChange?: (isOpen: boolean) => void;
 }
 
 const reviewStatusConfig: Record<
@@ -49,9 +50,17 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
   language,
   reviewStatus,
   projectId,
+  onOpenChange,
 }) => {
   const [comment, setComment] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    if (onOpenChange) {
+      onOpenChange(open);
+    }
+  };
   const withSaving = useSaving();
   const { isSaving } = useSavingStore();
 
@@ -186,7 +195,7 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
   };
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <Popover open={isOpen} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <Button
           variant="ghost"

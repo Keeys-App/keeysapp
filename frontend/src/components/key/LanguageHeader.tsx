@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useState } from "react";
 import { ReviewStatusButton } from "./ReviewStatusButton";
 import type { Language, LanguageWithLocale } from "@/types/project";
 import type { Translation } from "@/types/translationKey";
@@ -21,6 +21,8 @@ export const LanguageHeader = memo(function LanguageHeader({
   keyId,
   projectId,
 }: LanguageHeaderProps) {
+  const [isReviewOpen, setIsReviewOpen] = useState(false);
+
   // Find translation for this language
   const translation = translations.find((t) => t.language === language.code);
   const translationValue = translation?.value || "";
@@ -35,13 +37,19 @@ export const LanguageHeader = memo(function LanguageHeader({
         <div className="text-muted-foreground text-xs">
           {"locale" in language ? language.locale : language.code}
         </div>
-        <div className="relative top-[5px] right-[-3px] opacity-0 group-hover:opacity-100 transition-opacity">
+        <div
+          className={cn(
+            "relative top-[5px] right-[-3px] transition-opacity",
+            isReviewOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          )}
+        >
           {hasTranslation ? (
             <ReviewStatusButton
               keyId={keyId}
               language={language.code}
               reviewStatus={translation?.reviewStatus || "NOT_REVIEWED"}
               projectId={projectId}
+              onOpenChange={setIsReviewOpen}
             />
           ) : null}
         </div>
