@@ -16,115 +16,127 @@ interface KeyProps {
 /**
  * Component for displaying a single translation key with its translations
  */
-export const Key = memo(function Key({ 
-  keyData, 
-  projectId, 
-  projectLanguages,
-  isSelected = false,
-  onSelect,
-}: KeyProps) {
-  const handleClick = () => {
-    if (onSelect) {
-      onSelect(keyData);
-    }
-  };
+export const Key = memo(
+  function Key({
+    keyData,
+    projectId,
+    projectLanguages,
+    isSelected = false,
+    onSelect,
+  }: KeyProps) {
+    const handleClick = () => {
+      if (onSelect) {
+        onSelect(keyData);
+      }
+    };
 
-  return (
-    <div 
-      className="border-b grid grid-cols-[minmax(300px,300px)_minmax(300px,3fr)] relative cursor-pointer"
-      onClick={handleClick}
-    >      
-      <div className="border-r relative">
-        <div className="font-mono text-sm break-words sticky bg-background top-[2px] z-10 py-2 px-4">
-          <span className={`transition-colors ${
-            isSelected ? 'bg-primary/10 text-primary py-0.5 rounded' : ''
-          }`}>
-            {keyData.key}
-          </span>
+    return (
+      <div
+        className="border-b grid grid-cols-[minmax(300px,300px)_minmax(300px,3fr)] relative cursor-pointer"
+        onClick={handleClick}
+      >
+        <div className="border-r relative">
+          <div className="font-mono text-sm break-words sticky bg-background top-[2px] z-10 py-2 px-4">
+            <span
+              className={`transition-colors ${
+                isSelected ? "bg-primary/10 text-primary py-0.5 rounded" : ""
+              }`}
+            >
+              {keyData.key}
+            </span>
+          </div>
+          {keyData.description ? (
+            <p className="text-sm break-words text-muted-foreground px-4 py-2">
+              {keyData.description}
+            </p>
+          ) : null}
         </div>
-        {keyData.description ? (
-          <p className="text-sm break-words text-muted-foreground px-4 py-2">{keyData.description}</p>
-        ) : null}
-      </div>
-      <div className="flex flex-col">
-        <div className="">
-          {projectLanguages.map((language) => {
-            const translation = keyData.translations.find((t) => t.language === language.code);
-            const translationValue = translation?.value || "";
-            const hasTranslation = translationValue.trim() !== "";
-            
-            return (
-              <div
-                key={language.code}
-                className="grid grid-cols-[120px_1fr] even:bg-muted/50 border-b"
-              >
-                <div className="border-r p-2 gap-1">
-                  <div className="flex flex-col flex-1 min-w-0">
-                    <div className="text-sm">{language.name}</div>
-                    <div className="text-muted-foreground text-xs">
-                      {'locale' in language ? (
-                        language.locale
-                      ) : (
-                        language.code
-                      )}
+        <div className="flex flex-col">
+          <div className="">
+            {projectLanguages.map((language) => {
+              const translation = keyData.translations.find(
+                (t) => t.language === language.code
+              );
+              const translationValue = translation?.value || "";
+              const hasTranslation = translationValue.trim() !== "";
+
+              return (
+                <div
+                  key={language.code}
+                  className="grid grid-cols-[120px_1fr] even:bg-muted/50 border-b"
+                >
+                  <div className="border-r flex p-2 gap-1">
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <div className="text-sm">{language.name}</div>
+                      <div className="text-muted-foreground text-xs">
+                        {"locale" in language ? language.locale : language.code}
+                      </div>
+                    </div>
+                    <div className="relative top-[-1px]">
+                      {hasTranslation ? (
+                        <ReviewStatusButton
+                          keyId={keyData.id}
+                          language={language.code}
+                          reviewStatus={
+                            translation?.reviewStatus || "NOT_REVIEWED"
+                          }
+                          projectId={projectId}
+                        />
+                      ) : null}
                     </div>
                   </div>
-                  {hasTranslation ? (
-                    <ReviewStatusButton
-                      keyId={keyData.id}
-                      language={language.code}
-                      reviewStatus={translation?.reviewStatus || 'NOT_REVIEWED'}
+                  <div className="text-sm p-2">
+                    <TranslationEditor
+                      keyData={keyData}
+                      language={language}
+                      currentValue={translationValue}
                       projectId={projectId}
                     />
-                  ) : null}
+                  </div>
                 </div>
-                <div className="text-sm p-2">
-                  <TranslationEditor
-                    keyData={keyData}
-                    language={language}
-                    currentValue={translationValue}
-                    projectId={projectId}
-                  />
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
-    </div>
-  );
-}, (prevProps, nextProps) => {
-  // Custom comparison function to prevent unnecessary re-renders
-  // Only re-render if the key data actually changed
-  if (
-    prevProps.keyData.id !== nextProps.keyData.id ||
-    prevProps.keyData.key !== nextProps.keyData.key ||
-    prevProps.keyData.description !== nextProps.keyData.description ||
-    prevProps.keyData.updatedAt !== nextProps.keyData.updatedAt ||
-    prevProps.isSelected !== nextProps.isSelected ||
-    prevProps.projectId !== nextProps.projectId
-  ) {
-    return false; // Re-render
-  }
-  
-  // Check if translations changed (including reviewStatus)
-  if (prevProps.keyData.translations.length !== nextProps.keyData.translations.length) {
-    return false; // Re-render
-  }
-  
-  for (let i = 0; i < prevProps.keyData.translations.length; i++) {
-    const prev = prevProps.keyData.translations[i];
-    const next = nextProps.keyData.translations[i];
-    
+    );
+  },
+  (prevProps, nextProps) => {
+    // Custom comparison function to prevent unnecessary re-renders
+    // Only re-render if the key data actually changed
     if (
-      prev.language !== next.language ||
-      prev.value !== next.value ||
-      prev.reviewStatus !== next.reviewStatus ||
-      prev.updatedAt !== next.updatedAt
+      prevProps.keyData.id !== nextProps.keyData.id ||
+      prevProps.keyData.key !== nextProps.keyData.key ||
+      prevProps.keyData.description !== nextProps.keyData.description ||
+      prevProps.keyData.updatedAt !== nextProps.keyData.updatedAt ||
+      prevProps.isSelected !== nextProps.isSelected ||
+      prevProps.projectId !== nextProps.projectId
     ) {
       return false; // Re-render
     }
+
+    // Check if translations changed (including reviewStatus)
+    if (
+      prevProps.keyData.translations.length !==
+      nextProps.keyData.translations.length
+    ) {
+      return false; // Re-render
+    }
+
+    for (let i = 0; i < prevProps.keyData.translations.length; i++) {
+      const prev = prevProps.keyData.translations[i];
+      const next = nextProps.keyData.translations[i];
+
+      if (
+        prev.language !== next.language ||
+        prev.value !== next.value ||
+        prev.reviewStatus !== next.reviewStatus ||
+        prev.updatedAt !== next.updatedAt
+      ) {
+        return false; // Re-render
+      }
+    }
+
+    return true; // Don't re-render
   }
-  
-  return true; // Don't re-render
-});
+);
