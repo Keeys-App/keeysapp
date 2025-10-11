@@ -64,12 +64,27 @@ export const Key = memo(
               const translationValue = translation?.value || "";
               const hasTranslation = translationValue.trim() !== "";
 
+              // Find default language translation
+              const defaultLanguage = projectLanguages.find((l) => l.default);
+              const defaultTranslation = defaultLanguage
+                ? keyData.translations.find(
+                    (t) => t.language === defaultLanguage.code
+                  )
+                : null;
+              const defaultLanguageValue = defaultTranslation?.value || "";
+
               return (
                 <div
                   key={language.code}
                   className="group grid grid-cols-[120px_1fr] even:bg-muted/50 border-b -mb-px"
                 >
-                  <div className="border-r -mr-px p-4 grid grid-rows-[auto_1fr] gap-1">
+                  <div className="border-r -mr-px p-4 grid grid-rows-[auto_1fr] gap-1 relative">
+                    {language.default ? (
+                      <div 
+                        className="absolute top-0 left-0 w-0 h-0 border-t-[10px] border-t-blue-500 border-r-[10px] border-r-transparent"
+                        title="Default language"
+                      />
+                    ) : null}
                     <div className="text-sm flex items-center gap-1.5">
                       <span>{language.name}</span>
                     </div>
@@ -101,6 +116,11 @@ export const Key = memo(
                       onEditingChange={(editing) => {
                         onEditingLanguageChange(editing ? language.code : null);
                       }}
+                      defaultLanguageValue={
+                        !language.default && defaultLanguageValue
+                          ? defaultLanguageValue
+                          : undefined
+                      }
                     />
                   </div>
                 </div>

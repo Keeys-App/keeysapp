@@ -20,6 +20,7 @@ interface TranslationEditorProps {
   projectId: string;
   isEditing: boolean;
   onEditingChange: (editing: boolean) => void;
+  defaultLanguageValue?: string;
 }
 
 export const TranslationEditor = memo(
@@ -30,6 +31,7 @@ export const TranslationEditor = memo(
     projectId,
     isEditing,
     onEditingChange,
+    defaultLanguageValue,
   }: TranslationEditorProps) {
     const [value, setValue] = useState(currentValue);
     const wasEditingRef = useRef(false);
@@ -235,6 +237,7 @@ export const TranslationEditor = memo(
             onSave={handleSave}
             onCancel={handleCancel}
             hasChanges={hasChanges()}
+            defaultLanguageValue={defaultLanguageValue}
           />
         )}
       </div>

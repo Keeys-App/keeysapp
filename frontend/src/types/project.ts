@@ -76,14 +76,15 @@ export type LanguageConfig = {
   };
 };
 
-export type Language = Pick<LanguageConfig, 'code' | 'name' | 'flag' | 'direction'>;
+export type Language = Pick<LanguageConfig, 'code' | 'name' | 'flag' | 'direction'> & {
+  default?: boolean;
+};
 
 /**
  * Extended language type with locale information for UI components.
  */
 export interface LanguageWithLocale extends Language {
   locale: string;
-  default?: boolean;
 }
 
 /**

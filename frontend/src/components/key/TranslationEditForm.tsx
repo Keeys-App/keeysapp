@@ -10,6 +10,7 @@ interface TranslationEditFormProps {
   onSave: () => void;
   onCancel: () => void;
   hasChanges: boolean;
+  defaultLanguageValue?: string;
 }
 
 /**
@@ -25,6 +26,7 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
   onSave,
   onCancel,
   hasChanges,
+  defaultLanguageValue,
 }) => {
   const { isSaving } = useSavingStore();
 
@@ -36,6 +38,13 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
   const handleCancelClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onCancel();
+  };
+
+  const handleCopyFromDefault = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (defaultLanguageValue) {
+      onChange(defaultLanguageValue);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -79,6 +88,16 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
         >
           Save
         </Button>
+        {defaultLanguageValue ? (
+          <Button
+            onClick={handleCopyFromDefault}
+            disabled={isSaving}
+            variant="outline"
+            size="sm"
+          >
+            Copy from default
+          </Button>
+        ) : null}
         <Button
           onClick={handleCancelClick}
           disabled={isSaving}
