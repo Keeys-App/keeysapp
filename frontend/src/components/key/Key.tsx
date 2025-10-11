@@ -40,7 +40,7 @@ export const Key = memo(
         onClick={handleClick}
       >
         <div className="border-r -mr-px relative">
-          <div className="font-mono text-sm break-words sticky bg-background top-[2px] z-10 py-2 px-4">
+          <div className="font-mono text-sm break-words sticky bg-background top-[2px] z-10 p-4">
             <span
               className={`transition-colors ${
                 isSelected ? "bg-primary/10 text-primary py-0.5 rounded" : ""
@@ -50,7 +50,7 @@ export const Key = memo(
             </span>
           </div>
           {keyData.description ? (
-            <p className="text-sm break-words text-muted-foreground px-4 py-2">
+            <p className="text-sm break-words text-muted-foreground px-4 pb-2">
               {keyData.description}
             </p>
           ) : null}
@@ -69,14 +69,9 @@ export const Key = memo(
                   key={language.code}
                   className="group grid grid-cols-[120px_1fr] even:bg-muted/50 border-b -mb-px"
                 >
-                  <div className="border-r -mr-px p-2 grid grid-rows-[auto_1fr] gap-1">
+                  <div className="border-r -mr-px p-4 grid grid-rows-[auto_1fr] gap-1">
                     <div className="text-sm flex items-center gap-1.5">
                       <span>{language.name}</span>
-                      {"default" in language && language.default ? (
-                        <Badge variant="outline" className="text-xs">
-                          Default
-                        </Badge>
-                      ) : null}
                     </div>
                     <div className="flex items-end justify-between">
                       <div className="text-muted-foreground text-xs">
