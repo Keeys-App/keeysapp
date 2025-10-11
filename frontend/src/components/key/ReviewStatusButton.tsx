@@ -4,9 +4,6 @@ import {
   APPROVE_TRANSLATION,
   REJECT_TRANSLATION,
   DELETE_TRANSLATION_REVIEW,
-  GET_PROJECT_KEYS,
-  GET_KEY,
-  GET_KEY_LOGS,
 } from "@/graphql/keys";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,13 +16,13 @@ import { useSaving, useSavingStore } from "@/stores";
 import { toast } from "sonner";
 import type { ReviewStatus } from "@/types/translationKey";
 import {
-  Check,
-  X,
   Trash2,
   CheckCircle,
   XCircle,
   Clock,
   FileText,
+  ThumbsUp,
+  ThumbsDown,
 } from "lucide-react";
 
 interface ReviewStatusButtonProps {
@@ -90,7 +87,7 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
           },
         },
       });
-      
+
       if (result.data?.approveTranslation) {
         setComment("");
         setIsOpen(false);
@@ -110,7 +107,7 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
           },
         },
       });
-      
+
       if (result.data?.rejectTranslation) {
         setComment("");
         setIsOpen(false);
@@ -127,12 +124,12 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
           language,
         },
       });
-      
+
       if (result.data?.deleteTranslationReview) {
         setIsOpen(false);
         toast("Review reset");
       }
-    }, "Resetting review...");
+    }, "Cancelling...");
   };
 
   return (
@@ -161,7 +158,7 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
             <div className="space-y-2">
               <h4 className="leading-none font-medium">Review Translation</h4>
               <p className="text-muted-foreground text-sm">
-                Set the dimensions for the layer.
+                Review the translation and approve or reject it.
               </p>
             </div>
             <Textarea
@@ -180,49 +177,53 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
           </div>
 
           <div className="space-y-1">
-            <Button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleApprove();
-              }}
-              disabled={isSaving || reviewStatus === "APPROVED"}
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start text-green-600 hover:text-green-700 hover:bg-green-50"
-            >
-              <Check className="h-4 w-4 mr-2" />
-              Approve
-            </Button>
-
-            <Button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleReject();
-              }}
-              disabled={isSaving || reviewStatus === "REJECTED"}
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
-            >
-              <X className="h-4 w-4 mr-2" />
-              Reject
-            </Button>
-
-            {reviewStatus === "APPROVED" || reviewStatus === "REJECTED" ? (
+            <div className="grid grid-cols-2 gap-2">
+              {reviewStatus !== "APPROVED" && 
               <Button
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleDeleteReview();
+                  handleApprove();
                 }}
                 disabled={isSaving}
                 variant="ghost"
                 size="sm"
-                className="w-full justify-start text-muted-foreground hover:text-foreground"
+                className="justify-start text-green-600 hover:text-green-700 hover:bg-green-50"
               >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Cancel Review
+                <ThumbsUp className="h-4 w-4 mr-2" />
+                Approve
               </Button>
-            ) : null}
+              }
+
+              {reviewStatus !== "REJECTED" && <Button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleReject();
+                }}
+                disabled={isSaving}
+                variant="ghost"
+                size="sm"
+                className="justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                <ThumbsDown className="h-4 w-4 mr-2" />
+                Reject
+              </Button>}
+
+              {reviewStatus === "APPROVED" || reviewStatus === "REJECTED" ? (
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteReview();
+                  }}
+                  disabled={isSaving}
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start text-muted-foreground hover:text-foreground"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Revoke
+                </Button>
+              ) : null}
+            </div>
           </div>
         </div>
       </PopoverContent>
