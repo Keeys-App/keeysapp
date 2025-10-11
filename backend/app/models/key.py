@@ -25,6 +25,7 @@ class Key(Base):
     # Relationships
     project = relationship("Project", back_populates="keys")
     translations = relationship("Translation", back_populates="key", cascade="all, delete-orphan")
+    logs = relationship("KeyLog", back_populates="key", cascade="all, delete-orphan")
 
     # Ensure key uniqueness within a project
     __table_args__ = (

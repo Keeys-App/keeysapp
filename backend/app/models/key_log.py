@@ -40,6 +40,6 @@ class KeyLog(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
 
     # Relationships
-    key = relationship("Key", backref="logs")
+    key = relationship("Key", back_populates="logs")
     user = relationship("User", backref="key_logs")
 

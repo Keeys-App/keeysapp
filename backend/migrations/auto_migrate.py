@@ -240,6 +240,70 @@ def migrate_add_import_action_type_if_needed():
         return False
 
 
+def migrate_fix_key_logs_cascade_if_needed():
+    """
+    Fix cascade delete for key_logs foreign key if needed.
+    Safe to run multiple times.
+    """
+    try:
+        with engine.connect() as connection:
+            # Check existing constraint
+            result = connection.execute(text("""
+                SELECT 
+                    tc.constraint_name,
+                    rc.update_rule,
+                    rc.delete_rule
+                FROM 
+                    information_schema.table_constraints AS tc 
+                    JOIN information_schema.referential_constraints AS rc
+                        ON tc.constraint_name = rc.constraint_name
+                WHERE 
+                    tc.table_name = 'key_logs' 
+                    AND tc.constraint_type = 'FOREIGN KEY'
+                    AND rc.unique_constraint_name LIKE '%keys_pkey%';
+            """))
+            
+            constraint_info = result.fetchone()
+            
+            if constraint_info:
+                constraint_name, update_rule, delete_rule = constraint_info
+                
+                if delete_rule == 'CASCADE':
+                    logger.info("✅ Migration: key_logs CASCADE delete already exists, skipping")
+                    return True
+                
+                # Drop the old constraint and add new one with CASCADE
+                logger.info(f"Updating constraint {constraint_name} with CASCADE delete")
+                connection.execute(text(f"ALTER TABLE key_logs DROP CONSTRAINT {constraint_name}"))
+                connection.execute(text("""
+                    ALTER TABLE key_logs 
+                    ADD CONSTRAINT key_logs_key_id_fkey 
+                    FOREIGN KEY (key_id) 
+                    REFERENCES keys(id) 
+                    ON DELETE CASCADE
+                """))
+                connection.commit()
+                logger.info("✅ Migration: key_logs CASCADE delete constraint updated")
+            else:
+                # Try to create the constraint with CASCADE
+                logger.info("Creating key_logs foreign key constraint with CASCADE")
+                connection.execute(text("""
+                    ALTER TABLE key_logs 
+                    ADD CONSTRAINT key_logs_key_id_fkey 
+                    FOREIGN KEY (key_id) 
+                    REFERENCES keys(id) 
+                    ON DELETE CASCADE
+                """))
+                connection.commit()
+                logger.info("✅ Migration: key_logs CASCADE delete constraint created")
+            
+            return True
+            
+    except Exception as e:
+        logger.error(f"Migration fix_key_logs_cascade failed: {type(e).__name__}: {str(e)}")
+        return False
+
+
 def run_all_migrations():
     """
     Run all pending migrations.
@@ -253,6 +317,7 @@ def run_all_migrations():
         ("add_tags_support", migrate_add_tags_support_if_needed),
         ("create_key_logs_table", migrate_create_key_logs_table_if_needed),
         ("add_import_action_type", migrate_add_import_action_type_if_needed),
+        ("fix_key_logs_cascade", migrate_fix_key_logs_cascade_if_needed),
         # Add more migrations here as needed
     ]
     
