@@ -209,7 +209,7 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
         <div className="space-y-3">
           <div className="space-y-1.5">
             <div className="space-y-2">
-              <h4 className="leading-none font-medium">Review Translation</h4>
+              <h4 className="leading-none font-medium">Review translation</h4>
               <p className="text-muted-foreground text-sm">
                 Review the translation and approve or reject it.
               </p>
@@ -240,9 +240,9 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
                  disabled={isSaving}
                  variant="ghost"
                  size="sm"
-                 className="justify-start text-green-600 hover:text-green-700 hover:bg-green-50"
+                 className="justify-start hover:bg-green-50"
                >
-                 <MessageSquareHeart className="h-4 w-4 mr-2" />
+                 <MessageSquareHeart className="h-4 w-4 mr-2 text-green-600" />
                  Approve
                </Button>
                }
@@ -255,9 +255,9 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
                 disabled={isSaving}
                 variant="ghost"
                 size="sm"
-                className="justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+                className="justify-start hover:bg-red-50"
               >
-                <MessageSquareX className="h-4 w-4 mr-2" />
+                <MessageSquareX className="h-4 w-4 mr-2 text-red-600" />
                 Reject
               </Button>}
 
@@ -270,9 +270,9 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
                    disabled={isSaving}
                    variant="ghost"
                    size="sm"
-                   className="w-full justify-start text-muted-foreground hover:text-foreground"
+                   className="w-full justify-start hover:bg-muted"
                  >
-                   <MessageSquareOff className="h-4 w-4 mr-2" />
+                   <MessageSquareOff className="h-4 w-4 mr-2 text-muted-foreground" />
                    Revoke
                  </Button>
                ) : null}
