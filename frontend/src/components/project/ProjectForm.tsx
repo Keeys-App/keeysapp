@@ -79,11 +79,12 @@ export const ProjectForm: FC<ProjectFormProps> = ({
       setName(project.name);
       setDescription(project.description || "");
 
-      // Languages are always in the correct format: {code: string, locale: string}
+      // Languages are always in the correct format: {code: string, locale: string, direction: string}
       const languages = (project.languages || []).map(
         (lang): LanguageConfigInput => ({
           code: lang.code,
           locale: lang.locale,
+          direction: lang.direction,
         })
       );
 
@@ -193,6 +194,7 @@ export const ProjectForm: FC<ProjectFormProps> = ({
       return {
         code: lang.code,
         locale: lang.locale,
+        direction: lang.direction,
       };
     });
 

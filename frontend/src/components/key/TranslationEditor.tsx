@@ -117,7 +117,7 @@ export const TranslationEditor = memo(
 
     const handleSave = async () => {
       // Remove all whitespace (spaces, tabs, newlines) from start and end
-      const trimmedValue = value.replace(/^[\s\n\r\t]+|[\s\n\r\t]+$/g, '');
+      const trimmedValue = value.replace(/^[\s\n\r\t]+|[\s\n\r\t]+$/g, "");
 
       // Allow empty value to delete translation
       await withSaving(async () => {
@@ -134,16 +134,18 @@ export const TranslationEditor = memo(
     };
 
     return (
-      <div className="space-y-2 break-all" dir={language.direction}>
-        {value || (
-          <span className="text-muted-foreground text-sm">&lt;Empty&gt;</span>
-        )}
-        <Textarea
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          disabled={isSaving}
-          rows={3}
-        />
+      <div className="space-y-2 break-all">
+        <div dir={language.direction}>
+          {value || (
+            <span className="text-muted-foreground text-sm">&lt;Empty&gt;</span>
+          )}
+          <Textarea
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            disabled={isSaving}
+            rows={3}
+          />
+        </div>
         <Button
           onClick={handleSave}
           disabled={isSaving}

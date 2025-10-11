@@ -52,6 +52,7 @@ export const LanguageConfigEditor: FC<LanguageConfigEditorProps> = ({
         {
           code: langConfig.code,
           locale: langConfig.locale,
+          direction: langConfig.direction,
         },
       ]);
     }
@@ -136,6 +137,9 @@ export const LanguageConfigEditor: FC<LanguageConfigEditorProps> = ({
                         <span className="font-medium">{langInfo?.name || lang.code}</span>
                         <Badge variant="outline" className="text-xs">
                           {lang.code}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {lang.direction}
                         </Badge>
                         {isDefault && (
                           <Badge variant="default" className="text-xs">
