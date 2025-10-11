@@ -1,4 +1,4 @@
-import { useState, useEffect, memo } from "react";
+import { useState, useEffect, memo, useRef } from "react";
 import { useMutation } from "@apollo/client";
 import { toast } from "sonner";
 import {
@@ -34,18 +34,39 @@ export const TranslationEditor = memo(
     onEditingChange,
   }: TranslationEditorProps) {
     const [value, setValue] = useState(currentValue);
+    const wasEditingRef = useRef(false);
+    const valueToSaveRef = useRef<string | null>(null);
+    const isAutoSavingRef = useRef(false);
 
     // Update value when currentValue changes from outside (e.g., switching keys)
     useEffect(() => {
       setValue(currentValue);
     }, [currentValue]);
 
-    // Close editor when switching keys (when keyData.id changes)
+    // Auto-save when editor closes (isEditing changes from true to false)
+    useEffect(() => {
+      if (wasEditingRef.current && !isEditing && valueToSaveRef.current !== null) {
+        // Editor was closed, check if there are unsaved changes
+        const trimmedValue = valueToSaveRef.current.replace(/^[\s\n\r\t]+|[\s\n\r\t]+$/g, "");
+        const trimmedCurrentValue = currentValue.replace(/^[\s\n\r\t]+|[\s\n\r\t]+$/g, "");
+        
+        if (trimmedValue !== trimmedCurrentValue) {
+          // Has changes, auto-save
+          handleAutoSave(trimmedValue);
+        }
+        
+        valueToSaveRef.current = null;
+      }
+      
+      wasEditingRef.current = isEditing;
+    }, [isEditing]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Track current value for auto-save
     useEffect(() => {
       if (isEditing) {
-        onEditingChange(false);
+        valueToSaveRef.current = value;
       }
-    }, [keyData.id]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [value, isEditing]);
 
     const [setTranslation, { data: translationData, error: translationError }] =
       useMutation(SET_TRANSLATION, {
@@ -97,9 +118,29 @@ export const TranslationEditor = memo(
     const withSaving = useSaving();
     const { isSaving } = useSavingStore();
 
+    // Auto-save function (silent, no toast)
+    const handleAutoSave = async (trimmedValue: string) => {
+      isAutoSavingRef.current = true;
+      await withSaving(async () => {
+        await setTranslation({
+          variables: {
+            input: {
+              keyId: keyData.id,
+              value: trimmedValue,
+              language: language.code,
+            },
+          },
+        });
+      }, `Auto-saving...`);
+      // Reset flag after a short delay to ensure toast effect runs
+      setTimeout(() => {
+        isAutoSavingRef.current = false;
+      }, 100);
+    };
+
     // Handle translation update success
     useEffect(() => {
-      if (translationData) {
+      if (translationData && !isAutoSavingRef.current) {
         const isDeleted = !translationData.setTranslation;
         toast(
           isDeleted
@@ -133,6 +174,8 @@ export const TranslationEditor = memo(
 
     const handleSave = async (e: React.MouseEvent) => {
       e.stopPropagation();
+      isAutoSavingRef.current = false; // Ensure manual save shows toast
+      valueToSaveRef.current = null; // Clear auto-save value
       // Remove all whitespace (spaces, tabs, newlines) from start and end
       const trimmedValue = value.replace(/^[\s\n\r\t]+|[\s\n\r\t]+$/g, "");
 
@@ -155,12 +198,20 @@ export const TranslationEditor = memo(
     const handleCancel = (e: React.MouseEvent) => {
       e.stopPropagation();
       setValue(currentValue);
+      valueToSaveRef.current = null; // Cancel auto-save
       onEditingChange(false);
     };
 
     const handleEdit = (e: React.MouseEvent) => {
       e.stopPropagation();
       onEditingChange(true);
+    };
+
+    // Check if there are unsaved changes
+    const hasChanges = () => {
+      const trimmedValue = value.replace(/^[\s\n\r\t]+|[\s\n\r\t]+$/g, "");
+      const trimmedCurrentValue = currentValue.replace(/^[\s\n\r\t]+|[\s\n\r\t]+$/g, "");
+      return trimmedValue !== trimmedCurrentValue;
     };
 
     return (
@@ -195,7 +246,7 @@ export const TranslationEditor = memo(
             <div className="flex gap-2 mt-2">
               <Button
                 onClick={handleSave}
-                disabled={isSaving}
+                disabled={isSaving || !hasChanges()}
                 variant="default"
                 size="sm"
               >
