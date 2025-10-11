@@ -9,30 +9,44 @@ import {
 } from "@/graphql/keys";
 import { getUserFriendlyErrorMessage } from "@/lib/utils";
 import { useSaving } from "@/stores";
-import type { Language } from "@/types/project";
+import type { Language, LanguageWithLocale } from "@/types/project";
 import type { TranslationKey } from "@/types/translationKey";
 import { TranslationEditForm } from "./TranslationEditForm";
 
 interface TranslationEditorProps {
   keyData: TranslationKey;
-  language: Language;
-  currentValue: string;
+  language: Language | LanguageWithLocale;
+  projectLanguages: (Language | LanguageWithLocale)[];
   projectId: string;
   isEditing: boolean;
   onEditingChange: (editing: boolean) => void;
-  defaultLanguageValue?: string;
 }
 
 export const TranslationEditor = memo(
   function TranslationEditor({
     keyData,
     language,
-    currentValue,
+    projectLanguages,
     projectId,
     isEditing,
     onEditingChange,
-    defaultLanguageValue,
   }: TranslationEditorProps) {
+    // Find current translation value
+    const translation = keyData.translations.find(
+      (t) => t.language === language.code
+    );
+    const currentValue = translation?.value || "";
+
+    // Find default language translation
+    const defaultLanguage = projectLanguages.find((l) => l.default);
+    const defaultTranslation = defaultLanguage
+      ? keyData.translations.find((t) => t.language === defaultLanguage.code)
+      : null;
+    const defaultLanguageValue =
+      !language.default && defaultTranslation?.value
+        ? defaultTranslation.value
+        : undefined;
+
     const [value, setValue] = useState(currentValue);
     const wasEditingRef = useRef(false);
     const valueToSaveRef = useRef<string | null>(null);
@@ -212,11 +226,11 @@ export const TranslationEditor = memo(
     };
 
     return (
-      <div className="space-y-2 break-all" onClick={(e) => e.stopPropagation()}>
+      <div className="space-y-2 text-sm break-all" onClick={(e) => e.stopPropagation()}>
         {!isEditing ? (
           <div
             dir={language.direction}
-            className="cursor-pointer hover:bg-muted/70 rounded py-2 px-3 transition-colors min-h-[2rem]"
+            className="cursor-pointer hover:bg-muted/70 rounded transition-colors min-h-[2rem]"
             onClick={handleEdit}
           >
             <div className="p-[1px]">
@@ -244,12 +258,20 @@ export const TranslationEditor = memo(
     );
   },
   (prevProps, nextProps) => {
-    // Only re-render if current value, key ID, or editing state changed
+    // Only re-render if key ID, language, or editing state changed
+    // Also check if translation value changed
+    const prevTranslation = prevProps.keyData.translations.find(
+      (t) => t.language === prevProps.language.code
+    );
+    const nextTranslation = nextProps.keyData.translations.find(
+      (t) => t.language === nextProps.language.code
+    );
+
     return (
-      prevProps.currentValue === nextProps.currentValue &&
       prevProps.keyData.id === nextProps.keyData.id &&
       prevProps.language.code === nextProps.language.code &&
-      prevProps.isEditing === nextProps.isEditing
+      prevProps.isEditing === nextProps.isEditing &&
+      prevTranslation?.value === nextTranslation?.value
     );
   }
 );

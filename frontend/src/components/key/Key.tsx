@@ -1,9 +1,9 @@
 import { memo } from "react";
 import { TranslationEditor } from "./TranslationEditor";
-import { ReviewStatusButton } from "./ReviewStatusButton";
+import { LanguageHeader } from "./LanguageHeader";
 import type { TranslationKey } from "@/types/translationKey";
 import type { Language, LanguageWithLocale } from "@/types/project";
-import { Badge } from "../ui";
+import { cn } from "@/lib/utils";
 
 interface KeyProps {
   keyData: TranslationKey;
@@ -42,9 +42,10 @@ export const Key = memo(
         <div className="border-r -mr-px relative">
           <div className="font-mono text-sm break-words sticky bg-background top-[2px] z-10 p-4">
             <span
-              className={`transition-colors ${
-                isSelected ? "bg-primary/10 text-primary py-0.5 rounded" : ""
-              }`}
+              className={cn(
+                "transition-colors",
+                isSelected && "bg-primary/10 text-primary py-0.5 rounded"
+              )}
             >
               {keyData.key}
             </span>
@@ -56,77 +57,29 @@ export const Key = memo(
           ) : null}
         </div>
         <div className="flex flex-col">
-          <div>
-            {projectLanguages.map((language) => {
-              const translation = keyData.translations.find(
-                (t) => t.language === language.code
-              );
-              const translationValue = translation?.value || "";
-              const hasTranslation = translationValue.trim() !== "";
-
-              // Find default language translation
-              const defaultLanguage = projectLanguages.find((l) => l.default);
-              const defaultTranslation = defaultLanguage
-                ? keyData.translations.find(
-                    (t) => t.language === defaultLanguage.code
-                  )
-                : null;
-              const defaultLanguageValue = defaultTranslation?.value || "";
-
-              return (
-                <div
-                  key={language.code}
-                  className="group grid grid-cols-[120px_1fr] even:bg-muted/50 border-b -mb-px"
-                >
-                  <div className="border-r -mr-px p-4 grid grid-rows-[auto_1fr] gap-1 relative">
-                    {language.default ? (
-                      <div 
-                        className="absolute top-0 left-0 w-0 h-0 border-t-[10px] border-t-blue-500 border-r-[10px] border-r-transparent"
-                        title="Default language"
-                      />
-                    ) : null}
-                    <div className="text-sm flex items-center gap-1.5">
-                      <span>{language.name}</span>
-                    </div>
-                    <div className="flex items-end justify-between">
-                      <div className="text-muted-foreground text-xs">
-                        {"locale" in language ? language.locale : language.code}
-                      </div>
-                      <div className="relative top-[5px] right-[-3px]">
-                        {hasTranslation ? (
-                          <ReviewStatusButton
-                            keyId={keyData.id}
-                            language={language.code}
-                            reviewStatus={
-                              translation?.reviewStatus || "NOT_REVIEWED"
-                            }
-                            projectId={projectId}
-                          />
-                        ) : null}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-sm p-2">
-                    <TranslationEditor
-                      keyData={keyData}
-                      language={language}
-                      currentValue={translationValue}
-                      projectId={projectId}
-                      isEditing={editingLanguage === language.code}
-                      onEditingChange={(editing) => {
-                        onEditingLanguageChange(editing ? language.code : null);
-                      }}
-                      defaultLanguageValue={
-                        !language.default && defaultLanguageValue
-                          ? defaultLanguageValue
-                          : undefined
-                      }
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          {projectLanguages.map((language) => (
+            <div
+              key={language.code}
+              className="group grid grid-cols-[120px_1fr] even:bg-muted/50 border-b -mb-px"
+            >
+              <LanguageHeader
+                language={language}
+                translations={keyData.translations}
+                keyId={keyData.id}
+                projectId={projectId}
+              />
+              <TranslationEditor
+                keyData={keyData}
+                language={language}
+                projectLanguages={projectLanguages}
+                projectId={projectId}
+                isEditing={editingLanguage === language.code}
+                onEditingChange={(editing) => {
+                  onEditingLanguageChange(editing ? language.code : null);
+                }}
+              />
+            </div>
+          ))}
         </div>
       </div>
     );

@@ -197,3 +197,25 @@ const handleSave = async () => {
   5. Добавьте маппинг на frontend (labels, icons, colors)
 - PostgreSQL enums регистрозависимые - lowercase и UPPERCASE это разные значения!
 - После изменения enum ВСЕГДА нужен рестарт backend
+
+## Conditional Classes
+
+- Always use the `cn()` utility from `@/lib/utils` for conditional className values.
+- Never use template literals with ternary operators for conditional classes.
+- The `cn()` utility combines `clsx` and `tailwind-merge` for optimal class handling.
+
+```typescript
+// ❌ BAD - Template literal with ternary
+className={`base-class ${condition ? "conditional-class" : ""}`}
+
+// ✅ GOOD - Using cn() utility
+className={cn("base-class", condition && "conditional-class")}
+
+// ✅ GOOD - Multiple conditions
+className={cn(
+  "base-class",
+  isActive && "active-class",
+  isDisabled && "disabled-class",
+  variant === "primary" && "primary-class"
+)}
+```
