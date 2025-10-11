@@ -17,12 +17,12 @@ import {
 import { useSaving, useSavingStore } from "@/stores";
 import { toast } from "sonner";
 import type { ReviewStatus } from "@/types/translationKey";
-  import {
-    MessageSquareOff,
-    MessageSquareHeart,
-    MessageSquare,
-    MessageSquareX,
-  } from "lucide-react";
+import {
+  MessageSquareOff,
+  MessageSquareHeart,
+  MessageSquare,
+  MessageSquareX,
+} from "lucide-react";
 
 interface ReviewStatusButtonProps {
   keyId: string;
@@ -74,9 +74,9 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
     awaitRefetchQueries: true,
     update(cache) {
       // Invalidate key logs cache to force refetch
-      cache.evict({ 
-        id: 'ROOT_QUERY',
-        fieldName: 'keyLogs',
+      cache.evict({
+        id: "ROOT_QUERY",
+        fieldName: "keyLogs",
         args: { keyId },
       });
       cache.gc();
@@ -97,9 +97,9 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
     awaitRefetchQueries: true,
     update(cache) {
       // Invalidate key logs cache to force refetch
-      cache.evict({ 
-        id: 'ROOT_QUERY',
-        fieldName: 'keyLogs',
+      cache.evict({
+        id: "ROOT_QUERY",
+        fieldName: "keyLogs",
         args: { keyId },
       });
       cache.gc();
@@ -120,9 +120,9 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
     awaitRefetchQueries: true,
     update(cache) {
       // Invalidate key logs cache to force refetch
-      cache.evict({ 
-        id: 'ROOT_QUERY',
-        fieldName: 'keyLogs',
+      cache.evict({
+        id: "ROOT_QUERY",
+        fieldName: "keyLogs",
         args: { keyId },
       });
       cache.gc();
@@ -191,12 +191,12 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
         <Button
           variant="ghost"
           size="icon"
-          className={`h-6 w-6 ${statusColor} hover:bg-muted`}
+          className={`h-5.5 w-5.5 ${statusColor} rounded-sm hover:bg-muted`}
           onClick={(e) => {
             e.stopPropagation();
           }}
         >
-          <StatusIcon className="h-4 w-4" />
+          <StatusIcon className="!h-3.5 !w-3.5" />
         </Button>
       </PopoverTrigger>
       <PopoverContent
@@ -231,51 +231,53 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
 
           <div className="space-y-1">
             <div className="grid grid-cols-2 gap-2">
-               {reviewStatus !== "APPROVED" && 
-               <Button
-                 onClick={(e) => {
-                   e.stopPropagation();
-                   handleApprove();
-                 }}
-                 disabled={isSaving}
-                 variant="ghost"
-                 size="sm"
-                 className="justify-start hover:bg-green-50"
-               >
-                 <MessageSquareHeart className="h-4 w-4 mr-2 text-green-600" />
-                 Approve
-               </Button>
-               }
+              {reviewStatus !== "APPROVED" && (
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleApprove();
+                  }}
+                  disabled={isSaving}
+                  variant="ghost"
+                  size="sm"
+                  className="justify-start hover:bg-green-50"
+                >
+                  <MessageSquareHeart className="h-4 w-4 mr-2 text-green-600" />
+                  Approve
+                </Button>
+              )}
 
-              {reviewStatus !== "REJECTED" && <Button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleReject();
-                }}
-                disabled={isSaving}
-                variant="ghost"
-                size="sm"
-                className="justify-start hover:bg-red-50"
-              >
-                <MessageSquareX className="h-4 w-4 mr-2 text-red-600" />
-                Reject
-              </Button>}
+              {reviewStatus !== "REJECTED" && (
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleReject();
+                  }}
+                  disabled={isSaving}
+                  variant="ghost"
+                  size="sm"
+                  className="justify-start hover:bg-red-50"
+                >
+                  <MessageSquareX className="h-4 w-4 mr-2 text-red-600" />
+                  Reject
+                </Button>
+              )}
 
-               {reviewStatus === "APPROVED" || reviewStatus === "REJECTED" ? (
-                 <Button
-                   onClick={(e) => {
-                     e.stopPropagation();
-                     handleDeleteReview();
-                   }}
-                   disabled={isSaving}
-                   variant="ghost"
-                   size="sm"
-                   className="w-full justify-start hover:bg-muted"
-                 >
-                   <MessageSquareOff className="h-4 w-4 mr-2 text-muted-foreground" />
-                   Revoke
-                 </Button>
-               ) : null}
+              {reviewStatus === "APPROVED" || reviewStatus === "REJECTED" ? (
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteReview();
+                  }}
+                  disabled={isSaving}
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start hover:bg-muted"
+                >
+                  <MessageSquareOff className="h-4 w-4 mr-2 text-muted-foreground" />
+                  Revoke
+                </Button>
+              ) : null}
             </div>
           </div>
         </div>
