@@ -24,17 +24,20 @@ The export format follows the i18n structure with separate keys and translations
       }
     ],
     "defaultLanguage": "en",
+    "availableTags": ["ui", "common", "errors"],
     "color": "#6366f1",
     "status": "active"
   },
   "keys": [
     {
       "key": "button.submit",
-      "description": "Submit button label"
+      "description": "Submit button label",
+      "tags": ["ui", "common"]
     },
     {
       "key": "button.cancel",
-      "description": "Cancel button label"
+      "description": "Cancel button label",
+      "tags": ["ui"]
     }
   ],
   "locales": [
@@ -63,10 +66,11 @@ The export format follows the i18n structure with separate keys and translations
    - `description`: Project description
    - `languages`: Array of language objects with `code` and `locale` (supports custom locales!)
    - `defaultLanguage`: Default language code
+   - `availableTags`: Array of available tag names for the project
    - `color`: Project color (hex)
    - `status`: Project status
-3. **`keys`**: Array of all translation keys with descriptions
-   - Each key has: `key` (the key string) and `description` (optional description)
+3. **`keys`**: Array of all translation keys with descriptions and tags
+   - Each key has: `key` (the key string), `description` (optional description), and `tags` (array of tag names)
 4. **`locales`**: Array of translations organized by language
    - Each locale has: `code` (to match with `config.languages`) and `keys` (object with translations)
    - Note: `locale` info is not duplicated here - it's already in `config.languages`
@@ -113,9 +117,10 @@ Exports project data including:
 #### `ProjectService.import_project_data()`
 Imports project data:
 - Creates a new project with the provided configuration
-- Creates all translation keys with descriptions from `keys` array
+- Creates all translation keys with descriptions and tags from `keys` array
 - Creates all translations for each key and language from `locales` array
-- Maintains key descriptions during import
+- Logs all import actions (keys and translations) with `KeyActionType.IMPORT` for audit trail
+- Maintains key descriptions and tags during import
 - Uses transactions to ensure data consistency
 
 ## Frontend Implementation

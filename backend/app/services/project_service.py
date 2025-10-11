@@ -650,8 +650,7 @@ class ProjectService:
                 logger.info(f"Set available_tags: {config.get('availableTags')}")
             
             # Import KeyLog model and action types for logging
-            from app.models.key_log import KeyLog
-            from app.models.key import KeyActionType
+            from app.models.key_log import KeyLog, KeyActionType
             
             # Create keys with descriptions and tags first
             logger.info(f"Creating {len(keys_data)} keys")
