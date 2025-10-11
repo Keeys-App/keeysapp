@@ -11,6 +11,8 @@ import {
   Edit,
   FileDown,
   AlertCircle,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -55,6 +57,9 @@ const actionLabels: Record<string, string> = {
   DELETE_TRANSLATION: "Translation deleted",
   DELETE: "Deleted",
   IMPORT: "Imported",
+  REVIEW_APPROVE: "Approved",
+  REVIEW_REJECT: "Rejected",
+  REVIEW_DELETE: "Review deleted",
 };
 
 const actionIcons: Record<string, typeof History> = {
@@ -65,6 +70,9 @@ const actionIcons: Record<string, typeof History> = {
   DELETE_TRANSLATION: Trash2,
   DELETE: Trash2,
   IMPORT: FileDown,
+  REVIEW_APPROVE: CheckCircle,
+  REVIEW_REJECT: XCircle,
+  REVIEW_DELETE: Trash2,
 };
 
 const actionColors: Record<string, string> = {
@@ -75,6 +83,9 @@ const actionColors: Record<string, string> = {
   DELETE_TRANSLATION: "bg-orange-500",
   DELETE: "bg-red-500",
   IMPORT: "bg-cyan-500",
+  REVIEW_APPROVE: "bg-green-500",
+  REVIEW_REJECT: "bg-red-500",
+  REVIEW_DELETE: "bg-gray-500",
 };
 
 /**
@@ -193,7 +204,15 @@ export const KeyLogsTimeline: FC<KeyLogsTimelineProps> = ({
 
                 {/* Action details */}
                 <div className="text-sm text-muted-foreground space-y-1">
-                  {(log.oldValue || log.newValue) ? (
+                  {log.action === "REVIEW_APPROVE" || log.action === "REVIEW_REJECT" || log.action === "REVIEW_DELETE" ? (
+                    <>
+                      {log.newValue && log.action !== "REVIEW_DELETE" ? (
+                        <div className="text-sm">
+                          {log.newValue}
+                        </div>
+                      ) : null}
+                    </>
+                  ) : (log.oldValue || log.newValue) ? (
                     <InlineDiff 
                       oldValue={log.oldValue || ''} 
                       newValue={log.newValue || ''}

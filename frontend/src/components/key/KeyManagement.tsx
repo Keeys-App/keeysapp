@@ -4,6 +4,7 @@ import type { Language, LanguageWithLocale } from "@/types/project";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { KeyLogsTimeline } from "./KeyLogsTimeline";
 import { KeySettingsForm } from "./KeySettingsForm";
+import { KeyReview } from "./KeyReview";
 
 interface KeyManagementProps {
   selectedKey: TranslationKey | null;
@@ -52,9 +53,7 @@ export const KeyManagement: FC<KeyManagementProps> = ({
             </TabsContent>
 
             <TabsContent value="review" className="flex-1 px-4 pb-4 overflow-auto">
-              <div className="text-muted-foreground text-sm">
-                Review content coming soon
-              </div>
+              <KeyReview selectedKey={selectedKey} projectId={projectId} />
             </TabsContent>
           </Tabs>
         )}

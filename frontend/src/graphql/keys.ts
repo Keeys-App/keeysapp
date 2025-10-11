@@ -7,6 +7,7 @@ export const GET_PROJECT_KEYS = gql`
       key
       description
       tags
+      reviewStatus
       translations {
         language
         value
@@ -26,6 +27,7 @@ export const GET_KEY = gql`
       key
       description
       tags
+      reviewStatus
       translations {
         language
         value
@@ -51,6 +53,7 @@ export const CREATE_KEY = gql`
       key
       description
       tags
+      reviewStatus
       translations {
         language
         value
@@ -70,6 +73,7 @@ export const UPDATE_KEY = gql`
       key
       description
       tags
+      reviewStatus
       translations {
         language
         value
@@ -134,6 +138,66 @@ export const GET_KEY_LOGS = gql`
       oldValue
       newValue
       createdAt
+    }
+  }
+`;
+
+export const APPROVE_KEY = gql`
+  mutation ApproveKey($input: ApproveKeyInput!) {
+    approveKey(input: $input) {
+      id
+      key
+      description
+      tags
+      reviewStatus
+      translations {
+        language
+        value
+        createdAt
+        updatedAt
+      }
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const REJECT_KEY = gql`
+  mutation RejectKey($input: RejectKeyInput!) {
+    rejectKey(input: $input) {
+      id
+      key
+      description
+      tags
+      reviewStatus
+      translations {
+        language
+        value
+        createdAt
+        updatedAt
+      }
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const DELETE_REVIEW = gql`
+  mutation DeleteReview($keyId: String!) {
+    deleteReview(keyId: $keyId) {
+      id
+      key
+      description
+      tags
+      reviewStatus
+      translations {
+        language
+        value
+        createdAt
+        updatedAt
+      }
+      createdAt
+      updatedAt
     }
   }
 `;

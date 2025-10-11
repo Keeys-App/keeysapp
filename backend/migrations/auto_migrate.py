@@ -304,6 +304,120 @@ def migrate_fix_key_logs_cascade_if_needed():
         return False
 
 
+def migrate_add_review_status_if_needed():
+    """
+    Add review_status field and review action types if needed.
+    Safe to run multiple times.
+    """
+    try:
+        with engine.connect() as connection:
+            # Check if ReviewStatus enum exists
+            result = connection.execute(text("""
+                SELECT EXISTS (
+                    SELECT 1 
+                    FROM pg_type 
+                    WHERE typname = 'reviewstatus'
+                );
+            """))
+            
+            enum_exists = result.scalar()
+            
+            if not enum_exists:
+                logger.info("Creating ReviewStatus enum type")
+                connection.execute(text("""
+                    CREATE TYPE reviewstatus AS ENUM (
+                        'NOT_REVIEWED',
+                        'PENDING', 
+                        'APPROVED',
+                        'REJECTED'
+                    )
+                """))
+                connection.commit()
+                logger.info("✅ Created ReviewStatus enum type")
+            else:
+                logger.info("✅ ReviewStatus enum type already exists")
+            
+            # Check if review_status column exists
+            if check_column_exists('keys', 'review_status'):
+                logger.info("✅ Migration: review_status column already exists")
+            else:
+                logger.info("Adding review_status column to keys table")
+                connection.execute(text("""
+                    ALTER TABLE keys 
+                    ADD COLUMN review_status reviewstatus 
+                    NOT NULL DEFAULT 'NOT_REVIEWED'
+                """))
+                connection.commit()
+                logger.info("✅ Added review_status column to keys table")
+            
+            # Add REVIEW_APPROVE action type
+            result = connection.execute(text("""
+                SELECT EXISTS (
+                    SELECT 1 
+                    FROM pg_enum 
+                    WHERE enumlabel = 'REVIEW_APPROVE' 
+                    AND enumtypid = (
+                        SELECT oid 
+                        FROM pg_type 
+                        WHERE typname = 'keyactiontype'
+                    )
+                );
+            """))
+            
+            if not result.scalar():
+                logger.info("Adding 'REVIEW_APPROVE' value to keyactiontype enum")
+                connection.execute(text("ALTER TYPE keyactiontype ADD VALUE 'REVIEW_APPROVE'"))
+                connection.commit()
+                logger.info("✅ Added 'REVIEW_APPROVE' value")
+            
+            # Add REVIEW_REJECT action type
+            result = connection.execute(text("""
+                SELECT EXISTS (
+                    SELECT 1 
+                    FROM pg_enum 
+                    WHERE enumlabel = 'REVIEW_REJECT' 
+                    AND enumtypid = (
+                        SELECT oid 
+                        FROM pg_type 
+                        WHERE typname = 'keyactiontype'
+                    )
+                );
+            """))
+            
+            if not result.scalar():
+                logger.info("Adding 'REVIEW_REJECT' value to keyactiontype enum")
+                connection.execute(text("ALTER TYPE keyactiontype ADD VALUE 'REVIEW_REJECT'"))
+                connection.commit()
+                logger.info("✅ Added 'REVIEW_REJECT' value")
+            
+            # Add REVIEW_DELETE action type
+            result = connection.execute(text("""
+                SELECT EXISTS (
+                    SELECT 1 
+                    FROM pg_enum 
+                    WHERE enumlabel = 'REVIEW_DELETE' 
+                    AND enumtypid = (
+                        SELECT oid 
+                        FROM pg_type 
+                        WHERE typname = 'keyactiontype'
+                    )
+                );
+            """))
+            
+            if not result.scalar():
+                logger.info("Adding 'REVIEW_DELETE' value to keyactiontype enum")
+                connection.execute(text("ALTER TYPE keyactiontype ADD VALUE 'REVIEW_DELETE'"))
+                connection.commit()
+                logger.info("✅ Added 'REVIEW_DELETE' value")
+            
+            logger.info("✅ Migration: review_status completed successfully")
+            return True
+            
+    except Exception as e:
+        logger.error(f"❌ Migration failed: {type(e).__name__}: {str(e)}")
+        return False
+
+
 def run_all_migrations():
     """
     Run all pending migrations.
@@ -318,6 +432,7 @@ def run_all_migrations():
         ("create_key_logs_table", migrate_create_key_logs_table_if_needed),
         ("add_import_action_type", migrate_add_import_action_type_if_needed),
         ("fix_key_logs_cascade", migrate_fix_key_logs_cascade_if_needed),
+        ("add_review_status", migrate_add_review_status_if_needed),
         # Add more migrations here as needed
     ]
     

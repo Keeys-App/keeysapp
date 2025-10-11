@@ -1,7 +1,7 @@
 import { useState, useEffect, memo } from "react";
 import { useMutation } from "@apollo/client";
 import { toast } from "sonner";
-import { SET_TRANSLATION, GET_PROJECT_KEYS, GET_KEY_LOGS } from "@/graphql/keys";
+import { SET_TRANSLATION, GET_PROJECT_KEYS, GET_KEY_LOGS, GET_KEY } from "@/graphql/keys";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { getUserFriendlyErrorMessage } from "@/lib/utils";
@@ -31,11 +31,15 @@ export const TranslationEditor = memo(function TranslationEditor({
         query: GET_KEY_LOGS,
         variables: { keyId: keyData.id, limit: 50 },
       },
+      {
+        query: GET_KEY,
+        variables: { id: keyData.id },
+      },
     ],
     update(cache, { data }) {
       if (data?.setTranslation) {
         // Update only the specific translation in cache
-        const keyId = cache.identify({ __typename: 'TranslationKey', id: keyData.id });
+        const keyId = cache.identify({ __typename: 'KeyType', id: keyData.id });
         
         cache.modify({
           id: keyId,
@@ -46,6 +50,13 @@ export const TranslationEditor = memo(function TranslationEditor({
                 (t: any) => t.language !== newTranslation.language
               );
               return [...otherTranslations, newTranslation];
+            },
+            // Reset review status to PENDING when translation is updated (only if it was APPROVED or REJECTED)
+            reviewStatus(existingStatus) {
+              if (existingStatus === "APPROVED" || existingStatus === "REJECTED") {
+                return "PENDING";
+              }
+              return existingStatus;
             },
             updatedAt() {
               return new Date().toISOString();
@@ -67,12 +78,12 @@ export const TranslationEditor = memo(function TranslationEditor({
           <div>
             <div>{keyData.key}</div>
             <div>{language.name}</div>
-            <div>{value}</div>
+            <div>{translationData.setTranslation.value}</div>
           </div>
         ),
       });
     }
-  }, [translationData, keyData.key, language.name, value]);
+  }, [translationData, keyData.key, language.name]);
 
   // Handle translation update error
   useEffect(() => {

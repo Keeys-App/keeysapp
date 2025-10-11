@@ -1,9 +1,18 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, UniqueConstraint, JSON
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, UniqueConstraint, JSON, Enum as SQLEnum
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
+import enum
 from app.models.base import Base
+
+
+class ReviewStatus(str, enum.Enum):
+    """Enum for review status of a translation key"""
+    NOT_REVIEWED = "NOT_REVIEWED"
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
 
 
 class Key(Base):
@@ -18,6 +27,7 @@ class Key(Base):
     key = Column(String(500), nullable=False)  # Translation key, e.g., "button.submit"
     description = Column(Text, nullable=True)  # Optional description for translators
     tags = Column(JSON, default=list, nullable=False)  # Array of tag strings
+    review_status = Column(SQLEnum(ReviewStatus), nullable=False, default=ReviewStatus.NOT_REVIEWED, server_default="NOT_REVIEWED")  # Review status
     project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

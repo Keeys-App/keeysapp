@@ -14,6 +14,9 @@ class KeyActionType(str, enum.Enum):
     DELETE_TRANSLATION = "DELETE_TRANSLATION"
     DELETE = "DELETE"
     IMPORT = "IMPORT"
+    REVIEW_APPROVE = "REVIEW_APPROVE"
+    REVIEW_REJECT = "REVIEW_REJECT"
+    REVIEW_DELETE = "REVIEW_DELETE"
 
 
 class KeyLog(Base):
@@ -35,7 +38,7 @@ class KeyLog(Base):
     
     # Change tracking
     old_value = Column(Text, nullable=True)
-    new_value = Column(Text, nullable=True)
+    new_value = Column(Text, nullable=True)  # For review actions: stores comment
     
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
 

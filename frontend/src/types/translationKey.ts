@@ -5,11 +5,14 @@ export interface Translation {
   updatedAt?: string;
 }
 
+export type ReviewStatus = 'NOT_REVIEWED' | 'PENDING' | 'APPROVED' | 'REJECTED';
+
 export interface TranslationKey {
   id: string;
   key: string;
   description?: string;
   tags: string[];
+  reviewStatus: ReviewStatus;
   translations: Translation[];
   createdAt: string;
   updatedAt?: string;

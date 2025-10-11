@@ -2,7 +2,7 @@ from typing import Optional, List, Dict
 from sqlalchemy.orm import Session, joinedload
 import uuid as uuid_lib
 
-from app.models.key import Key, Translation
+from app.models.key import Key, Translation, ReviewStatus
 from app.models.key_log import KeyLog, KeyActionType
 from app.models.project import Project
 from app.services.project_service import ProjectService
@@ -431,6 +431,10 @@ class KeyService:
                 new_value=value
             )
         
+        # Reset review status to PENDING when any translation is updated
+        if key_obj.review_status in [ReviewStatus.APPROVED, ReviewStatus.REJECTED]:
+            key_obj.review_status = ReviewStatus.PENDING
+        
         db.commit()
         db.refresh(translation)
         return translation
@@ -668,6 +672,141 @@ class KeyService:
             'updated_keys': updated_keys,
             'errors': errors
         }
+
+    @staticmethod
+    def approve_key(
+        db: Session,
+        key_public_id: str,
+        user_id: int,
+        comment: Optional[str] = None
+    ) -> Optional[Key]:
+        """
+        Approve a translation key.
+        
+        Args:
+            db: Database session
+            key_public_id: Public UUID of the key
+            user_id: ID of the user performing the action
+            comment: Optional review comment
+            
+        Returns:
+            Updated key or None if not found
+        """
+        key = db.query(Key).filter(Key.public_id == uuid_lib.UUID(key_public_id)).first()
+        
+        if not key:
+            return None
+        
+        # Don't allow approving already approved key
+        if key.review_status == ReviewStatus.APPROVED:
+            return None
+        
+        old_status = key.review_status.value
+        key.review_status = ReviewStatus.APPROVED
+        
+        # Create log entry
+        KeyService._create_log(
+            db=db,
+            key_id=key.id,
+            user_id=user_id,
+            action=KeyActionType.REVIEW_APPROVE,
+            field_name="review_status",
+            old_value=old_status,
+            new_value=comment  # Store comment in new_value field
+        )
+        
+        db.commit()
+        db.refresh(key)
+        
+        return key
+
+    @staticmethod
+    def reject_key(
+        db: Session,
+        key_public_id: str,
+        user_id: int,
+        comment: Optional[str] = None
+    ) -> Optional[Key]:
+        """
+        Reject a translation key.
+        
+        Args:
+            db: Database session
+            key_public_id: Public UUID of the key
+            user_id: ID of the user performing the action
+            comment: Optional review comment
+            
+        Returns:
+            Updated key or None if not found
+        """
+        key = db.query(Key).filter(Key.public_id == uuid_lib.UUID(key_public_id)).first()
+        
+        if not key:
+            return None
+        
+        # Don't allow rejecting already rejected key
+        if key.review_status == ReviewStatus.REJECTED:
+            return None
+        
+        old_status = key.review_status.value
+        key.review_status = ReviewStatus.REJECTED
+        
+        # Create log entry
+        KeyService._create_log(
+            db=db,
+            key_id=key.id,
+            user_id=user_id,
+            action=KeyActionType.REVIEW_REJECT,
+            field_name="review_status",
+            old_value=old_status,
+            new_value=comment  # Store comment in new_value field
+        )
+        
+        db.commit()
+        db.refresh(key)
+        
+        return key
+
+    @staticmethod
+    def delete_review(
+        db: Session,
+        key_public_id: str,
+        user_id: int
+    ) -> Optional[Key]:
+        """
+        Delete review status and reset key to pending.
+        
+        Args:
+            db: Database session
+            key_public_id: Public UUID of the key
+            user_id: ID of the user performing the action
+            
+        Returns:
+            Updated key or None if not found
+        """
+        key = db.query(Key).filter(Key.public_id == uuid_lib.UUID(key_public_id)).first()
+        
+        if not key:
+            return None
+        
+        old_status = key.review_status.value
+        key.review_status = ReviewStatus.PENDING
+        
+        # Create log entry
+        KeyService._create_log(
+            db=db,
+            key_id=key.id,
+            user_id=user_id,
+            action=KeyActionType.REVIEW_DELETE,
+            field_name="review_status",
+            old_value=old_status,
+            new_value=None  # No comment for delete action
+        )
+        
+        db.commit()
+        db.refresh(key)
+        
+        return key
 
     @staticmethod
     def _update_project_available_tags(db: Session, project: Project, new_tags: List[str]) -> None:

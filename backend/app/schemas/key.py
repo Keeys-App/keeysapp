@@ -31,10 +31,24 @@ class KeyActionTypeEnum(str, enum.Enum):
     DELETE_TRANSLATION = "DELETE_TRANSLATION"
     DELETE = "DELETE"
     IMPORT = "IMPORT"
+    REVIEW_APPROVE = "REVIEW_APPROVE"
+    REVIEW_REJECT = "REVIEW_REJECT"
+    REVIEW_DELETE = "REVIEW_DELETE"
 
 
-# Register as Strawberry enum
+class ReviewStatusEnum(str, enum.Enum):
+    """
+    GraphQL enum for review status.
+    """
+    NOT_REVIEWED = "NOT_REVIEWED"
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+
+
+# Register as Strawberry enums
 KeyActionTypeEnum = strawberry.enum(KeyActionTypeEnum)
+ReviewStatusEnum = strawberry.enum(ReviewStatusEnum)
 
 
 @strawberry.type
@@ -74,6 +88,7 @@ class KeyType:
     key: str
     description: Optional[str]
     tags: List[str]
+    review_status: ReviewStatusEnum
     translations: List[TranslationType]
     created_at: datetime
     updated_at: Optional[datetime]
@@ -153,6 +168,24 @@ class BatchImportInput:
     strategy: str = "merge"  # 'merge' or 'replace'
 
 
+@strawberry.input
+class ApproveKeyInput:
+    """
+    Input type for approving a key.
+    """
+    key_id: str  # Key UUID
+    comment: Optional[str] = None
+
+
+@strawberry.input
+class RejectKeyInput:
+    """
+    Input type for rejecting a key.
+    """
+    key_id: str  # Key UUID
+    comment: Optional[str] = None
+
+
 def build_key_type(key) -> KeyType:
     """
     Build KeyType from Key model.
@@ -178,6 +211,7 @@ def build_key_type(key) -> KeyType:
         key=key.key,
         description=key.description,
         tags=key.tags or [],
+        review_status=ReviewStatusEnum(key.review_status.value),
         translations=translations,
         created_at=key.created_at,
         updated_at=key.updated_at
@@ -203,6 +237,9 @@ def build_key_log_type(log) -> KeyLogType:
         "DELETE_TRANSLATION": KeyActionTypeEnum.DELETE_TRANSLATION,
         "DELETE": KeyActionTypeEnum.DELETE,
         "IMPORT": KeyActionTypeEnum.IMPORT,
+        "REVIEW_APPROVE": KeyActionTypeEnum.REVIEW_APPROVE,
+        "REVIEW_REJECT": KeyActionTypeEnum.REVIEW_REJECT,
+        "REVIEW_DELETE": KeyActionTypeEnum.REVIEW_DELETE,
     }
     
     # Build user info if available
@@ -659,6 +696,128 @@ class KeyMutation:
                 updated_keys=0,
                 errors=[str(e)]
             )
+        finally:
+            db.close()
+
+    @strawberry.mutation
+    def approve_key(self, input: ApproveKeyInput, info: Info) -> Optional[KeyType]:
+        """
+        Approve a translation key.
+        
+        Args:
+            input: Approve key input
+            info: GraphQL info object
+            
+        Returns:
+            Updated key or None
+            
+        Raises:
+            UnauthorizedError: If user is not authenticated
+            DatabaseError: If database operation fails
+        """
+        current_user_id = get_current_user_id(info)
+        if not current_user_id:
+            raise UnauthorizedError("User must be authenticated to approve keys")
+        
+        db: Session = next(get_db())
+        
+        try:
+            key = KeyService.approve_key(
+                db=db,
+                key_public_id=input.key_id,
+                user_id=current_user_id,
+                comment=input.comment
+            )
+            
+            if not key:
+                return None
+            
+            return build_key_type(key)
+        except (UnauthorizedError, AuthenticationError):
+            raise
+        except Exception as e:
+            handle_database_exception(e, "key approval")
+        finally:
+            db.close()
+
+    @strawberry.mutation
+    def reject_key(self, input: RejectKeyInput, info: Info) -> Optional[KeyType]:
+        """
+        Reject a translation key.
+        
+        Args:
+            input: Reject key input
+            info: GraphQL info object
+            
+        Returns:
+            Updated key or None
+            
+        Raises:
+            UnauthorizedError: If user is not authenticated
+            DatabaseError: If database operation fails
+        """
+        current_user_id = get_current_user_id(info)
+        if not current_user_id:
+            raise UnauthorizedError("User must be authenticated to reject keys")
+        
+        db: Session = next(get_db())
+        
+        try:
+            key = KeyService.reject_key(
+                db=db,
+                key_public_id=input.key_id,
+                user_id=current_user_id,
+                comment=input.comment
+            )
+            
+            if not key:
+                return None
+            
+            return build_key_type(key)
+        except (UnauthorizedError, AuthenticationError):
+            raise
+        except Exception as e:
+            handle_database_exception(e, "key rejection")
+        finally:
+            db.close()
+
+    @strawberry.mutation
+    def delete_review(self, key_id: str, info: Info) -> Optional[KeyType]:
+        """
+        Delete review status and reset key to pending.
+        
+        Args:
+            key_id: Key UUID
+            info: GraphQL info object
+            
+        Returns:
+            Updated key or None
+            
+        Raises:
+            UnauthorizedError: If user is not authenticated
+            DatabaseError: If database operation fails
+        """
+        current_user_id = get_current_user_id(info)
+        if not current_user_id:
+            raise UnauthorizedError("User must be authenticated to delete reviews")
+        
+        db: Session = next(get_db())
+        
+        try:
+            key = KeyService.delete_review(
+                db=db,
+                key_public_id=key_id,
+                user_id=current_user_id
+            )
+            
+            if not key:
+                return None
+            
+            return build_key_type(key)
+        except (UnauthorizedError, AuthenticationError):
+            raise
+        except Exception as e:
+            handle_database_exception(e, "review deletion")
         finally:
             db.close()
 
