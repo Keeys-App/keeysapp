@@ -36,7 +36,7 @@ export const Key = memo(
 
     return (
       <div
-        className="border-b grid grid-cols-[minmax(300px,300px)_minmax(300px,3fr)] relative cursor-pointer"
+        className="border-b grid grid-cols-[minmax(300px,300px)_minmax(300px,3fr)] relative cursor-pointer group"
         onClick={handleClick}
       >
         <div className="border-r -mr-px relative">
@@ -50,7 +50,7 @@ export const Key = memo(
           {projectLanguages.map((language) => (
             <div
               key={language.code}
-              className="group grid grid-cols-[120px_1fr] even:bg-muted/50 border-b last:-mb-px"
+              className="grid grid-cols-[120px_1fr] even:bg-muted/50 border-b last:-mb-px"
             >
               <LanguageHeader
                 language={language}

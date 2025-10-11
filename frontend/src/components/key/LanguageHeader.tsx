@@ -35,7 +35,7 @@ export const LanguageHeader = memo(function LanguageHeader({
         <div className="text-muted-foreground text-xs">
           {"locale" in language ? language.locale : language.code}
         </div>
-        <div className="relative top-[5px] right-[-3px]">
+        <div className="relative top-[5px] right-[-3px] opacity-0 group-hover:opacity-100 transition-opacity">
           {hasTranslation ? (
             <ReviewStatusButton
               keyId={keyId}
