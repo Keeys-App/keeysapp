@@ -182,7 +182,7 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
         setIsOpen(false);
         toast("Review reset");
       }
-    }, "Cancelling...");
+    }, "Revoking...");
   };
 
   return (

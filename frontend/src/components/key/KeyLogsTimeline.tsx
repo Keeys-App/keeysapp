@@ -60,7 +60,7 @@ const actionLabels: Record<string, string> = {
   IMPORT: "Imported",
   REVIEW_APPROVE: "Approved",
   REVIEW_REJECT: "Rejected",
-  REVIEW_DELETE: "Review canceled",
+  REVIEW_DELETE: "Review revoked",
 };
 
 const actionIcons: Record<string, typeof History> = {
