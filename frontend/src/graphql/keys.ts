@@ -97,6 +97,7 @@ export const SET_TRANSLATION = gql`
     setTranslation(input: $input) {
       language
       value
+      reviewStatus
       createdAt
       updatedAt
     }

@@ -29,23 +29,15 @@ export function KeyList({
   const { data, loading, error } = useQuery(GET_PROJECT_KEYS, {
     variables: { projectId },
     skip: !projectId,
-    fetchPolicy: 'cache-first', // Use cache when available
+    fetchPolicy: 'cache-and-network', // Always fetch fresh data but use cache while loading
     nextFetchPolicy: 'cache-first',
     notifyOnNetworkStatusChange: false, // Don't trigger re-renders on network status changes
   });
 
   const parentRef = useRef<HTMLDivElement>(null);
   
-  // Memoize keys array to prevent unnecessary re-renders
-  // Only update if the array length or individual key IDs/updatedAt changed
-  const keys: TranslationKey[] = useMemo(() => {
-    const projectKeys = data?.projectKeys || [];
-    return projectKeys;
-  }, [
-    data?.projectKeys?.length,
-    // Create a stable key based on IDs and update times
-    data?.projectKeys?.map((k) => `${k.id}-${k.updatedAt}`).join(','),
-  ]);
+  // Use keys directly from data - Apollo handles caching
+  const keys: TranslationKey[] = data?.projectKeys || [];
 
   // Calculate estimated size based on number of languages
   // Each language row is approximately 60px, plus some padding

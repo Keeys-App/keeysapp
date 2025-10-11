@@ -15,7 +15,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Separator } from "@/components/ui/separator";
 import { useSaving, useSavingStore } from "@/stores";
 import { toast } from "sonner";
 import type { ReviewStatus } from "@/types/translationKey";
@@ -71,6 +70,7 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
       { query: GET_KEY, variables: { id: keyId } },
       { query: GET_KEY_LOGS, variables: { keyId } },
     ],
+    awaitRefetchQueries: true,
   });
 
   const [rejectTranslation] = useMutation(REJECT_TRANSLATION, {
@@ -79,6 +79,7 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
       { query: GET_KEY, variables: { id: keyId } },
       { query: GET_KEY_LOGS, variables: { keyId } },
     ],
+    awaitRefetchQueries: true,
   });
 
   const [deleteTranslationReview] = useMutation(DELETE_TRANSLATION_REVIEW, {
@@ -87,11 +88,12 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
       { query: GET_KEY, variables: { id: keyId } },
       { query: GET_KEY_LOGS, variables: { keyId } },
     ],
+    awaitRefetchQueries: true,
   });
 
   const handleApprove = async () => {
     await withSaving(async () => {
-      await approveTranslation({
+      const result = await approveTranslation({
         variables: {
           input: {
             keyId,
@@ -100,15 +102,18 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
           },
         },
       });
-      setComment("");
-      setIsOpen(false);
-      toast("Translation approved");
+      
+      if (result.data?.approveTranslation) {
+        setComment("");
+        setIsOpen(false);
+        toast("Translation approved");
+      }
     }, "Approving...");
   };
 
   const handleReject = async () => {
     await withSaving(async () => {
-      await rejectTranslation({
+      const result = await rejectTranslation({
         variables: {
           input: {
             keyId,
@@ -117,22 +122,28 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
           },
         },
       });
-      setComment("");
-      setIsOpen(false);
-      toast("Translation rejected");
+      
+      if (result.data?.rejectTranslation) {
+        setComment("");
+        setIsOpen(false);
+        toast("Translation rejected");
+      }
     }, "Rejecting...");
   };
 
   const handleDeleteReview = async () => {
     await withSaving(async () => {
-      await deleteTranslationReview({
+      const result = await deleteTranslationReview({
         variables: {
           keyId,
           language,
         },
       });
-      setIsOpen(false);
-      toast("Review reset");
+      
+      if (result.data?.deleteTranslationReview) {
+        setIsOpen(false);
+        toast("Review reset");
+      }
     }, "Resetting review...");
   };
 
