@@ -74,12 +74,13 @@ export const TranslationEditor = memo(function TranslationEditor({
   // Handle translation update success
   useEffect(() => {
     if (translationData) {
-      toast("Translation updated successfully", {
+      const isDeleted = !translationData.setTranslation;
+      toast(isDeleted ? "Translation deleted successfully" : "Translation updated successfully", {
         description: (
           <div>
             <div>{keyData.key}</div>
             <div>{language.name}</div>
-            <div>{translationData.setTranslation.value}</div>
+            {!isDeleted ? <div>{translationData.setTranslation.value}</div> : null}
           </div>
         ),
       });
@@ -120,10 +121,10 @@ export const TranslationEditor = memo(function TranslationEditor({
   return (
     <div className="space-y-2 break-all">
       {value || <span className="text-muted-foreground text-sm">&lt;Empty&gt;</span>}
-      {/* <Textarea value={value} onChange={(e) => setValue(e.target.value)} disabled={isSaving} rows={3} />
+      <Textarea value={value} onChange={(e) => setValue(e.target.value)} disabled={isSaving} rows={3} />
       <Button onClick={handleSave} disabled={isSaving} variant="outline" size="sm">
         Save
-      </Button> */}
+      </Button>
     </div>
   );
 }, (prevProps, nextProps) => {

@@ -6,14 +6,15 @@ import {
   History,
   FileText,
   Languages,
-  Trash2,
+  Delete,
+  Trash,
   Plus,
   Edit,
   FileDown,
   AlertCircle,
-  MessageCircleHeart,
-  MessageCircleX,
-  MessageCircleOff,
+  MessageHeart,
+  MessageX,
+  MessageOff,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -68,8 +69,8 @@ const actionIcons: Record<string, typeof History> = {
   UPDATE_KEY: Edit,
   UPDATE_DESCRIPTION: FileText,
   UPDATE_TRANSLATION: Languages,
-  DELETE_TRANSLATION: Trash2,
-  DELETE: Trash2,
+  DELETE_TRANSLATION: Delete,
+  DELETE: Trash,
   IMPORT: FileDown,
   REVIEW_APPROVE: MessageCircleHeart,
   REVIEW_REJECT: MessageCircleX,
@@ -183,7 +184,7 @@ export const KeyLogsTimeline: FC<KeyLogsTimelineProps> = ({
               <div
                 className={`flex-shrink-0 w-6 h-6 rounded-full ${colorClass} flex items-center justify-center z-10 relative`}
               >
-                <Icon className="w-3 h-3" />
+                <Icon className="w-3.5 h-3.5" />
               </div>
 
               {/* Content */}

@@ -49,6 +49,10 @@ export const Key = memo(function Key({
       <div className="flex flex-col">
         <div className="">
           {projectLanguages.map((language) => {
+            const translation = keyData.translations.find((t) => t.language === language.code);
+            const translationValue = translation?.value || "";
+            const hasTranslation = translationValue.trim() !== "";
+            
             return (
               <div
                 key={language.code}
@@ -65,24 +69,20 @@ export const Key = memo(function Key({
                       )}
                     </div>
                   </div>
-                  <ReviewStatusButton
-                    keyId={keyData.id}
-                    language={language.code}
-                    reviewStatus={
-                      keyData.translations.find((t) => t.language === language.code)?.reviewStatus || 'NOT_REVIEWED'
-                    }
-                    projectId={projectId}
-                  />
+                  {hasTranslation ? (
+                    <ReviewStatusButton
+                      keyId={keyData.id}
+                      language={language.code}
+                      reviewStatus={translation?.reviewStatus || 'NOT_REVIEWED'}
+                      projectId={projectId}
+                    />
+                  ) : null}
                 </div>
                 <div className="text-sm p-2">
                   <TranslationEditor
                     keyData={keyData}
                     language={language}
-                    currentValue={
-                      keyData.translations.find(
-                        (t) => t.language === language.code
-                      )?.value || ""
-                    }
+                    currentValue={translationValue}
                     projectId={projectId}
                   />
                 </div>
