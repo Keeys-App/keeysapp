@@ -10,8 +10,17 @@ import {
   Plus,
   Edit,
   FileDown,
+  AlertCircle,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { InlineDiff } from "./InlineDiff";
 
 interface User {
@@ -110,8 +119,12 @@ export const KeyLogsTimeline: FC<KeyLogsTimelineProps> = ({
 
   if (error) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
-        <p>Failed to load history</p>
+      <div className="text-center py-8">
+        <AlertCircle className="w-12 h-12 mx-auto mb-3 text-destructive opacity-70" />
+        <p className="text-muted-foreground mb-4">Failed to load history</p>
+        <Button variant="outline" size="sm" onClick={() => refetch()}>
+          Try again
+        </Button>
       </div>
     );
   }
@@ -120,9 +133,18 @@ export const KeyLogsTimeline: FC<KeyLogsTimelineProps> = ({
 
   if (logs.length === 0) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
-        <History className="w-12 h-12 mx-auto mb-2 opacity-50" />
-        <p>No history yet</p>
+      <div className="flex items-center justify-center py-8">
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <History />
+            </EmptyMedia>
+            <EmptyTitle>No events yet</EmptyTitle>
+            <EmptyDescription>
+              Here you can see all events that have happened to this key over time.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       </div>
     );
   }
