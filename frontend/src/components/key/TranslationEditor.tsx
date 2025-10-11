@@ -20,6 +20,8 @@ interface TranslationEditorProps {
   language: Language;
   currentValue: string;
   projectId: string;
+  isEditing: boolean;
+  onEditingChange: (editing: boolean) => void;
 }
 
 export const TranslationEditor = memo(
@@ -28,15 +30,22 @@ export const TranslationEditor = memo(
     language,
     currentValue,
     projectId,
+    isEditing,
+    onEditingChange,
   }: TranslationEditorProps) {
     const [value, setValue] = useState(currentValue);
-    const [isEditing, setIsEditing] = useState(false);
 
     // Update value when currentValue changes from outside (e.g., switching keys)
     useEffect(() => {
       setValue(currentValue);
-      setIsEditing(false);
     }, [currentValue]);
+
+    // Close editor when switching keys (when keyData.id changes)
+    useEffect(() => {
+      if (isEditing) {
+        onEditingChange(false);
+      }
+    }, [keyData.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const [setTranslation, { data: translationData, error: translationError }] =
       useMutation(SET_TRANSLATION, {
@@ -122,7 +131,8 @@ export const TranslationEditor = memo(
       }
     }, [translationError]);
 
-    const handleSave = async () => {
+    const handleSave = async (e: React.MouseEvent) => {
+      e.stopPropagation();
       // Remove all whitespace (spaces, tabs, newlines) from start and end
       const trimmedValue = value.replace(/^[\s\n\r\t]+|[\s\n\r\t]+$/g, "");
 
@@ -139,20 +149,22 @@ export const TranslationEditor = memo(
         });
       }, `Saving translation...`);
 
-      setIsEditing(false);
+      onEditingChange(false);
     };
 
-    const handleCancel = () => {
+    const handleCancel = (e: React.MouseEvent) => {
+      e.stopPropagation();
       setValue(currentValue);
-      setIsEditing(false);
+      onEditingChange(false);
     };
 
-    const handleEdit = () => {
-      setIsEditing(true);
+    const handleEdit = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onEditingChange(true);
     };
 
     return (
-      <div className="space-y-2 break-all">
+      <div className="space-y-2 break-all" onClick={(e) => e.stopPropagation()}>
         {!isEditing ? (
           <div
             dir={language.direction}
@@ -175,6 +187,7 @@ export const TranslationEditor = memo(
               className="bg-background"
               value={value}
               onChange={(e) => setValue(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
               disabled={isSaving}
               rows={3}
               autoFocus
@@ -203,11 +216,12 @@ export const TranslationEditor = memo(
     );
   },
   (prevProps, nextProps) => {
-    // Only re-render if current value or key ID changed
+    // Only re-render if current value, key ID, or editing state changed
     return (
       prevProps.currentValue === nextProps.currentValue &&
       prevProps.keyData.id === nextProps.keyData.id &&
-      prevProps.language.code === nextProps.language.code
+      prevProps.language.code === nextProps.language.code &&
+      prevProps.isEditing === nextProps.isEditing
     );
   }
 );

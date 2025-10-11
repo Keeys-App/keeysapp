@@ -1,5 +1,4 @@
 import { memo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TranslationEditor } from "./TranslationEditor";
 import { ReviewStatusButton } from "./ReviewStatusButton";
 import type { TranslationKey } from "@/types/translationKey";
@@ -11,6 +10,8 @@ interface KeyProps {
   projectLanguages: (Language | LanguageWithLocale)[];
   isSelected?: boolean;
   onSelect?: (key: TranslationKey) => void;
+  editingLanguage: string | null;
+  onEditingLanguageChange: (language: string | null) => void;
 }
 
 /**
@@ -23,6 +24,8 @@ export const Key = memo(
     projectLanguages,
     isSelected = false,
     onSelect,
+    editingLanguage,
+    onEditingLanguageChange,
   }: KeyProps) {
     const handleClick = () => {
       if (onSelect) {
@@ -91,6 +94,10 @@ export const Key = memo(
                       language={language}
                       currentValue={translationValue}
                       projectId={projectId}
+                      isEditing={editingLanguage === language.code}
+                      onEditingChange={(editing) => {
+                        onEditingLanguageChange(editing ? language.code : null);
+                      }}
                     />
                   </div>
                 </div>
@@ -110,7 +117,8 @@ export const Key = memo(
       prevProps.keyData.description !== nextProps.keyData.description ||
       prevProps.keyData.updatedAt !== nextProps.keyData.updatedAt ||
       prevProps.isSelected !== nextProps.isSelected ||
-      prevProps.projectId !== nextProps.projectId
+      prevProps.projectId !== nextProps.projectId ||
+      prevProps.editingLanguage !== nextProps.editingLanguage
     ) {
       return false; // Re-render
     }

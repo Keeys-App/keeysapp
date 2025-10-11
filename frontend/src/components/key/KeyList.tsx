@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client";
-import { useRef, useMemo } from "react";
+import { useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { GET_PROJECT_KEYS } from "@/graphql/keys";
 import type { TranslationKey } from "@/types/translationKey";
@@ -26,6 +26,11 @@ export function KeyList({
   selectedKey,
   onSelectKey,
 }: KeyListProps) {
+  const [editingTranslation, setEditingTranslation] = useState<{
+    keyId: string;
+    language: string;
+  } | null>(null);
+
   const { data, loading, error } = useQuery(GET_PROJECT_KEYS, {
     variables: { projectId },
     skip: !projectId,
@@ -114,6 +119,16 @@ export function KeyList({
                     projectLanguages={projectLanguages}
                     isSelected={selectedKey?.id === key.id}
                     onSelect={onSelectKey}
+                    editingLanguage={
+                      editingTranslation?.keyId === key.id
+                        ? editingTranslation.language
+                        : null
+                    }
+                    onEditingLanguageChange={(language) => {
+                      setEditingTranslation(
+                        language ? { keyId: key.id, language } : null
+                      );
+                    }}
                   />
                 </div>
               );
