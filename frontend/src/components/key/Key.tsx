@@ -63,7 +63,7 @@ export const Key = memo(
               return (
                 <div
                   key={language.code}
-                  className="grid grid-cols-[120px_1fr] even:bg-muted/50 border-b"
+                  className="group grid grid-cols-[120px_1fr] even:bg-muted/50 border-b"
                 >
                   <div className="border-r flex p-2 gap-1">
                     <div className="flex flex-col flex-1 min-w-0">

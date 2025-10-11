@@ -30,6 +30,13 @@ export const TranslationEditor = memo(
     projectId,
   }: TranslationEditorProps) {
     const [value, setValue] = useState(currentValue);
+    const [isEditing, setIsEditing] = useState(false);
+
+    // Update value when currentValue changes from outside (e.g., switching keys)
+    useEffect(() => {
+      setValue(currentValue);
+      setIsEditing(false);
+    }, [currentValue]);
 
     const [setTranslation, { data: translationData, error: translationError }] =
       useMutation(SET_TRANSLATION, {
@@ -131,29 +138,66 @@ export const TranslationEditor = memo(
           },
         });
       }, `Saving translation...`);
+
+      setIsEditing(false);
+    };
+
+    const handleCancel = () => {
+      setValue(currentValue);
+      setIsEditing(false);
+    };
+
+    const handleEdit = () => {
+      setIsEditing(true);
     };
 
     return (
       <div className="space-y-2 break-all">
-        <div dir={language.direction}>
-          {value || (
-            <span className="text-muted-foreground text-sm">&lt;Empty&gt;</span>
-          )}
-          <Textarea
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            disabled={isSaving}
-            rows={3}
-          />
-        </div>
-        <Button
-          onClick={handleSave}
-          disabled={isSaving}
-          variant="outline"
-          size="sm"
-        >
-          Save
-        </Button>
+        {!isEditing ? (
+          <div
+            dir={language.direction}
+            className="cursor-pointer hover:bg-muted/70 rounded py-2 px-3 transition-colors min-h-[2rem]"
+            onClick={handleEdit}
+          >
+            <div className="p-[1px]">
+              {value ? (
+                <span className="whitespace-pre-wrap">{value}</span>
+              ) : (
+                <span className="text-muted-foreground text-sm">
+                  &lt;Empty&gt;
+                </span>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div dir={language.direction}>
+            <Textarea
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              disabled={isSaving}
+              rows={3}
+              autoFocus
+            />
+            <div className="flex gap-2 mt-2">
+              <Button
+                onClick={handleSave}
+                disabled={isSaving}
+                variant="default"
+                size="sm"
+              >
+                Save
+              </Button>
+              <Button
+                onClick={handleCancel}
+                disabled={isSaving}
+                variant="outline"
+                size="sm"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     );
   },
