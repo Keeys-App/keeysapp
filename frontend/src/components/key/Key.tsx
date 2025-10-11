@@ -68,24 +68,24 @@ export const Key = memo(
                   key={language.code}
                   className="group grid grid-cols-[120px_1fr] even:bg-muted/50 border-b -mb-px"
                 >
-                  <div className="border-r -mr-px flex p-2 gap-1">
-                    <div className="flex flex-col flex-1 min-w-0">
-                      <div className="text-sm">{language.name}</div>
+                  <div className="border-r -mr-px p-2 grid grid-rows-[auto_1fr] gap-1">
+                    <div className="text-sm">{language.name}</div>
+                    <div className="flex items-end justify-between">
                       <div className="text-muted-foreground text-xs">
                         {"locale" in language ? language.locale : language.code}
                       </div>
-                    </div>
-                    <div className="relative top-[-1px]">
-                      {hasTranslation ? (
-                        <ReviewStatusButton
-                          keyId={keyData.id}
-                          language={language.code}
-                          reviewStatus={
-                            translation?.reviewStatus || "NOT_REVIEWED"
-                          }
-                          projectId={projectId}
-                        />
-                      ) : null}
+                      <div className="relative top-[5px] right-[-3px]">
+                        {hasTranslation ? (
+                          <ReviewStatusButton
+                            keyId={keyData.id}
+                            language={language.code}
+                            reviewStatus={
+                              translation?.reviewStatus || "NOT_REVIEWED"
+                            }
+                            projectId={projectId}
+                          />
+                        ) : null}
+                      </div>
                     </div>
                   </div>
                   <div className="text-sm p-2">
