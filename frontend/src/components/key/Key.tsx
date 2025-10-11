@@ -1,9 +1,9 @@
 import { memo } from "react";
 import { TranslationEditor } from "./TranslationEditor";
 import { LanguageHeader } from "./LanguageHeader";
+import { KeyHeader } from "./KeyHeader";
 import type { TranslationKey } from "@/types/translationKey";
 import type { Language, LanguageWithLocale } from "@/types/project";
-import { cn } from "@/lib/utils";
 
 interface KeyProps {
   keyData: TranslationKey;
@@ -40,21 +40,11 @@ export const Key = memo(
         onClick={handleClick}
       >
         <div className="border-r -mr-px relative">
-          <div className="font-mono text-sm break-words sticky bg-background top-0 z-10 py-2 px-4">
-            <span
-              className={cn(
-                "transition-colors",
-                isSelected && "bg-primary/10 text-primary py-0.5 rounded"
-              )}
-            >
-              {keyData.key}
-            </span>
-          </div>
-          {keyData.description ? (
-            <p className="text-sm break-words text-muted-foreground px-4 pb-2">
-              {keyData.description}
-            </p>
-          ) : null}
+          <KeyHeader
+            keyName={keyData.key}
+            description={keyData.description}
+            isSelected={isSelected}
+          />
         </div>
         <div className="flex flex-col">
           {projectLanguages.map((language) => (

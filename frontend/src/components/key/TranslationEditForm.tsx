@@ -97,7 +97,7 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
         >
           Cancel
         </Button>
-        {defaultLanguageValue && defaultLanguageValue !== value ? (
+        {defaultLanguageValue && !value ? (
           <Button
             onClick={handleCopyFromDefault}
             disabled={isSaving}

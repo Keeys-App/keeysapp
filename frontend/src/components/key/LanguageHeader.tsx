@@ -2,6 +2,7 @@ import { memo } from "react";
 import { ReviewStatusButton } from "./ReviewStatusButton";
 import type { Language, LanguageWithLocale } from "@/types/project";
 import type { Translation } from "@/types/translationKey";
+import { cn } from "@/lib/utils";
 
 interface LanguageHeaderProps {
   language: Language | LanguageWithLocale;
@@ -48,4 +49,3 @@ export const LanguageHeader = memo(function LanguageHeader({
     </div>
   );
 });
-
