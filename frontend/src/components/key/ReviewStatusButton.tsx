@@ -65,29 +65,17 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
 
   // Review mutations
   const [approveTranslation] = useMutation(APPROVE_TRANSLATION, {
-    refetchQueries: [
-      { query: GET_PROJECT_KEYS, variables: { projectId } },
-      { query: GET_KEY, variables: { id: keyId } },
-      { query: GET_KEY_LOGS, variables: { keyId } },
-    ],
+    refetchQueries: ["GetKeyLogs", "GetProjectKeys"],
     awaitRefetchQueries: true,
   });
 
   const [rejectTranslation] = useMutation(REJECT_TRANSLATION, {
-    refetchQueries: [
-      { query: GET_PROJECT_KEYS, variables: { projectId } },
-      { query: GET_KEY, variables: { id: keyId } },
-      { query: GET_KEY_LOGS, variables: { keyId } },
-    ],
+    refetchQueries: ["GetKeyLogs", "GetProjectKeys"],
     awaitRefetchQueries: true,
   });
 
   const [deleteTranslationReview] = useMutation(DELETE_TRANSLATION_REVIEW, {
-    refetchQueries: [
-      { query: GET_PROJECT_KEYS, variables: { projectId } },
-      { query: GET_KEY, variables: { id: keyId } },
-      { query: GET_KEY_LOGS, variables: { keyId } },
-    ],
+    refetchQueries: ["GetKeyLogs", "GetProjectKeys"],
     awaitRefetchQueries: true,
   });
 

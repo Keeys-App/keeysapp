@@ -59,7 +59,7 @@ const actionLabels: Record<string, string> = {
   IMPORT: "Imported",
   REVIEW_APPROVE: "Approved",
   REVIEW_REJECT: "Rejected",
-  REVIEW_DELETE: "Review deleted",
+  REVIEW_DELETE: "Review Canceled",
 };
 
 const actionIcons: Record<string, typeof History> = {
@@ -100,6 +100,7 @@ export const KeyLogsTimeline: FC<KeyLogsTimelineProps> = ({
     {
       variables: { keyId, limit },
       skip: !keyId,
+      fetchPolicy: 'cache-and-network',
     }
   );
 
