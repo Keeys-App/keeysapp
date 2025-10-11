@@ -3,6 +3,7 @@ import { TranslationEditor } from "./TranslationEditor";
 import { ReviewStatusButton } from "./ReviewStatusButton";
 import type { TranslationKey } from "@/types/translationKey";
 import type { Language, LanguageWithLocale } from "@/types/project";
+import { Badge } from "../ui";
 
 interface KeyProps {
   keyData: TranslationKey;
@@ -55,7 +56,7 @@ export const Key = memo(
           ) : null}
         </div>
         <div className="flex flex-col">
-          <div className="">
+          <div>
             {projectLanguages.map((language) => {
               const translation = keyData.translations.find(
                 (t) => t.language === language.code
@@ -69,7 +70,14 @@ export const Key = memo(
                   className="group grid grid-cols-[120px_1fr] even:bg-muted/50 border-b -mb-px"
                 >
                   <div className="border-r -mr-px p-2 grid grid-rows-[auto_1fr] gap-1">
-                    <div className="text-sm">{language.name}</div>
+                    <div className="text-sm flex items-center gap-1.5">
+                      <span>{language.name}</span>
+                      {"default" in language && language.default ? (
+                        <Badge variant="outline" className="text-xs">
+                          Default
+                        </Badge>
+                      ) : null}
+                    </div>
                     <div className="flex items-end justify-between">
                       <div className="text-muted-foreground text-xs">
                         {"locale" in language ? language.locale : language.code}

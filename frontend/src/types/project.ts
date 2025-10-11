@@ -83,6 +83,7 @@ export type Language = Pick<LanguageConfig, 'code' | 'name' | 'flag' | 'directio
  */
 export interface LanguageWithLocale extends Language {
   locale: string;
+  default?: boolean;
 }
 
 /**

@@ -81,6 +81,7 @@ export const ProjectKeysPage: FC = () => {
         flag: commonLang?.flag || '🏳️',
         locale: langConfig.locale,
         direction: (direction === 'rtl' ? 'rtl' : 'ltr') as 'ltr' | 'rtl',
+        default: langConfig.default,
       };
     });
   }, [project?.languages]);

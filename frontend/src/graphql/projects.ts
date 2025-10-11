@@ -33,6 +33,7 @@ export const LANGUAGE_CONFIG_FRAGMENT = gql`
     code
     locale
     direction
+    default
   }
 `;
 
@@ -149,12 +150,14 @@ export interface LanguageConfig {
   code: string;
   locale: string;
   direction: 'ltr' | 'rtl';
+  default?: boolean;
 }
 
 export interface LanguageConfigInput {
   code: string;
   locale: string;
   direction?: string;
+  default?: boolean;
 }
 
 export interface LanguageProgress {

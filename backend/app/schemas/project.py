@@ -29,6 +29,7 @@ class LanguageConfigType:
     code: str
     locale: str
     direction: str
+    default: bool = False
 
 
 @strawberry.type
@@ -228,7 +229,8 @@ def build_project_type(project, current_user_id: int, stats: Optional[dict] = No
             languages.append(LanguageConfigType(
                 code=code,
                 locale=lang.get('locale', ''),
-                direction=lang.get('direction', LANGUAGE_CONFIGS.get(code, {}).get('direction', 'ltr'))
+                direction=lang.get('direction', LANGUAGE_CONFIGS.get(code, {}).get('direction', 'ltr')),
+                default=code == project.default_language
             ))
     
     # Calculate translation progress using SQL stats (much faster!)
