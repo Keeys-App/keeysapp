@@ -7,13 +7,11 @@ import {
   GET_KEY_LOGS,
   GET_KEY,
 } from "@/graphql/keys";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
 import { getUserFriendlyErrorMessage } from "@/lib/utils";
-import { useSaving, useSavingStore } from "@/stores";
+import { useSaving } from "@/stores";
 import type { Language } from "@/types/project";
 import type { TranslationKey } from "@/types/translationKey";
-import { Badge } from "../ui";
+import { TranslationEditForm } from "./TranslationEditForm";
 
 interface TranslationEditorProps {
   keyData: TranslationKey;
@@ -116,7 +114,6 @@ export const TranslationEditor = memo(
       });
 
     const withSaving = useSaving();
-    const { isSaving } = useSavingStore();
 
     // Auto-save function (silent, no toast)
     const handleAutoSave = async (trimmedValue: string) => {
@@ -172,8 +169,7 @@ export const TranslationEditor = memo(
       }
     }, [translationError]);
 
-    const handleSave = async (e: React.MouseEvent) => {
-      e.stopPropagation();
+    const handleSave = async () => {
       isAutoSavingRef.current = false; // Ensure manual save shows toast
       valueToSaveRef.current = null; // Clear auto-save value
       // Remove all whitespace (spaces, tabs, newlines) from start and end
@@ -195,8 +191,7 @@ export const TranslationEditor = memo(
       onEditingChange(false);
     };
 
-    const handleCancel = (e: React.MouseEvent) => {
-      e.stopPropagation();
+    const handleCancel = () => {
       setValue(currentValue);
       valueToSaveRef.current = null; // Cancel auto-save
       onEditingChange(false);
@@ -233,35 +228,14 @@ export const TranslationEditor = memo(
             </div>
           </div>
         ) : (
-          <div dir={language.direction}>
-            <Textarea
-              className="bg-background"
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              onClick={(e) => e.stopPropagation()}
-              disabled={isSaving}
-              rows={3}
-              autoFocus
-            />
-            <div className="flex gap-2 mt-2">
-              <Button
-                onClick={handleSave}
-                disabled={isSaving || !hasChanges()}
-                variant="default"
-                size="sm"
-              >
-                Save
-              </Button>
-              <Button
-                onClick={handleCancel}
-                disabled={isSaving}
-                variant="outline"
-                size="sm"
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
+          <TranslationEditForm
+            value={value}
+            direction={language.direction}
+            onChange={setValue}
+            onSave={handleSave}
+            onCancel={handleCancel}
+            hasChanges={hasChanges()}
+          />
         )}
       </div>
     );
