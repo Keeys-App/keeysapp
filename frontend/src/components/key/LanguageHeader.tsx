@@ -26,13 +26,7 @@ export const LanguageHeader = memo(function LanguageHeader({
   const hasTranslation = translationValue.trim() !== "";
 
   return (
-    <div className="border-r -mr-px p-4 grid grid-rows-[auto_1fr] gap-1 relative">
-      {language.default ? (
-        <div
-          className="absolute top-0 left-0 w-0 h-0 border-t-[10px] border-t-blue-500 border-r-[10px] border-r-transparent"
-          title="Default language"
-        />
-      ) : null}
+    <div className="border-r -mr-px p-2 grid grid-rows-[auto_1fr] gap-1 relative">
       <div className="text-sm flex items-center gap-1.5">
         <span>{language.name}</span>
       </div>

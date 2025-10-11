@@ -40,7 +40,7 @@ export const Key = memo(
         onClick={handleClick}
       >
         <div className="border-r -mr-px relative">
-          <div className="font-mono text-sm break-words sticky bg-background top-[2px] z-10 p-4">
+          <div className="font-mono text-sm break-words sticky bg-background top-0 z-10 py-2 px-4">
             <span
               className={cn(
                 "transition-colors",
