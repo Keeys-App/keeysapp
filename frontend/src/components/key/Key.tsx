@@ -35,7 +35,7 @@ export const Key = memo(
         className="border-b grid grid-cols-[minmax(300px,300px)_minmax(300px,3fr)] relative cursor-pointer"
         onClick={handleClick}
       >
-        <div className="border-r relative">
+        <div className="border-r -mr-px relative">
           <div className="font-mono text-sm break-words sticky bg-background top-[2px] z-10 py-2 px-4">
             <span
               className={`transition-colors ${
@@ -63,9 +63,9 @@ export const Key = memo(
               return (
                 <div
                   key={language.code}
-                  className="group grid grid-cols-[120px_1fr] even:bg-muted/50 border-b"
+                  className="group grid grid-cols-[120px_1fr] even:bg-muted/50 border-b -mb-px"
                 >
-                  <div className="border-r flex p-2 gap-1">
+                  <div className="border-r -mr-px flex p-2 gap-1">
                     <div className="flex flex-col flex-1 min-w-0">
                       <div className="text-sm">{language.name}</div>
                       <div className="text-muted-foreground text-xs">
