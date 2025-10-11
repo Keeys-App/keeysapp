@@ -1,4 +1,4 @@
-import { useState, type FC } from "react";
+import { type FC } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useSavingStore } from "@/stores";
@@ -14,6 +14,9 @@ interface TranslationEditFormProps {
 
 /**
  * Form component for editing translation value
+ * Keyboard shortcuts:
+ * - Esc: Cancel
+ * - Cmd+Enter (Mac) / Ctrl+Enter (Windows/Linux): Save
  */
 export const TranslationEditForm: FC<TranslationEditFormProps> = ({
   value,
@@ -35,6 +38,26 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
     onCancel();
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Esc - Cancel
+    if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      onCancel();
+      return;
+    }
+
+    // Cmd+Enter (Mac) or Ctrl+Enter (Windows/Linux) - Save
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (hasChanges && !isSaving) {
+        onSave();
+      }
+      return;
+    }
+  };
+
   return (
     <div dir={direction}>
       <Textarea
@@ -42,6 +65,7 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={handleKeyDown}
         disabled={isSaving}
         rows={3}
         autoFocus
