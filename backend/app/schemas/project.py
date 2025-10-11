@@ -16,7 +16,7 @@ from app.core.exceptions import (
     handle_database_exception
 )
 from app.schemas.auth import UserType
-from app.constants.languages import DEFAULT_LANGUAGE_LOCALES
+from app.constants.languages import LANGUAGE_CONFIGS
 
 logger = logging.getLogger(__name__)
 
@@ -24,10 +24,11 @@ logger = logging.getLogger(__name__)
 @strawberry.type
 class LanguageConfigType:
     """
-    GraphQL type for language configuration with custom locale.
+    GraphQL type for language configuration with custom locale and text direction.
     """
     code: str
     locale: str
+    direction: str
 
 
 @strawberry.type
@@ -48,6 +49,7 @@ class LanguageConfigInput:
     """
     code: str
     locale: str
+    direction: str = 'ltr'
 
 
 @strawberry.type
@@ -221,10 +223,12 @@ def build_project_type(project, current_user_id: int, stats: Optional[dict] = No
     languages = []
     if project.languages:
         for lang in project.languages:
-            # lang is always a dict with 'code' and 'locale'
+            # lang is always a dict with 'code', 'locale', and 'direction'
+            code = lang.get('code', '')
             languages.append(LanguageConfigType(
-                code=lang.get('code', ''),
-                locale=lang.get('locale', '')
+                code=code,
+                locale=lang.get('locale', ''),
+                direction=lang.get('direction', LANGUAGE_CONFIGS.get(code, {}).get('direction', 'ltr'))
             ))
     
     # Calculate translation progress using SQL stats (much faster!)

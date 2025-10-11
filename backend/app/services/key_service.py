@@ -378,8 +378,11 @@ class KeyService:
             Translation.language == language
         ).first()
         
+        # Trim whitespace (spaces, tabs, newlines) from start and end
+        value = value.strip() if value else ""
+        
         # If value is empty, delete the translation
-        if not value or not value.strip():
+        if not value:
             if translation:
                 # Log translation deletion
                 KeyService._create_log(

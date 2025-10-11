@@ -32,6 +32,7 @@ export const LANGUAGE_CONFIG_FRAGMENT = gql`
   fragment LanguageConfigFields on LanguageConfigType {
     code
     locale
+    direction
   }
 `;
 
@@ -147,11 +148,13 @@ export interface ProjectMember {
 export interface LanguageConfig {
   code: string;
   locale: string;
+  direction: string;
 }
 
 export interface LanguageConfigInput {
   code: string;
   locale: string;
+  direction?: string;
 }
 
 export interface LanguageProgress {

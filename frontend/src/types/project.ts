@@ -76,7 +76,7 @@ export type LanguageConfig = {
   };
 };
 
-export type Language = Pick<LanguageConfig, 'code' | 'name' | 'flag'>;
+export type Language = Pick<LanguageConfig, 'code' | 'name' | 'flag' | 'direction'>;
 
 /**
  * Extended language type with locale information for UI components.
@@ -445,6 +445,6 @@ export const LANGUAGE_CONFIGS: LanguageConfig[] = [
  * Simple language list for UI selectors (backward compatibility).
  */
 export const COMMON_LANGUAGES: Language[] = LANGUAGE_CONFIGS.map(
-  ({ code, name, flag }) => ({ code, name, flag })
+  ({ code, name, flag, direction }) => ({ code, name, flag, direction })
 );
 

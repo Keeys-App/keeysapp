@@ -53,7 +53,8 @@ class ProjectService:
                 # It's a LanguageConfigInput object
                 languages_data.append({
                     'code': lang.code,
-                    'locale': lang.locale
+                    'locale': lang.locale,
+                    'direction': getattr(lang, 'direction', 'ltr')
                 })
             elif isinstance(lang, dict):
                 # It's already a dict
@@ -307,7 +308,8 @@ class ProjectService:
                     # It's a LanguageConfigInput object
                     languages_data.append({
                         'code': lang.code,
-                        'locale': lang.locale
+                        'locale': lang.locale,
+                        'direction': getattr(lang, 'direction', 'ltr')
                     })
                 elif isinstance(lang, dict):
                     # It's already a dict
