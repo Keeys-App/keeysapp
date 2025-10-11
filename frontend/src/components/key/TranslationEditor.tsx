@@ -118,12 +118,12 @@ export const TranslationEditor = memo(function TranslationEditor({
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 break-all">
       {value || <span className="text-muted-foreground text-sm">&lt;Empty&gt;</span>}
-      <Textarea value={value} onChange={(e) => setValue(e.target.value)} disabled={isSaving} rows={3} />
+      {/* <Textarea value={value} onChange={(e) => setValue(e.target.value)} disabled={isSaving} rows={3} />
       <Button onClick={handleSave} disabled={isSaving} variant="outline" size="sm">
         Save
-      </Button>
+      </Button> */}
     </div>
   );
 }, (prevProps, nextProps) => {
