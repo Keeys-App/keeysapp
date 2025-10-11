@@ -27,7 +27,6 @@ class Key(Base):
     key = Column(String(500), nullable=False)  # Translation key, e.g., "button.submit"
     description = Column(Text, nullable=True)  # Optional description for translators
     tags = Column(JSON, default=list, nullable=False)  # Array of tag strings
-    review_status = Column(SQLEnum(ReviewStatus), nullable=False, default=ReviewStatus.NOT_REVIEWED, server_default="NOT_REVIEWED")  # Review status
     project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -54,6 +53,7 @@ class Translation(Base):
     key_id = Column(Integer, ForeignKey("keys.id", ondelete="CASCADE"), nullable=False)
     language = Column(String(10), nullable=False)  # Language code, e.g., "en", "ru", "de"
     value = Column(Text, nullable=False)  # Translated text
+    review_status = Column(SQLEnum(ReviewStatus), nullable=False, default=ReviewStatus.NOT_REVIEWED, server_default="NOT_REVIEWED")  # Review status per translation
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

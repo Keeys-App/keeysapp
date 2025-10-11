@@ -1,6 +1,7 @@
 import { memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TranslationEditor } from "./TranslationEditor";
+import { ReviewStatusButton } from "./ReviewStatusButton";
 import type { TranslationKey } from "@/types/translationKey";
 import type { Language, LanguageWithLocale } from "@/types/project";
 
@@ -53,15 +54,25 @@ export const Key = memo(function Key({
                 key={language.code}
                 className="grid grid-cols-[120px_1fr] even:bg-muted/50 border-b"
               >
-                <div className="flex flex-col border-r p-2">
-                  <div className="text-sm">{language.name}</div>
-                  <div className="text-muted-foreground text-xs">
-                    {'locale' in language ? (
-                      language.locale
-                    ) : (
-                      language.code
-                    )}
+                <div className="border-r p-2 gap-1">
+                  <div className="flex flex-col flex-1 min-w-0">
+                    <div className="text-sm">{language.name}</div>
+                    <div className="text-muted-foreground text-xs">
+                      {'locale' in language ? (
+                        language.locale
+                      ) : (
+                        language.code
+                      )}
+                    </div>
                   </div>
+                  <ReviewStatusButton
+                    keyId={keyData.id}
+                    language={language.code}
+                    reviewStatus={
+                      keyData.translations.find((t) => t.language === language.code)?.reviewStatus || 'NOT_REVIEWED'
+                    }
+                    projectId={projectId}
+                  />
                 </div>
                 <div className="text-sm p-2">
                   <TranslationEditor
@@ -85,12 +96,35 @@ export const Key = memo(function Key({
 }, (prevProps, nextProps) => {
   // Custom comparison function to prevent unnecessary re-renders
   // Only re-render if the key data actually changed
-  return (
-    prevProps.keyData.id === nextProps.keyData.id &&
-    prevProps.keyData.key === nextProps.keyData.key &&
-    prevProps.keyData.description === nextProps.keyData.description &&
-    prevProps.keyData.updatedAt === nextProps.keyData.updatedAt &&
-    prevProps.isSelected === nextProps.isSelected &&
-    prevProps.projectId === nextProps.projectId
-  );
+  if (
+    prevProps.keyData.id !== nextProps.keyData.id ||
+    prevProps.keyData.key !== nextProps.keyData.key ||
+    prevProps.keyData.description !== nextProps.keyData.description ||
+    prevProps.keyData.updatedAt !== nextProps.keyData.updatedAt ||
+    prevProps.isSelected !== nextProps.isSelected ||
+    prevProps.projectId !== nextProps.projectId
+  ) {
+    return false; // Re-render
+  }
+  
+  // Check if translations changed (including reviewStatus)
+  if (prevProps.keyData.translations.length !== nextProps.keyData.translations.length) {
+    return false; // Re-render
+  }
+  
+  for (let i = 0; i < prevProps.keyData.translations.length; i++) {
+    const prev = prevProps.keyData.translations[i];
+    const next = nextProps.keyData.translations[i];
+    
+    if (
+      prev.language !== next.language ||
+      prev.value !== next.value ||
+      prev.reviewStatus !== next.reviewStatus ||
+      prev.updatedAt !== next.updatedAt
+    ) {
+      return false; // Re-render
+    }
+  }
+  
+  return true; // Don't re-render
 });

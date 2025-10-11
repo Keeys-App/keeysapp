@@ -7,10 +7,10 @@ export const GET_PROJECT_KEYS = gql`
       key
       description
       tags
-      reviewStatus
       translations {
         language
         value
+        reviewStatus
         createdAt
         updatedAt
       }
@@ -27,10 +27,10 @@ export const GET_KEY = gql`
       key
       description
       tags
-      reviewStatus
       translations {
         language
         value
+        reviewStatus
         createdAt
         updatedAt
       }
@@ -53,10 +53,10 @@ export const CREATE_KEY = gql`
       key
       description
       tags
-      reviewStatus
       translations {
         language
         value
+        reviewStatus
         createdAt
         updatedAt
       }
@@ -73,10 +73,10 @@ export const UPDATE_KEY = gql`
       key
       description
       tags
-      reviewStatus
       translations {
         language
         value
+        reviewStatus
         createdAt
         updatedAt
       }
@@ -142,17 +142,17 @@ export const GET_KEY_LOGS = gql`
   }
 `;
 
-export const APPROVE_KEY = gql`
-  mutation ApproveKey($input: ApproveKeyInput!) {
-    approveKey(input: $input) {
+export const APPROVE_TRANSLATION = gql`
+  mutation ApproveTranslation($input: ApproveTranslationInput!) {
+    approveTranslation(input: $input) {
       id
       key
       description
       tags
-      reviewStatus
       translations {
         language
         value
+        reviewStatus
         createdAt
         updatedAt
       }
@@ -162,17 +162,17 @@ export const APPROVE_KEY = gql`
   }
 `;
 
-export const REJECT_KEY = gql`
-  mutation RejectKey($input: RejectKeyInput!) {
-    rejectKey(input: $input) {
+export const REJECT_TRANSLATION = gql`
+  mutation RejectTranslation($input: RejectTranslationInput!) {
+    rejectTranslation(input: $input) {
       id
       key
       description
       tags
-      reviewStatus
       translations {
         language
         value
+        reviewStatus
         createdAt
         updatedAt
       }
@@ -182,17 +182,17 @@ export const REJECT_KEY = gql`
   }
 `;
 
-export const DELETE_REVIEW = gql`
-  mutation DeleteReview($keyId: String!) {
-    deleteReview(keyId: $keyId) {
+export const DELETE_TRANSLATION_REVIEW = gql`
+  mutation DeleteTranslationReview($keyId: String!, $language: String!) {
+    deleteTranslationReview(keyId: $keyId, language: $language) {
       id
       key
       description
       tags
-      reviewStatus
       translations {
         language
         value
+        reviewStatus
         createdAt
         updatedAt
       }

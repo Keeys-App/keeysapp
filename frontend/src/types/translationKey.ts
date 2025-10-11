@@ -1,18 +1,18 @@
+export type ReviewStatus = 'NOT_REVIEWED' | 'PENDING' | 'APPROVED' | 'REJECTED';
+
 export interface Translation {
   language: string;
   value: string;
+  reviewStatus: ReviewStatus;
   createdAt: string;
   updatedAt?: string;
 }
-
-export type ReviewStatus = 'NOT_REVIEWED' | 'PENDING' | 'APPROVED' | 'REJECTED';
 
 export interface TranslationKey {
   id: string;
   key: string;
   description?: string;
   tags: string[];
-  reviewStatus: ReviewStatus;
   translations: Translation[];
   createdAt: string;
   updatedAt?: string;

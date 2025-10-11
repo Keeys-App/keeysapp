@@ -51,13 +51,6 @@ export const TranslationEditor = memo(function TranslationEditor({
               );
               return [...otherTranslations, newTranslation];
             },
-            // Reset review status to PENDING when translation is updated (only if it was APPROVED or REJECTED)
-            reviewStatus(existingStatus) {
-              if (existingStatus === "APPROVED" || existingStatus === "REJECTED") {
-                return "PENDING";
-              }
-              return existingStatus;
-            },
             updatedAt() {
               return new Date().toISOString();
             },
@@ -117,10 +110,10 @@ export const TranslationEditor = memo(function TranslationEditor({
   };
 
   return (
-    <div className="">
-      {value || <span className="text-muted-foreground">&lt;Empty&gt;</span>}
-      <Textarea value={value} onChange={(e) => setValue(e.target.value)} disabled={isSaving} />
-      <Button onClick={handleSave} disabled={isSaving} variant="outline">
+    <div className="space-y-2">
+      {value || <span className="text-muted-foreground text-sm">&lt;Empty&gt;</span>}
+      <Textarea value={value} onChange={(e) => setValue(e.target.value)} disabled={isSaving} rows={3} />
+      <Button onClick={handleSave} disabled={isSaving} variant="outline" size="sm">
         Save
       </Button>
     </div>

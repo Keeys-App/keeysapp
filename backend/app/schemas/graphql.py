@@ -57,9 +57,9 @@ class Mutation:
     batch_import_translations = strawberry.field(resolver=KeyMutation.batch_import_translations)
     
     # Include review mutations
-    approve_key = strawberry.field(resolver=KeyMutation.approve_key)
-    reject_key = strawberry.field(resolver=KeyMutation.reject_key)
-    delete_review = strawberry.field(resolver=KeyMutation.delete_review)
+    approve_translation = strawberry.field(resolver=KeyMutation.approve_translation)
+    reject_translation = strawberry.field(resolver=KeyMutation.reject_translation)
+    delete_translation_review = strawberry.field(resolver=KeyMutation.delete_translation_review)
 
 
 schema = strawberry.Schema(query=Query, mutation=Mutation)

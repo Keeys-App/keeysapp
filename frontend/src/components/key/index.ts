@@ -3,10 +3,10 @@ export { Key } from './Key';
 export { KeySkeleton } from './KeySkeleton';
 export { CreateKeyDialog } from './CreateKeyDialog';
 export { TranslationEditor } from './TranslationEditor';
+export { ReviewStatusButton } from './ReviewStatusButton';
 export { EmptyKeys } from './EmptyKeys';
 export { KeyControls } from './KeyControls';
 export { KeyManagement } from './KeyManagement';
 export { KeyLogsTimeline } from './KeyLogsTimeline';
-export { KeyReview } from './KeyReview';
 export { InlineDiff } from './InlineDiff';
 

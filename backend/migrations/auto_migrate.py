@@ -418,6 +418,67 @@ def migrate_add_review_status_if_needed():
         return False
 
 
+def migrate_move_review_to_translations_if_needed():
+    """
+    Move review_status from keys to translations if needed.
+    Safe to run multiple times.
+    """
+    try:
+        with engine.connect() as connection:
+            # Check if review_status column exists in translations
+            result = connection.execute(text("""
+                SELECT EXISTS (
+                    SELECT 1 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'translations' 
+                    AND column_name = 'review_status'
+                );
+            """))
+            
+            translations_has_column = result.scalar()
+            
+            if not translations_has_column:
+                logger.info("Adding review_status column to translations table")
+                connection.execute(text("""
+                    ALTER TABLE translations 
+                    ADD COLUMN review_status reviewstatus 
+                    NOT NULL DEFAULT 'NOT_REVIEWED'
+                """))
+                connection.commit()
+                logger.info("✅ Added review_status column to translations table")
+            else:
+                logger.info("✅ review_status column already exists in translations table")
+            
+            # Check if review_status column exists in keys
+            result = connection.execute(text("""
+                SELECT EXISTS (
+                    SELECT 1 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'keys' 
+                    AND column_name = 'review_status'
+                );
+            """))
+            
+            keys_has_column = result.scalar()
+            
+            if keys_has_column:
+                logger.info("Removing review_status column from keys table")
+                connection.execute(text("""
+                    ALTER TABLE keys 
+                    DROP COLUMN review_status
+                """))
+                connection.commit()
+                logger.info("✅ Removed review_status column from keys table")
+            else:
+                logger.info("✅ review_status column already removed from keys table")
+            
+            return True
+            
+    except Exception as e:
+        logger.error(f"Migration move_review_to_translations failed: {type(e).__name__}: {str(e)}")
+        return False
+
+
 def run_all_migrations():
     """
     Run all pending migrations.
@@ -433,6 +494,7 @@ def run_all_migrations():
         ("add_import_action_type", migrate_add_import_action_type_if_needed),
         ("fix_key_logs_cascade", migrate_fix_key_logs_cascade_if_needed),
         ("add_review_status", migrate_add_review_status_if_needed),
+        ("move_review_to_translations", migrate_move_review_to_translations_if_needed),
         # Add more migrations here as needed
     ]
     

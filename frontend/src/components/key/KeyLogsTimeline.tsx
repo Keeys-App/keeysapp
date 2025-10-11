@@ -206,6 +206,11 @@ export const KeyLogsTimeline: FC<KeyLogsTimelineProps> = ({
                 <div className="text-sm text-muted-foreground space-y-1">
                   {log.action === "REVIEW_APPROVE" || log.action === "REVIEW_REJECT" || log.action === "REVIEW_DELETE" ? (
                     <>
+                      {log.language ? (
+                        <div className="text-xs text-muted-foreground/70 mb-1">
+                          Language: <span className="font-mono bg-muted px-1.5 py-0.5 rounded font-medium">{log.language.toUpperCase()}</span>
+                        </div>
+                      ) : null}
                       {log.newValue && log.action !== "REVIEW_DELETE" ? (
                         <div className="text-sm">
                           {log.newValue}

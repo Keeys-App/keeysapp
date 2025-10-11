@@ -4,7 +4,6 @@ import type { Language, LanguageWithLocale } from "@/types/project";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { KeyLogsTimeline } from "./KeyLogsTimeline";
 import { KeySettingsForm } from "./KeySettingsForm";
-import { KeyReview } from "./KeyReview";
 
 interface KeyManagementProps {
   selectedKey: TranslationKey | null;
@@ -38,7 +37,6 @@ export const KeyManagement: FC<KeyManagementProps> = ({
             <TabsList className="mx-4 mt-4">
               <TabsTrigger value="history">History</TabsTrigger>
               <TabsTrigger value="settings">Settings</TabsTrigger>
-              <TabsTrigger value="review">Review</TabsTrigger>
             </TabsList>
 
             <TabsContent value="history" className="flex-1 px-4 pb-4 overflow-auto">
@@ -50,10 +48,6 @@ export const KeyManagement: FC<KeyManagementProps> = ({
                 selectedKey={selectedKey} 
                 availableTags={availableTags} 
               />
-            </TabsContent>
-
-            <TabsContent value="review" className="flex-1 px-4 pb-4 overflow-auto">
-              <KeyReview selectedKey={selectedKey} projectId={projectId} />
             </TabsContent>
           </Tabs>
         )}

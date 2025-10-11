@@ -431,9 +431,9 @@ class KeyService:
                 new_value=value
             )
         
-        # Reset review status to PENDING when any translation is updated
-        if key_obj.review_status in [ReviewStatus.APPROVED, ReviewStatus.REJECTED]:
-            key_obj.review_status = ReviewStatus.PENDING
+        # Reset review status to PENDING when translation is updated
+        if translation.review_status in [ReviewStatus.APPROVED, ReviewStatus.REJECTED]:
+            translation.review_status = ReviewStatus.PENDING
         
         db.commit()
         db.refresh(translation)
@@ -674,18 +674,20 @@ class KeyService:
         }
 
     @staticmethod
-    def approve_key(
+    def approve_translation(
         db: Session,
         key_public_id: str,
+        language: str,
         user_id: int,
         comment: Optional[str] = None
     ) -> Optional[Key]:
         """
-        Approve a translation key.
+        Approve a translation.
         
         Args:
             db: Database session
             key_public_id: Public UUID of the key
+            language: Language code
             user_id: ID of the user performing the action
             comment: Optional review comment
             
@@ -697,20 +699,30 @@ class KeyService:
         if not key:
             return None
         
-        # Don't allow approving already approved key
-        if key.review_status == ReviewStatus.APPROVED:
+        # Find translation
+        translation = db.query(Translation).filter(
+            Translation.key_id == key.id,
+            Translation.language == language
+        ).first()
+        
+        if not translation:
             return None
         
-        old_status = key.review_status.value
-        key.review_status = ReviewStatus.APPROVED
+        # Don't allow approving already approved translation
+        if translation.review_status == ReviewStatus.APPROVED:
+            return None
         
-        # Create log entry
+        old_status = translation.review_status.value
+        translation.review_status = ReviewStatus.APPROVED
+        
+        # Create log entry with language
         KeyService._create_log(
             db=db,
             key_id=key.id,
             user_id=user_id,
             action=KeyActionType.REVIEW_APPROVE,
             field_name="review_status",
+            language=language,  # Include language in log
             old_value=old_status,
             new_value=comment  # Store comment in new_value field
         )
@@ -721,18 +733,20 @@ class KeyService:
         return key
 
     @staticmethod
-    def reject_key(
+    def reject_translation(
         db: Session,
         key_public_id: str,
+        language: str,
         user_id: int,
         comment: Optional[str] = None
     ) -> Optional[Key]:
         """
-        Reject a translation key.
+        Reject a translation.
         
         Args:
             db: Database session
             key_public_id: Public UUID of the key
+            language: Language code
             user_id: ID of the user performing the action
             comment: Optional review comment
             
@@ -744,20 +758,30 @@ class KeyService:
         if not key:
             return None
         
-        # Don't allow rejecting already rejected key
-        if key.review_status == ReviewStatus.REJECTED:
+        # Find translation
+        translation = db.query(Translation).filter(
+            Translation.key_id == key.id,
+            Translation.language == language
+        ).first()
+        
+        if not translation:
             return None
         
-        old_status = key.review_status.value
-        key.review_status = ReviewStatus.REJECTED
+        # Don't allow rejecting already rejected translation
+        if translation.review_status == ReviewStatus.REJECTED:
+            return None
         
-        # Create log entry
+        old_status = translation.review_status.value
+        translation.review_status = ReviewStatus.REJECTED
+        
+        # Create log entry with language
         KeyService._create_log(
             db=db,
             key_id=key.id,
             user_id=user_id,
             action=KeyActionType.REVIEW_REJECT,
             field_name="review_status",
+            language=language,  # Include language in log
             old_value=old_status,
             new_value=comment  # Store comment in new_value field
         )
@@ -768,17 +792,19 @@ class KeyService:
         return key
 
     @staticmethod
-    def delete_review(
+    def delete_translation_review(
         db: Session,
         key_public_id: str,
+        language: str,
         user_id: int
     ) -> Optional[Key]:
         """
-        Delete review status and reset key to pending.
+        Delete review status and reset translation to pending.
         
         Args:
             db: Database session
             key_public_id: Public UUID of the key
+            language: Language code
             user_id: ID of the user performing the action
             
         Returns:
@@ -789,16 +815,26 @@ class KeyService:
         if not key:
             return None
         
-        old_status = key.review_status.value
-        key.review_status = ReviewStatus.PENDING
+        # Find translation
+        translation = db.query(Translation).filter(
+            Translation.key_id == key.id,
+            Translation.language == language
+        ).first()
         
-        # Create log entry
+        if not translation:
+            return None
+        
+        old_status = translation.review_status.value
+        translation.review_status = ReviewStatus.PENDING
+        
+        # Create log entry with language
         KeyService._create_log(
             db=db,
             key_id=key.id,
             user_id=user_id,
             action=KeyActionType.REVIEW_DELETE,
             field_name="review_status",
+            language=language,  # Include language in log
             old_value=old_status,
             new_value=None  # No comment for delete action
         )

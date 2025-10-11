@@ -75,6 +75,7 @@ class TranslationType:
     """
     language: str
     value: str
+    review_status: ReviewStatusEnum
     created_at: datetime
     updated_at: Optional[datetime]
 
@@ -88,7 +89,6 @@ class KeyType:
     key: str
     description: Optional[str]
     tags: List[str]
-    review_status: ReviewStatusEnum
     translations: List[TranslationType]
     created_at: datetime
     updated_at: Optional[datetime]
@@ -169,20 +169,22 @@ class BatchImportInput:
 
 
 @strawberry.input
-class ApproveKeyInput:
+class ApproveTranslationInput:
     """
-    Input type for approving a key.
+    Input type for approving a translation.
     """
     key_id: str  # Key UUID
+    language: str  # Language code
     comment: Optional[str] = None
 
 
 @strawberry.input
-class RejectKeyInput:
+class RejectTranslationInput:
     """
-    Input type for rejecting a key.
+    Input type for rejecting a translation.
     """
     key_id: str  # Key UUID
+    language: str  # Language code
     comment: Optional[str] = None
 
 
@@ -202,6 +204,7 @@ def build_key_type(key) -> KeyType:
         translations.append(TranslationType(
             language=translation.language,
             value=translation.value,
+            review_status=ReviewStatusEnum(translation.review_status.value),
             created_at=translation.created_at,
             updated_at=translation.updated_at
         ))
@@ -211,7 +214,6 @@ def build_key_type(key) -> KeyType:
         key=key.key,
         description=key.description,
         tags=key.tags or [],
-        review_status=ReviewStatusEnum(key.review_status.value),
         translations=translations,
         created_at=key.created_at,
         updated_at=key.updated_at
@@ -700,12 +702,12 @@ class KeyMutation:
             db.close()
 
     @strawberry.mutation
-    def approve_key(self, input: ApproveKeyInput, info: Info) -> Optional[KeyType]:
+    def approve_translation(self, input: ApproveTranslationInput, info: Info) -> Optional[KeyType]:
         """
-        Approve a translation key.
+        Approve a translation.
         
         Args:
-            input: Approve key input
+            input: Approve translation input
             info: GraphQL info object
             
         Returns:
@@ -717,14 +719,15 @@ class KeyMutation:
         """
         current_user_id = get_current_user_id(info)
         if not current_user_id:
-            raise UnauthorizedError("User must be authenticated to approve keys")
+            raise UnauthorizedError("User must be authenticated to approve translations")
         
         db: Session = next(get_db())
         
         try:
-            key = KeyService.approve_key(
+            key = KeyService.approve_translation(
                 db=db,
                 key_public_id=input.key_id,
+                language=input.language,
                 user_id=current_user_id,
                 comment=input.comment
             )
@@ -736,17 +739,17 @@ class KeyMutation:
         except (UnauthorizedError, AuthenticationError):
             raise
         except Exception as e:
-            handle_database_exception(e, "key approval")
+            handle_database_exception(e, "translation approval")
         finally:
             db.close()
 
     @strawberry.mutation
-    def reject_key(self, input: RejectKeyInput, info: Info) -> Optional[KeyType]:
+    def reject_translation(self, input: RejectTranslationInput, info: Info) -> Optional[KeyType]:
         """
-        Reject a translation key.
+        Reject a translation.
         
         Args:
-            input: Reject key input
+            input: Reject translation input
             info: GraphQL info object
             
         Returns:
@@ -758,14 +761,15 @@ class KeyMutation:
         """
         current_user_id = get_current_user_id(info)
         if not current_user_id:
-            raise UnauthorizedError("User must be authenticated to reject keys")
+            raise UnauthorizedError("User must be authenticated to reject translations")
         
         db: Session = next(get_db())
         
         try:
-            key = KeyService.reject_key(
+            key = KeyService.reject_translation(
                 db=db,
                 key_public_id=input.key_id,
+                language=input.language,
                 user_id=current_user_id,
                 comment=input.comment
             )
@@ -777,17 +781,18 @@ class KeyMutation:
         except (UnauthorizedError, AuthenticationError):
             raise
         except Exception as e:
-            handle_database_exception(e, "key rejection")
+            handle_database_exception(e, "translation rejection")
         finally:
             db.close()
 
     @strawberry.mutation
-    def delete_review(self, key_id: str, info: Info) -> Optional[KeyType]:
+    def delete_translation_review(self, key_id: str, language: str, info: Info) -> Optional[KeyType]:
         """
-        Delete review status and reset key to pending.
+        Delete review status and reset translation to pending.
         
         Args:
             key_id: Key UUID
+            language: Language code
             info: GraphQL info object
             
         Returns:
@@ -804,9 +809,10 @@ class KeyMutation:
         db: Session = next(get_db())
         
         try:
-            key = KeyService.delete_review(
+            key = KeyService.delete_translation_review(
                 db=db,
                 key_public_id=key_id,
+                language=language,
                 user_id=current_user_id
             )
             
