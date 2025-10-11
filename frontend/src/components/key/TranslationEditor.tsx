@@ -12,6 +12,7 @@ import { useSaving } from "@/stores";
 import type { Language, LanguageWithLocale } from "@/types/project";
 import type { TranslationKey } from "@/types/translationKey";
 import { TranslationEditForm } from "./TranslationEditForm";
+import { TranslationView } from "./TranslationView";
 
 interface TranslationEditorProps {
   keyData: TranslationKey;
@@ -228,21 +229,11 @@ export const TranslationEditor = memo(
     return (
       <div className="space-y-2 text-sm break-all" onClick={(e) => e.stopPropagation()}>
         {!isEditing ? (
-          <div
-            dir={language.direction}
-            className="cursor-pointer hover:bg-muted/70 rounded transition-colors min-h-[2rem]"
-            onClick={handleEdit}
-          >
-            <div className="p-[1px]">
-              {value ? (
-                <span className="whitespace-pre-wrap">{value}</span>
-              ) : (
-                <span className="text-muted-foreground text-sm">
-                  &lt;Empty&gt;
-                </span>
-              )}
-            </div>
-          </div>
+          <TranslationView
+            value={value}
+            direction={language.direction}
+            onEdit={handleEdit}
+          />
         ) : (
           <TranslationEditForm
             value={value}
