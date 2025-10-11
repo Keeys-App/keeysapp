@@ -73,11 +73,14 @@ export const ProjectKeysPage: FC = () => {
         return l.code === langConfig.code;
       });
       
+      const direction = langConfig.direction || commonLang?.direction || 'ltr';
+      
       return {
         code: langConfig.code,
         name: commonLang?.name || langConfig.code,
         flag: commonLang?.flag || '🏳️',
         locale: langConfig.locale,
+        direction: (direction === 'rtl' ? 'rtl' : 'ltr') as 'ltr' | 'rtl',
       };
     });
   }, [project?.languages]);

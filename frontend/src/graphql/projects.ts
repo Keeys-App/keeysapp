@@ -148,7 +148,7 @@ export interface ProjectMember {
 export interface LanguageConfig {
   code: string;
   locale: string;
-  direction: string;
+  direction: 'ltr' | 'rtl';
 }
 
 export interface LanguageConfigInput {
