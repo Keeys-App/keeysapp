@@ -172,6 +172,7 @@ export const TranslationEditor = memo(
         ) : (
           <div dir={language.direction}>
             <Textarea
+              className="bg-background"
               value={value}
               onChange={(e) => setValue(e.target.value)}
               disabled={isSaving}
