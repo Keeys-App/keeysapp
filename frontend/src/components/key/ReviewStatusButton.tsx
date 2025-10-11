@@ -4,6 +4,8 @@ import {
   APPROVE_TRANSLATION,
   REJECT_TRANSLATION,
   DELETE_TRANSLATION_REVIEW,
+  GET_KEY_LOGS,
+  GET_PROJECT_KEYS,
 } from "@/graphql/keys";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -59,18 +61,72 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
 
   // Review mutations
   const [approveTranslation] = useMutation(APPROVE_TRANSLATION, {
-    refetchQueries: ["GetKeyLogs", "GetProjectKeys"],
+    refetchQueries: [
+      {
+        query: GET_KEY_LOGS,
+        variables: { keyId, limit: 50 },
+      },
+      {
+        query: GET_PROJECT_KEYS,
+        variables: { projectId },
+      },
+    ],
     awaitRefetchQueries: true,
+    update(cache) {
+      // Invalidate key logs cache to force refetch
+      cache.evict({ 
+        id: 'ROOT_QUERY',
+        fieldName: 'keyLogs',
+        args: { keyId },
+      });
+      cache.gc();
+    },
   });
 
   const [rejectTranslation] = useMutation(REJECT_TRANSLATION, {
-    refetchQueries: ["GetKeyLogs", "GetProjectKeys"],
+    refetchQueries: [
+      {
+        query: GET_KEY_LOGS,
+        variables: { keyId, limit: 50 },
+      },
+      {
+        query: GET_PROJECT_KEYS,
+        variables: { projectId },
+      },
+    ],
     awaitRefetchQueries: true,
+    update(cache) {
+      // Invalidate key logs cache to force refetch
+      cache.evict({ 
+        id: 'ROOT_QUERY',
+        fieldName: 'keyLogs',
+        args: { keyId },
+      });
+      cache.gc();
+    },
   });
 
   const [deleteTranslationReview] = useMutation(DELETE_TRANSLATION_REVIEW, {
-    refetchQueries: ["GetKeyLogs", "GetProjectKeys"],
+    refetchQueries: [
+      {
+        query: GET_KEY_LOGS,
+        variables: { keyId, limit: 50 },
+      },
+      {
+        query: GET_PROJECT_KEYS,
+        variables: { projectId },
+      },
+    ],
     awaitRefetchQueries: true,
+    update(cache) {
+      // Invalidate key logs cache to force refetch
+      cache.evict({ 
+        id: 'ROOT_QUERY',
+        fieldName: 'keyLogs',
+        args: { keyId },
+      });
+      cache.gc();
+    },
   });
 
   const handleApprove = async () => {

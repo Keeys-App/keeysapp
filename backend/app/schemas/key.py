@@ -599,6 +599,7 @@ class KeyMutation:
             return TranslationType(
                 language=translation.language,
                 value=translation.value,
+                review_status=ReviewStatusEnum(translation.review_status.value),
                 created_at=translation.created_at,
                 updated_at=translation.updated_at
             )

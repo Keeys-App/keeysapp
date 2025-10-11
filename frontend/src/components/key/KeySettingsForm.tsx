@@ -35,6 +35,16 @@ export const KeySettingsForm: FC<KeySettingsFormProps> = ({
         variables: { keyId: selectedKey.id, limit: 50 },
       },
     ],
+    awaitRefetchQueries: true,
+    update(cache) {
+      // Invalidate key logs cache to force refetch
+      cache.evict({ 
+        id: 'ROOT_QUERY',
+        fieldName: 'keyLogs',
+        args: { keyId: selectedKey.id },
+      });
+      cache.gc();
+    },
   });
   const withSaving = useSaving();
   const { isSaving } = useSavingStore();

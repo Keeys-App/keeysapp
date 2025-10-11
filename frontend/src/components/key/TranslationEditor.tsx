@@ -36,6 +36,7 @@ export const TranslationEditor = memo(function TranslationEditor({
         variables: { id: keyData.id },
       },
     ],
+    awaitRefetchQueries: true,
     update(cache, { data }) {
       if (data?.setTranslation) {
         // Update only the specific translation in cache
@@ -55,6 +56,13 @@ export const TranslationEditor = memo(function TranslationEditor({
               return new Date().toISOString();
             },
           },
+        });
+
+        // Invalidate key logs cache to force refetch
+        cache.evict({ 
+          id: 'ROOT_QUERY',
+          fieldName: 'keyLogs',
+          args: { keyId: keyData.id },
         });
       }
     },

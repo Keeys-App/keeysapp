@@ -30,12 +30,12 @@ export const InlineDiff: FC<InlineDiffProps> = ({ oldValue, newValue, language }
       <div className="bg-muted/50 border border-border rounded px-3 py-2 text-xs font-mono break-all leading-relaxed">
         {isCreation ? (
           // Only new value - show all in green
-          <span className="bg-green-500/20 text-green-700 dark:text-green-400 px-0.5 rounded">
+          <span className="bg-green-500/10 text-green-700 dark:text-green-400 px-0.5 rounded">
             {newValue}
           </span>
         ) : isDeletion ? (
           // Only old value - show all in red with strikethrough
-          <span className="bg-red-500/20 text-red-700 dark:text-red-400 line-through px-0.5 rounded">
+          <span className="bg-red-500/10 text-red-700 dark:text-red-400 line-through px-0.5 rounded">
             {oldValue}
           </span>
         ) : (
@@ -45,7 +45,7 @@ export const InlineDiff: FC<InlineDiffProps> = ({ oldValue, newValue, language }
               return (
                 <span
                   key={index}
-                  className="bg-green-500/20 text-green-700 dark:text-green-400 px-0.5 rounded"
+                  className="bg-green-500/10 text-green-700 dark:text-green-400 px-0.5 rounded"
                 >
                   {part.value}
                 </span>
@@ -56,7 +56,7 @@ export const InlineDiff: FC<InlineDiffProps> = ({ oldValue, newValue, language }
               return (
                 <span
                   key={index}
-                  className="bg-red-500/20 text-red-700 dark:text-red-400 line-through px-0.5 rounded"
+                  className="bg-red-500/10 text-red-700 dark:text-red-400 line-through px-0.5 rounded"
                 >
                   {part.value}
                 </span>
