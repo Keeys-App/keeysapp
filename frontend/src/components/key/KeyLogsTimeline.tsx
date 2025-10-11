@@ -11,8 +11,9 @@ import {
   Edit,
   FileDown,
   AlertCircle,
-  CheckCircle,
-  XCircle,
+  MessageCircleHeart,
+  MessageCircleX,
+  MessageCircleOff,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -70,9 +71,9 @@ const actionIcons: Record<string, typeof History> = {
   DELETE_TRANSLATION: Trash2,
   DELETE: Trash2,
   IMPORT: FileDown,
-  REVIEW_APPROVE: CheckCircle,
-  REVIEW_REJECT: XCircle,
-  REVIEW_DELETE: Trash2,
+  REVIEW_APPROVE: MessageCircleHeart,
+  REVIEW_REJECT: MessageCircleX,
+  REVIEW_DELETE: MessageCircleOff,
 };
 
 const actionColors: Record<string, string> = {

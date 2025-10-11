@@ -15,15 +15,12 @@ import {
 import { useSaving, useSavingStore } from "@/stores";
 import { toast } from "sonner";
 import type { ReviewStatus } from "@/types/translationKey";
-import {
-  Trash2,
-  CheckCircle,
-  XCircle,
-  Clock,
-  FileText,
-  ThumbsUp,
-  ThumbsDown,
-} from "lucide-react";
+  import {
+    MessageCircleOff,
+    MessageCircleHeart,
+    MessageCircle,
+    MessageCircleX,
+  } from "lucide-react";
 
 interface ReviewStatusButtonProps {
   keyId: string;
@@ -34,12 +31,12 @@ interface ReviewStatusButtonProps {
 
 const reviewStatusConfig: Record<
   ReviewStatus,
-  { icon: typeof Clock; color: string }
+  { icon: typeof MessageCircle; color: string }
 > = {
-  NOT_REVIEWED: { icon: FileText, color: "text-muted-foreground" },
-  PENDING: { icon: Clock, color: "text-yellow-600" },
-  APPROVED: { icon: CheckCircle, color: "text-green-600" },
-  REJECTED: { icon: XCircle, color: "text-red-600" },
+  NOT_REVIEWED: { icon: MessageCircle, color: "text-muted-foreground" },
+  PENDING: { icon: MessageCircle, color: "text-muted-foreground" },
+  APPROVED: { icon: MessageCircleHeart, color: "text-green-600" },
+  REJECTED: { icon: MessageCircleX, color: "text-red-600" },
 };
 
 /**
@@ -56,7 +53,7 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
   const withSaving = useSaving();
   const { isSaving } = useSavingStore();
 
-  const StatusIcon = reviewStatusConfig[reviewStatus]?.icon || Clock;
+  const StatusIcon = reviewStatusConfig[reviewStatus]?.icon || MessageCircle;
   const statusColor =
     reviewStatusConfig[reviewStatus]?.color || "text-muted-foreground";
 
@@ -178,21 +175,21 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
 
           <div className="space-y-1">
             <div className="grid grid-cols-2 gap-2">
-              {reviewStatus !== "APPROVED" && 
-              <Button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleApprove();
-                }}
-                disabled={isSaving}
-                variant="ghost"
-                size="sm"
-                className="justify-start text-green-600 hover:text-green-700 hover:bg-green-50"
-              >
-                <ThumbsUp className="h-4 w-4 mr-2" />
-                Approve
-              </Button>
-              }
+               {reviewStatus !== "APPROVED" && 
+               <Button
+                 onClick={(e) => {
+                   e.stopPropagation();
+                   handleApprove();
+                 }}
+                 disabled={isSaving}
+                 variant="ghost"
+                 size="sm"
+                 className="justify-start text-green-600 hover:text-green-700 hover:bg-green-50"
+               >
+                 <MessageCircleHeart className="h-4 w-4 mr-2" />
+                 Approve
+               </Button>
+               }
 
               {reviewStatus !== "REJECTED" && <Button
                 onClick={(e) => {
@@ -204,25 +201,25 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
                 size="sm"
                 className="justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
               >
-                <ThumbsDown className="h-4 w-4 mr-2" />
+                <MessageCircleX className="h-4 w-4 mr-2" />
                 Reject
               </Button>}
 
-              {reviewStatus === "APPROVED" || reviewStatus === "REJECTED" ? (
-                <Button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteReview();
-                  }}
-                  disabled={isSaving}
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start text-muted-foreground hover:text-foreground"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Revoke
-                </Button>
-              ) : null}
+               {reviewStatus === "APPROVED" || reviewStatus === "REJECTED" ? (
+                 <Button
+                   onClick={(e) => {
+                     e.stopPropagation();
+                     handleDeleteReview();
+                   }}
+                   disabled={isSaving}
+                   variant="ghost"
+                   size="sm"
+                   className="w-full justify-start text-muted-foreground hover:text-foreground"
+                 >
+                   <MessageCircleOff className="h-4 w-4 mr-2" />
+                   Revoke
+                 </Button>
+               ) : null}
             </div>
           </div>
         </div>
