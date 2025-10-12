@@ -153,7 +153,6 @@ export const ProjectKeysPage: FC = () => {
         {isPanelOpen ? (
           <KeyManagement
             selectedKey={selectedKey}
-            projectLanguages={projectLanguages}
             projectId={project.id}
             availableTags={project.availableTags || []}
             onKeyDeleted={handleKeyDeleted}
