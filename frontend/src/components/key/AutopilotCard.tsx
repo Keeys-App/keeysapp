@@ -152,28 +152,28 @@ export const AutopilotActions = {
     label: "Rephrase",
     icon: ListRestart,
     onClick,
-    variant: "default",
+    variant: "outline",
   }),
   
   shorten: (onClick?: () => void): AutopilotAction => ({
     label: "Shorten",
     icon: ArrowDownWideNarrow,
     onClick,
-    variant: "default",
+    variant: "outline",
   }),
   
   suggestVariants: (onClick?: () => void): AutopilotAction => ({
     label: "Suggest variants",
     icon: ListStart,
     onClick,
-    variant: "default",
+    variant: "outline",
   }),
   
   addContext: (onClick?: () => void): AutopilotAction => ({
     label: "Add context",
     icon: BookPlus,
     onClick,
-    variant: "default",
+    variant: "outline",
   }),
 };
 
