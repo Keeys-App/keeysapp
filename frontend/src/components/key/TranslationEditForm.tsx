@@ -197,7 +197,7 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
         onChange={onChange}
         onKeyDown={handleKeyDown}
         direction={direction}
-        disabled={isSaving}
+        disabled={false}
         rows={3}
         autoFocus
       />
