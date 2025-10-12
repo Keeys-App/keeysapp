@@ -414,7 +414,7 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
 
     card = (
       <AutopilotCard
-        isPending={isSaving || isGenerating}
+        isPending={isGenerating}
         description="Enhance the quality of this translation using AI."
         actions={enhancementActions}
       />
@@ -431,7 +431,7 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
     // Show translate action for empty translation
     card = (
       <AutopilotCard
-        isPending={isSaving || isGenerating}
+        isPending={isGenerating}
         description="Translate with AI based on the default language."
         actions={[
           AutopilotActions.translate(handleTranslate),
