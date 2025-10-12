@@ -184,10 +184,8 @@ export function CustomScrollbar({
     [scrollContainerRef, totalHeight, visibleHeight, thumbHeight, thumbPadding]
   );
 
-  // Don't show scrollbar if all content is visible
-  if (totalHeight <= visibleHeight) {
-    return null;
-  }
+  // Check if scrollbar should be disabled (all content is visible)
+  const isDisabled = totalHeight <= visibleHeight;
 
   // Calculate visible item range
   const firstVisibleItem = Math.floor((scrollPosition / totalHeight) * totalItems) + 1;
@@ -198,7 +196,7 @@ export function CustomScrollbar({
 
   // Calculate hover preview range
   let hoverPreviewRange: { start: number; end: number; top: number; height: number } | null = null;
-  if (hoverPosition !== null) {
+  if (hoverPosition !== null && !isDisabled) {
     // Calculate visual position of the preview box with padding
     const previewTop = hoverPosition - (thumbHeight / 2);
     const clampedTop = Math.max(thumbPadding, Math.min(visibleHeight - thumbHeight - thumbPadding, previewTop));
@@ -229,13 +227,14 @@ export function CustomScrollbar({
       ref={scrollbarRef}
       className={cn(
         "absolute right-0 top-0 bottom-0 transition-all bg-background/50 border-l border-l-border",
-        isHovered && !isDragging ? "w-16 backdrop-blur-xs" : "w-3",
+        isHovered && !isDragging && !isDisabled ? "w-16 backdrop-blur-xs" : "w-3",
+        isDisabled && "opacity-30 pointer-events-none",
         className
       )}
-      onClick={handleTrackClick}
-      onMouseMove={handleTrackMouseMove}
-      onMouseLeave={handleTrackMouseLeave}
-      onMouseEnter={handleTrackMouseEnter}
+      onClick={isDisabled ? undefined : handleTrackClick}
+      onMouseMove={isDisabled ? undefined : handleTrackMouseMove}
+      onMouseLeave={isDisabled ? undefined : handleTrackMouseLeave}
+      onMouseEnter={isDisabled ? undefined : handleTrackMouseEnter}
     >
       {/* Position indicators - only show on hover */}
       {isHovered && !isDragging ? (
@@ -280,27 +279,29 @@ export function CustomScrollbar({
         </div>
       ) : null}
 
-      {/* Scrollbar thumb */}
-      <div
-        ref={thumbRef}
-        className={cn(
-          "absolute right-[2px] w-[7px] rounded-[3px] overflow-hidden cursor-grab",
-          isDragging ? "bg-primary/40 cursor-grabbing" : "bg-primary/40"
-        )}
-        style={{
-          height: `${thumbHeight}px`,
-          top: `${thumbTop}px`,
-        }}
-        onMouseDown={handleMouseDown}
-      >
-        {/* Progress indicator inside thumb */}
+      {/* Scrollbar thumb - only show when not disabled */}
+      {!isDisabled ? (
         <div
-          className="absolute inset-0 rounded-[2px] bg-primary"
+          ref={thumbRef}
+          className={cn(
+            "absolute right-[2px] w-[7px] rounded-[3px] overflow-hidden",
+            isDragging ? "bg-primary/40 cursor-grabbing" : "bg-primary/40 cursor-grab"
+          )}
           style={{
-            height: `${(loadedItems / totalItems) * 100}%`,
+            height: `${thumbHeight}px`,
+            top: `${thumbTop}px`,
           }}
-        />
-      </div>
+          onMouseDown={handleMouseDown}
+        >
+          {/* Progress indicator inside thumb */}
+          <div
+            className="absolute inset-0 rounded-[2px] bg-primary"
+            style={{
+              height: `${(loadedItems / totalItems) * 100}%`,
+            }}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }
