@@ -30,7 +30,7 @@ export const KeyManagement: FC<KeyManagementProps> = ({
           </p>
         ) : (
           <Tabs defaultValue="history" className="h-full flex flex-col gap-0">
-            <div className="px-4 py-1.5 h-12 border-b">
+            <div className="px-4 flex items-center h-14 border-b">
               <TabsList>
                 <TabsTrigger value="history">History</TabsTrigger>
                 <TabsTrigger value="settings">Metadata</TabsTrigger>
