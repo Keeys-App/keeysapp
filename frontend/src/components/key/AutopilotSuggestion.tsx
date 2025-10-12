@@ -58,6 +58,7 @@ export const AutopilotSuggestion: FC<AutopilotSuggestionProps> = ({
     <Item
       variant="outline"
       className={cn(
+        'flex flex-col gap-4 items-start',
         // Default enter animation (will be overridden by className if removing)
         !className?.includes("animate-out") &&
           "animate-in fade-in slide-in-from-bottom-2 duration-300",
@@ -71,7 +72,7 @@ export const AutopilotSuggestion: FC<AutopilotSuggestionProps> = ({
         <div className="font-medium">{title}</div>
       </div>
 
-      <div>{description}</div>
+      <div className="w-full">{description}</div>
 
       {actions.length > 0 ? (
         <div className="flex items-center gap-2">

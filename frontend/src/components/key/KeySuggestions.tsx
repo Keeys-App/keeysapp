@@ -20,6 +20,8 @@ import {
 } from "@/graphql/ai";
 import { toast } from "sonner";
 import { useSaving, useSavingStore } from "@/stores";
+import { Textarea } from "@/components/ui/textarea";
+import { BookPlus } from "lucide-react";
 
 interface AISuggestion {
   id: string;
@@ -55,6 +57,11 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
   const [variants, setVariants] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
+  
+  // Custom context (separate from key.description)
+  const [customContext, setCustomContext] = useState<string>("");
+  const [isEditingContext, setIsEditingContext] = useState(false);
+  const [contextValue, setContextValue] = useState("");
 
   // AI mutations
   const [translateMutation] = useMutation<AiTranslateData>(AI_TRANSLATE);
@@ -70,6 +77,15 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
     setRemovingIds(new Set());
   }, [currentLanguage?.code, currentLanguageValue]);
 
+  // Auto-populate context from key description when key changes
+  useEffect(() => {
+    if (currentKey.description) {
+      setCustomContext(currentKey.description);
+    } else {
+      setCustomContext("");
+    }
+  }, [currentKey.id]);
+
   const handleTranslate = async () => {
     if (!defaultLanguageValue || !currentLanguage || !defaultLanguage) {
       return;
@@ -84,7 +100,7 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
               text: defaultLanguageValue,
               targetLanguage: currentLanguage.name,
               sourceLanguage: defaultLanguage.name,
-              context: currentKey.description || undefined,
+              context: customContext || undefined,
             },
           },
         });
@@ -121,7 +137,7 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
             input: {
               text: currentLanguageValue,
               language: currentLanguage.name,
-              context: currentKey.description || undefined,
+              context: customContext || undefined,
             },
           },
         });
@@ -156,7 +172,7 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
             input: {
               text: currentLanguageValue,
               language: currentLanguage.name,
-              context: currentKey.description || undefined,
+              context: customContext || undefined,
             },
           },
         });
@@ -191,7 +207,7 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
             input: {
               text: currentLanguageValue,
               language: currentLanguage.name,
-              context: currentKey.description || undefined,
+              context: customContext || undefined,
               count: 3,
             },
           },
@@ -215,9 +231,26 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
   };
 
   const handleAddContext = () => {
-    // TODO: Implement context editing
-    toast("Context editing - coming soon");
+    setContextValue(customContext);
+    setIsEditingContext(true);
   };
+
+  const handleSaveContext = () => {
+    setCustomContext(contextValue.trim());
+    setIsEditingContext(false);
+    toast("Context saved");
+  };
+
+  const handleCancelContext = () => {
+    setContextValue(customContext);
+    setIsEditingContext(false);
+  };
+
+  const handleDiscardContext = () => {
+    setCustomContext("");
+    toast("Context removed");
+  };
+
 
   const handleUseSuggestion = (text: string) => {
     // TODO: Apply suggestion to translation field
@@ -278,15 +311,15 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
 
   let card: React.ReactNode | null = null;
 
-  // If no language is being edited, show a message
+  // If no language is being edited, show disabled state
   if (!currentLanguage) {
-    card = <AutopilotCard variant="disabled" />;
+    card = <AutopilotCard isDisabled />;
   } else if (currentLanguageValue) {
     // If translation exists, show enhancement actions
     card = (
       <AutopilotCard
         isPending={isSaving || isGenerating}
-        variant="enhance"
+        description="Enhance the quality of this translation using AI."
         actions={[
           AutopilotActions.rephrase(handleRephrase),
           AutopilotActions.shorten(handleShorten),
@@ -300,7 +333,7 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
     card = (
       <AutopilotCard
         isPending={isSaving || isGenerating}
-        variant="translate"
+        description="Translate with AI based on the default language."
         actions={[
           AutopilotActions.translate(handleTranslate),
           AutopilotActions.addContext(handleAddContext),
@@ -313,8 +346,8 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
     <AutopilotSuggestionsList>
       {card}
 
-      {/* Show all accumulated suggestions */}
-      {suggestions.map((suggestion) => {
+      {/* Show all accumulated suggestions (only when language is selected) */}
+      {currentLanguage && suggestions.map((suggestion) => {
         const meta = getSuggestionMeta(suggestion.type);
         const isRemoving = removingIds.has(suggestion.id);
         
@@ -349,8 +382,63 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
         );
       })}
 
-      {/* Show variants if available */}
-      {variants.length > 0 ? (
+      {/* Context card (single unified context) - only show when language is selected */}
+      {currentLanguage && isEditingContext ? (
+        // Edit mode
+        <AutopilotSuggestion
+          icon={BookPlus}
+          title="Context for AI"
+          description={
+            <Textarea
+              placeholder="e.g., Used in the checkout flow to confirm payment. Should be formal and reassuring."
+              value={contextValue}
+              onChange={(e) => {
+                setContextValue(e.target.value);
+              }}
+              rows={4}
+              className="resize-none mt-2"
+              disabled={isSaving}
+              autoFocus
+            />
+          }
+          actions={[
+            {
+              label: "Save",
+              onClick: handleSaveContext,
+              variant: "outline",
+            },
+            {
+              label: "Cancel",
+              onClick: handleCancelContext,
+              variant: "ghost",
+            },
+          ]}
+          withGradient={false}
+        />
+      ) : currentLanguage && customContext ? (
+        // View mode (saved context)
+        <AutopilotSuggestion
+          icon={BookPlus}
+          title="Context"
+          description={customContext}
+          actions={[
+            {
+              label: "Edit",
+              onClick: handleAddContext,
+              variant: "outline",
+            },
+            {
+              label: "Discard",
+              onClick: handleDiscardContext,
+              variant: "ghost",
+            },
+          ]}
+          withGradient={false}
+        />
+      ) : null}
+
+      {/* Show variants if available (only when language is selected) */}
+      {currentLanguage && variants.length > 0 ? (
         <>
           {variants.map((variant, index) => (
             <AutopilotSuggestion
@@ -386,8 +474,8 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
         </>
       ) : null}
 
-      {/* Loading skeleton (placeholder for future features) */}
-      {isGenerating || isSaving ? <AutopilotSuggestionSkeleton /> : null}
+      {/* Loading skeleton (only when language is selected) */}
+      {currentLanguage && (isGenerating || isSaving) ? <AutopilotSuggestionSkeleton /> : null}
     </AutopilotSuggestionsList>
   );
 };

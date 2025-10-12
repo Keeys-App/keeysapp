@@ -18,8 +18,6 @@ import {
 } from "../ui/item";
 import { cn } from "@/lib/utils";
 
-type AutopilotVariant = "disabled" | "translate" | "enhance";
-
 interface AutopilotAction {
   label: string;
   icon: LucideIcon;
@@ -28,14 +26,15 @@ interface AutopilotAction {
 }
 
 interface AutopilotCardProps {
-  isPending?: boolean;
   /**
-   * Variant of the autopilot card
-   * - disabled: No language selected
-   * - translate: Translation is empty, show translate action
-   * - enhance: Translation exists, show enhancement actions
+   * Whether the card is in disabled state (no language selected)
    */
-  variant: AutopilotVariant;
+  isDisabled?: boolean;
+
+  /**
+   * Whether an AI operation is in progress
+   */
+  isPending?: boolean;
 
   /**
    * Custom title (defaults to "Autopilot")
@@ -51,16 +50,6 @@ interface AutopilotCardProps {
    * Actions to display (buttons)
    */
   actions?: AutopilotAction[];
-
-  /**
-   * Custom icon color class (defaults based on variant)
-   */
-  iconColorClass?: string;
-
-  /**
-   * Custom background color class for icon (defaults based on variant)
-   */
-  iconBgClass?: string;
 }
 
 /**
@@ -68,22 +57,18 @@ interface AutopilotCardProps {
  * Displays AI-powered suggestions and actions for translations
  */
 export const AutopilotCard: FC<AutopilotCardProps> = ({
-  variant,
+  isDisabled = false,
   title = "Autopilot",
   description,
   actions = [],
-  iconColorClass,
-  iconBgClass,
   isPending,
 }) => {
-  // Default colors based on variant
-  const defaultIconColor =
-    variant === "disabled" ? "text-gray-500/70" : "text-indigo-500";
-  const defaultIconBg =
-    variant === "disabled" ? "bg-gray-500/10" : "bg-indigo-500/10";
+  // Colors based on disabled flag
+  const iconColor = isDisabled ? "text-gray-500/70" : "text-indigo-500";
+  const iconBg = isDisabled ? "bg-gray-500/10" : "bg-indigo-500/10";
 
-  // Default descriptions based on variant
-  const defaultDescription = description || getDefaultDescription(variant);
+  // Default description when disabled
+  const defaultDescription = description || (isDisabled ? "Select a translation field to edit to see suggestions" : undefined);
 
   return (
     <Item variant="outline">
@@ -91,17 +76,17 @@ export const AutopilotCard: FC<AutopilotCardProps> = ({
         <div
           className={cn(
             "flex items-center gap-2 p-1 rounded-md",
-            iconBgClass || defaultIconBg
+            iconBg
           )}
         >
           <div className={cn(isPending && "animate-pulse")}>
-            <Sparkle className={iconColorClass || defaultIconColor} />
+            <Sparkle className={iconColor} />
           </div>
         </div>
       </ItemMedia>
       <ItemContent>
         <ItemTitle>{isPending ? 'Generating...' : title}</ItemTitle>
-        <ItemDescription className="text-balance">
+        <ItemDescription>
           {defaultDescription}
         </ItemDescription>
         {actions.length > 0 ? (
@@ -128,22 +113,6 @@ export const AutopilotCard: FC<AutopilotCardProps> = ({
     </Item>
   );
 };
-
-/**
- * Get default description based on variant
- */
-function getDefaultDescription(variant: AutopilotVariant): string {
-  switch (variant) {
-    case "disabled":
-      return "Select a translation field to edit to see suggestions";
-    case "translate":
-      return "Translate with AI based on the default language.";
-    case "enhance":
-      return "Enhance the quality of this translation using AI.";
-    default:
-      return "";
-  }
-}
 
 /**
  * Preset action configurations
