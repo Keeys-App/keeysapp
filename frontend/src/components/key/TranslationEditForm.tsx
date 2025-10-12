@@ -226,7 +226,7 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
               variant="ghost"
               size="sm"
             >
-              Copy from default
+              Insert default
             </Button>
           ) : null}
         </div>

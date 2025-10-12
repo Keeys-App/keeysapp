@@ -65,7 +65,7 @@ export const Key = memo(
           {projectLanguages.map((language) => (
             <div
               key={language.code}
-              className="group grid grid-cols-[120px_1fr] min-w-[450px] even:bg-muted/50 border-b last:-mb-px"
+              className="group grid grid-cols-[120px_1fr] min-w-[500px] even:bg-muted/50 border-b last:-mb-px"
             >
               <LanguageHeader
                 language={language}
