@@ -1,11 +1,16 @@
 import { type FC } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Languages, Info, Sparkles, ExternalLink, Sparkle } from "lucide-react";
+import {
+  Sparkle,
+  ListRestart,
+  ArrowDownWideNarrow,
+  ListStart,
+  Wand,
+  BookOpenCheck,
+  BookPlus,
+} from "lucide-react";
 import {
   Item,
-  ItemHeader,
   ItemContent,
   ItemDescription,
   ItemTitle,
@@ -32,14 +37,55 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
   // If no language is being edited, show a message
   if (!currentLanguage) {
     return (
-      <div>
-        <Alert>
-          <Info className="h-4 w-4" />
-          <AlertDescription>
-            Select a translation field to edit to see suggestions and context
-          </AlertDescription>
-        </Alert>
-      </div>
+      <Item variant="outline">
+        <ItemMedia>
+          <div className="flex items-center gap-2 p-1 rounded-md bg-gray-500/10">
+            <Sparkle className="text-gray-500/70" />
+          </div>
+        </ItemMedia>
+        <ItemContent>
+          <ItemTitle>Autopilot</ItemTitle>
+          <ItemDescription className="text-balance">
+            Select a translation field to edit to see suggestions
+          </ItemDescription>
+        </ItemContent>
+      </Item>
+    );
+  }
+
+  if (currentLanguageValue) {
+    return (
+      <Item variant="outline">
+        <ItemMedia>
+          <div className="flex items-center gap-2 p-1 rounded-md bg-indigo-500/10">
+            <Sparkle className="text-indigo-500" />
+          </div>
+        </ItemMedia>
+        <ItemContent>
+          <ItemTitle>Autopilot</ItemTitle>
+          <ItemDescription className="text-balance">
+            Enhance the quality of this translation using AI.
+          </ItemDescription>
+          <div className="flex flex-wrap items-center gap-2 mt-2">
+            <Button size="sm" variant="outline">
+              <ListRestart />
+              Rephrase
+            </Button>
+            <Button size="sm" variant="outline">
+              <ArrowDownWideNarrow />
+              Shorten
+            </Button>
+            <Button size="sm" variant="outline">
+              <ListStart />
+              Suggest variants
+            </Button>
+            <Button size="sm" variant="outline">
+              <BookPlus />
+              Add context
+            </Button>
+          </div>
+        </ItemContent>
+      </Item>
     );
   }
 
@@ -58,8 +104,12 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
             Translate with AI based on the default language.
           </ItemDescription>
           <div className="flex items-center gap-2 mt-2">
-            <Button size="sm">Translate</Button>
+            <Button size="sm">
+              <Wand />
+              Translate
+            </Button>
             <Button size="sm" variant="outline">
+              <BookPlus />
               Add context
             </Button>
           </div>
