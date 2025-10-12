@@ -62,6 +62,10 @@ export const ProjectKeysPage: FC = () => {
     setSelectedKey(key);
   }, []);
 
+  const handleKeyDeleted = useCallback(() => {
+    setSelectedKey(null);
+  }, []);
+
   // Build enhanced language list with locale information
   const projectLanguages = useMemo(() => {
     if (!project?.languages) {
@@ -134,6 +138,7 @@ export const ProjectKeysPage: FC = () => {
             projectLanguages={projectLanguages}
             projectId={project.id}
             availableTags={project.availableTags || []}
+            onKeyDeleted={handleKeyDeleted}
           />
         ) : null}
       </div>
