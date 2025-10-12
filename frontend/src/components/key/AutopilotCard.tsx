@@ -79,8 +79,8 @@ export const AutopilotCard: FC<AutopilotCardProps> = ({
             iconBg
           )}
         >
-          <div className={cn(isPending && "animate-pulse")}>
-            <Sparkle className={iconColor} />
+          <div className={cn('ransition-all', isPending && "animate-pulse")}>
+            <Sparkle className={cn('transition-all', iconColor)} />
           </div>
         </div>
       </ItemMedia>

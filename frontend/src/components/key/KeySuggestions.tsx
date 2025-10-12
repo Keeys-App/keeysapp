@@ -328,6 +328,14 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
         ]}
       />
     );
+  } else if (!defaultLanguageValue) {
+    // No default value to translate from
+    card = (
+      <AutopilotCard
+        isDisabled
+        description="Add a translation in the default language first to enable AI translation."
+      />
+    );
   } else {
     // Show translate action for empty translation
     card = (
