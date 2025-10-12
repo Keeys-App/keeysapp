@@ -52,6 +52,8 @@ export const TeamSwitcher: FC<TeamSwitcherProps> = ({
       onTeamChange(team.id);
     }
     setOpen(false);
+    // Navigate to dashboard to show projects of selected team
+    navigate('/');
   };
 
   const handleCreateTeam = () => {
