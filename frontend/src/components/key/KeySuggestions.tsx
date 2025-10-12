@@ -319,9 +319,6 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
     editorRef.insertText(text);
     
     toast("Suggestion inserted into editor");
-    
-    // Clear the suggestion after using it
-    setSuggestions((prev) => prev.filter((s) => s.text !== text));
   };
 
   const handleDiscardSuggestion = (id: string) => {
@@ -370,10 +367,6 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
     editorRef.insertText(selectedVariant);
     
     toast("Variant inserted into editor");
-    
-    // Clear all variants after using one
-    setVariants([]);
-    setSelectedVariant("");
   };
 
   // Get type-specific icon and label
