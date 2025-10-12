@@ -66,24 +66,29 @@ class AIService:
                 )
             
             if context:
-                prompt_parts.append(f"Context: {context}")
+                prompt_parts.append(
+                    f"\nIMPORTANT CONTEXT: {context}\n"
+                    "Please take this context into account when translating."
+                )
             
             prompt_parts.append(
-                "Provide only the translation without any explanations or additional text."
+                "\nProvide only the translation without any explanations or additional text."
             )
             prompt_parts.append(f"\nText to translate:\n{text}")
             
             prompt = "\n".join(prompt_parts)
 
-            logger.info(f"Requesting translation to {target_language}")
+            logger.info(f"Requesting translation to {target_language} (context: {bool(context)})")
+            
+            # Build system message with context awareness
+            system_content = "You are a professional translator. Provide accurate, natural-sounding translations."
+            if context:
+                system_content += " Pay close attention to the provided context to ensure the translation is appropriate for the intended use case."
             
             response = await self.client.chat.completions.create(
                 model=settings.openai_text_model,
                 messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a professional translator. Provide accurate, natural-sounding translations."
-                    },
+                    {"role": "system", "content": system_content},
                     {"role": "user", "content": prompt}
                 ],
                 max_tokens=settings.openai_max_tokens,
@@ -128,24 +133,29 @@ class AIService:
             ]
             
             if context:
-                prompt_parts.append(f"Context: {context}")
+                prompt_parts.append(
+                    f"\nIMPORTANT CONTEXT: {context}\n"
+                    "Please take this context into account when rephrasing."
+                )
             
             prompt_parts.append(
-                "Provide only the rephrased text without any explanations."
+                "\nProvide only the rephrased text without any explanations."
             )
             prompt_parts.append(f"\nText to rephrase:\n{text}")
             
             prompt = "\n".join(prompt_parts)
 
-            logger.info(f"Requesting rephrase for {language} text")
+            logger.info(f"Requesting rephrase for {language} text (context: {bool(context)})")
+            
+            # Build system message with context awareness
+            system_content = "You are a professional text editor. Provide natural, fluent rephrasing."
+            if context:
+                system_content += " Pay close attention to the provided context to ensure the rephrasing is appropriate."
             
             response = await self.client.chat.completions.create(
                 model=settings.openai_text_model,
                 messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a professional text editor. Provide natural, fluent rephrasing."
-                    },
+                    {"role": "system", "content": system_content},
                     {"role": "user", "content": prompt}
                 ],
                 max_tokens=settings.openai_max_tokens,
@@ -190,24 +200,29 @@ class AIService:
             ]
             
             if context:
-                prompt_parts.append(f"Context: {context}")
+                prompt_parts.append(
+                    f"\nIMPORTANT CONTEXT: {context}\n"
+                    "Please take this context into account when shortening."
+                )
             
             prompt_parts.append(
-                "Provide only the shortened text without any explanations."
+                "\nProvide only the shortened text without any explanations."
             )
             prompt_parts.append(f"\nText to shorten:\n{text}")
             
             prompt = "\n".join(prompt_parts)
 
-            logger.info(f"Requesting shorten for {language} text")
+            logger.info(f"Requesting shorten for {language} text (context: {bool(context)})")
+            
+            # Build system message with context awareness
+            system_content = "You are a professional text editor. Provide concise, clear text."
+            if context:
+                system_content += " Pay close attention to the provided context to ensure the shortened text is appropriate."
             
             response = await self.client.chat.completions.create(
                 model=settings.openai_text_model,
                 messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a professional text editor. Provide concise, clear text."
-                    },
+                    {"role": "system", "content": system_content},
                     {"role": "user", "content": prompt}
                 ],
                 max_tokens=settings.openai_max_tokens,
@@ -254,24 +269,29 @@ class AIService:
             ]
             
             if context:
-                prompt_parts.append(f"Context: {context}")
+                prompt_parts.append(
+                    f"\nIMPORTANT CONTEXT: {context}\n"
+                    "Please ensure all variants are appropriate for this context."
+                )
             
             prompt_parts.append(
-                f"Provide exactly {count} variants, each on a new line, numbered 1., 2., 3., etc."
+                f"\nProvide exactly {count} variants, each on a new line, numbered 1., 2., 3., etc."
             )
             prompt_parts.append(f"\nText:\n{text}")
             
             prompt = "\n".join(prompt_parts)
 
-            logger.info(f"Requesting {count} variants for {language} text")
+            logger.info(f"Requesting {count} variants for {language} text (context: {bool(context)})")
+            
+            # Build system message with context awareness
+            system_content = "You are a creative text editor. Provide natural, varied alternatives."
+            if context:
+                system_content += " Pay close attention to the provided context to ensure all variants are appropriate."
             
             response = await self.client.chat.completions.create(
                 model=settings.openai_text_model,
                 messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a creative text editor. Provide natural, varied alternatives."
-                    },
+                    {"role": "system", "content": system_content},
                     {"role": "user", "content": prompt}
                 ],
                 max_tokens=settings.openai_max_tokens,
