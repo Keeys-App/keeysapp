@@ -13,11 +13,6 @@ interface CustomScrollbarProps {
   totalItems: number;
   
   /**
-   * Number of currently loaded items
-   */
-  loadedItems: number;
-  
-  /**
    * Total virtual height (from virtualizer.getTotalSize())
    */
   totalHeight: number;
@@ -31,7 +26,6 @@ interface CustomScrollbarProps {
 export function CustomScrollbar({
   scrollContainerRef,
   totalItems,
-  loadedItems,
   totalHeight,
   className,
 }: CustomScrollbarProps) {
@@ -284,23 +278,17 @@ export function CustomScrollbar({
         <div
           ref={thumbRef}
           className={cn(
-            "absolute right-[2px] w-[7px] rounded-[3px] overflow-hidden",
-            isDragging ? "bg-primary/40 cursor-grabbing" : "bg-primary/40 cursor-grab"
+            "absolute right-[2px] w-[7px] rounded-[3px] transition-colors",
+            isDragging 
+              ? "bg-gray-400 dark:bg-gray-500 cursor-grabbing" 
+              : "bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 cursor-grab"
           )}
           style={{
             height: `${thumbHeight}px`,
             top: `${thumbTop}px`,
           }}
           onMouseDown={handleMouseDown}
-        >
-          {/* Progress indicator inside thumb */}
-          <div
-            className="absolute inset-0 rounded-[2px] bg-primary"
-            style={{
-              height: `${(loadedItems / totalItems) * 100}%`,
-            }}
-          />
-        </div>
+        />
       ) : null}
     </div>
   );

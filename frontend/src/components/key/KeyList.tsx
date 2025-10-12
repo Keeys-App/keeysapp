@@ -290,7 +290,6 @@ export function KeyList({
           <CustomScrollbar
             scrollContainerRef={parentRef}
             totalItems={totalCount}
-            loadedItems={keysMapRef.current.size}
             totalHeight={virtualizer.getTotalSize()}
           />
         </div>
