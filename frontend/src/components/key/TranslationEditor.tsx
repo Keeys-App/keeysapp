@@ -69,18 +69,9 @@ export const TranslationEditor = memo(
         valueToSaveRef.current !== null
       ) {
         // Editor was closed, check if there are unsaved changes
-        const trimmedValue = valueToSaveRef.current.replace(
-          /^[\s\n\r\t]+|[\s\n\r\t]+$/g,
-          ""
-        );
-        const trimmedCurrentValue = currentValue.replace(
-          /^[\s\n\r\t]+|[\s\n\r\t]+$/g,
-          ""
-        );
-
-        if (trimmedValue !== trimmedCurrentValue) {
+        if (valueToSaveRef.current !== currentValue) {
           // Has changes, auto-save
-          handleAutoSave(trimmedValue);
+          handleAutoSave(valueToSaveRef.current);
         }
 
         valueToSaveRef.current = null;
@@ -163,14 +154,14 @@ export const TranslationEditor = memo(
     const withSaving = useSaving();
 
     // Auto-save function (silent, no toast)
-    const handleAutoSave = async (trimmedValue: string) => {
+    const handleAutoSave = async (valueToSave: string) => {
       isAutoSavingRef.current = true;
       await withSaving(async () => {
         await setTranslation({
           variables: {
             input: {
               keyId: keyData.id,
-              value: trimmedValue,
+              value: valueToSave,
               language: language.code,
             },
           },
@@ -230,8 +221,6 @@ export const TranslationEditor = memo(
     const handleSave = async () => {
       isAutoSavingRef.current = false; // Ensure manual save shows toast
       valueToSaveRef.current = null; // Clear auto-save value
-      // Remove all whitespace (spaces, tabs, newlines) from start and end
-      const trimmedValue = value.replace(/^[\s\n\r\t]+|[\s\n\r\t]+$/g, "");
 
       // Allow empty value to delete translation
       await withSaving(async () => {
@@ -239,14 +228,14 @@ export const TranslationEditor = memo(
           variables: {
             input: {
               keyId: keyData.id,
-              value: trimmedValue,
+              value: value,
               language: language.code,
             },
           },
         });
 
         // Mark as reviewed if option is enabled and value is not empty
-        if (markReviewedOnSave && trimmedValue) {
+        if (markReviewedOnSave && value) {
           await approveTranslation({
             variables: {
               input: {
@@ -274,12 +263,7 @@ export const TranslationEditor = memo(
 
     // Check if there are unsaved changes
     const hasChanges = () => {
-      const trimmedValue = value.replace(/^[\s\n\r\t]+|[\s\n\r\t]+$/g, "");
-      const trimmedCurrentValue = currentValue.replace(
-        /^[\s\n\r\t]+|[\s\n\r\t]+$/g,
-        ""
-      );
-      return trimmedValue !== trimmedCurrentValue;
+      return value !== currentValue;
     };
 
     return (

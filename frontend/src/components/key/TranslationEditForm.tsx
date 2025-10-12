@@ -1,4 +1,4 @@
-import { type FC, useState, useEffect } from "react";
+import { type FC, useState, useEffect, useMemo } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useSavingStore } from "@/stores";
@@ -15,6 +15,11 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Ellipsis, Settings, TriangleAlert } from "lucide-react";
 
 interface TranslationEditFormProps {
@@ -28,6 +33,50 @@ interface TranslationEditFormProps {
   markReviewedOnSave?: boolean;
   onMarkReviewedOnSaveChange?: (value: boolean) => void;
 }
+
+interface TextIssue {
+  type: "leading_whitespace" | "trailing_whitespace";
+  description: string;
+}
+
+/**
+ * Check text for common issues
+ */
+const checkTextIssues = (text: string): TextIssue[] => {
+  const issues: TextIssue[] = [];
+
+  // Check for leading whitespace (space, tab, newline)
+  if (text.length > 0 && /^[\s\n\t]/.test(text)) {
+    const firstChar = text[0];
+    let charType = "space";
+    if (firstChar === "\n") {
+      charType = "newline";
+    } else if (firstChar === "\t") {
+      charType = "tab";
+    }
+    issues.push({
+      type: "leading_whitespace",
+      description: `Text starts with ${charType}`,
+    });
+  }
+
+  // Check for trailing whitespace (space, tab, newline)
+  if (text.length > 0 && /[\s\n\t]$/.test(text)) {
+    const lastChar = text[text.length - 1];
+    let charType = "space";
+    if (lastChar === "\n") {
+      charType = "newline";
+    } else if (lastChar === "\t") {
+      charType = "tab";
+    }
+    issues.push({
+      type: "trailing_whitespace",
+      description: `Text ends with ${charType}`,
+    });
+  }
+
+  return issues;
+};
 
 /**
  * Form component for editing translation value
@@ -77,6 +126,9 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
       setMarkReviewedOnSave(externalMarkReviewedOnSave);
     }
   }, [externalMarkReviewedOnSave]);
+
+  // Check for text issues
+  const textIssues = useMemo(() => checkTextIssues(value), [value]);
 
   const handleMarkReviewedToggle = () => {
     setMarkReviewedOnSave(!markReviewedOnSave);
@@ -162,7 +214,31 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
           ) : null}
         </div>
         <div className="flex gap-2 items-center">
-          <TriangleAlert className="!h-3.5 !w-3.5 text-orange-500" />
+          {textIssues.length > 0 ? (
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="cursor-pointer"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <TriangleAlert className="!h-3.5 !w-3.5 text-orange-500" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64" align="end">
+                <div className="space-y-2">
+                  <h2 className="font-medium">Translation Issues</h2>
+                  <ul className="list-disc pl-4 text-sm">
+                    {textIssues.map((issue, index) => (
+                      <li key={index}>
+                        {issue.description}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </PopoverContent>
+            </Popover>
+          ) : null}
 
           <TooltipProvider>
             <Tooltip>
