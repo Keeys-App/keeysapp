@@ -9,6 +9,12 @@
 - [[Environment Variables]] - Переменные окружения
 - [[Project Structure]] - Структура проекта
 
+### Основные функции
+- [[Teams System]] - **НОВОЕ!** Система команд и совместной работы
+- [[Keys Module]] - Управление ключами переводов
+- [[Universal Activity Logging]] - Логирование всех действий
+- [[Project Export Import]] - Экспорт и импорт проектов
+
 ### Авторизация
 - [[Authentication Setup]] - Полная документация системы авторизации
 - [[Authentication Cheatsheet]] - Шпаргалка по авторизации
@@ -16,10 +22,11 @@
 - [[Testing Guide]] - Руководство по тестированию
 
 ### Разработка
-- [[Backend Development]] - Разработка backend
 - [[Backend Organization]] - Организация папок backend
-- [[Frontend Development]] - Разработка frontend
 - [[Performance Optimization]] - Оптимизация производительности
+- [[N+1 Query Optimization]] - Оптимизация запросов
+- [[Database Enums and Migrations]] - Работа с enum и миграциями
+- [[Error Handling Best Practices]] - Обработка ошибок
 - [[Railway Deployment]] - Деплой на Railway
 
 ## 🚀 Быстрый старт
@@ -97,5 +104,5 @@ Locales/
 
 ---
 
-*Документация обновлена: 2025-10-10*
+*Документация обновлена: 2025-10-12*
 
