@@ -94,7 +94,14 @@ class AIService:
                 "- NEVER include apologies or explanations in the result field\n"
                 "- The result field should ONLY contain the translated text or be empty\n"
                 "- CRITICAL: Preserve ALL template variables in curly braces like {name}, {date}, {count}, etc. exactly as they are\n"
-                "- NEVER translate or modify variable names inside curly braces - they are code placeholders"
+                "- NEVER translate or modify variable names inside curly braces - they are code placeholders\n\n"
+                "ICU MessageFormat Support:\n"
+                "- Text may contain ICU MessageFormat syntax: {count, plural, one {...} other {...}}\n"
+                "- PRESERVE the entire structure: {variable, plural, one {...} other {...}}\n"
+                "- ONLY translate the text inside one {...} and other {...} blocks\n"
+                "- PRESERVE all variables inside these blocks like {user}, {removedTypes}, etc.\n"
+                "- Example: {count, plural, one {{user} added item} other {{user} added items}}\n"
+                "  Should translate text but keep structure and variables intact"
             )
             if context:
                 system_content += f"\n- Context for translation: {context}"
@@ -187,7 +194,11 @@ class AIService:
                 "- NEVER include apologies or explanations in the result field\n"
                 "- The result field should ONLY contain the rephrased text or be empty\n"
                 "- CRITICAL: Preserve ALL template variables in curly braces like {name}, {date}, {count}, etc. exactly as they are\n"
-                "- NEVER translate or modify variable names inside curly braces - they are code placeholders"
+                "- NEVER translate or modify variable names inside curly braces - they are code placeholders\n\n"
+                "ICU MessageFormat Support:\n"
+                "- Text may contain ICU MessageFormat syntax: {count, plural, one {...} other {...}}\n"
+                "- PRESERVE the entire structure when rephrasing\n"
+                "- Only rephrase the actual text inside the blocks, keep all variables and structure intact"
             )
             if context:
                 system_content += f"\n- Context for rephrasing: {context}"
@@ -280,7 +291,11 @@ class AIService:
                 "- NEVER include apologies or explanations in the result field\n"
                 "- The result field should ONLY contain the shortened text or be empty\n"
                 "- CRITICAL: Preserve ALL template variables in curly braces like {name}, {date}, {count}, etc. exactly as they are\n"
-                "- NEVER translate or modify variable names inside curly braces - they are code placeholders"
+                "- NEVER translate or modify variable names inside curly braces - they are code placeholders\n\n"
+                "ICU MessageFormat Support:\n"
+                "- Text may contain ICU MessageFormat syntax: {count, plural, one {...} other {...}}\n"
+                "- PRESERVE the entire structure when shortening\n"
+                "- Only shorten the actual text inside the blocks, keep all variables and structure intact"
             )
             if context:
                 system_content += f"\n- Context for shortening: {context}"
@@ -375,7 +390,11 @@ class AIService:
                 "- NEVER include apologies or explanations in the variants\n"
                 "- Each variant should be a natural alternative with different wording\n"
                 "- CRITICAL: Preserve ALL template variables in curly braces like {name}, {date}, {count}, etc. exactly as they are\n"
-                "- NEVER translate or modify variable names inside curly braces - they are code placeholders"
+                "- NEVER translate or modify variable names inside curly braces - they are code placeholders\n\n"
+                "ICU MessageFormat Support:\n"
+                "- Text may contain ICU MessageFormat syntax: {count, plural, one {...} other {...}}\n"
+                "- PRESERVE the entire structure in all variants\n"
+                "- Only vary the actual text inside the blocks, keep all variables and structure intact"
             )
             if context:
                 system_content += f"\n- Context for variants: {context}"

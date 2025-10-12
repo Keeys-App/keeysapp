@@ -1,26 +1,43 @@
-# AI Variable Preservation Fix
+# AI Variable Preservation & ICU MessageFormat Support
 
-## Проблема
+## Проблемы
+
+### Проблема 1: Перевод переменных
 
 AI автоперевод переводил переменные в фигурных скобках (например, `{date}`, `{data}`, `{name}`) вместо того, чтобы сохранять их в исходном виде. Это приводило к поломке шаблонов строк в приложении.
 
-### Пример проблемы
+### Проблема 2: Отказ переводить ICU MessageFormat
 
-**До исправления:**
+AI отказывался переводить тексты с ICU MessageFormat синтаксисом (используется для множественных чисел), выдавая ошибку "Text contains programming placeholders and cannot be translated directly".
+
+### Примеры проблем
+
+**Проблема 1: До исправления (простые переменные)**
 ```
 Исходный текст: "Next payment: {date}"
 Перевод на итальянский: "Prossimo pagamento: {data}"  ❌ Переменная переведена!
+```
+
+**Проблема 2: До исправления (ICU MessageFormat)**
+```
+Исходный текст: "{count, plural, one {{user} removed type {removedTypes}} other {{user} removed types {removedTypes}}}"
+Результат: Ошибка "Text contains programming placeholders and cannot be translated directly"  ❌
 ```
 
 **После исправления:**
 ```
 Исходный текст: "Next payment: {date}"
 Перевод на итальянский: "Prossimo pagamento: {date}"  ✅ Переменная сохранена!
+
+Исходный текст: "{count, plural, one {{user} removed type {removedTypes}} other {{user} removed types {removedTypes}}}"
+Перевод на русский: "{count, plural, one {{user} удалил тип {removedTypes}} other {{user} удалил типы {removedTypes}}}"  ✅ Структура сохранена, текст переведен!
 ```
 
 ## Решение
 
-Добавлены явные инструкции во все промпты AI сервиса, чтобы сохранять переменные в фигурных скобках без изменений.
+Добавлены явные инструкции во все промпты AI сервиса для:
+1. Сохранения переменных в фигурных скобках без изменений
+2. Корректной обработки ICU MessageFormat синтаксиса
 
 ### Изменения в коде
 
@@ -28,27 +45,47 @@ AI автоперевод переводил переменные в фигур�
 
 Во все методы добавлены следующие правила в system prompt:
 
+**Для переменных:**
 ```python
 "- CRITICAL: Preserve ALL template variables in curly braces like {name}, {date}, {count}, etc. exactly as they are\n"
 "- NEVER translate or modify variable names inside curly braces - they are code placeholders"
 ```
 
+**Для ICU MessageFormat:**
+```python
+"ICU MessageFormat Support:\n"
+"- Text may contain ICU MessageFormat syntax: {count, plural, one {...} other {...}}\n"
+"- PRESERVE the entire structure: {variable, plural, one {...} other {...}}\n"
+"- ONLY translate the text inside one {...} and other {...} blocks\n"
+"- PRESERVE all variables inside these blocks like {user}, {removedTypes}, etc.\n"
+"- Example: {count, plural, one {{user} added item} other {{user} added items}}\n"
+"  Should translate text but keep structure and variables intact"
+```
+
 Затронутые методы:
 - ✅ `translate()` - перевод текста
-- ✅ `rephrase()` - перефразирование
+- ✅ `rephrase()` - перефразирование  
 - ✅ `shorten()` - сокращение текста
 - ✅ `suggest_variants()` - генерация вариантов
 
 ### Тесты
 
-Добавлен новый класс тестов `TestAIServiceVariablePreservation` в `backend/tests/test_ai_service.py`:
+Добавлены новые классы тестов в `backend/tests/test_ai_service.py`:
 
+#### `TestAIServiceVariablePreservation` - Тесты переменных
 - ✅ `test_translate_preserves_single_variable()` - одна переменная
 - ✅ `test_translate_preserves_multiple_variables()` - несколько переменных
 - ✅ `test_rephrase_preserves_variables()` - перефразирование
 - ✅ `test_shorten_preserves_variables()` - сокращение
 - ✅ `test_suggest_variants_preserves_variables()` - варианты
 - ✅ `test_translate_preserves_complex_variables()` - сложные имена переменных
+
+#### `TestAIServiceICUMessageFormat` - Тесты ICU MessageFormat
+- ✅ `test_translate_icu_plural_format()` - сложный ICU с переменными
+- ✅ `test_translate_icu_simple_plural()` - простой ICU plural
+- ✅ `test_rephrase_icu_format()` - перефразирование ICU
+- ✅ `test_shorten_icu_format()` - сокращение ICU
+- ✅ `test_suggest_variants_icu_format()` - варианты с ICU
 
 ## Как проверить
 

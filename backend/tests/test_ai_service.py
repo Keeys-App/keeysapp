@@ -279,3 +279,92 @@ class TestAIServiceVariablePreservation:
         assert "{user_id}" in result
         assert "{count}" in result
 
+
+class TestAIServiceICUMessageFormat:
+    """Test that AI service handles ICU MessageFormat correctly"""
+    
+    @pytest.mark.asyncio
+    async def test_translate_icu_plural_format(self):
+        """Test that translation handles ICU plural format"""
+        result, reason = await ai_service.translate(
+            text="{count, plural, one {{user} removed type {removedTypes} from this task} other {{user} removed types {removedTypes} from this task}}",
+            target_language="Russian",
+            source_language="English"
+        )
+        
+        assert result is not None
+        assert len(result) > 0
+        assert reason is None
+        # Structure must be preserved
+        assert "{count, plural," in result
+        assert "one {" in result
+        assert "other {" in result
+        # Variables must be preserved
+        assert "{user}" in result
+        assert "{removedTypes}" in result
+    
+    @pytest.mark.asyncio
+    async def test_translate_icu_simple_plural(self):
+        """Test translation of simple ICU plural"""
+        result, reason = await ai_service.translate(
+            text="{count, plural, one {item} other {items}}",
+            target_language="Spanish",
+            source_language="English"
+        )
+        
+        assert result is not None
+        assert len(result) > 0
+        assert reason is None
+        # Structure preserved
+        assert "{count, plural," in result
+        assert "one {" in result
+        assert "other {" in result
+    
+    @pytest.mark.asyncio
+    async def test_rephrase_icu_format(self):
+        """Test that rephrasing handles ICU format"""
+        result, reason = await ai_service.rephrase(
+            text="{count, plural, one {You have one message} other {You have {count} messages}}",
+            language="English"
+        )
+        
+        assert result is not None
+        assert len(result) > 0
+        assert reason is None
+        # Structure preserved
+        assert "{count, plural," in result
+        assert "{count}" in result
+    
+    @pytest.mark.asyncio
+    async def test_shorten_icu_format(self):
+        """Test that shortening handles ICU format"""
+        result, reason = await ai_service.shorten(
+            text="{count, plural, one {You currently have exactly one notification waiting} other {You currently have {count} notifications waiting}}",
+            language="English"
+        )
+        
+        assert result is not None
+        assert len(result) > 0
+        assert reason is None
+        # Structure preserved
+        assert "{count, plural," in result
+        assert "{count}" in result
+    
+    @pytest.mark.asyncio
+    async def test_suggest_variants_icu_format(self):
+        """Test that variants preserve ICU format"""
+        variants, reason = await ai_service.suggest_variants(
+            text="{count, plural, one {New item} other {New items}}",
+            language="English",
+            count=3
+        )
+        
+        assert variants is not None
+        assert len(variants) >= 1
+        assert reason is None
+        # All variants must preserve structure
+        for variant in variants:
+            assert "{count, plural," in variant
+            assert "one {" in variant
+            assert "other {" in variant
+
