@@ -34,7 +34,14 @@ export const TranslationTextEditor: FC<TranslationTextEditorProps> = ({
 
   // Get text content preserving all whitespace including trailing spaces
   const getTextContent = (element: HTMLElement): string => {
-    return element.innerText;
+    const text = element.innerText;
+    // If the text contains only whitespace characters (spaces, tabs, newlines),
+    // treat it as empty. This handles the case when user clears all content
+    // but browser leaves invisible newline characters.
+    if (text.trim().length === 0) {
+      return "";
+    }
+    return text;
   };
 
   // Set text content preserving all whitespace
