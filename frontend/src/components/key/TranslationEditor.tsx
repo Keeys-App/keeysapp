@@ -190,15 +190,7 @@ export const TranslationEditor = memo(
             ? "Translation deleted successfully"
             : "Translation updated successfully",
           {
-            description: (
-              <div>
-                <div>{keyData.key}</div>
-                <div>{language.name}</div>
-                {!isDeleted ? (
-                  <div>{translationData.setTranslation.value}</div>
-                ) : null}
-              </div>
-            ),
+            description: language.name,
           }
         );
       }
