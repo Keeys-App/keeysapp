@@ -168,12 +168,20 @@ export function CustomScrollbar({
 
       const rect = scrollbarRef.current.getBoundingClientRect();
       const clickY = e.clientY - rect.top;
-      const scrollPercentage = clickY / rect.height;
+      
+      // Calculate where the box would be positioned (centered on click)
+      const previewTop = clickY - (thumbHeight / 2);
+      const clampedTop = Math.max(thumbPadding, Math.min(visibleHeight - thumbHeight - thumbPadding, previewTop));
+      
+      // Calculate scroll position based on the box position
+      const scrollableRange = visibleHeight - thumbHeight - (thumbPadding * 2);
+      const boxPositionInRange = clampedTop - thumbPadding;
+      const scrollPercentage = scrollableRange > 0 ? boxPositionInRange / scrollableRange : 0;
       const newScrollTop = scrollPercentage * (totalHeight - visibleHeight);
 
       scrollContainerRef.current.scrollTop = newScrollTop;
     },
-    [scrollContainerRef, totalHeight, visibleHeight]
+    [scrollContainerRef, totalHeight, visibleHeight, thumbHeight, thumbPadding]
   );
 
   // Don't show scrollbar if all content is visible
@@ -191,17 +199,22 @@ export function CustomScrollbar({
   // Calculate hover preview range
   let hoverPreviewRange: { start: number; end: number; top: number; height: number } | null = null;
   if (hoverPosition !== null) {
-    const hoverScrollPercentage = hoverPosition / visibleHeight;
-    const hoverScrollTop = hoverScrollPercentage * (totalHeight - visibleHeight);
-    const hoverFirstItem = Math.floor((hoverScrollTop / totalHeight) * totalItems) + 1;
-    const hoverLastItem = Math.min(
-      Math.ceil(((hoverScrollTop + visibleHeight) / totalHeight) * totalItems),
-      totalItems
-    );
-    
     // Calculate visual position of the preview box with padding
     const previewTop = hoverPosition - (thumbHeight / 2);
     const clampedTop = Math.max(thumbPadding, Math.min(visibleHeight - thumbHeight - thumbPadding, previewTop));
+    
+    // Calculate scroll position based on the box position (not mouse position)
+    const scrollableRange = visibleHeight - thumbHeight - (thumbPadding * 2);
+    const boxPositionInRange = clampedTop - thumbPadding;
+    const scrollPercentage = scrollableRange > 0 ? boxPositionInRange / scrollableRange : 0;
+    const previewScrollTop = scrollPercentage * (totalHeight - visibleHeight);
+    
+    // Calculate item range based on the box position
+    const hoverFirstItem = Math.floor((previewScrollTop / totalHeight) * totalItems) + 1;
+    const hoverLastItem = Math.min(
+      Math.ceil(((previewScrollTop + visibleHeight) / totalHeight) * totalItems),
+      totalItems
+    );
     
     hoverPreviewRange = {
       start: hoverFirstItem,
