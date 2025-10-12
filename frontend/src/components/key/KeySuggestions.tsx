@@ -1,21 +1,5 @@
 import { type FC } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Sparkle,
-  ListRestart,
-  ArrowDownWideNarrow,
-  ListStart,
-  Wand,
-  BookOpenCheck,
-  BookPlus,
-} from "lucide-react";
-import {
-  Item,
-  ItemContent,
-  ItemDescription,
-  ItemTitle,
-  ItemMedia,
-} from "../ui/item";
+import { AutopilotCard, AutopilotActions } from "./AutopilotCard";
 
 interface KeySuggestionsProps {
   currentLanguage?: string | null;
@@ -34,87 +18,55 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
   defaultLanguage,
   defaultLanguageValue,
 }) => {
+  // Placeholder handlers (TODO: implement actual functionality)
+  const handleTranslate = () => {
+    console.log("Translate");
+  };
+
+  const handleRephrase = () => {
+    console.log("Rephrase");
+  };
+
+  const handleShorten = () => {
+    console.log("Shorten");
+  };
+
+  const handleSuggestVariants = () => {
+    console.log("Suggest variants");
+  };
+
+  const handleAddContext = () => {
+    console.log("Add context");
+  };
+
   // If no language is being edited, show a message
   if (!currentLanguage) {
-    return (
-      <Item variant="outline">
-        <ItemMedia>
-          <div className="flex items-center gap-2 p-1 rounded-md bg-gray-500/10">
-            <Sparkle className="text-gray-500/70" />
-          </div>
-        </ItemMedia>
-        <ItemContent>
-          <ItemTitle>Autopilot</ItemTitle>
-          <ItemDescription className="text-balance">
-            Select a translation field to edit to see suggestions
-          </ItemDescription>
-        </ItemContent>
-      </Item>
-    );
+    return <AutopilotCard variant="disabled" />;
   }
 
+  // If translation exists, show enhancement actions
   if (currentLanguageValue) {
     return (
-      <Item variant="outline">
-        <ItemMedia>
-          <div className="flex items-center gap-2 p-1 rounded-md bg-indigo-500/10">
-            <Sparkle className="text-indigo-500" />
-          </div>
-        </ItemMedia>
-        <ItemContent>
-          <ItemTitle>Autopilot</ItemTitle>
-          <ItemDescription className="text-balance">
-            Enhance the quality of this translation using AI.
-          </ItemDescription>
-          <div className="flex flex-wrap items-center gap-2 mt-2">
-            <Button size="sm" variant="outline">
-              <ListRestart />
-              Rephrase
-            </Button>
-            <Button size="sm" variant="outline">
-              <ArrowDownWideNarrow />
-              Shorten
-            </Button>
-            <Button size="sm" variant="outline">
-              <ListStart />
-              Suggest variants
-            </Button>
-            <Button size="sm" variant="outline">
-              <BookPlus />
-              Add context
-            </Button>
-          </div>
-        </ItemContent>
-      </Item>
+      <AutopilotCard
+        variant="enhance"
+        actions={[
+          AutopilotActions.rephrase(handleRephrase),
+          AutopilotActions.shorten(handleShorten),
+          AutopilotActions.suggestVariants(handleSuggestVariants),
+          AutopilotActions.addContext(handleAddContext),
+        ]}
+      />
     );
   }
 
-  // Show context from default language
+  // Show translate action for empty translation
   return (
-    <div className="space-y-4">
-      <Item variant="outline">
-        <ItemMedia>
-          <div className="flex items-center gap-2 p-1 rounded-md bg-indigo-500/10">
-            <Sparkle className="text-indigo-500" />
-          </div>
-        </ItemMedia>
-        <ItemContent>
-          <ItemTitle>Autopilot</ItemTitle>
-          <ItemDescription className="text-balance">
-            Translate with AI based on the default language.
-          </ItemDescription>
-          <div className="flex items-center gap-2 mt-2">
-            <Button size="sm">
-              <Wand />
-              Translate
-            </Button>
-            <Button size="sm" variant="outline">
-              <BookPlus />
-              Add context
-            </Button>
-          </div>
-        </ItemContent>
-      </Item>
-    </div>
+    <AutopilotCard
+      variant="translate"
+      actions={[
+        AutopilotActions.translate(handleTranslate),
+        AutopilotActions.addContext(handleAddContext),
+      ]}
+    />
   );
 };
