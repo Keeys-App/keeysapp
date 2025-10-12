@@ -77,7 +77,7 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
       },
       {
         query: GET_PROJECT_KEYS,
-        variables: { projectId },
+        variables: { projectId, offset: 0, limit: 20 },
       },
     ],
     awaitRefetchQueries: true,
@@ -100,7 +100,7 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
       },
       {
         query: GET_PROJECT_KEYS,
-        variables: { projectId },
+        variables: { projectId, offset: 0, limit: 20 },
       },
     ],
     awaitRefetchQueries: true,
@@ -123,7 +123,7 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
       },
       {
         query: GET_PROJECT_KEYS,
-        variables: { projectId },
+        variables: { projectId, offset: 0, limit: 20 },
       },
     ],
     awaitRefetchQueries: true,

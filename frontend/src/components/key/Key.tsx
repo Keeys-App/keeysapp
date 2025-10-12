@@ -38,8 +38,7 @@ export const Key = memo(
     return (
       <div
         className={cn(
-          "border-b grid grid-cols-[220px_minmax(300px,3fr)] relative cursor-pointer transition-colors",
-          isSelected && "bg-accent/30"
+          "border-b grid grid-cols-[220px_minmax(300px,3fr)] relative cursor-pointer transition-colors"
         )}
         onClick={handleClick}
       >

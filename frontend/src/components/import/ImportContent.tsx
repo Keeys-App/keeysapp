@@ -39,23 +39,34 @@ export const ImportContent: FC<ImportContentProps> = ({ project }) => {
     strategy: "merge",
   });
 
-  const { data, loading, error } = useQuery<{ projectKeys: TranslationKey[] }>(
+  const { data, loading, error } = useQuery<{ 
+    projectKeys: { 
+      keys: TranslationKey[];
+      totalCount: number;
+      hasMore: boolean;
+    } 
+  }>(
     GET_PROJECT_KEYS,
     {
-      variables: { projectId: project.id },
+      variables: { projectId: project.id, offset: 0, limit: 10000 },
     }
   );
 
   const [batchImportTranslations] = useMutation(BATCH_IMPORT_TRANSLATIONS, {
-    refetchQueries: [{ query: GET_PROJECT_KEYS, variables: { projectId: project.id } }],
+    refetchQueries: [
+      { 
+        query: GET_PROJECT_KEYS, 
+        variables: { projectId: project.id, offset: 0, limit: 20 } 
+      }
+    ],
   });
 
   const withSaving = useSaving();
   const { isSaving } = useSavingStore();
 
   const existingKeys = useMemo(() => {
-    return data?.projectKeys.map((key) => key.key) || [];
-  }, [data?.projectKeys]);
+    return data?.projectKeys?.keys?.map((key) => key.key) || [];
+  }, [data?.projectKeys?.keys]);
 
   // Parse all files and combine translations
   const parsedData = useMemo(() => {

@@ -27,7 +27,7 @@ export const KeySettings: FC<KeySettingsProps> = ({
     refetchQueries: [
       {
         query: GET_PROJECT_KEYS,
-        variables: { projectId },
+        variables: { projectId, offset: 0, limit: 20 },
       },
     ],
     awaitRefetchQueries: true,

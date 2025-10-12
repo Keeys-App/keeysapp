@@ -34,19 +34,25 @@ export const ExportContent: FC<ExportContentProps> = ({ project }) => {
     sortKeys: true,
   });
 
-  const { data, loading, error } = useQuery<{ projectKeys: TranslationKey[] }>(
+  const { data, loading, error } = useQuery<{ 
+    projectKeys: { 
+      keys: TranslationKey[];
+      totalCount: number;
+      hasMore: boolean;
+    } 
+  }>(
     GET_PROJECT_KEYS,
     {
-      variables: { projectId: project.id },
+      variables: { projectId: project.id, offset: 0, limit: 10000 },
     }
   );
 
   const exportCode = useMemo(() => {
-    if (!data?.projectKeys) {
+    if (!data?.projectKeys?.keys) {
       return "";
     }
-    return generateExport(data.projectKeys, options);
-  }, [data?.projectKeys, options]);
+    return generateExport(data.projectKeys.keys, options);
+  }, [data?.projectKeys?.keys, options]);
 
   const filename = useMemo(() => {
     return getExportFilename(project.name, options.language, options.format);
@@ -73,7 +79,7 @@ export const ExportContent: FC<ExportContentProps> = ({ project }) => {
     return <ErrorState message={errorMessage} />;
   }
 
-  if (!data?.projectKeys || data.projectKeys.length === 0) {
+  if (!data?.projectKeys?.keys || data.projectKeys.keys.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[40vh] gap-4">
         <p className="text-lg text-muted-foreground">

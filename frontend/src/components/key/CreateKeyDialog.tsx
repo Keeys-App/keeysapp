@@ -133,7 +133,7 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
         // Add new key to the cache
         cache.modify({
           fields: {
-            projectKeys(existingKeys = []) {
+            projectKeys(existingData = { keys: [], totalCount: 0, hasMore: false }) {
               const newKeyRef = cache.writeFragment({
                 data: data.createKey,
                 fragment: gql`
@@ -141,9 +141,11 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
                     id
                     key
                     description
+                    tags
                     translations {
                       language
                       value
+                      reviewStatus
                       createdAt
                       updatedAt
                     }
@@ -152,7 +154,12 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
                   }
                 `,
               });
-              return [...existingKeys, newKeyRef];
+              
+              return {
+                ...existingData,
+                keys: [newKeyRef, ...(existingData.keys || [])],
+                totalCount: (existingData.totalCount || 0) + 1,
+              };
             },
           },
         });
