@@ -145,7 +145,7 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     // Esc - Cancel
     if (e.key === "Escape") {
       e.preventDefault();

@@ -1,10 +1,16 @@
-import { type FC, type KeyboardEvent } from "react";
-import { Textarea } from "@/components/ui/textarea";
+import {
+  type FC,
+  type KeyboardEvent,
+  useRef,
+  useEffect,
+  useState,
+} from "react";
+import { cn } from "@/lib/utils";
 
 interface TranslationTextEditorProps {
   value: string;
   onChange: (value: string) => void;
-  onKeyDown?: (e: KeyboardEvent<HTMLTextAreaElement>) => void;
+  onKeyDown?: (e: KeyboardEvent<HTMLDivElement>) => void;
   direction?: "ltr" | "rtl";
   disabled?: boolean;
   autoFocus?: boolean;
@@ -12,7 +18,7 @@ interface TranslationTextEditorProps {
 }
 
 /**
- * Translation text editor component
+ * Translation text editor component with contenteditable
  * Can be extended in the future with rich text editing, autocomplete, etc.
  */
 export const TranslationTextEditor: FC<TranslationTextEditorProps> = ({
@@ -22,19 +28,60 @@ export const TranslationTextEditor: FC<TranslationTextEditorProps> = ({
   direction = "ltr",
   disabled = false,
   autoFocus = true,
-  rows = 3,
 }) => {
+  const editorRef = useRef<HTMLDivElement>(null);
+  const [isFocused, setIsFocused] = useState(false);
+
+  // Sync external value changes to the editor
+  useEffect(() => {
+    if (editorRef.current && !isFocused) {
+      const currentText = editorRef.current.textContent || "";
+      if (currentText !== value) {
+        editorRef.current.textContent = value;
+      }
+    }
+  }, [value, isFocused]);
+
+  // Auto focus on mount
+  useEffect(() => {
+    if (autoFocus && editorRef.current) {
+      editorRef.current.focus();
+      // Move cursor to end
+      const range = document.createRange();
+      const sel = window.getSelection();
+      range.selectNodeContents(editorRef.current);
+      range.collapse(false);
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+    }
+  }, [autoFocus]);
+
+  const handleInput = () => {
+    if (editorRef.current) {
+      const newValue = editorRef.current.textContent || "";
+      if (newValue !== value) {
+        onChange(newValue);
+      }
+    }
+  };
+
   return (
-    <Textarea
+    <div
+      ref={editorRef}
+      contentEditable={!disabled}
       dir={direction}
-      className="bg-background rounded-none border-none focus-visible:ring-0 focus-visible:ring-offset-0 p-2 shadow-none"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
+      className={cn(
+        "bg-background rounded-none border-none p-2 shadow-none",
+        "min-h-[60px] outline-none whitespace-pre-wrap break-words",
+        "focus-visible:outline-none",
+        disabled && "opacity-50 cursor-not-allowed"
+      )}
+      onInput={handleInput}
       onClick={(e) => e.stopPropagation()}
       onKeyDown={onKeyDown}
-      disabled={disabled}
-      rows={rows}
-      autoFocus={autoFocus}
+      onFocus={() => setIsFocused(true)}
+      onBlur={() => setIsFocused(false)}
+      suppressContentEditableWarning
     />
   );
 };
