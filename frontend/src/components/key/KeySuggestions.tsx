@@ -309,34 +309,19 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
     toast("Context removed");
   };
 
-  const handleUseSuggestion = async (text: string) => {
-    if (!currentLanguage) {
+  const handleUseSuggestion = (text: string) => {
+    if (!editorRef) {
+      toast("Please open the translation editor first");
       return;
     }
 
-    await withSaving(async () => {
-      try {
-        await setTranslation({
-          variables: {
-            input: {
-              keyId: currentKey.id,
-              value: text,
-              language: currentLanguage.code,
-              isAiGenerated: true,
-            },
-          },
-        });
-
-        toast("AI suggestion applied", {
-          description: `Translation updated for ${currentLanguage.name}`,
-        });
-        
-        // Clear the suggestion after using it
-        setSuggestions((prev) => prev.filter((s) => s.text !== text));
-      } catch (error) {
-        toast("Failed to apply suggestion");
-      }
-    }, "Applying suggestion...");
+    // Insert text into the editor
+    editorRef.insertText(text);
+    
+    toast("Suggestion inserted into editor");
+    
+    // Clear the suggestion after using it
+    setSuggestions((prev) => prev.filter((s) => s.text !== text));
   };
 
   const handleDiscardSuggestion = (id: string) => {
@@ -371,35 +356,24 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
     setSelectedVariant("");
   };
 
-  const handleUseSelectedVariant = async () => {
-    if (!selectedVariant || !currentLanguage) {
+  const handleUseSelectedVariant = () => {
+    if (!selectedVariant) {
       return;
     }
 
-    await withSaving(async () => {
-      try {
-        await setTranslation({
-          variables: {
-            input: {
-              keyId: currentKey.id,
-              value: selectedVariant,
-              language: currentLanguage.code,
-              isAiGenerated: true,
-            },
-          },
-        });
+    if (!editorRef) {
+      toast("Please open the translation editor first");
+      return;
+    }
 
-        toast("AI variant applied", {
-          description: `Translation updated for ${currentLanguage.name}`,
-        });
-        
-        // Clear all variants after using one
-        setVariants([]);
-        setSelectedVariant("");
-      } catch (error) {
-        toast("Failed to apply variant");
-      }
-    }, "Applying variant...");
+    // Insert text into the editor
+    editorRef.insertText(selectedVariant);
+    
+    toast("Variant inserted into editor");
+    
+    // Clear all variants after using one
+    setVariants([]);
+    setSelectedVariant("");
   };
 
   // Get type-specific icon and label
@@ -564,7 +538,7 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
                     ]
                   : [
                       {
-                        label: "Use suggestion",
+                        label: "Insert",
                         onClick: () => {
                           handleUseSuggestion(suggestion.text);
                         },
@@ -611,7 +585,7 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
           }
           actions={[
             {
-              label: "Use variant",
+              label: "Insert",
               onClick: handleUseSelectedVariant,
               variant: "outline",
             },

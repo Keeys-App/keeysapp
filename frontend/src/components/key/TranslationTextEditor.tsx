@@ -1,9 +1,10 @@
 import {
-  type FC,
   type KeyboardEvent,
   useRef,
   useEffect,
   useState,
+  useImperativeHandle,
+  forwardRef,
 } from "react";
 import { cn } from "@/lib/utils";
 
@@ -17,18 +18,22 @@ interface TranslationTextEditorProps {
   rows?: number;
 }
 
+export interface TranslationTextEditorRef {
+  insertText: (text: string) => void;
+}
+
 /**
  * Translation text editor component with contenteditable
  * Can be extended in the future with rich text editing, autocomplete, etc.
  */
-export const TranslationTextEditor: FC<TranslationTextEditorProps> = ({
+export const TranslationTextEditor = forwardRef<TranslationTextEditorRef, TranslationTextEditorProps>(({
   value,
   onChange,
   onKeyDown,
   direction = "ltr",
   disabled = false,
   autoFocus = true,
-}) => {
+}, ref) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const [isFocused, setIsFocused] = useState(false);
 
@@ -52,6 +57,25 @@ export const TranslationTextEditor: FC<TranslationTextEditorProps> = ({
     );
     element.textContent = processedText;
   };
+
+  // Expose insertText method via ref
+  useImperativeHandle(ref, () => ({
+    insertText: (text: string) => {
+      if (editorRef.current) {
+        setTextContent(editorRef.current, text);
+        onChange(text);
+        // Focus the editor after inserting text
+        editorRef.current.focus();
+        // Move cursor to end
+        const range = document.createRange();
+        const sel = window.getSelection();
+        range.selectNodeContents(editorRef.current);
+        range.collapse(false);
+        sel?.removeAllRanges();
+        sel?.addRange(range);
+      }
+    },
+  }), [onChange]);
 
   // Sync external value changes to the editor
   useEffect(() => {
@@ -105,5 +129,6 @@ export const TranslationTextEditor: FC<TranslationTextEditorProps> = ({
       suppressContentEditableWarning
     />
   );
-};
+});
 
+TranslationTextEditor.displayName = "TranslationTextEditor";
