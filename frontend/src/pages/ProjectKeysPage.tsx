@@ -39,10 +39,40 @@ export const ProjectKeysPage: FC = () => {
   const project = data?.project;
   const selectedKey = keyData?.key || null;
 
+  // Build enhanced language list with locale information
+  const projectLanguages = useMemo(() => {
+    if (!project?.languages) {
+      return [];
+    }
+    
+    return project.languages.map((langConfig) => {
+      const commonLang = COMMON_LANGUAGES.find((l) => {
+        return l.code === langConfig.code;
+      });
+      
+      const direction = langConfig.direction || commonLang?.direction || 'ltr';
+      
+      return {
+        code: langConfig.code,
+        name: commonLang?.name || langConfig.code,
+        flag: commonLang?.flag || '🏳️',
+        locale: langConfig.locale,
+        direction: (direction === 'rtl' ? 'rtl' : 'ltr') as 'ltr' | 'rtl',
+        default: langConfig.default,
+      };
+    });
+  }, [project?.languages]);
+
   // Get current editing language value and default language value
-  const currentLanguage = editingTranslation?.language || null;
+  const currentLanguageCode = editingTranslation?.language || null;
+  const currentLanguage = projectLanguages.find(
+    (lang) => lang.code === currentLanguageCode
+  );
+  const defaultLanguage = projectLanguages.find(
+    (lang) => lang.code === project?.defaultLanguage
+  );
   const currentTranslation = selectedKey?.translations.find(
-    (t) => t.language === currentLanguage
+    (t) => t.language === currentLanguageCode
   );
   const defaultTranslation = selectedKey?.translations.find(
     (t) => t.language === project?.defaultLanguage
@@ -89,30 +119,6 @@ export const ProjectKeysPage: FC = () => {
   const handleKeyDeleted = useCallback(() => {
     setSelectedKeyId(null);
   }, []);
-
-  // Build enhanced language list with locale information
-  const projectLanguages = useMemo(() => {
-    if (!project?.languages) {
-      return [];
-    }
-    
-    return project.languages.map((langConfig) => {
-      const commonLang = COMMON_LANGUAGES.find((l) => {
-        return l.code === langConfig.code;
-      });
-      
-      const direction = langConfig.direction || commonLang?.direction || 'ltr';
-      
-      return {
-        code: langConfig.code,
-        name: commonLang?.name || langConfig.code,
-        flag: commonLang?.flag || '🏳️',
-        locale: langConfig.locale,
-        direction: (direction === 'rtl' ? 'rtl' : 'ltr') as 'ltr' | 'rtl',
-        default: langConfig.default,
-      };
-    });
-  }, [project?.languages]);
 
   if (loading) {
     return <LoadingState message="Loading project..." />;
@@ -166,7 +172,7 @@ export const ProjectKeysPage: FC = () => {
             onKeyDeleted={handleKeyDeleted}
             currentLanguage={currentLanguage}
             currentLanguageValue={currentTranslation?.value}
-            defaultLanguage={project.defaultLanguage}
+            defaultLanguage={defaultLanguage}
             defaultLanguageValue={defaultTranslation?.value}
           />
         ) : null}

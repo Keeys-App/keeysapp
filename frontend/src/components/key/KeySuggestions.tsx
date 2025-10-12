@@ -1,7 +1,9 @@
 import { type FC } from "react";
 import { AutopilotCard, AutopilotActions } from "./AutopilotCard";
-import { Item } from "../ui/item";
-import { Button } from "../ui/button";
+import {
+  AutopilotSuggestion,
+  AutopilotSuggestionsList,
+} from "./AutopilotSuggestion";
 import type { TranslationKey } from "@/types/translationKey";
 import type { Language } from "@/types/project";
 
@@ -50,10 +52,8 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
   // If no language is being edited, show a message
   if (!currentLanguage) {
     card = <AutopilotCard variant="disabled" />;
-  }
-
-  // If translation exists, show enhancement actions
-  if (currentLanguageValue) {
+  } else if (currentLanguageValue) {
+    // If translation exists, show enhancement actions
     card = (
       <AutopilotCard
         variant="enhance"
@@ -65,67 +65,57 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
         ]}
       />
     );
+  } else {
+    // Show translate action for empty translation
+    card = (
+      <AutopilotCard
+        variant="translate"
+        actions={[
+          AutopilotActions.translate(handleTranslate),
+          AutopilotActions.addContext(handleAddContext),
+        ]}
+      />
+    );
   }
-
-  // Show translate action for empty translation
-  card = (
-    <AutopilotCard
-      variant="translate"
-      actions={[
-        AutopilotActions.translate(handleTranslate),
-        AutopilotActions.addContext(handleAddContext),
-      ]}
-    />
-  );
 
   const autopilotAction = AutopilotActions.shorten(handleTranslate);
   const autopilotAction2 = AutopilotActions.addContext(handleTranslate);
 
   return (
-    <div className="space-y-4">
-      Target: {currentKey.key} ({currentLanguage?.name})
-      
+    <AutopilotSuggestionsList>
       {card}
 
-      <Item
-        variant="outline"
-        className="from-indigo-500/10 dark:from-indigo-500/20 to-25% to-transparent dark:to-transparent bg-gradient-to-br"
-      >
-        <div className="flex items-center gap-2">
-          <autopilotAction.icon className="w-4 h-4 flex-shrink-0" />
-          <div className="font-medium">{autopilotAction.label}</div>
-        </div>
+      <AutopilotSuggestion
+        icon={autopilotAction.icon}
+        title={autopilotAction.label}
+        description="Unrestricted access to the Space, its content, and settings. Can add, modify, and delete projects and members, as well as make changes to billing and plans"
+        actions={[
+          {
+            label: "Use suggestion",
+            onClick: handleTranslate,
+            variant: "outline",
+          },
+          {
+            label: "Discard",
+            onClick: handleTranslate,
+            variant: "ghost",
+          },
+        ]}
+      />
 
-        <div>
-          Unrestricted access to the Space, its content, and settings. Can add,
-          modify, and delete projects and members, as well as make changes to
-          billing and plans
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            Use suggestion
-          </Button>
-          <Button variant="ghost" size="sm">
-            Discard
-          </Button>
-        </div>
-      </Item>
-
-      <Item variant="outline">
-        <div className="flex items-center gap-2">
-          <autopilotAction2.icon className="w-4 h-4 flex-shrink-0" />
-          <div className="font-medium">{autopilotAction2.label}</div>
-        </div>
-        <div>
-          Unrestricted access to the Space, its content, and settings. Can add,
-          modify, and delete projects and members, as well as make changes to
-          billing and plans
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">Remove context</Button>
-        </div>
-      </Item>
-    </div>
+      <AutopilotSuggestion
+        icon={autopilotAction2.icon}
+        title={autopilotAction2.label}
+        description="Unrestricted access to the Space, its content, and settings. Can add, modify, and delete projects and members, as well as make changes to billing and plans"
+        actions={[
+          {
+            label: "Remove context",
+            onClick: handleTranslate,
+            variant: "outline",
+          },
+        ]}
+        withGradient={false}
+      />
+    </AutopilotSuggestionsList>
   );
 };

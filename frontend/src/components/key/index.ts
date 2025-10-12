@@ -13,4 +13,5 @@ export { KeySuggestions } from './KeySuggestions';
 export { InlineDiff } from './InlineDiff';
 export { TranslationTextEditor } from './TranslationTextEditor';
 export { AutopilotCard, AutopilotActions } from './AutopilotCard';
+export { AutopilotSuggestion, AutopilotSuggestionsList } from './AutopilotSuggestion';
 
