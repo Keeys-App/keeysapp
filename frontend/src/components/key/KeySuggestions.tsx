@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { useSaving, useSavingStore } from "@/stores";
 import { Textarea } from "@/components/ui/textarea";
 import { BookPlus } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 
 interface AISuggestion {
   id: string;
@@ -55,9 +56,10 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
   // State for AI suggestions
   const [suggestions, setSuggestions] = useState<AISuggestion[]>([]);
   const [variants, setVariants] = useState<string[]>([]);
+  const [selectedVariant, setSelectedVariant] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
-  
+
   // Custom context (separate from key.description)
   const [customContext, setCustomContext] = useState<string>("");
   const [isEditingContext, setIsEditingContext] = useState(false);
@@ -74,6 +76,7 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
   useEffect(() => {
     setSuggestions([]);
     setVariants([]);
+    setSelectedVariant("");
     setRemovingIds(new Set());
   }, [currentLanguage?.code, currentLanguageValue]);
 
@@ -85,6 +88,13 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
       setCustomContext("");
     }
   }, [currentKey.id]);
+
+  // Auto-select first variant when variants are generated
+  useEffect(() => {
+    if (variants.length > 0 && !selectedVariant) {
+      setSelectedVariant(variants[0]);
+    }
+  }, [variants]);
 
   const handleTranslate = async () => {
     if (!defaultLanguageValue || !currentLanguage || !defaultLanguage) {
@@ -251,7 +261,6 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
     toast("Context removed");
   };
 
-
   const handleUseSuggestion = (text: string) => {
     // TODO: Apply suggestion to translation field
     toast("Apply suggestion - coming soon");
@@ -260,7 +269,7 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
   const handleDiscardSuggestion = (id: string) => {
     // Mark as removing for animation
     setRemovingIds((prev) => new Set(prev).add(id));
-    
+
     // Remove from state after animation completes
     setTimeout(() => {
       setSuggestions((prev) => prev.filter((s) => s.id !== id));
@@ -276,7 +285,7 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
     // Mark all as removing
     const allIds = new Set(suggestions.map((s) => s.id));
     setRemovingIds(allIds);
-    
+
     // Clear after animation
     setTimeout(() => {
       setSuggestions([]);
@@ -286,6 +295,13 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
 
   const handleDiscardVariants = () => {
     setVariants([]);
+    setSelectedVariant("");
+  };
+
+  const handleUseSelectedVariant = () => {
+    if (selectedVariant) {
+      handleUseSuggestion(selectedVariant);
+    }
   };
 
   // Get type-specific icon and label
@@ -410,80 +426,87 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
       ) : null}
 
       {/* Show all accumulated suggestions (only when language is selected) */}
-      {currentLanguage && suggestions.map((suggestion) => {
-        const meta = getSuggestionMeta(suggestion.type);
-        const isRemoving = removingIds.has(suggestion.id);
-        
-        return (
-          <AutopilotSuggestion
-            key={suggestion.id}
-            icon={meta.icon}
-            title={meta.label}
-            description={suggestion.text}
-            className={
-              isRemoving
-                ? "animate-out fade-out slide-out-to-right-2 duration-300"
-                : undefined
-            }
-            actions={[
-              {
-                label: "Use suggestion",
-                onClick: () => {
-                  handleUseSuggestion(suggestion.text);
-                },
-                variant: "outline",
-              },
-              {
-                label: "Discard",
-                onClick: () => {
-                  handleDiscardSuggestion(suggestion.id);
-                },
-                variant: "ghost",
-              },
-            ]}
-          />
-        );
-      })}
+      {currentLanguage &&
+        suggestions.map((suggestion) => {
+          const meta = getSuggestionMeta(suggestion.type);
+          const isRemoving = removingIds.has(suggestion.id);
 
-      {/* Show variants if available (only when language is selected) */}
-      {currentLanguage && variants.length > 0 ? (
-        <>
-          {variants.map((variant, index) => (
+          return (
             <AutopilotSuggestion
-              key={index}
-              icon={AutopilotActions.suggestVariants().icon}
-              title={`Variant ${index + 1}`}
-              description={variant}
+              key={suggestion.id}
+              icon={meta.icon}
+              title={meta.label}
+              description={suggestion.text}
+              className={
+                isRemoving
+                  ? "animate-out fade-out slide-out-to-right-2 duration-300"
+                  : undefined
+              }
               actions={[
                 {
-                  label: "Use variant",
+                  label: "Use suggestion",
                   onClick: () => {
-                    handleUseSuggestion(variant);
+                    handleUseSuggestion(suggestion.text);
                   },
                   variant: "outline",
                 },
+                {
+                  label: "Discard",
+                  onClick: () => {
+                    handleDiscardSuggestion(suggestion.id);
+                  },
+                  variant: "ghost",
+                },
               ]}
-              withGradient={false}
             />
-          ))}
-          <AutopilotSuggestion
-            icon={AutopilotActions.suggestVariants().icon}
-            title="Clear variants"
-            description="Remove all generated variants"
-            actions={[
-              {
-                label: "Clear all",
-                onClick: handleDiscardVariants,
-                variant: "ghost",
-              },
-            ]}
-            withGradient={false}
-          />
-        </>
+          );
+        })}
+
+      {/* Show variants if available (only when language is selected) */}
+      {currentLanguage && variants.length > 0 ? (
+        <AutopilotSuggestion
+          icon={AutopilotActions.suggestVariants().icon}
+          title="Variants"
+          description={
+            <div className="space-y-3 mt-2">
+              <RadioGroup value={selectedVariant} onValueChange={setSelectedVariant}>
+                {variants.map((variant, index) => (
+                  <div key={index} className="flex gap-2">
+                    <RadioGroupItem
+                      className="mt-0.5"
+                      value={variant}
+                      id={`variant-${index}`}
+                    />
+                    <label
+                      className="text-sm cursor-pointer flex-1"
+                      htmlFor={`variant-${index}`}
+                    >
+                      {variant}
+                    </label>
+                  </div>
+                ))}
+              </RadioGroup>
+            </div>
+          }
+          actions={[
+            {
+              label: "Use variant",
+              onClick: handleUseSelectedVariant,
+              variant: "outline",
+            },
+            {
+              label: "Discard all",
+              onClick: handleDiscardVariants,
+              variant: "ghost",
+            },
+          ]}
+        />
       ) : null}
 
       {/* Loading skeleton (only when language is selected) */}
-      {currentLanguage && (isGenerating || isSaving) ? <AutopilotSuggestionSkeleton /> : null}
+      {currentLanguage && (isGenerating || isSaving) ? (
+        <AutopilotSuggestionSkeleton />
+      ) : null}
     </AutopilotSuggestionsList>
   );
 };
