@@ -36,7 +36,7 @@ export const Key = memo(
 
     return (
       <div
-        className="border-b grid grid-cols-[minmax(300px,300px)_minmax(300px,3fr)] relative cursor-pointer"
+        className="border-b grid grid-cols-[220px_minmax(300px,3fr)] relative cursor-pointer"
         onClick={handleClick}
       >
         <div className="border-r -mr-px relative">

@@ -1,12 +1,7 @@
 import { useState, useEffect, memo, useRef } from "react";
 import { useMutation } from "@apollo/client";
 import { toast } from "sonner";
-import {
-  SET_TRANSLATION,
-  GET_PROJECT_KEYS,
-  GET_KEY_LOGS,
-  GET_KEY,
-} from "@/graphql/keys";
+import { SET_TRANSLATION, GET_KEY_LOGS, GET_KEY } from "@/graphql/keys";
 import { getUserFriendlyErrorMessage } from "@/lib/utils";
 import { useSaving } from "@/stores";
 import type { Language, LanguageWithLocale } from "@/types/project";
@@ -28,7 +23,6 @@ export const TranslationEditor = memo(
     keyData,
     language,
     projectLanguages,
-    projectId,
     isEditing,
     onEditingChange,
   }: TranslationEditorProps) {
@@ -60,19 +54,29 @@ export const TranslationEditor = memo(
 
     // Auto-save when editor closes (isEditing changes from true to false)
     useEffect(() => {
-      if (wasEditingRef.current && !isEditing && valueToSaveRef.current !== null) {
+      if (
+        wasEditingRef.current &&
+        !isEditing &&
+        valueToSaveRef.current !== null
+      ) {
         // Editor was closed, check if there are unsaved changes
-        const trimmedValue = valueToSaveRef.current.replace(/^[\s\n\r\t]+|[\s\n\r\t]+$/g, "");
-        const trimmedCurrentValue = currentValue.replace(/^[\s\n\r\t]+|[\s\n\r\t]+$/g, "");
-        
+        const trimmedValue = valueToSaveRef.current.replace(
+          /^[\s\n\r\t]+|[\s\n\r\t]+$/g,
+          ""
+        );
+        const trimmedCurrentValue = currentValue.replace(
+          /^[\s\n\r\t]+|[\s\n\r\t]+$/g,
+          ""
+        );
+
         if (trimmedValue !== trimmedCurrentValue) {
           // Has changes, auto-save
           handleAutoSave(trimmedValue);
         }
-        
+
         valueToSaveRef.current = null;
       }
-      
+
       wasEditingRef.current = isEditing;
     }, [isEditing]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -222,12 +226,18 @@ export const TranslationEditor = memo(
     // Check if there are unsaved changes
     const hasChanges = () => {
       const trimmedValue = value.replace(/^[\s\n\r\t]+|[\s\n\r\t]+$/g, "");
-      const trimmedCurrentValue = currentValue.replace(/^[\s\n\r\t]+|[\s\n\r\t]+$/g, "");
+      const trimmedCurrentValue = currentValue.replace(
+        /^[\s\n\r\t]+|[\s\n\r\t]+$/g,
+        ""
+      );
       return trimmedValue !== trimmedCurrentValue;
     };
 
     return (
-      <div className="space-y-2 text-sm break-all" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="space-y-2 text-sm break-all"
+        onClick={(e) => e.stopPropagation()}
+      >
         {!isEditing ? (
           <TranslationView
             value={value}

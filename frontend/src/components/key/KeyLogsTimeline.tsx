@@ -115,7 +115,7 @@ export const KeyLogsTimeline: FC<KeyLogsTimelineProps> = ({
 
   if (loading) {
     return (
-      <div className="space-y-6 pt-4">
+      <div className="space-y-6">
         {Array.from({ length: 10 }).map((_, i) => {
           return (
             <div key={i} className="flex gap-3">
@@ -164,7 +164,7 @@ export const KeyLogsTimeline: FC<KeyLogsTimelineProps> = ({
   }
 
   return (
-    <div className="relative pt-4">
+    <div className="relative">
       {/* Timeline items */}
       <div className="space-y-4">
         {logs.map((log, index) => {
