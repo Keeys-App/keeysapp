@@ -89,46 +89,91 @@ AI отказывался переводить тексты с ICU MessageFormat
 
 ## Как проверить
 
-### Запуск тестов
+### Запуск всех тестов
 
 ```bash
 cd backend
 source venv/bin/activate
+
+# Все тесты AI сервиса (23 теста)
+pytest tests/test_ai_service.py -v
+
+# Только тесты переменных (6 тестов)
 pytest tests/test_ai_service.py::TestAIServiceVariablePreservation -v
+
+# Только тесты ICU MessageFormat (5 тестов)
+pytest tests/test_ai_service.py::TestAIServiceICUMessageFormat -v
 ```
 
 ### Ручная проверка
 
+**Простые переменные:**
 1. Создайте ключ перевода с переменными, например: `"Hello {name}, next payment: {date}"`
 2. Используйте автоперевод на любой язык
 3. Убедитесь, что переменные `{name}` и `{date}` сохранились в переводе
 
+**ICU MessageFormat:**
+1. Создайте ключ с ICU синтаксисом, например: `"{count, plural, one {{user} removed type {removedTypes}} other {{user} removed types {removedTypes}}}"`
+2. Используйте автоперевод на любой язык
+3. Убедитесь, что:
+   - Структура `{count, plural, one {...} other {...}}` сохранена
+   - Переменные `{user}` и `{removedTypes}` не изменились
+   - Текст внутри блоков переведен
+
 ## Примеры правильной работы
 
-### Перевод
+### Простые переменные
+
+**Перевод:**
 ```
 EN: "Hello {name}, your order {orderId} will arrive on {date}"
 ES: "Hola {name}, tu pedido {orderId} llegará el {date}"
 ```
 
-### Перефразирование
+**Перефразирование:**
 ```
 Original: "Your payment of {amount} is due on {date}"
 Rephrased: "Payment due: {amount} on {date}"
 ```
 
-### Сокращение
+**Сокращение:**
 ```
 Original: "We kindly remind you that your next payment of {amount} is scheduled for {date}"
 Shortened: "Payment reminder: {amount} due {date}"
 ```
 
-### Варианты
+**Варианты:**
 ```
 Original: "Welcome back, {username}!"
 Variant 1: "Hello again, {username}!"
 Variant 2: "Great to see you, {username}!"
 Variant 3: "Welcome, {username}!"
+```
+
+### ICU MessageFormat
+
+**Перевод с множественными числами:**
+```
+EN: "{count, plural, one {{user} removed type {removedTypes}} other {{user} removed types {removedTypes}}}"
+RU: "{count, plural, one {{user} удалил тип {removedTypes}} other {{user} удалил типы {removedTypes}}}"
+```
+
+**Простой plural:**
+```
+EN: "{count, plural, one {item} other {items}}"
+ES: "{count, plural, one {artículo} other {artículos}}"
+```
+
+**Сообщения с счетчиком:**
+```
+EN: "{count, plural, one {You have one message} other {You have {count} messages}}"
+FR: "{count, plural, one {Vous avez un message} other {Vous avez {count} messages}}"
+```
+
+**Перефразирование ICU:**
+```
+Original: "{count, plural, one {You have one notification waiting} other {You have {count} notifications waiting}}"
+Rephrased: "{count, plural, one {1 notification} other {{count} notifications}}"
 ```
 
 ## Технические детали
@@ -141,21 +186,52 @@ AI корректно обрабатывает:
 - С цифрами: `{item1}`, `{value2}`
 - CamelCase: `{orderId}`, `{userName}`
 
+### ICU MessageFormat
+
+AI теперь понимает и корректно обрабатывает [ICU MessageFormat](https://unicode-org.github.io/icu/userguide/format_parse/messages/) синтаксис:
+
+**Поддерживаемые конструкции:**
+- `{variable, plural, one {...} other {...}}` - множественные числа
+- `{variable, select, male {...} female {...} other {...}}` - выбор по значению
+- Вложенные переменные внутри блоков
+
+**Как обрабатывается:**
+1. AI сохраняет всю структуру: `{count, plural, one {...} other {...}}`
+2. Переводит только текст внутри блоков `one {...}` и `other {...}`
+3. Сохраняет все переменные внутри блоков
+
+**Пример обработки:**
+```
+Исходный: {count, plural, one {{user} added item} other {{user} added items}}
+         ├─ Структура: {count, plural, one {...} other {...}}  → Сохраняется
+         ├─ Переменная {user} → Сохраняется
+         └─ Текст "added item/items" → Переводится
+
+Результат (ES): {count, plural, one {{user} agregó artículo} other {{user} agregó artículos}}
+```
+
 ### Как это работает
 
 OpenAI API получает system prompt с явными инструкциями:
 1. Все переменные в фигурных скобках - это плейсхолдеры кода
-2. Их нельзя переводить или модифицировать
-3. Они должны быть сохранены в точности как есть
+2. ICU MessageFormat структура должна быть сохранена полностью
+3. Переводить только текстовое содержимое внутри блоков
+4. Сохранять все переменные в точности как есть
 
-Model (`gpt-4o-mini` по умолчанию) следует этим инструкциям и сохраняет переменные неизменными во всех типах операций.
+Model (`gpt-4o-mini` по умолчанию) следует этим инструкциям и корректно обрабатывает оба типа конструкций.
 
 ## Влияние на систему
 
 - ✅ **Обратная совместимость**: Не ломает существующий функционал
 - ✅ **Производительность**: Нет влияния на скорость работы
-- ✅ **Качество переводов**: Улучшено - переменные больше не ломаются
-- ✅ **Покрытие тестами**: Добавлено 6 новых тестов
+- ✅ **Качество переводов**: Значительно улучшено:
+  - Переменные больше не ломаются
+  - ICU MessageFormat теперь поддерживается
+  - Структура сложных строк сохраняется корректно
+- ✅ **Покрытие тестами**: 
+  - Добавлено 6 тестов для переменных
+  - Добавлено 5 тестов для ICU MessageFormat
+  - Всего 23 теста AI сервиса (все проходят ✅)
 
 ## Дата изменения
 
