@@ -203,6 +203,51 @@ class KeyService:
         return keys
 
     @staticmethod
+    def get_project_keys_paginated(
+        db: Session, 
+        project_public_id: str, 
+        user_id: int,
+        offset: int = 0,
+        limit: int = 50
+    ) -> Optional[Dict[str, any]]:
+        """
+        Get keys for a project with pagination.
+        
+        Args:
+            db: Database session
+            project_public_id: Public UUID of the project
+            user_id: User ID requesting the keys
+            offset: Number of keys to skip
+            limit: Maximum number of keys to return
+            
+        Returns:
+            Dict with 'keys' list, 'total_count' int, or None if no access
+        """
+        # Get project
+        project = ProjectService.get_project_by_public_id(db, project_public_id)
+        if not project:
+            return None
+        
+        # Check access
+        if not ProjectService.check_project_access(db, project.id, user_id):
+            return None
+        
+        # Get total count
+        total_count = db.query(Key).filter(Key.project_id == project.id).count()
+        
+        # Get paginated keys with eager loading of translations
+        keys = db.query(Key).options(
+            joinedload(Key.translations)
+        ).filter(
+            Key.project_id == project.id
+        ).order_by(Key.key).offset(offset).limit(limit).all()
+        
+        return {
+            'keys': keys,
+            'total_count': total_count
+        }
+
+    @staticmethod
     def check_key_exists(db: Session, project_public_id: str, key: str, user_id: int) -> Optional[bool]:
         """
         Check if a key already exists in a project.

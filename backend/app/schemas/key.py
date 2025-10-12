@@ -128,6 +128,16 @@ class KeyType:
 
 
 @strawberry.type
+class KeysConnection:
+    """
+    Paginated response type for keys.
+    """
+    keys: List[KeyType]
+    total_count: int
+    has_more: bool
+
+
+@strawberry.type
 class BatchImportResult:
     """
     Result type for batch import operation.
@@ -349,16 +359,24 @@ class KeyQuery:
     """
 
     @strawberry.field
-    def project_keys(self, info: Info, project_id: str) -> List[KeyType]:
+    def project_keys(
+        self, 
+        info: Info, 
+        project_id: str,
+        offset: Optional[int] = 0,
+        limit: Optional[int] = 50
+    ) -> KeysConnection:
         """
-        Get all keys for a project.
+        Get keys for a project with pagination support.
         
         Args:
             info: GraphQL info object
             project_id: Project UUID
+            offset: Number of keys to skip (default: 0)
+            limit: Maximum number of keys to return (default: 50)
             
         Returns:
-            List of keys
+            Paginated keys with total count
             
         Raises:
             UnauthorizedError: If user is not authenticated
@@ -368,20 +386,44 @@ class KeyQuery:
             if not current_user_id:
                 raise UnauthorizedError("Authentication required to access keys")
             
+            # Validate pagination parameters
+            if offset is None or offset < 0:
+                offset = 0
+            if limit is None or limit <= 0:
+                limit = 50
+            # Cap maximum limit to prevent abuse
+            if limit > 200:
+                limit = 200
+            
             db: Session = next(get_db())
             try:
-                keys = KeyService.get_project_keys(db, project_id, current_user_id)
-                if keys is None:
-                    return []
+                result = KeyService.get_project_keys_paginated(
+                    db, 
+                    project_id, 
+                    current_user_id,
+                    offset=offset,
+                    limit=limit
+                )
                 
-                return [build_key_type(key) for key in keys]
+                if result is None:
+                    return KeysConnection(keys=[], total_count=0, has_more=False)
+                
+                keys = [build_key_type(key) for key in result['keys']]
+                total_count = result['total_count']
+                has_more = (offset + limit) < total_count
+                
+                return KeysConnection(
+                    keys=keys,
+                    total_count=total_count,
+                    has_more=has_more
+                )
             finally:
                 db.close()
         except UnauthorizedError:
             raise
         except Exception as e:
             logger.error(f"Error in project_keys query: {type(e).__name__}: {str(e)}")
-            return []
+            return KeysConnection(keys=[], total_count=0, has_more=False)
 
     @strawberry.field
     def key(self, info: Info, id: str) -> Optional[KeyType]:

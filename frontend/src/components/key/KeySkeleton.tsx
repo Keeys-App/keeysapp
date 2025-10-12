@@ -10,7 +10,7 @@ interface KeySkeletonProps {
  */
 export const KeySkeleton: FC<KeySkeletonProps> = ({ languagesCount = 5 }) => {
   return (
-    <div className="border-b grid grid-cols-[minmax(300px,300px)_minmax(300px,3fr)]">
+    <div className="border-b grid grid-cols-[221px_minmax(300px,3fr)]">
       {/* Left column: Key name and description */}
       <div className="border-r relative">
         <div className="sticky bg-background top-[2px] z-10 py-2 px-4">
@@ -28,7 +28,7 @@ export const KeySkeleton: FC<KeySkeletonProps> = ({ languagesCount = 5 }) => {
           return (
             <div
               key={index}
-              className="grid grid-cols-[120px_1fr] even:bg-muted/50 border-b"
+              className="grid grid-cols-[120px_1fr] even:bg-muted/50 border-b last:-mb-px"
             >
               {/* Language name and code */}
               <div className="flex flex-col border-r p-2 gap-1">
@@ -47,4 +47,3 @@ export const KeySkeleton: FC<KeySkeletonProps> = ({ languagesCount = 5 }) => {
     </div>
   );
 };
-

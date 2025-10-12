@@ -2,7 +2,7 @@ import strawberry
 from typing import Optional, List
 from app.schemas.auth import AuthQuery, AuthMutation, UserType
 from app.schemas.project import ProjectQuery, ProjectMutation, ProjectType
-from app.schemas.key import KeyQuery, KeyMutation, KeyType, ActivityLogType
+from app.schemas.key import KeyQuery, KeyMutation, KeyType, KeysConnection, ActivityLogType
 
 
 @strawberry.type
@@ -26,7 +26,7 @@ class Query:
     project: Optional[ProjectType] = strawberry.field(resolver=ProjectQuery.project)
     
     # Include key queries
-    project_keys: List[KeyType] = strawberry.field(resolver=KeyQuery.project_keys)
+    project_keys: KeysConnection = strawberry.field(resolver=KeyQuery.project_keys)
     key: Optional[KeyType] = strawberry.field(resolver=KeyQuery.key)
     check_key_exists: bool = strawberry.field(resolver=KeyQuery.check_key_exists)
     

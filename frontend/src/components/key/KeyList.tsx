@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { GET_PROJECT_KEYS } from "@/graphql/keys";
 import type { TranslationKey } from "@/types/translationKey";
@@ -10,6 +10,7 @@ import { KeyControls } from "./KeyControls";
 import type { Language, LanguageWithLocale } from "@/types/project";
 import { getUserFriendlyErrorMessage } from "@/lib/utils";
 import { ErrorState } from "../blocks";
+import { CustomScrollbar } from "@/components/ui/custom-scrollbar";
 
 interface KeyListProps {
   projectId: string;
@@ -18,6 +19,8 @@ interface KeyListProps {
   selectedKey?: TranslationKey | null;
   onSelectKey?: (key: TranslationKey) => void;
 }
+
+const PAGE_SIZE = 20;
 
 export function KeyList({
   projectId,
@@ -30,19 +33,62 @@ export function KeyList({
     keyId: string;
     language: string;
   } | null>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  const { data, loading, error } = useQuery(GET_PROJECT_KEYS, {
-    variables: { projectId },
+  const { data, loading, error, fetchMore } = useQuery(GET_PROJECT_KEYS, {
+    variables: { 
+      projectId,
+      offset: 0,
+      limit: PAGE_SIZE
+    },
     skip: !projectId,
-    fetchPolicy: 'cache-and-network', // Always fetch fresh data but use cache while loading
+    fetchPolicy: 'cache-and-network',
     nextFetchPolicy: 'cache-first',
-    notifyOnNetworkStatusChange: false, // Don't trigger re-renders on network status changes
+    notifyOnNetworkStatusChange: false,
   });
 
   const parentRef = useRef<HTMLDivElement>(null);
   
-  // Use keys directly from data - Apollo handles caching
-  const keys: TranslationKey[] = data?.projectKeys || [];
+  // Extract keys from paginated response
+  const keys: TranslationKey[] = data?.projectKeys?.keys || [];
+  const totalCount = data?.projectKeys?.totalCount || 0;
+  const hasMore = data?.projectKeys?.hasMore || false;
+
+  // Load more keys when scrolling near the end
+  const loadMoreKeys = useCallback(async () => {
+    if (isLoadingMore || !hasMore) {
+      return;
+    }
+
+    setIsLoadingMore(true);
+    try {
+      await fetchMore({
+        variables: {
+          offset: keys.length,
+          limit: PAGE_SIZE,
+        },
+        updateQuery: (prev, { fetchMoreResult }) => {
+          if (!fetchMoreResult) {
+            return prev;
+          }
+
+          return {
+            projectKeys: {
+              ...fetchMoreResult.projectKeys,
+              keys: [
+                ...(prev.projectKeys?.keys || []),
+                ...(fetchMoreResult.projectKeys?.keys || []),
+              ],
+            },
+          };
+        },
+      });
+    } catch (err) {
+      console.error("Failed to load more keys:", err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [fetchMore, keys.length, hasMore, isLoadingMore]);
 
   // Calculate estimated size based on number of languages
   // Each language row is approximately 60px, plus some padding
@@ -50,8 +96,9 @@ export function KeyList({
     return projectLanguages.length * 60 + 40;
   };
 
+  // Use totalCount for virtualizer to show correct scrollbar proportions
   const virtualizer = useVirtualizer({
-    count: keys.length,
+    count: totalCount || keys.length,
     getScrollElement: () => parentRef.current,
     estimateSize,
     overscan: 5,
@@ -61,6 +108,35 @@ export function KeyList({
         ? (element) => element?.getBoundingClientRect().height
         : undefined,
   });
+
+  // Check if we need to load more when scrolling
+  const virtualItems = virtualizer.getVirtualItems();
+  
+  useEffect(() => {
+    if (!virtualItems.length) {
+      return;
+    }
+
+    // Check if any visible item is not loaded yet
+    const lastVisibleIndex = virtualItems[virtualItems.length - 1].index;
+    
+    // Load more if we're viewing items beyond what's loaded
+    if (
+      lastVisibleIndex >= keys.length - 10 && // Start loading 10 items before the end
+      hasMore &&
+      !isLoadingMore &&
+      !loading
+    ) {
+      loadMoreKeys();
+    }
+  }, [
+    hasMore,
+    loadMoreKeys,
+    keys.length,
+    isLoadingMore,
+    loading,
+    virtualItems,
+  ]);
 
   if (loading) {
     return (
@@ -93,47 +169,83 @@ export function KeyList({
           <EmptyKeys projectId={projectId} onCreateKey={onCreateKey} />
         </div>
       ) : (
-        <div
-          ref={parentRef}
-          className="flex-1 overflow-auto"
-        >
+        <div className="relative flex-1">
           <div
-            style={{
-              paddingTop: virtualizer.getVirtualItems()[0]?.start || 0,
-              paddingBottom: 
-                virtualizer.getTotalSize() - 
-                (virtualizer.getVirtualItems()[virtualizer.getVirtualItems().length - 1]?.end || 0),
-            }}
+            ref={parentRef}
+            className="absolute inset-0 overflow-auto pr-3 hide-scrollbar"
           >
-            {virtualizer.getVirtualItems().map((virtualItem) => {
-              const key = keys[virtualItem.index];
-              return (
-                <div
-                  key={key.id}
-                  data-index={virtualItem.index}
-                  ref={virtualizer.measureElement}
-                >
-                  <Key
-                    keyData={key}
-                    projectId={projectId}
-                    projectLanguages={projectLanguages}
-                    isSelected={selectedKey?.id === key.id}
-                    onSelect={onSelectKey}
-                    editingLanguage={
-                      editingTranslation?.keyId === key.id
-                        ? editingTranslation.language
-                        : null
-                    }
-                    onEditingLanguageChange={(language) => {
-                      setEditingTranslation(
-                        language ? { keyId: key.id, language } : null
-                      );
+            <div
+              style={{
+                height: virtualizer.getTotalSize(),
+                width: "100%",
+                position: "relative",
+              }}
+            >
+              {virtualizer.getVirtualItems().map((virtualItem) => {
+                const key = keys[virtualItem.index];
+                
+                // If key is not loaded yet, show skeleton
+                if (!key) {
+                  return (
+                    <div
+                      key={`skeleton-${virtualItem.index}`}
+                      data-index={virtualItem.index}
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        transform: `translateY(${virtualItem.start}px)`,
+                      }}
+                    >
+                      <KeySkeleton languagesCount={projectLanguages.length || 5} />
+                    </div>
+                  );
+                }
+                
+                return (
+                  <div
+                    key={key.id}
+                    data-index={virtualItem.index}
+                    ref={virtualizer.measureElement}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      transform: `translateY(${virtualItem.start}px)`,
                     }}
-                  />
-                </div>
-              );
-            })}
+                  >
+                    <Key
+                      keyData={key}
+                      projectId={projectId}
+                      projectLanguages={projectLanguages}
+                      isSelected={selectedKey?.id === key.id}
+                      onSelect={onSelectKey}
+                      editingLanguage={
+                        editingTranslation?.keyId === key.id
+                          ? editingTranslation.language
+                          : null
+                      }
+                      onEditingLanguageChange={(language) => {
+                        setEditingTranslation(
+                          language ? { keyId: key.id, language } : null
+                        );
+                      }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
           </div>
+          
+          {/* Custom scrollbar */}
+          <CustomScrollbar
+            scrollContainerRef={parentRef}
+            totalItems={totalCount}
+            loadedItems={keys.length}
+            itemHeight={estimateSize()}
+          />
         </div>
       )}
     </div>
