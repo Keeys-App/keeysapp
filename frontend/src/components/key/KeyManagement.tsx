@@ -35,7 +35,9 @@ export const KeyManagement: FC<KeyManagementProps> = ({
         ) : (
           <Tabs defaultValue="history" className="h-full flex flex-col">
             <TabsList className="mx-4 mt-4 mb-2 gap-0">
+              <TabsTrigger value="suggestions">Suggestions</TabsTrigger>
               <TabsTrigger value="history">History</TabsTrigger>
+              <TabsTrigger value="meta">Metadata</TabsTrigger>
               <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
 
@@ -43,7 +45,7 @@ export const KeyManagement: FC<KeyManagementProps> = ({
               <KeyLogsTimeline keyId={selectedKey.id} />
             </TabsContent>
 
-            <TabsContent value="settings" className="flex-1 px-4 pb-4 overflow-auto">
+            <TabsContent value="meta" className="flex-1 px-4 pb-4 overflow-auto">
               <KeySettingsForm 
                 selectedKey={selectedKey} 
                 availableTags={availableTags} 
