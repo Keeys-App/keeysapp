@@ -115,7 +115,7 @@ export const KeySettingsForm: FC<KeySettingsFormProps> = ({
     JSON.stringify([...tags].sort()) !== JSON.stringify([...savedTags].sort());
 
   return (
-    <div className="space-y-4 mt-4">
+    <div className="space-y-4">
       <Field>
         <FieldLabel>Key Name</FieldLabel>
         <Textarea

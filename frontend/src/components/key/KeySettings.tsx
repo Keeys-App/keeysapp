@@ -71,7 +71,7 @@ export const KeySettings: FC<KeySettingsProps> = ({
   };
 
   return (
-    <div className="space-y-6 mt-4">
+    <div className="space-y-4">
       <div className="space-y-2">
         <h3 className="text-sm font-semibold text-destructive">Danger Zone</h3>
         <p className="text-sm text-muted-foreground">
