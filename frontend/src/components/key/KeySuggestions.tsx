@@ -639,7 +639,7 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
       ) : null}
 
       {/* Loading skeleton (only when language is selected) */}
-      {currentLanguage && (isGenerating || isSaving) ? (
+      {currentLanguage && isGenerating ? (
         <AutopilotSuggestionSkeleton />
       ) : null}
     </AutopilotSuggestionsList>
