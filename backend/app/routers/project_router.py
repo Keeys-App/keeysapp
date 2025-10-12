@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Header
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Header, Form
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from typing import Optional
@@ -8,6 +8,7 @@ from urllib.parse import quote
 
 from app.database import get_db
 from app.services.project_service import ProjectService
+from app.services.team_service import TeamService
 from app.services.user_service import UserService
 from app.core.security import decode_access_token
 
@@ -105,14 +106,16 @@ async def export_project(
 @router.post("/import")
 async def import_project(
     file: UploadFile = File(...),
+    team_id: str = Form(...),
     db: Session = Depends(get_db),
     authorization: Optional[str] = Header(None)
 ):
     """
-    Import project from JSON file.
+    Import project from JSON file into a team.
     
     Args:
         file: Uploaded JSON file
+        team_id: Team UUID to import project into
         authorization: Bearer token from header
         db: Database session
         
@@ -129,6 +132,21 @@ async def import_project(
             raise HTTPException(status_code=401, detail="Authentication required")
         
         logger.info(f"Import requested by user_id: {user_id}")
+        
+        # Validate and get team
+        try:
+            team = TeamService.get_team_by_public_id(db, team_id)
+            if not team:
+                logger.warning(f"Import failed: Team not found - {team_id}")
+                raise HTTPException(status_code=404, detail="Team not found")
+            
+            # Check if user has access to team
+            if not TeamService.check_user_team_access(db, team.id, user_id):
+                logger.warning(f"Import failed: User {user_id} has no access to team {team_id}")
+                raise HTTPException(status_code=403, detail="Access denied")
+        except (ValueError, AttributeError):
+            logger.warning(f"Import failed: Invalid team_id format - {team_id}")
+            raise HTTPException(status_code=400, detail="Invalid team ID")
         
         # Validate file type
         if not file.filename.endswith('.json'):
@@ -153,10 +171,10 @@ async def import_project(
             logger.warning("Import failed: Project name is missing")
             raise HTTPException(status_code=400, detail="Project name is required")
         
-        logger.info(f"Importing project: {project_data.get('name')}")
+        logger.info(f"Importing project: {project_data.get('name')} into team {team.name}")
         
         # Import project
-        project = ProjectService.import_project_data(db, user_id, project_data)
+        project = ProjectService.import_project_data(db, user_id, team.id, project_data)
         
         if not project:
             logger.error("Import failed: ProjectService returned None")
