@@ -514,6 +514,45 @@ def migrate_to_activity_logs_if_needed():
         return False
 
 
+def migrate_add_ai_translation_action_type_if_needed():
+    """
+    Add TRANSLATION_AI_UPDATE action type to enum.
+    Safe to run multiple times.
+    """
+    try:
+        logger.info("🔄 Migration: Adding TRANSLATION_AI_UPDATE action type")
+        
+        with engine.connect() as connection:
+            # Check if enum value exists by querying pg_enum
+            result = connection.execute(text("""
+                SELECT EXISTS (
+                    SELECT 1 
+                    FROM pg_type t 
+                    JOIN pg_enum e ON t.oid = e.enumtypid 
+                    WHERE t.typname = 'actiontype' 
+                    AND e.enumlabel = 'TRANSLATION_AI_UPDATE'
+                )
+            """))
+            exists = result.scalar()
+            
+            if exists:
+                logger.info("✅ Migration: TRANSLATION_AI_UPDATE already exists, skipping")
+                return True
+            
+            # Add the new enum value
+            logger.info("Adding TRANSLATION_AI_UPDATE to actiontype enum...")
+            connection.execute(
+                text("ALTER TYPE actiontype ADD VALUE 'TRANSLATION_AI_UPDATE'")
+            )
+            connection.commit()
+            logger.info("✅ Migration: TRANSLATION_AI_UPDATE added successfully")
+            return True
+        
+    except Exception as e:
+        logger.error(f"❌ Migration failed: {str(e)}")
+        return False
+
+
 def run_all_migrations():
     """
     Run all pending migrations.
@@ -531,6 +570,7 @@ def run_all_migrations():
         ("add_review_status", migrate_add_review_status_if_needed),
         ("move_review_to_translations", migrate_move_review_to_translations_if_needed),
         ("migrate_to_activity_logs", migrate_to_activity_logs_if_needed),
+        ("add_ai_translation_action_type", migrate_add_ai_translation_action_type_if_needed),
         # Add more migrations here as needed
     ]
     

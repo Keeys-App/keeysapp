@@ -49,6 +49,7 @@ class ActionTypeEnum(str, enum.Enum):
     
     # Translation actions
     TRANSLATION_UPDATE = "TRANSLATION_UPDATE"
+    TRANSLATION_AI_UPDATE = "TRANSLATION_AI_UPDATE"
     TRANSLATION_DELETE = "TRANSLATION_DELETE"
     TRANSLATION_IMPORT = "TRANSLATION_IMPORT"
     
@@ -180,6 +181,7 @@ class SetTranslationInput:
     key_id: str  # Key UUID
     language: str
     value: str
+    is_ai_generated: Optional[bool] = False
 
 
 @strawberry.input
@@ -300,6 +302,7 @@ def build_activity_log_type(log) -> ActivityLogType:
         
         # Translation actions
         "TRANSLATION_UPDATE": ActionTypeEnum.TRANSLATION_UPDATE,
+        "TRANSLATION_AI_UPDATE": ActionTypeEnum.TRANSLATION_AI_UPDATE,
         "TRANSLATION_DELETE": ActionTypeEnum.TRANSLATION_DELETE,
         "TRANSLATION_IMPORT": ActionTypeEnum.TRANSLATION_IMPORT,
         
@@ -757,7 +760,8 @@ class KeyMutation:
                 key_public_id=input.key_id,
                 language=input.language,
                 value=input.value,
-                user_id=current_user_id
+                user_id=current_user_id,
+                is_ai_generated=input.is_ai_generated or False
             )
             
             if not translation:

@@ -15,6 +15,7 @@ import {
   MessageSquareHeart,
   MessageSquareX,
   MessageSquareOff,
+  Sparkles,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -58,6 +59,7 @@ const actionLabels: Record<string, string> = {
   KEY_UPDATE_DESCRIPTION: "Description updated",
   KEY_DELETE: "Deleted",
   TRANSLATION_UPDATE: "Translation updated",
+  TRANSLATION_AI_UPDATE: "AI translation",
   TRANSLATION_DELETE: "Translation deleted",
   TRANSLATION_IMPORT: "Imported",
   REVIEW_APPROVE: "Approved",
@@ -81,6 +83,7 @@ const actionIcons: Record<string, typeof History> = {
   KEY_UPDATE_DESCRIPTION: FileText,
   KEY_DELETE: Trash,
   TRANSLATION_UPDATE: Languages,
+  TRANSLATION_AI_UPDATE: Sparkles,
   TRANSLATION_DELETE: Delete,
   TRANSLATION_IMPORT: FileDown,
   REVIEW_APPROVE: MessageSquareHeart,
@@ -104,6 +107,7 @@ const actionColors: Record<string, string> = {
   KEY_UPDATE_DESCRIPTION: "bg-blue-500/10 text-blue-600",
   KEY_DELETE: "bg-red-500/10 text-red-600",
   TRANSLATION_UPDATE: "bg-purple-500/10 text-purple-600",
+  TRANSLATION_AI_UPDATE: "bg-indigo-500/10 text-indigo-600",
   TRANSLATION_DELETE: "bg-red-500/10 text-red-600",
   TRANSLATION_IMPORT: "bg-cyan-500/10 text-cyan-600",
   REVIEW_APPROVE: "bg-green-500/10 text-green-600",

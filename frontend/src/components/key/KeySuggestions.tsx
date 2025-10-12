@@ -18,6 +18,7 @@ import {
   type AiShortenData,
   type AiSuggestVariantsData,
 } from "@/graphql/ai";
+import { SET_TRANSLATION, GET_KEY, GET_KEY_LOGS } from "@/graphql/keys";
 import { toast } from "sonner";
 import { useSaving, useSavingStore } from "@/stores";
 import { Textarea } from "@/components/ui/textarea";
@@ -71,6 +72,21 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
   const [shortenMutation] = useMutation<AiShortenData>(AI_SHORTEN);
   const [variantsMutation] =
     useMutation<AiSuggestVariantsData>(AI_SUGGEST_VARIANTS);
+  
+  // Translation mutation
+  const [setTranslation] = useMutation(SET_TRANSLATION, {
+    refetchQueries: [
+      {
+        query: GET_KEY_LOGS,
+        variables: { keyId: currentKey.id, limit: 50 },
+      },
+      {
+        query: GET_KEY,
+        variables: { id: currentKey.id },
+      },
+    ],
+    awaitRefetchQueries: true,
+  });
 
   // Clear suggestions when language changes
   useEffect(() => {
@@ -261,9 +277,34 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
     toast("Context removed");
   };
 
-  const handleUseSuggestion = (text: string) => {
-    // TODO: Apply suggestion to translation field
-    toast("Apply suggestion - coming soon");
+  const handleUseSuggestion = async (text: string) => {
+    if (!currentLanguage) {
+      return;
+    }
+
+    await withSaving(async () => {
+      try {
+        await setTranslation({
+          variables: {
+            input: {
+              keyId: currentKey.id,
+              value: text,
+              language: currentLanguage.code,
+              isAiGenerated: true,
+            },
+          },
+        });
+
+        toast("AI suggestion applied", {
+          description: `Translation updated for ${currentLanguage.name}`,
+        });
+        
+        // Clear the suggestion after using it
+        setSuggestions((prev) => prev.filter((s) => s.text !== text));
+      } catch (error) {
+        toast("Failed to apply suggestion");
+      }
+    }, "Applying suggestion...");
   };
 
   const handleDiscardSuggestion = (id: string) => {
@@ -298,10 +339,35 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
     setSelectedVariant("");
   };
 
-  const handleUseSelectedVariant = () => {
-    if (selectedVariant) {
-      handleUseSuggestion(selectedVariant);
+  const handleUseSelectedVariant = async () => {
+    if (!selectedVariant || !currentLanguage) {
+      return;
     }
+
+    await withSaving(async () => {
+      try {
+        await setTranslation({
+          variables: {
+            input: {
+              keyId: currentKey.id,
+              value: selectedVariant,
+              language: currentLanguage.code,
+              isAiGenerated: true,
+            },
+          },
+        });
+
+        toast("AI variant applied", {
+          description: `Translation updated for ${currentLanguage.name}`,
+        });
+        
+        // Clear all variants after using one
+        setVariants([]);
+        setSelectedVariant("");
+      } catch (error) {
+        toast("Failed to apply variant");
+      }
+    }, "Applying variant...");
   };
 
   // Get type-specific icon and label
@@ -370,8 +436,8 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
     <AutopilotSuggestionsList>
       {card}
 
-      {/* Context card (single unified context) - only show when language is selected */}
-      {currentLanguage && isEditingContext ? (
+      {/* Context card (single unified context) - only show when language is selected and not in disabled state */}
+      {currentLanguage && (currentLanguageValue || defaultLanguageValue) && isEditingContext ? (
         // Edit mode
         <AutopilotSuggestion
           icon={BookPlus}
@@ -403,7 +469,7 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
           ]}
           withGradient={false}
         />
-      ) : currentLanguage && customContext ? (
+      ) : currentLanguage && (currentLanguageValue || defaultLanguageValue) && customContext ? (
         // View mode (saved context)
         <AutopilotSuggestion
           icon={BookPlus}
