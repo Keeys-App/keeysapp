@@ -39,7 +39,8 @@ export function KeyList({
   editingTranslation = null,
   onEditingTranslationChange,
 }: KeyListProps) {
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [loadingRanges, setLoadingRanges] = useState<Set<number>>(new Set());
+  const keysMapRef = useRef<Map<number, TranslationKey>>(new Map());
 
   const { data, loading, error, fetchMore } = useQuery(GET_PROJECT_KEYS, {
     variables: { 
@@ -56,45 +57,80 @@ export function KeyList({
   const parentRef = useRef<HTMLDivElement>(null);
   
   // Extract keys from paginated response
-  const keys: TranslationKey[] = data?.projectKeys?.keys || [];
+  const initialKeys: TranslationKey[] = data?.projectKeys?.keys || [];
   const totalCount = data?.projectKeys?.totalCount || 0;
-  const hasMore = data?.projectKeys?.hasMore || false;
 
-  // Load more keys when scrolling near the end
-  const loadMoreKeys = useCallback(async () => {
-    if (isLoadingMore || !hasMore) {
+  // Clear cache when project changes
+  useEffect(() => {
+    keysMapRef.current.clear();
+    setLoadingRanges(new Set());
+  }, [projectId]);
+
+  // Update keys map with initial data
+  useEffect(() => {
+    if (initialKeys.length > 0) {
+      initialKeys.forEach((key, index) => {
+        keysMapRef.current.set(index, key);
+      });
+    }
+  }, [initialKeys]);
+
+  // Convert map to array for rendering
+  const keys: (TranslationKey | undefined)[] = Array.from(
+    { length: totalCount },
+    (_, index) => keysMapRef.current.get(index)
+  );
+
+  // Load specific range of keys
+  const loadKeysRange = useCallback(async (startIndex: number) => {
+    const pageOffset = Math.floor(startIndex / PAGE_SIZE) * PAGE_SIZE;
+    
+    // Don't load if already loading this range
+    if (loadingRanges.has(pageOffset)) {
       return;
     }
 
-    setIsLoadingMore(true);
+    // Don't load if all keys in this range are already loaded
+    const rangeLoaded = Array.from(
+      { length: PAGE_SIZE },
+      (_, i) => keysMapRef.current.has(pageOffset + i)
+    ).every(Boolean);
+
+    if (rangeLoaded && pageOffset + PAGE_SIZE <= totalCount) {
+      return;
+    }
+
+    setLoadingRanges((prev) => new Set(prev).add(pageOffset));
+    
     try {
-      await fetchMore({
+      const result = await fetchMore({
         variables: {
-          offset: keys.length,
+          offset: pageOffset,
           limit: PAGE_SIZE,
         },
-        updateQuery: (prev, { fetchMoreResult }) => {
-          if (!fetchMoreResult) {
-            return prev;
-          }
+      });
 
-          return {
-            projectKeys: {
-              ...fetchMoreResult.projectKeys,
-              keys: [
-                ...(prev.projectKeys?.keys || []),
-                ...(fetchMoreResult.projectKeys?.keys || []),
-              ],
-            },
-          };
-        },
+      // Update keys map with new data
+      const newKeys = result.data?.projectKeys?.keys || [];
+      newKeys.forEach((key, index) => {
+        keysMapRef.current.set(pageOffset + index, key);
+      });
+
+      // Force re-render
+      setLoadingRanges((prev) => {
+        const next = new Set(prev);
+        next.delete(pageOffset);
+        return next;
       });
     } catch (err) {
-      console.error("Failed to load more keys:", err);
-    } finally {
-      setIsLoadingMore(false);
+      console.error("Failed to load keys range:", err);
+      setLoadingRanges((prev) => {
+        const next = new Set(prev);
+        next.delete(pageOffset);
+        return next;
+      });
     }
-  }, [fetchMore, keys.length, hasMore, isLoadingMore]);
+  }, [fetchMore, totalCount, loadingRanges]);
 
   // Calculate estimated size based on number of languages
   // Each language row is approximately 60px, plus some padding
@@ -119,30 +155,44 @@ export function KeyList({
   const virtualItems = virtualizer.getVirtualItems();
   
   useEffect(() => {
-    if (!virtualItems.length) {
+    if (!virtualItems.length || loading || !totalCount) {
       return;
     }
 
-    // Check if any visible item is not loaded yet
-    const lastVisibleIndex = virtualItems[virtualItems.length - 1].index;
-    
-    // Load more if we're viewing items beyond what's loaded
-    if (
-      lastVisibleIndex >= keys.length - 10 && // Start loading 10 items before the end
-      hasMore &&
-      !isLoadingMore &&
-      !loading
-    ) {
-      loadMoreKeys();
-    }
-  }, [
-    hasMore,
-    loadMoreKeys,
-    keys.length,
-    isLoadingMore,
-    loading,
-    virtualItems,
-  ]);
+    // Check all visible items and load missing ranges
+    const visibleIndices = virtualItems.map(item => item.index);
+    const minIndex = Math.min(...visibleIndices);
+    const maxIndex = Math.max(...visibleIndices);
+
+    // Load ranges for all visible items that aren't loaded yet
+    const indicesToCheck = Array.from(
+      { length: maxIndex - minIndex + 1 },
+      (_, i) => minIndex + i
+    );
+
+    // Also preload adjacent pages for smooth scrolling
+    const preloadCount = PAGE_SIZE;
+    const preloadBefore = Math.max(0, minIndex - preloadCount);
+    const preloadAfter = Math.min(totalCount - 1, maxIndex + preloadCount);
+
+    const allIndicesToCheck = [
+      ...Array.from({ length: minIndex - preloadBefore }, (_, i) => preloadBefore + i),
+      ...indicesToCheck,
+      ...Array.from({ length: preloadAfter - maxIndex }, (_, i) => maxIndex + 1 + i),
+    ];
+
+    // Find unique page offsets that need to be loaded
+    const pagesToLoad = new Set(
+      allIndicesToCheck
+        .filter(index => !keysMapRef.current.has(index))
+        .map(index => Math.floor(index / PAGE_SIZE) * PAGE_SIZE)
+    );
+
+    // Load all missing pages
+    pagesToLoad.forEach(pageOffset => {
+      loadKeysRange(pageOffset);
+    });
+  }, [virtualItems, loading, totalCount, loadKeysRange]);
 
   if (loading) {
     return (
@@ -240,7 +290,7 @@ export function KeyList({
           <CustomScrollbar
             scrollContainerRef={parentRef}
             totalItems={totalCount}
-            loadedItems={keys.length}
+            loadedItems={keysMapRef.current.size}
             totalHeight={virtualizer.getTotalSize()}
           />
         </div>
