@@ -12,13 +12,17 @@ import type { GetTeamsResponse } from '@/graphql/teams';
 export const TeamsPage: FC = () => {
   const navigate = useNavigate();
   const { setBreadcrumbs } = useBreadcrumbs();
-  const { data, loading, error } = useQuery<GetTeamsResponse>(GET_TEAMS);
+  const { data, loading, error } = useQuery<GetTeamsResponse>(GET_TEAMS, {
+    fetchPolicy: 'cache-and-network',
+    nextFetchPolicy: 'cache-first',
+  });
 
   useEffect(() => {
     setBreadcrumbs([{ label: 'Teams' }]);
   }, [setBreadcrumbs]);
 
-  if (loading) {
+  // Only show spinner if loading AND no data from cache
+  if (loading && !data) {
     return (
       <div className="flex h-full items-center justify-center">
         <Spinner className="h-8 w-8" />

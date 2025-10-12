@@ -1,4 +1,4 @@
-import { FC, useState, useEffect } from 'react';
+import { FC, useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, ChevronsUpDown, PlusCircle, Users } from 'lucide-react';
 import { useQuery } from '@apollo/client';
@@ -33,7 +33,10 @@ export const TeamSwitcher: FC<TeamSwitcherProps> = ({
 }) => {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
-  const { data, loading } = useQuery<GetTeamsResponse>(GET_TEAMS);
+  const { data, loading } = useQuery<GetTeamsResponse>(GET_TEAMS, {
+    fetchPolicy: 'cache-and-network',
+    nextFetchPolicy: 'cache-first',
+  });
 
   const teams = data?.teams || [];
   const selectedTeam = teams.find((team) => {
@@ -41,8 +44,12 @@ export const TeamSwitcher: FC<TeamSwitcherProps> = ({
   });
 
   // Auto-select first team if none selected and teams are loaded
+  // Use ref to prevent infinite loops
+  const hasAutoSelectedRef = useRef(false);
+  
   useEffect(() => {
-    if (!loading && teams.length > 0 && !selectedTeamId && onTeamChange) {
+    if (!loading && teams.length > 0 && !selectedTeamId && onTeamChange && !hasAutoSelectedRef.current) {
+      hasAutoSelectedRef.current = true;
       onTeamChange(teams[0].id);
     }
   }, [loading, teams, selectedTeamId, onTeamChange]);

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type FC, type ReactNode } from 'react';
+import { createContext, useContext, useState, useMemo, useCallback, type FC, type ReactNode } from 'react';
 
 /**
  * Breadcrumb item interface
@@ -32,10 +32,20 @@ interface BreadcrumbProviderProps {
  * Breadcrumb provider component
  */
 export const BreadcrumbProvider: FC<BreadcrumbProviderProps> = ({ children }) => {
-  const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>([]);
+  const [breadcrumbs, setBreadcrumbsState] = useState<BreadcrumbItem[]>([]);
+
+  // Memoize setBreadcrumbs to prevent useEffect loops
+  const setBreadcrumbs = useCallback((newBreadcrumbs: BreadcrumbItem[]) => {
+    setBreadcrumbsState(newBreadcrumbs);
+  }, []);
+
+  // Memoize context value to prevent unnecessary re-renders
+  const value = useMemo(() => {
+    return { breadcrumbs, setBreadcrumbs };
+  }, [breadcrumbs, setBreadcrumbs]);
 
   return (
-    <BreadcrumbContext.Provider value={{ breadcrumbs, setBreadcrumbs }}>
+    <BreadcrumbContext.Provider value={value}>
       {children}
     </BreadcrumbContext.Provider>
   );

@@ -19,7 +19,9 @@ interface TeamSelectorProps {
 }
 
 export const TeamSelector: FC<TeamSelectorProps> = ({ value, onChange, disabled }) => {
-  const { data, loading, error } = useQuery<GetTeamsResponse>(GET_TEAMS);
+  const { data, loading, error } = useQuery<GetTeamsResponse>(GET_TEAMS, {
+    fetchPolicy: 'cache-first',
+  });
 
   if (loading) {
     return (

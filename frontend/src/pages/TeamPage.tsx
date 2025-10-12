@@ -20,6 +20,8 @@ export const TeamPage: FC = () => {
   const { data, loading, error } = useQuery<GetTeamResponse>(GET_TEAM, {
     variables: { id },
     skip: !id,
+    fetchPolicy: 'cache-and-network',
+    nextFetchPolicy: 'cache-first',
   });
 
   const team = data?.team;
@@ -33,7 +35,8 @@ export const TeamPage: FC = () => {
     }
   }, [team, setBreadcrumbs]);
 
-  if (loading) {
+  // Only show spinner if loading AND no cached data
+  if (loading && !data) {
     return (
       <div className="flex h-full items-center justify-center">
         <Spinner className="h-8 w-8" />

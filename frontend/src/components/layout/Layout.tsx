@@ -1,4 +1,4 @@
-import { Fragment, type FC } from 'react';
+import { Fragment, useMemo, type FC } from 'react';
 import { Outlet } from 'react-router-dom';
 import { AppSidebar } from './AppSidebar';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
@@ -30,7 +30,8 @@ export const Layout: FC = () => {
   const { isPanelOpen, showPanelToggle, togglePanel } = useLayoutStore();
   const { selectedTeamId, setSelectedTeamId } = useTeamStore();
 
-  const getBreadcrumbs = () => {
+  const getBreadcrumbs = useMemo(() => {
+    return () => {
     if (breadcrumbs.length === 0) {
       return (
         <BreadcrumbItem>
@@ -55,7 +56,8 @@ export const Layout: FC = () => {
         </Fragment>
       );
     });
-  };
+    };
+  }, [breadcrumbs]);
 
   return (
     <SidebarProvider defaultOpen={false}>
