@@ -7,6 +7,7 @@ from app.models.project import Project
 from app.models.key import Key, Translation
 from app.models.user import User
 from app.services.project_service import ProjectService
+from app.services.team_service import TeamService
 from app.services.key_service import KeyService
 from app.schemas.project import build_project_type
 
@@ -26,10 +27,18 @@ def test_translation_progress_calculation(db_session: Session):
     db_session.commit()
     db_session.refresh(user)
     
+    # Create test team
+    team = TeamService.create_team(
+        db=db_session,
+        owner_id=user.id,
+        name="Test Team"
+    )
+    
     # Create project with 2 languages
     project = ProjectService.create_project(
         db=db_session,
         owner_id=user.id,
+        team_id=team.id,
         name="Test Project",
         languages=[
             {"code": "en", "locale": "en-US"},
@@ -119,10 +128,18 @@ def test_translation_with_whitespace_not_counted(db_session: Session):
     db_session.commit()
     db_session.refresh(user)
     
+    # Create test team
+    team = TeamService.create_team(
+        db=db_session,
+        owner_id=user.id,
+        name="Test Team 2"
+    )
+    
     # Create project with 1 language
     project = ProjectService.create_project(
         db=db_session,
         owner_id=user.id,
+        team_id=team.id,
         name="Test Project 2",
         languages=[{"code": "en", "locale": "en-US"}]
     )
@@ -167,10 +184,18 @@ def test_empty_string_translation_not_counted(db_session: Session):
     db_session.commit()
     db_session.refresh(user)
     
+    # Create test team
+    team = TeamService.create_team(
+        db=db_session,
+        owner_id=user.id,
+        name="Test Team 3"
+    )
+    
     # Create project with 1 language
     project = ProjectService.create_project(
         db=db_session,
         owner_id=user.id,
+        team_id=team.id,
         name="Test Project 3",
         languages=[{"code": "en", "locale": "en-US"}]
     )

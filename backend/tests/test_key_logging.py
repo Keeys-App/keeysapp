@@ -28,14 +28,15 @@ def test_user(db_session: Session):
 
 
 @pytest.fixture
-def test_project(db_session: Session, test_user: User):
+def test_project(db_session: Session, test_user: User, test_team):
     """Create a test project."""
     project = ProjectService.create_project(
         db=db_session,
+        owner_id=test_user.id,
+        team_id=test_team.id,
         name="Test Project",
         description="Test Description",
-        languages=["en", "ru"],
-        owner_id=test_user.id
+        languages=["en", "ru"]
     )
     return project
 

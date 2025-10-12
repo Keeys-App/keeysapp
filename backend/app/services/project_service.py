@@ -521,16 +521,16 @@ class ProjectService:
         if project.owner_id == user.id:
             return False
         
-        # Find and remove member
-        member = db.query(ProjectMember).filter(
-            ProjectMember.project_id == project.id,
-            ProjectMember.user_id == user.id
+        # Find and remove project access
+        access = db.query(ProjectAccess).filter(
+            ProjectAccess.project_id == project.id,
+            ProjectAccess.user_id == user.id
         ).first()
         
-        if not member:
+        if not access:
             return False
         
-        db.delete(member)
+        db.delete(access)
         db.commit()
         return True
 

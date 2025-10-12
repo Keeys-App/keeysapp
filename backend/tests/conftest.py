@@ -7,7 +7,11 @@ from sqlalchemy.orm import sessionmaker
 from app.models.base import Base
 from app.models.user import User  # Import User so table is registered
 from app.models.project import Project, ProjectMember  # Import Project models
+from app.models.team import Team, TeamMember  # Import Team models
+from app.models.team_invitation import TeamInvitation  # Import TeamInvitation model
+from app.models.project_access import ProjectAccess  # Import ProjectAccess model
 from app.models.key import Key, Translation  # Import Key models
+from app.services.team_service import TeamService
 
 
 # Use in-memory SQLite for tests
@@ -70,4 +74,18 @@ def test_user(created_user):
     Alias for created_user for project tests.
     """
     return created_user
+
+
+@pytest.fixture
+def test_team(db_session, test_user):
+    """
+    Create a test team for the test user.
+    """
+    team = TeamService.create_team(
+        db=db_session,
+        owner_id=test_user.id,
+        name="Test Team",
+        description="Team for testing"
+    )
+    return team
 
