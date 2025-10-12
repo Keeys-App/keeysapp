@@ -4,6 +4,7 @@ import uuid as uuid_lib
 import logging
 
 from app.models.team import Team, TeamMember
+from app.models.team_invitation import TeamInvitation, InvitationStatus
 from app.models.user import User
 
 logger = logging.getLogger(__name__)
@@ -60,7 +61,8 @@ class TeamService:
             uuid_obj = uuid_lib.UUID(public_id)
             return db.query(Team).options(
                 joinedload(Team.owner),
-                selectinload(Team.members).joinedload(TeamMember.user)
+                selectinload(Team.members).joinedload(TeamMember.user),
+                selectinload(Team.invitations).joinedload(TeamInvitation.invited_by)
             ).filter(Team.public_id == uuid_obj).first()
         except (ValueError, AttributeError):
             return None
@@ -81,6 +83,7 @@ class TeamService:
         eager_options = [
             joinedload(Team.owner),
             selectinload(Team.members).joinedload(TeamMember.user),
+            selectinload(Team.invitations).joinedload(TeamInvitation.invited_by),
         ]
         
         # Get teams where user is owner
@@ -238,70 +241,97 @@ class TeamService:
         user_email: str,
         role: str,
         added_by_user_id: int
-    ) -> TeamMember:
+    ) -> bool:
         """
-        Add a member to a team by email address. Only owner or admin can add members.
-        SECURITY: Always returns a TeamMember object (or creates a dummy one) to prevent
-        enumeration attacks. Never reveals if user exists or not.
+        Add or invite a member to a team by email address.
+        - If user exists and not a member → add to team immediately
+        - If user exists and already a member → update role
+        - If user doesn't exist → create invitation (for future registration)
+        
+        SECURITY: Always returns True to prevent enumeration attacks.
         
         Args:
             db: Database session
             team_public_id: Public UUID of the team
-            user_email: Email of the user to add
+            user_email: Email of the user to add/invite
             role: Role for the new member (admin, editor, viewer, translator, reviewer)
             added_by_user_id: User ID who is adding the member
             
         Returns:
-            Created TeamMember (or dummy object if user not found - for security)
+            Always True (for security - prevents enumeration)
         """
         # Get team
         team = TeamService.get_team_by_public_id(db, team_public_id)
         if not team:
-            # Return dummy member to prevent enumeration
-            dummy = TeamMember(team_id=0, user_id=0, role=role)
-            return dummy
+            return True  # Don't reveal team doesn't exist
         
         # Check permission
         if not TeamService.can_user_manage_team(db, team.id, added_by_user_id):
-            # Return dummy member to prevent enumeration
-            dummy = TeamMember(team_id=team.id, user_id=0, role=role)
-            return dummy
+            return True  # Don't reveal lack of permission
+        
+        email = user_email.lower().strip()
         
         # Get user by email
-        user = db.query(User).filter(User.email == user_email.lower().strip()).first()
-        if not user:
-            # SECURITY: Don't reveal that user doesn't exist
-            # Just log internally and return dummy member
-            logger.info(f"Team invitation sent to non-existent email: {user_email}")
-            dummy = TeamMember(team_id=team.id, user_id=0, role=role)
-            return dummy
+        user = db.query(User).filter(User.email == email).first()
         
-        # Check if already a member
-        existing_member = db.query(TeamMember).filter(
-            TeamMember.team_id == team.id,
-            TeamMember.user_id == user.id
-        ).first()
-        
-        if existing_member:
-            # SECURITY: Don't reveal that user is already a member
-            # Just update role silently
-            existing_member.role = role
+        if user:
+            # User exists - add them directly as team member
+            existing_member = db.query(TeamMember).filter(
+                TeamMember.team_id == team.id,
+                TeamMember.user_id == user.id
+            ).first()
+            
+            if existing_member:
+                # Already a member - update role
+                existing_member.role = role
+                db.commit()
+                logger.info(f"Updated role for existing team member: {email}")
+            else:
+                # Add as new member
+                member = TeamMember(
+                    team_id=team.id,
+                    user_id=user.id,
+                    role=role
+                )
+                db.add(member)
+                db.commit()
+                logger.info(f"Added existing user to team: {email}")
+            
+            # Remove any pending invitations for this user
+            db.query(TeamInvitation).filter(
+                TeamInvitation.team_id == team.id,
+                TeamInvitation.invited_email == email,
+                TeamInvitation.status == InvitationStatus.PENDING
+            ).delete()
             db.commit()
-            db.refresh(existing_member)
-            logger.info(f"Updated role for existing team member: {user_email}")
-            return existing_member
+        else:
+            # User doesn't exist - create invitation
+            existing_invitation = db.query(TeamInvitation).filter(
+                TeamInvitation.team_id == team.id,
+                TeamInvitation.invited_email == email
+            ).first()
+            
+            if existing_invitation:
+                # Update existing invitation
+                existing_invitation.role = role
+                existing_invitation.status = InvitationStatus.PENDING
+                existing_invitation.invited_by_user_id = added_by_user_id
+                db.commit()
+                logger.info(f"Updated invitation for: {email}")
+            else:
+                # Create new invitation
+                invitation = TeamInvitation(
+                    team_id=team.id,
+                    invited_email=email,
+                    role=role,
+                    status=InvitationStatus.PENDING,
+                    invited_by_user_id=added_by_user_id
+                )
+                db.add(invitation)
+                db.commit()
+                logger.info(f"Created invitation for: {email}")
         
-        # Create new member
-        member = TeamMember(
-            team_id=team.id,
-            user_id=user.id,
-            role=role
-        )
-        db.add(member)
-        db.commit()
-        db.refresh(member)
-        logger.info(f"Added new team member: {user_email}")
-        return member
+        return True  # Always return True for security
 
     @staticmethod
     def add_team_member(

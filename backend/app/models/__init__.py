@@ -2,6 +2,7 @@ from .base import Base
 from .user import User
 from .project import Project, ProjectMember
 from .team import Team, TeamMember
+from .team_invitation import TeamInvitation, InvitationStatus
 from .project_access import ProjectAccess
 from .key import Key, Translation
 from .key_log import KeyLog, KeyActionType  # Legacy - will be removed
@@ -14,6 +15,8 @@ __all__ = [
     "ProjectMember", 
     "Team",
     "TeamMember",
+    "TeamInvitation",
+    "InvitationStatus",
     "ProjectAccess",
     "Key", 
     "Translation", 

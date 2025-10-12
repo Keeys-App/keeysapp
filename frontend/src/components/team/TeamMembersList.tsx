@@ -1,6 +1,6 @@
 import { FC, useState } from 'react';
 import { useMutation } from '@apollo/client';
-import { MoreHorizontal, Trash2, Shield } from 'lucide-react';
+import { MoreHorizontal, Trash2, Shield, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Table,
@@ -113,12 +113,24 @@ export const TeamMembersList: FC<TeamMembersListProps> = ({ team }) => {
   const allMembers = [
     // Owner as first member
     {
+      type: 'owner' as const,
       user: team.owner,
       role: 'owner',
       createdAt: team.createdAt,
     },
     // Regular members
-    ...team.members,
+    ...team.members.map((m) => {
+      return { ...m, type: 'member' as const };
+    }),
+    // Pending invitations
+    ...team.invitations.map((inv) => {
+      return {
+        type: 'invitation' as const,
+        invitation: inv,
+        role: inv.role,
+        createdAt: inv.createdAt,
+      };
+    }),
   ];
 
   return (
@@ -128,12 +140,81 @@ export const TeamMembersList: FC<TeamMembersListProps> = ({ team }) => {
           <TableRow>
             <TableHead>User</TableHead>
             <TableHead>Role</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead className="w-[100px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {allMembers.map((member) => {
-            const isOwner = member.role === 'owner';
+          {allMembers.map((item, index) => {
+            if (item.type === 'owner') {
+              return (
+                <TableRow key="owner">
+                  <TableCell>
+                    <div className="flex flex-col">
+                      <span className="font-medium">{item.user.username}</span>
+                      <span className="text-sm text-muted-foreground">
+                        {item.user.email}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="default">
+                      <Shield className="mr-1 h-3 w-3" />
+                      Owner
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="default">Active</Badge>
+                  </TableCell>
+                  <TableCell></TableCell>
+                </TableRow>
+              );
+            }
+
+            if (item.type === 'invitation') {
+              const inv = item.invitation!;
+              const roleInfo = ROLE_LABELS[inv.role] || { label: inv.role, variant: 'outline' };
+
+              return (
+                <TableRow key={`invitation-${inv.id}`} className="bg-muted/30">
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium text-muted-foreground">
+                        {inv.invitedEmail}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={roleInfo.variant}>{roleInfo.label}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary" className="bg-yellow-500/10 text-yellow-700 border-yellow-500/20">
+                      <Mail className="mr-1 h-3 w-3" />
+                      Pending Invite
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {team.canManage ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={isSaving}
+                        onClick={() => {
+                          // TODO: Cancel invitation
+                          toast('Canceling invitations will be implemented soon');
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    ) : null}
+                  </TableCell>
+                </TableRow>
+              );
+            }
+
+            // Regular member
+            const member = item as TeamMember & { type: 'member' };
             const roleInfo = ROLE_LABELS[member.role] || { label: member.role, variant: 'outline' };
 
             return (
@@ -147,19 +228,15 @@ export const TeamMembersList: FC<TeamMembersListProps> = ({ team }) => {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={roleInfo.variant}>
-                    {isOwner ? (
-                      <>
-                        <Shield className="mr-1 h-3 w-3" />
-                        Owner
-                      </>
-                    ) : (
-                      roleInfo.label
-                    )}
+                  <Badge variant={roleInfo.variant}>{roleInfo.label}</Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge variant="default" className="bg-green-500/10 text-green-700 border-green-500/20">
+                    Active
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  {!isOwner && team.canManage ? (
+                  {team.canManage ? (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="sm" disabled={isSaving}>
@@ -179,7 +256,7 @@ export const TeamMembersList: FC<TeamMembersListProps> = ({ team }) => {
                                 <DropdownMenuItem
                                   key={role.value}
                                   onClick={() => {
-                                    return handleChangeRole(member as TeamMember, role.value);
+                                    return handleChangeRole(member, role.value);
                                   }}
                                   disabled={member.role === role.value}
                                 >
@@ -192,7 +269,7 @@ export const TeamMembersList: FC<TeamMembersListProps> = ({ team }) => {
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={() => {
-                            return setMemberToRemove(member as TeamMember);
+                            return setMemberToRemove(member);
                           }}
                           className="text-destructive"
                         >

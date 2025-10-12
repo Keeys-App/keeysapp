@@ -29,6 +29,19 @@ class TeamMemberType:
 
 
 @strawberry.type
+class TeamInvitationType:
+    """
+    GraphQL type for TeamInvitation.
+    """
+    id: str  # UUID as string
+    invited_email: str
+    role: str
+    status: str  # PENDING, ACCEPTED, DECLINED
+    invited_by: Optional[UserType]
+    created_at: datetime
+
+
+@strawberry.type
 class TeamType:
     """
     GraphQL type for Team.
@@ -39,6 +52,7 @@ class TeamType:
     description: Optional[str]
     owner: UserType
     members: List[TeamMemberType]
+    invitations: List[TeamInvitationType]  # Pending invitations
     can_manage: bool  # Whether current user can manage the team
     members_count: int
     created_at: datetime
@@ -181,6 +195,32 @@ def build_team_type(team, current_user_id: int) -> TeamType:
             created_at=member.created_at
         ))
     
+    # Build invitations (only pending ones)
+    from app.models.team_invitation import InvitationStatus
+    
+    invitations = []
+    for invitation in team.invitations:
+        # Check status properly (it's an enum)
+        if invitation.status == InvitationStatus.PENDING:
+            invited_by_user = None
+            if invitation.invited_by:
+                invited_by_user = UserType(
+                    id=str(invitation.invited_by.public_id),
+                    email=invitation.invited_by.email,
+                    username=invitation.invited_by.username,
+                    is_active=invitation.invited_by.is_active,
+                    is_superuser=invitation.invited_by.is_superuser
+                )
+            
+            invitations.append(TeamInvitationType(
+                id=str(invitation.public_id),
+                invited_email=invitation.invited_email,
+                role=invitation.role,
+                status=invitation.status.value,
+                invited_by=invited_by_user,
+                created_at=invitation.created_at
+            ))
+    
     # Check if current user can manage
     can_manage = team.owner_id == current_user_id
     if not can_manage:
@@ -195,8 +235,9 @@ def build_team_type(team, current_user_id: int) -> TeamType:
         description=team.description,
         owner=owner,
         members=members,
+        invitations=invitations,
         can_manage=can_manage,
-        members_count=len(members),
+        members_count=len(members) + len(invitations),  # Include invited users in count
         created_at=team.created_at,
         updated_at=team.updated_at
     )
@@ -419,7 +460,8 @@ class TeamMutation:
         db: Session = next(get_db())
         
         try:
-            member = TeamService.add_team_member_by_email(
+            # Add member (may return dummy for security if user not found)
+            TeamService.add_team_member_by_email(
                 db=db,
                 team_public_id=input.team_id,
                 user_email=input.user_email,
@@ -427,10 +469,8 @@ class TeamMutation:
                 added_by_user_id=current_user_id
             )
             
-            if not member:
-                return None
-            
-            # Get updated team
+            # Always return updated team (even if user wasn't added)
+            # This prevents enumeration attacks
             team = TeamService.get_team_by_public_id(db, input.team_id)
             if not team:
                 return None

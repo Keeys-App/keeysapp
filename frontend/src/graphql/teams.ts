@@ -24,6 +24,18 @@ export const TEAM_FRAGMENT = gql`
       role
       createdAt
     }
+    invitations {
+      id
+      invitedEmail
+      role
+      status
+      invitedBy {
+        id
+        email
+        username
+      }
+      createdAt
+    }
     canManage
     membersCount
     createdAt
@@ -124,12 +136,22 @@ export interface TeamMember {
   createdAt: string;
 }
 
+export interface TeamInvitation {
+  id: string;
+  invitedEmail: string;
+  role: 'admin' | 'editor' | 'viewer' | 'translator' | 'reviewer';
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED';
+  invitedBy?: User;
+  createdAt: string;
+}
+
 export interface Team {
   id: string;
   name: string;
   description?: string;
   owner: User;
   members: TeamMember[];
+  invitations: TeamInvitation[];
   canManage: boolean;
   membersCount: number;
   createdAt: string;

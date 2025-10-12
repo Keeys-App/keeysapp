@@ -24,6 +24,7 @@ class Team(Base):
     # Relationships
     owner = relationship("User", back_populates="owned_teams")
     members = relationship("TeamMember", back_populates="team", cascade="all, delete-orphan")
+    invitations = relationship("TeamInvitation", back_populates="team", cascade="all, delete-orphan")
     projects = relationship("Project", back_populates="team")
 
 
