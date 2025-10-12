@@ -54,9 +54,12 @@ export function CustomScrollbar({
   const thumbHeightRatio = Math.min(1, visibleHeight / totalHeight);
   const thumbHeight = Math.max(50, thumbHeightRatio * visibleHeight);
   
+  // Padding for thumb from top and bottom
+  const thumbPadding = 2;
+  
   // Calculate scroll position as percentage
   const scrollPercentage = scrollPosition / (totalHeight - visibleHeight);
-  const thumbTop = scrollPercentage * (visibleHeight - thumbHeight);
+  const thumbTop = thumbPadding + (scrollPercentage * (visibleHeight - thumbHeight - thumbPadding * 2));
 
   // Update scroll position when container scrolls
   useEffect(() => {
@@ -90,7 +93,7 @@ export function CustomScrollbar({
       }
 
       const deltaY = e.clientY - dragStartY.current;
-      const scrollDelta = (deltaY / (visibleHeight - thumbHeight)) * (totalHeight - visibleHeight);
+      const scrollDelta = (deltaY / (visibleHeight - thumbHeight - thumbPadding * 2)) * (totalHeight - visibleHeight);
       const newScrollTop = Math.max(
         0,
         Math.min(totalHeight - visibleHeight, dragStartScrollTop.current + scrollDelta)
@@ -179,9 +182,9 @@ export function CustomScrollbar({
       totalItems
     );
     
-    // Calculate visual position of the preview box
+    // Calculate visual position of the preview box with padding
     const previewTop = hoverPosition - (thumbHeight / 2);
-    const clampedTop = Math.max(0, Math.min(visibleHeight - thumbHeight, previewTop));
+    const clampedTop = Math.max(thumbPadding, Math.min(visibleHeight - thumbHeight - thumbPadding, previewTop));
     
     hoverPreviewRange = {
       start: hoverFirstItem,
@@ -195,7 +198,7 @@ export function CustomScrollbar({
     <div
       ref={scrollbarRef}
       className={cn(
-        "absolute right-0 top-0 bottom-0 transition-all bg-background/50 border-l border-l-border/50",
+        "absolute right-0 top-0 bottom-0 transition-all bg-background/50 border-l border-l-border",
         isHovered && !isDragging ? "w-16 backdrop-blur-xs" : "w-3",
         className
       )}
@@ -235,7 +238,7 @@ export function CustomScrollbar({
       {/* Hover preview range box */}
       {hoverPreviewRange && !isDragging ? (
         <div
-          className="absolute left-0 right-0 border-1 box-border border-primary/60 bg-primary/10 rounded pointer-events-none"
+          className="absolute left-[2px] right-[2px] border-1 box-border border-primary/60 bg-primary/10 rounded pointer-events-none"
           style={{
             top: `${hoverPreviewRange.top}px`,
             height: `${hoverPreviewRange.height}px`,
@@ -251,8 +254,8 @@ export function CustomScrollbar({
       <div
         ref={thumbRef}
         className={cn(
-          "absolute right-[2px] w-[7px] rounded-full overflow-hidden transition-all cursor-grab",
-          isDragging ? "bg-primary/40 w-1.5 cursor-grabbing" : "bg-primary/40"
+          "absolute right-[2px] w-[7px] rounded-[3px] overflow-hidden cursor-grab",
+          isDragging ? "bg-primary/40 cursor-grabbing" : "bg-primary/40"
         )}
         style={{
           height: `${thumbHeight}px`,
@@ -262,7 +265,7 @@ export function CustomScrollbar({
       >
         {/* Progress indicator inside thumb */}
         <div
-          className="absolute inset-0 rounded-full bg-primary transition-all"
+          className="absolute inset-0 rounded-[2px] bg-primary"
           style={{
             height: `${(loadedItems / totalItems) * 100}%`,
           }}
