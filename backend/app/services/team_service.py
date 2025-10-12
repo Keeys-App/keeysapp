@@ -238,9 +238,11 @@ class TeamService:
         user_email: str,
         role: str,
         added_by_user_id: int
-    ) -> Optional[TeamMember]:
+    ) -> TeamMember:
         """
         Add a member to a team by email address. Only owner or admin can add members.
+        SECURITY: Always returns a TeamMember object (or creates a dummy one) to prevent
+        enumeration attacks. Never reveals if user exists or not.
         
         Args:
             db: Database session
@@ -250,22 +252,29 @@ class TeamService:
             added_by_user_id: User ID who is adding the member
             
         Returns:
-            Created TeamMember or None if failed
+            Created TeamMember (or dummy object if user not found - for security)
         """
         # Get team
         team = TeamService.get_team_by_public_id(db, team_public_id)
         if not team:
-            return None
+            # Return dummy member to prevent enumeration
+            dummy = TeamMember(team_id=0, user_id=0, role=role)
+            return dummy
         
         # Check permission
         if not TeamService.can_user_manage_team(db, team.id, added_by_user_id):
-            return None
+            # Return dummy member to prevent enumeration
+            dummy = TeamMember(team_id=team.id, user_id=0, role=role)
+            return dummy
         
         # Get user by email
         user = db.query(User).filter(User.email == user_email.lower().strip()).first()
         if not user:
-            logger.warning(f"User with email {user_email} not found")
-            return None
+            # SECURITY: Don't reveal that user doesn't exist
+            # Just log internally and return dummy member
+            logger.info(f"Team invitation sent to non-existent email: {user_email}")
+            dummy = TeamMember(team_id=team.id, user_id=0, role=role)
+            return dummy
         
         # Check if already a member
         existing_member = db.query(TeamMember).filter(
@@ -274,10 +283,12 @@ class TeamService:
         ).first()
         
         if existing_member:
-            # Update role if already exists
+            # SECURITY: Don't reveal that user is already a member
+            # Just update role silently
             existing_member.role = role
             db.commit()
             db.refresh(existing_member)
+            logger.info(f"Updated role for existing team member: {user_email}")
             return existing_member
         
         # Create new member
@@ -289,6 +300,7 @@ class TeamService:
         db.add(member)
         db.commit()
         db.refresh(member)
+        logger.info(f"Added new team member: {user_email}")
         return member
 
     @staticmethod

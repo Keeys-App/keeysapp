@@ -27,7 +27,7 @@ interface AddTeamMemberDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   teamId: string;
-  existingMemberEmails?: string[];
+  existingMemberEmails?: string[]; // Not used anymore for security, kept for compatibility
 }
 
 const ROLES = [
@@ -67,12 +67,6 @@ export const AddTeamMemberDialog: FC<AddTeamMemberDialogProps> = ({
       return;
     }
 
-    // Check if user is already a member
-    if (existingMemberEmails.includes(email)) {
-      toast('This user is already a member of the team');
-      return;
-    }
-
     await withSaving(
       async () => {
         const input: AddTeamMemberInput = {
@@ -82,25 +76,22 @@ export const AddTeamMemberDialog: FC<AddTeamMemberDialogProps> = ({
         };
 
         try {
-          const result = await addTeamMember({ variables: { input } });
-
-          if (result.data?.addTeamMember) {
-            toast('Team member added successfully');
-            onOpenChange(false);
-            setUserEmail('');
-            setSelectedRole('viewer');
-          } else {
-            toast('User not found or could not be added');
-          }
+          await addTeamMember({ variables: { input } });
         } catch (error: any) {
-          if (error.message?.includes('not found')) {
-            toast('User with this email not found');
-          } else {
-            toast('Failed to add team member');
-          }
+          // Silently ignore errors for security
         }
+        
+        // SECURITY: Always show success message, even if:
+        // - User doesn't exist
+        // - User is already a member
+        // - Any other error occurred
+        // This prevents enumeration attacks
+        toast('Invitation sent successfully');
+        onOpenChange(false);
+        setUserEmail('');
+        setSelectedRole('viewer');
       },
-      'Adding team member...'
+      'Sending invitation...'
     );
   };
 
@@ -118,7 +109,8 @@ export const AddTeamMemberDialog: FC<AddTeamMemberDialogProps> = ({
         <DialogHeader>
           <DialogTitle>Add Team Member</DialogTitle>
           <DialogDescription>
-            Enter the email address of the user you want to add to your team.
+            Enter the email address of the user you want to invite to your team.
+            If the user exists, they will be added immediately.
           </DialogDescription>
         </DialogHeader>
 
