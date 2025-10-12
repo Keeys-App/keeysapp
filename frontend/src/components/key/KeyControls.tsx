@@ -11,7 +11,7 @@ export const KeyControls: FC<KeyControlsProps> = ({
   onCreateKey,
 }) => {
   return (
-    <div className="h-14 py-1 px-2 flex gap-2 items-center justify-end bg-muted border-b">
+    <div className="h-12 py-1 px-2 flex gap-2 items-center justify-end bg-muted border-b">
       <Button size="sm" onClick={onCreateKey}>Add key</Button>
     </div>
   );
