@@ -1,4 +1,5 @@
-import { type FC } from "react";
+import { type FC, useState, useEffect } from "react";
+import { useMutation } from "@apollo/client";
 import { AutopilotCard, AutopilotActions } from "./AutopilotCard";
 import {
   AutopilotSuggestion,
@@ -6,6 +7,18 @@ import {
 } from "./AutopilotSuggestion";
 import type { TranslationKey } from "@/types/translationKey";
 import type { Language } from "@/types/project";
+import {
+  AI_TRANSLATE,
+  AI_REPHRASE,
+  AI_SHORTEN,
+  AI_SUGGEST_VARIANTS,
+  type AiTranslateData,
+  type AiRephraseData,
+  type AiShortenData,
+  type AiSuggestVariantsData,
+} from "@/graphql/ai";
+import { toast } from "sonner";
+import { useSaving, useSavingStore } from "@/stores";
 
 interface KeySuggestionsProps {
   currentKey: TranslationKey;
@@ -17,7 +30,7 @@ interface KeySuggestionsProps {
 
 /**
  * Component for displaying translation suggestions and context
- * Shows the original text in the default language to help with translation
+ * Shows AI-powered suggestions for translation and improvement
  */
 export const KeySuggestions: FC<KeySuggestionsProps> = ({
   currentKey,
@@ -26,25 +39,159 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
   defaultLanguage,
   defaultLanguageValue,
 }) => {
-  // Placeholder handlers (TODO: implement actual functionality)
-  const handleTranslate = () => {
-    console.log("Translate");
+  const withSaving = useSaving();
+  const { isSaving } = useSavingStore();
+  
+  // State for AI suggestions
+  const [suggestion, setSuggestion] = useState<string | null>(null);
+  const [variants, setVariants] = useState<string[]>([]);
+
+  // AI mutations
+  const [translateMutation] = useMutation<AiTranslateData>(AI_TRANSLATE);
+  const [rephraseMutation] = useMutation<AiRephraseData>(AI_REPHRASE);
+  const [shortenMutation] = useMutation<AiShortenData>(AI_SHORTEN);
+  const [variantsMutation] = useMutation<AiSuggestVariantsData>(AI_SUGGEST_VARIANTS);
+
+  // Clear suggestions when language changes
+  useEffect(() => {
+    setSuggestion(null);
+    setVariants([]);
+  }, [currentLanguage?.code, currentLanguageValue]);
+
+  const handleTranslate = async () => {
+    if (!defaultLanguageValue || !currentLanguage || !defaultLanguage) {
+      return;
+    }
+
+    await withSaving(async () => {
+      try {
+        const result = await translateMutation({
+          variables: {
+            input: {
+              text: defaultLanguageValue,
+              targetLanguage: currentLanguage.name,
+              sourceLanguage: defaultLanguage.name,
+              context: currentKey.description || undefined,
+            },
+          },
+        });
+
+        if (result.data?.aiTranslate.success && result.data.aiTranslate.text) {
+          setSuggestion(result.data.aiTranslate.text);
+          toast("Translation generated");
+        } else {
+          toast(result.data?.aiTranslate.error || "Translation failed");
+        }
+      } catch (error) {
+        toast("Translation failed. Please try again.");
+      }
+    }, "Translating with AI...");
   };
 
-  const handleRephrase = () => {
-    console.log("Rephrase");
+  const handleRephrase = async () => {
+    if (!currentLanguageValue || !currentLanguage) {
+      return;
+    }
+
+    await withSaving(async () => {
+      try {
+        const result = await rephraseMutation({
+          variables: {
+            input: {
+              text: currentLanguageValue,
+              language: currentLanguage.name,
+              context: currentKey.description || undefined,
+            },
+          },
+        });
+
+        if (result.data?.aiRephrase.success && result.data.aiRephrase.text) {
+          setSuggestion(result.data.aiRephrase.text);
+          toast("Rephrase generated");
+        } else {
+          toast(result.data?.aiRephrase.error || "Rephrase failed");
+        }
+      } catch (error) {
+        toast("Rephrase failed. Please try again.");
+      }
+    }, "Rephrasing with AI...");
   };
 
-  const handleShorten = () => {
-    console.log("Shorten");
+  const handleShorten = async () => {
+    if (!currentLanguageValue || !currentLanguage) {
+      return;
+    }
+
+    await withSaving(async () => {
+      try {
+        const result = await shortenMutation({
+          variables: {
+            input: {
+              text: currentLanguageValue,
+              language: currentLanguage.name,
+              context: currentKey.description || undefined,
+            },
+          },
+        });
+
+        if (result.data?.aiShorten.success && result.data.aiShorten.text) {
+          setSuggestion(result.data.aiShorten.text);
+          toast("Shortened version generated");
+        } else {
+          toast(result.data?.aiShorten.error || "Shorten failed");
+        }
+      } catch (error) {
+        toast("Shorten failed. Please try again.");
+      }
+    }, "Shortening with AI...");
   };
 
-  const handleSuggestVariants = () => {
-    console.log("Suggest variants");
+  const handleSuggestVariants = async () => {
+    if (!currentLanguageValue || !currentLanguage) {
+      return;
+    }
+
+    await withSaving(async () => {
+      try {
+        const result = await variantsMutation({
+          variables: {
+            input: {
+              text: currentLanguageValue,
+              language: currentLanguage.name,
+              context: currentKey.description || undefined,
+              count: 3,
+            },
+          },
+        });
+
+        if (result.data?.aiSuggestVariants.success && result.data.aiSuggestVariants.variants.length > 0) {
+          setVariants(result.data.aiSuggestVariants.variants);
+          toast("Variants generated");
+        } else {
+          toast(result.data?.aiSuggestVariants.error || "Variant generation failed");
+        }
+      } catch (error) {
+        toast("Variant generation failed. Please try again.");
+      }
+    }, "Generating variants...");
   };
 
   const handleAddContext = () => {
-    console.log("Add context");
+    // TODO: Implement context editing
+    toast("Context editing - coming soon");
+  };
+
+  const handleUseSuggestion = (text: string) => {
+    // TODO: Apply suggestion to translation field
+    toast("Apply suggestion - coming soon");
+  };
+
+  const handleDiscardSuggestion = () => {
+    setSuggestion(null);
+  };
+
+  const handleDiscardVariants = () => {
+    setVariants([]);
   };
 
   let card: React.ReactNode | null = null;
@@ -78,44 +225,69 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
     );
   }
 
-  const autopilotAction = AutopilotActions.shorten(handleTranslate);
-  const autopilotAction2 = AutopilotActions.addContext(handleTranslate);
-
   return (
     <AutopilotSuggestionsList>
       {card}
 
-      <AutopilotSuggestion
-        icon={autopilotAction.icon}
-        title={autopilotAction.label}
-        description="Unrestricted access to the Space, its content, and settings. Can add, modify, and delete projects and members, as well as make changes to billing and plans"
-        actions={[
-          {
-            label: "Use suggestion",
-            onClick: handleTranslate,
-            variant: "outline",
-          },
-          {
-            label: "Discard",
-            onClick: handleTranslate,
-            variant: "ghost",
-          },
-        ]}
-      />
+      {/* Show single suggestion if available */}
+      {suggestion ? (
+        <AutopilotSuggestion
+          icon={AutopilotActions.translate().icon}
+          title="AI Suggestion"
+          description={suggestion}
+          actions={[
+            {
+              label: "Use suggestion",
+              onClick: () => {
+                handleUseSuggestion(suggestion);
+              },
+              variant: "outline",
+            },
+            {
+              label: "Discard",
+              onClick: handleDiscardSuggestion,
+              variant: "ghost",
+            },
+          ]}
+        />
+      ) : null}
 
-      <AutopilotSuggestion
-        icon={autopilotAction2.icon}
-        title={autopilotAction2.label}
-        description="Unrestricted access to the Space, its content, and settings. Can add, modify, and delete projects and members, as well as make changes to billing and plans"
-        actions={[
-          {
-            label: "Remove context",
-            onClick: handleTranslate,
-            variant: "outline",
-          },
-        ]}
-        withGradient={false}
-      />
+      {/* Show variants if available */}
+      {variants.length > 0 ? (
+        <>
+          {variants.map((variant, index) => (
+            <AutopilotSuggestion
+              key={index}
+              icon={AutopilotActions.suggestVariants().icon}
+              title={`Variant ${index + 1}`}
+              description={variant}
+              actions={[
+                {
+                  label: "Use variant",
+                  onClick: () => {
+                    handleUseSuggestion(variant);
+                  },
+                  variant: "outline",
+                },
+              ]}
+              withGradient={false}
+            />
+          ))}
+          <AutopilotSuggestion
+            icon={AutopilotActions.suggestVariants().icon}
+            title="Clear variants"
+            description="Remove all generated variants"
+            actions={[
+              {
+                label: "Clear all",
+                onClick: handleDiscardVariants,
+                variant: "ghost",
+              },
+            ]}
+            withGradient={false}
+          />
+        </>
+      ) : null}
     </AutopilotSuggestionsList>
   );
 };

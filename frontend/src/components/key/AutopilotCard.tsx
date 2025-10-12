@@ -107,7 +107,7 @@ export const AutopilotCard: FC<AutopilotCardProps> = ({
                 key={index}
                 size="sm"
                 variant="outline"
-                className={cn(action.variant === "default" && "bg-indigo-500 shadow-transparent border-transparent text-white hover:bg-indigo-500/90")}
+                className={cn(action.variant === "default" && "!bg-indigo-500 !shadow-transparent !border-transparent !text-white hover:!bg-indigo-500/90")}
                 onClick={action.onClick}
               >
                 {action.icon ? <action.icon /> : null}

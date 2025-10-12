@@ -3,6 +3,7 @@ from typing import Optional, List
 from app.schemas.auth import AuthQuery, AuthMutation, UserType
 from app.schemas.project import ProjectQuery, ProjectMutation, ProjectType
 from app.schemas.key import KeyQuery, KeyMutation, KeyType, KeysConnection, ActivityLogType
+from app.schemas.ai import AIMutation
 
 
 @strawberry.type
@@ -63,6 +64,12 @@ class Mutation:
     approve_translation = strawberry.field(resolver=KeyMutation.approve_translation)
     reject_translation = strawberry.field(resolver=KeyMutation.reject_translation)
     delete_translation_review = strawberry.field(resolver=KeyMutation.delete_translation_review)
+    
+    # Include AI mutations
+    ai_translate = strawberry.field(resolver=AIMutation.ai_translate)
+    ai_rephrase = strawberry.field(resolver=AIMutation.ai_rephrase)
+    ai_shorten = strawberry.field(resolver=AIMutation.ai_shorten)
+    ai_suggest_variants = strawberry.field(resolver=AIMutation.ai_suggest_variants)
 
 
 schema = strawberry.Schema(query=Query, mutation=Mutation)

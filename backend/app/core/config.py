@@ -23,6 +23,13 @@ class Settings(BaseSettings):
     # Railway specific
     port: int = 8000
     
+    # OpenAI
+    openai_api_key: Optional[str] = None
+    openai_text_model: str = "gpt-4o-mini"
+    openai_max_tokens: int = 4000
+    openai_temperature: float = 1.0
+    openai_timeout: int = 120
+    
     class Config:
         env_file = ".env"
         case_sensitive = False
