@@ -5,6 +5,7 @@ interface LayoutState {
   isPanelOpen: boolean;
   showPanelToggle: boolean;
   togglePanel: () => void;
+  openPanel: () => void;
   setShowPanelToggle: (show: boolean) => void;
 }
 
@@ -22,6 +23,10 @@ export const useLayoutStore = create<LayoutState>((set) => {
         localStorage.setItem('keyManagementPanelOpen', String(newState));
         return { isPanelOpen: newState };
       });
+    },
+    openPanel: () => {
+      localStorage.setItem('keyManagementPanelOpen', 'true');
+      return set({ isPanelOpen: true });
     },
     setShowPanelToggle: (show: boolean) => {
       return set({ showPanelToggle: show });

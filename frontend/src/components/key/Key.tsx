@@ -4,6 +4,7 @@ import { LanguageHeader } from "./LanguageHeader";
 import { KeyHeader } from "./KeyHeader";
 import type { TranslationKey } from "@/types/translationKey";
 import type { Language, LanguageWithLocale } from "@/types/project";
+import { cn } from "@/lib/utils";
 
 interface KeyProps {
   keyData: TranslationKey;
@@ -29,6 +30,7 @@ export const Key = memo(
     onEditingLanguageChange,
   }: KeyProps) {
     const handleClick = () => {
+      console.log('Key clicked:', keyData.key, 'isSelected:', isSelected);
       if (onSelect) {
         onSelect(keyData);
       }
@@ -36,7 +38,10 @@ export const Key = memo(
 
     return (
       <div
-        className="border-b grid grid-cols-[220px_minmax(300px,3fr)] relative cursor-pointer"
+        className={cn(
+          "border-b grid grid-cols-[220px_minmax(300px,3fr)] relative cursor-pointer transition-colors",
+          isSelected && "bg-accent/30"
+        )}
         onClick={handleClick}
       >
         <div className="border-r -mr-px relative">

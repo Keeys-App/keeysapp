@@ -1,12 +1,12 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@apollo/client";
 import { GET_PROJECT, type GetProjectData } from "@/graphql/projects";
-import { GET_PROJECT_KEYS } from "@/graphql/keys";
+import { GET_KEY } from "@/graphql/keys";
 import { PATHS } from "@/constants/paths";
 import { useAuth, useBreadcrumbs } from "@/contexts";
 import { useEffect, useState, useMemo, useCallback, type FC } from "react";
 import { KeyList, CreateKeyDialog, KeysAsidePanel } from "@/components/key";
-import { COMMON_LANGUAGES, LANGUAGE_CONFIGS } from "@/types/project";
+import { COMMON_LANGUAGES } from "@/types/project";
 import { LoadingState, ErrorState, NotFoundState } from "@/components/blocks";
 import type { TranslationKey } from "@/types/translationKey";
 import { useLayoutStore } from "@/stores";
@@ -16,7 +16,7 @@ export const ProjectKeysPage: FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { setBreadcrumbs } = useBreadcrumbs();
-  const { isPanelOpen, setShowPanelToggle } = useLayoutStore();
+  const { isPanelOpen, setShowPanelToggle, openPanel } = useLayoutStore();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedKeyId, setSelectedKeyId] = useState<string | null>(null);
 
@@ -25,24 +25,22 @@ export const ProjectKeysPage: FC = () => {
     skip: !id || !isAuthenticated || authLoading,
   });
 
-  // Query for keys to get updated key data from cache
-  const { data: keysData } = useQuery(GET_PROJECT_KEYS, {
-    variables: { projectId: id },
-    skip: !id,
-    fetchPolicy: 'cache-only', // Only read from cache, don't make network requests
+  // Query for selected key data
+  const { data: keyData } = useQuery(GET_KEY, {
+    variables: { id: selectedKeyId },
+    skip: !selectedKeyId,
+    fetchPolicy: 'cache-first',
   });
 
   const project = data?.project;
-  
-  // Get selected key from cache based on selectedKeyId
-  const selectedKey = useMemo(() => {
-    if (!selectedKeyId || !keysData?.projectKeys) {
-      return null;
-    }
-    return keysData.projectKeys.find((key: TranslationKey) => {
-      return key.id === selectedKeyId;
-    }) || null;
-  }, [selectedKeyId, keysData?.projectKeys]);
+  const selectedKey = keyData?.key || null;
+
+  // Debug logging
+  useEffect(() => {
+    console.log('Selected Key ID:', selectedKeyId);
+    console.log('Selected Key Data:', selectedKey);
+    console.log('Panel Open:', isPanelOpen);
+  }, [selectedKeyId, selectedKey, isPanelOpen]);
 
   // Show/hide panel toggle button when entering/leaving this page
   useEffect(() => {
@@ -77,8 +75,11 @@ export const ProjectKeysPage: FC = () => {
   }, []);
 
   const handleSelectKey = useCallback((key: TranslationKey) => {
+    console.log('Key selected:', key.id, key.key);
     setSelectedKeyId(key.id);
-  }, []);
+    // Automatically open panel when key is selected
+    openPanel();
+  }, [openPanel]);
 
   const handleKeyDeleted = useCallback(() => {
     setSelectedKeyId(null);
