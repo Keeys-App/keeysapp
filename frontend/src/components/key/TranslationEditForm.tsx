@@ -1,4 +1,4 @@
-import { type FC } from "react";
+import { type FC, useState, useEffect } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useSavingStore } from "@/stores";
@@ -9,6 +9,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Ellipsis, Settings } from "lucide-react";
 
 interface TranslationEditFormProps {
   value: string;
@@ -18,6 +25,8 @@ interface TranslationEditFormProps {
   onCancel: () => void;
   hasChanges: boolean;
   defaultLanguageValue?: string;
+  markReviewedOnSave?: boolean;
+  onMarkReviewedOnSaveChange?: (value: boolean) => void;
 }
 
 /**
@@ -34,8 +43,38 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
   onCancel,
   hasChanges,
   defaultLanguageValue,
+  markReviewedOnSave: externalMarkReviewedOnSave,
+  onMarkReviewedOnSaveChange,
 }) => {
   const { isSaving } = useSavingStore();
+
+  // Load initial value from localStorage or prop
+  const [markReviewedOnSave, setMarkReviewedOnSave] = useState(() => {
+    if (externalMarkReviewedOnSave !== undefined) {
+      return externalMarkReviewedOnSave;
+    }
+    const stored = localStorage.getItem("markReviewedOnSave");
+    return stored ? JSON.parse(stored) : false;
+  });
+
+  // Save to localStorage when changed
+  useEffect(() => {
+    localStorage.setItem("markReviewedOnSave", JSON.stringify(markReviewedOnSave));
+    if (onMarkReviewedOnSaveChange) {
+      onMarkReviewedOnSaveChange(markReviewedOnSave);
+    }
+  }, [markReviewedOnSave, onMarkReviewedOnSaveChange]);
+
+  // Sync with external prop if provided
+  useEffect(() => {
+    if (externalMarkReviewedOnSave !== undefined && externalMarkReviewedOnSave !== markReviewedOnSave) {
+      setMarkReviewedOnSave(externalMarkReviewedOnSave);
+    }
+  }, [externalMarkReviewedOnSave]);
+
+  const handleMarkReviewedToggle = () => {
+    setMarkReviewedOnSave(!markReviewedOnSave);
+  };
 
   const handleSaveClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -127,7 +166,27 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Ellipsis className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuCheckboxItem
+                checked={markReviewedOnSave}
+                onCheckedChange={handleMarkReviewedToggle}
+                onSelect={(e) => e.preventDefault()}
+              >
+                Mark reviewed on save
+              </DropdownMenuCheckboxItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </div>

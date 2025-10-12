@@ -1,7 +1,12 @@
 import { useState, useEffect, memo, useRef } from "react";
 import { useMutation } from "@apollo/client";
 import { toast } from "sonner";
-import { SET_TRANSLATION, GET_KEY_LOGS, GET_KEY } from "@/graphql/keys";
+import {
+  SET_TRANSLATION,
+  GET_KEY_LOGS,
+  GET_KEY,
+  APPROVE_TRANSLATION,
+} from "@/graphql/keys";
 import { getUserFriendlyErrorMessage } from "@/lib/utils";
 import { useSaving } from "@/stores";
 import type { Language, LanguageWithLocale } from "@/types/project";
@@ -43,6 +48,10 @@ export const TranslationEditor = memo(
         : undefined;
 
     const [value, setValue] = useState(currentValue);
+    const [markReviewedOnSave, setMarkReviewedOnSave] = useState(() => {
+      const stored = localStorage.getItem("markReviewedOnSave");
+      return stored ? JSON.parse(stored) : false;
+    });
     const wasEditingRef = useRef(false);
     const valueToSaveRef = useRef<string | null>(null);
     const isAutoSavingRef = useRef(false);
@@ -134,6 +143,23 @@ export const TranslationEditor = memo(
         },
       });
 
+    const [
+      approveTranslation,
+      { data: approveData, error: approveError },
+    ] = useMutation(APPROVE_TRANSLATION, {
+      refetchQueries: [
+        {
+          query: GET_KEY_LOGS,
+          variables: { keyId: keyData.id, limit: 50 },
+        },
+        {
+          query: GET_KEY,
+          variables: { id: keyData.id },
+        },
+      ],
+      awaitRefetchQueries: true,
+    });
+
     const withSaving = useSaving();
 
     // Auto-save function (silent, no toast)
@@ -190,6 +216,17 @@ export const TranslationEditor = memo(
       }
     }, [translationError]);
 
+    // Handle approve error
+    useEffect(() => {
+      if (approveError) {
+        const message = getUserFriendlyErrorMessage(
+          approveError,
+          "Failed to mark as reviewed. Please try again."
+        );
+        toast(message);
+      }
+    }, [approveError]);
+
     const handleSave = async () => {
       isAutoSavingRef.current = false; // Ensure manual save shows toast
       valueToSaveRef.current = null; // Clear auto-save value
@@ -207,6 +244,18 @@ export const TranslationEditor = memo(
             },
           },
         });
+
+        // Mark as reviewed if option is enabled and value is not empty
+        if (markReviewedOnSave && trimmedValue) {
+          await approveTranslation({
+            variables: {
+              input: {
+                keyId: keyData.id,
+                language: language.code,
+              },
+            },
+          });
+        }
       }, `Saving translation...`);
 
       onEditingChange(false);
@@ -253,6 +302,8 @@ export const TranslationEditor = memo(
             onCancel={handleCancel}
             hasChanges={hasChanges()}
             defaultLanguageValue={defaultLanguageValue}
+            markReviewedOnSave={markReviewedOnSave}
+            onMarkReviewedOnSaveChange={setMarkReviewedOnSave}
           />
         )}
       </div>
