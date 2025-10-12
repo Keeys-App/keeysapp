@@ -2,8 +2,15 @@ import { type FC } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Languages, Info, Sparkles, ExternalLink } from "lucide-react";
-import { Item, ItemHeader, ItemContent, ItemDescription, ItemTitle } from "../ui/item";
+import { Languages, Info, Sparkles, ExternalLink, Sparkle } from "lucide-react";
+import {
+  Item,
+  ItemHeader,
+  ItemContent,
+  ItemDescription,
+  ItemTitle,
+  ItemMedia,
+} from "../ui/item";
 
 interface KeySuggestionsProps {
   currentLanguage?: string | null;
@@ -39,45 +46,25 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
   // Show context from default language
   return (
     <div className="space-y-4">
-      {currentLanguageValue ? (
-        <Item variant="outline">
-          <ItemContent>
-            <ItemTitle>
-              Current Translation ({currentLanguage})
-            </ItemTitle>
-            <ItemDescription className="text-sm text-muted-foreground whitespace-pre-wrap">
-              {currentLanguageValue}
-            </ItemDescription>
-          </ItemContent>
-        </Item>
-      ) : (
-        <Card className="border-primary/20 bg-primary/5">
-          <CardContent className="flex flex-col items-center justify-center py-8 text-center">
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-              <Sparkles className="h-6 w-6 text-primary" />
-            </div>
-            
-            <h3 className="mb-2 text-lg font-semibold">Lokalise AI</h3>
-            
-            <p className="mb-1 text-sm font-medium">Translate with AI</p>
-            <p className="mb-6 text-sm text-muted-foreground">
-              Add context for more accurate translations.
-            </p>
-            
-            <div className="flex flex-col gap-2 w-full max-w-xs">
-              <Button className="w-full" size="default">
-                <Sparkles className="mr-2 h-4 w-4" />
-                Translate with AI
-              </Button>
-              <Button variant="outline" className="w-full" size="default">
-                <ExternalLink className="mr-2 h-4 w-4" />
-                Explore more
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <Item variant="outline">
+        <ItemMedia>
+          <div className="flex items-center gap-2 p-1 rounded-md bg-indigo-500/10">
+            <Sparkle className="text-indigo-500" />
+          </div>
+        </ItemMedia>
+        <ItemContent>
+          <ItemTitle>Autopilot</ItemTitle>
+          <ItemDescription className="text-balance">
+            Translate with AI based on the default language.
+          </ItemDescription>
+          <div className="flex items-center gap-2 mt-2">
+            <Button size="sm">Translate</Button>
+            <Button size="sm" variant="outline">
+              Add context
+            </Button>
+          </div>
+        </ItemContent>
+      </Item>
     </div>
   );
 };
-
