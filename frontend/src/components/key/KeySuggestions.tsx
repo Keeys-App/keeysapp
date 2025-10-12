@@ -513,7 +513,7 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
               variant: "ghost",
             },
           ]}
-          withGradient={false}
+          variant="none"
         />
       ) : currentLanguage && (currentLanguageValue || defaultLanguageValue) && customContext ? (
         // View mode (saved context)
@@ -533,7 +533,7 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
               variant: "ghost",
             },
           ]}
-          withGradient={false}
+          variant="none"
         />
       ) : null}
 
@@ -554,7 +554,7 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
                   ? "animate-out fade-out slide-out-to-right-2 duration-300"
                   : undefined
               }
-              withGradient={!suggestion.isError}
+              variant={suggestion.isError ? "warning" : "default"}
               actions={
                 suggestion.isError
                   ? [
@@ -563,7 +563,7 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
                         onClick: () => {
                           handleDiscardSuggestion(suggestion.id);
                         },
-                        variant: "ghost",
+                        variant: "outline",
                       },
                     ]
                   : [
@@ -608,10 +608,10 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
                     >
                       {variant}
                     </label>
-                  </div>
+          </div>
                 ))}
               </RadioGroup>
-            </div>
+          </div>
           }
           actions={[
             {

@@ -32,9 +32,12 @@ interface AutopilotSuggestionProps {
   actions: AutopilotSuggestionAction[];
 
   /**
-   * Whether to show gradient background
+   * Visual variant
+   * - default: Indigo gradient (AI suggestions)
+   * - warning: red gradient (AI couldn't process)
+   * - none: No gradient
    */
-  withGradient?: boolean;
+  variant?: "default" | "warning" | "none";
 
   /**
    * Custom className for the Item
@@ -51,9 +54,17 @@ export const AutopilotSuggestion: FC<AutopilotSuggestionProps> = ({
   title,
   description,
   actions,
-  withGradient = true,
+  variant = "default",
   className,
 }) => {
+  // Gradient classes based on variant
+  const gradientClass =
+    variant === "default"
+      ? "from-indigo-500/10 dark:from-indigo-500/20 to-25% to-transparent dark:to-transparent bg-gradient-to-br"
+      : variant === "warning"
+      ? "from-red-500/10 dark:from-red-500/20 to-25% to-transparent dark:to-transparent bg-gradient-to-br"
+      : "";
+
   return (
     <Item
       variant="outline"
@@ -62,8 +73,7 @@ export const AutopilotSuggestion: FC<AutopilotSuggestionProps> = ({
         // Default enter animation (will be overridden by className if removing)
         !className?.includes("animate-out") &&
           "animate-in fade-in slide-in-from-bottom-2 duration-300",
-        withGradient &&
-          "from-indigo-500/10 dark:from-indigo-500/20 to-25% to-transparent dark:to-transparent bg-gradient-to-br",
+        gradientClass,
         className
       )}
     >
