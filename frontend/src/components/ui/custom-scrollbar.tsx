@@ -246,9 +246,9 @@ export function CustomScrollbar({
           </div>
           
           {/* Current position */}
-          {firstVisibleItem > 1 && lastVisibleItem < totalItems ? (
+          {firstVisibleItem > 0 && lastVisibleItem <= totalItems ? (
             <div
-              className="text-[11px] font-mono font-medium text-foreground text-right bg-primary/10 px-1 rounded"
+              className="text-[11px] font-mono font-medium text-foreground text-right bg-primary/10 dark:bg-primary/60 px-1 rounded"
               style={{
                 position: "absolute",
                 top: `${thumbTop + thumbHeight / 2 - 8}px`,
@@ -274,7 +274,7 @@ export function CustomScrollbar({
             height: `${hoverPreviewRange.height}px`,
           }}
         >
-          <div className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-mono font-medium text-primary bg-background/90 px-1.5 py-0.5 rounded whitespace-nowrap">
+          <div className="absolute left-1 top-1/2 -translate-y-1/2 text-[11px] font-mono font-medium text-primary bg-background/90 px-1 ml-[1px] rounded whitespace-nowrap">
             {hoverPreviewRange.start}
           </div>
         </div>
