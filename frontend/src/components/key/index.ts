@@ -9,6 +9,7 @@ export { KeyControls } from './KeyControls';
 export { KeysAsidePanel } from './KeysAsidePanel';
 export { KeyManagement } from './KeyManagement';
 export { KeyLogsTimeline } from './KeyLogsTimeline';
+export { KeySuggestions } from './KeySuggestions';
 export { InlineDiff } from './InlineDiff';
 export { TranslationTextEditor } from './TranslationTextEditor';
 

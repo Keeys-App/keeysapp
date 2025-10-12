@@ -18,6 +18,14 @@ interface KeyListProps {
   onCreateKey: () => void;
   selectedKey?: TranslationKey | null;
   onSelectKey?: (key: TranslationKey) => void;
+  editingTranslation?: {
+    keyId: string;
+    language: string;
+  } | null;
+  onEditingTranslationChange?: (translation: {
+    keyId: string;
+    language: string;
+  } | null) => void;
 }
 
 const PAGE_SIZE = 20;
@@ -28,11 +36,9 @@ export function KeyList({
   onCreateKey,
   selectedKey,
   onSelectKey,
+  editingTranslation = null,
+  onEditingTranslationChange,
 }: KeyListProps) {
-  const [editingTranslation, setEditingTranslation] = useState<{
-    keyId: string;
-    language: string;
-  } | null>(null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const { data, loading, error, fetchMore } = useQuery(GET_PROJECT_KEYS, {
@@ -217,9 +223,11 @@ export function KeyList({
                           : null
                       }
                       onEditingLanguageChange={(language) => {
-                        setEditingTranslation(
-                          language ? { keyId: key.id, language } : null
-                        );
+                        if (onEditingTranslationChange) {
+                          onEditingTranslationChange(
+                            language ? { keyId: key.id, language } : null
+                          );
+                        }
                       }}
                     />
                   </div>

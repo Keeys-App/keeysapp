@@ -19,6 +19,10 @@ export const ProjectKeysPage: FC = () => {
   const { isPanelOpen, setShowPanelToggle, openPanel } = useLayoutStore();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedKeyId, setSelectedKeyId] = useState<string | null>(null);
+  const [editingTranslation, setEditingTranslation] = useState<{
+    keyId: string;
+    language: string;
+  } | null>(null);
 
   const { data, loading, error } = useQuery<GetProjectData>(GET_PROJECT, {
     variables: { id },
@@ -34,6 +38,15 @@ export const ProjectKeysPage: FC = () => {
 
   const project = data?.project;
   const selectedKey = keyData?.key || null;
+
+  // Get current editing language value and default language value
+  const currentLanguage = editingTranslation?.language || null;
+  const currentTranslation = selectedKey?.translations.find(
+    (t) => t.language === currentLanguage
+  );
+  const defaultTranslation = selectedKey?.translations.find(
+    (t) => t.language === project?.defaultLanguage
+  );
 
   // Show/hide panel toggle button when entering/leaving this page
   useEffect(() => {
@@ -134,6 +147,8 @@ export const ProjectKeysPage: FC = () => {
           onCreateKey={handleCreateKey}
           selectedKey={selectedKey}
           onSelectKey={handleSelectKey}
+          editingTranslation={editingTranslation}
+          onEditingTranslationChange={setEditingTranslation}
         />
       </div>
 
@@ -149,6 +164,10 @@ export const ProjectKeysPage: FC = () => {
             projectId={project.id}
             availableTags={project.availableTags || []}
             onKeyDeleted={handleKeyDeleted}
+            currentLanguage={currentLanguage}
+            currentLanguageValue={currentTranslation?.value}
+            defaultLanguage={project.defaultLanguage}
+            defaultLanguageValue={defaultTranslation?.value}
           />
         ) : null}
       </div>

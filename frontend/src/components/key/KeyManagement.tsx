@@ -4,12 +4,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { KeyLogsTimeline } from "./KeyLogsTimeline";
 import { KeySettingsForm } from "./KeySettingsForm";
 import { KeySettings } from "./KeySettings";
+import { KeySuggestions } from "./KeySuggestions";
 
 interface KeyManagementProps {
   selectedKey: TranslationKey;
   projectId: string;
   availableTags?: string[];
   onKeyDeleted?: () => void;
+  currentLanguage?: string | null;
+  currentLanguageValue?: string;
+  defaultLanguage?: string | null;
+  defaultLanguageValue?: string;
 }
 
 /**
@@ -21,15 +26,28 @@ export const KeyManagement: FC<KeyManagementProps> = ({
   projectId,
   availableTags = [],
   onKeyDeleted,
+  currentLanguage,
+  currentLanguageValue,
+  defaultLanguage,
+  defaultLanguageValue,
 }) => {
   return (
-    <Tabs defaultValue="history" className="h-full flex flex-col">
+    <Tabs defaultValue="suggestions" className="h-full flex flex-col">
       <TabsList className="mx-4 mt-4 mb-2 gap-0">
         <TabsTrigger value="suggestions">Suggestions</TabsTrigger>
         <TabsTrigger value="history">History</TabsTrigger>
         <TabsTrigger value="meta">Metadata</TabsTrigger>
         <TabsTrigger value="settings">Settings</TabsTrigger>
       </TabsList>
+
+      <TabsContent value="suggestions" className="flex-1 px-4 pb-4 overflow-auto">
+        <KeySuggestions
+          currentLanguage={currentLanguage}
+          currentLanguageValue={currentLanguageValue}
+          defaultLanguage={defaultLanguage}
+          defaultLanguageValue={defaultLanguageValue}
+        />
+      </TabsContent>
 
       <TabsContent value="history" className="flex-1 px-4 pb-4 overflow-auto">
         <KeyLogsTimeline keyId={selectedKey.id} />

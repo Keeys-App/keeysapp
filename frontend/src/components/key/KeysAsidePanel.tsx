@@ -7,6 +7,10 @@ interface KeysAsidePanelProps {
   projectId: string;
   availableTags?: string[];
   onKeyDeleted?: () => void;
+  currentLanguage?: string | null;
+  currentLanguageValue?: string;
+  defaultLanguage?: string | null;
+  defaultLanguageValue?: string;
 }
 
 /**
@@ -17,6 +21,10 @@ export const KeysAsidePanel: FC<KeysAsidePanelProps> = ({
   projectId,
   availableTags = [],
   onKeyDeleted,
+  currentLanguage,
+  currentLanguageValue,
+  defaultLanguage,
+  defaultLanguageValue,
 }) => {
   return (
     <div className="h-full flex flex-col">
@@ -36,6 +44,10 @@ export const KeysAsidePanel: FC<KeysAsidePanelProps> = ({
             projectId={projectId}
             availableTags={availableTags}
             onKeyDeleted={onKeyDeleted}
+            currentLanguage={currentLanguage}
+            currentLanguageValue={currentLanguageValue}
+            defaultLanguage={defaultLanguage}
+            defaultLanguageValue={defaultLanguageValue}
           />
         )}
       </div>
