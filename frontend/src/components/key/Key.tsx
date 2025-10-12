@@ -29,7 +29,7 @@ export const Key = memo(
     editingLanguage,
     onEditingLanguageChange,
   }: KeyProps) {
-    const handleClick = () => {
+    const handleSelect = () => {
       if (onSelect) {
         onSelect(keyData);
       }
@@ -38,9 +38,10 @@ export const Key = memo(
     return (
       <div
         className={cn(
-          "border-b grid grid-cols-[220px_minmax(300px,3fr)] relative cursor-pointer transition-colors"
+          "border-b grid grid-cols-[220px_minmax(300px,3fr)] relative transition-colors",
+          !isSelected && "cursor-pointer"
         )}
-        onClick={handleClick}
+        onClick={handleSelect}
       >
         <div className="border-r -mr-px relative">
           <KeyHeader
@@ -68,6 +69,7 @@ export const Key = memo(
                 projectId={projectId}
                 isEditing={editingLanguage === language.code}
                 onEditingChange={(editing) => {
+                  handleSelect();
                   onEditingLanguageChange(editing ? language.code : null);
                 }}
               />

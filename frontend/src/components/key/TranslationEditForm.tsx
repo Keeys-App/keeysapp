@@ -15,7 +15,7 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Ellipsis, Settings } from "lucide-react";
+import { Ellipsis, Settings, TriangleAlert } from "lucide-react";
 
 interface TranslationEditFormProps {
   value: string;
@@ -59,7 +59,10 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
 
   // Save to localStorage when changed
   useEffect(() => {
-    localStorage.setItem("markReviewedOnSave", JSON.stringify(markReviewedOnSave));
+    localStorage.setItem(
+      "markReviewedOnSave",
+      JSON.stringify(markReviewedOnSave)
+    );
     if (onMarkReviewedOnSaveChange) {
       onMarkReviewedOnSaveChange(markReviewedOnSave);
     }
@@ -67,7 +70,10 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
 
   // Sync with external prop if provided
   useEffect(() => {
-    if (externalMarkReviewedOnSave !== undefined && externalMarkReviewedOnSave !== markReviewedOnSave) {
+    if (
+      externalMarkReviewedOnSave !== undefined &&
+      externalMarkReviewedOnSave !== markReviewedOnSave
+    ) {
       setMarkReviewedOnSave(externalMarkReviewedOnSave);
     }
   }, [externalMarkReviewedOnSave]);
@@ -156,6 +162,8 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
           ) : null}
         </div>
         <div className="flex gap-2 items-center">
+          <TriangleAlert className="!h-3.5 !w-3.5 text-orange-500" />
+
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -166,6 +174,7 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
