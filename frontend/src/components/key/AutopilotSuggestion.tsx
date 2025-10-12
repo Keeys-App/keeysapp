@@ -58,6 +58,7 @@ export const AutopilotSuggestion: FC<AutopilotSuggestionProps> = ({
     <Item
       variant="outline"
       className={cn(
+        "animate-in",
         withGradient &&
           "from-indigo-500/10 dark:from-indigo-500/20 to-25% to-transparent dark:to-transparent bg-gradient-to-br",
         className

@@ -28,6 +28,7 @@ interface AutopilotAction {
 }
 
 interface AutopilotCardProps {
+  isPending?: boolean;
   /**
    * Variant of the autopilot card
    * - disabled: No language selected
@@ -35,27 +36,27 @@ interface AutopilotCardProps {
    * - enhance: Translation exists, show enhancement actions
    */
   variant: AutopilotVariant;
-  
+
   /**
    * Custom title (defaults to "Autopilot")
    */
   title?: string;
-  
+
   /**
    * Custom description
    */
   description?: string;
-  
+
   /**
    * Actions to display (buttons)
    */
   actions?: AutopilotAction[];
-  
+
   /**
    * Custom icon color class (defaults based on variant)
    */
   iconColorClass?: string;
-  
+
   /**
    * Custom background color class for icon (defaults based on variant)
    */
@@ -73,6 +74,7 @@ export const AutopilotCard: FC<AutopilotCardProps> = ({
   actions = [],
   iconColorClass,
   iconBgClass,
+  isPending,
 }) => {
   // Default colors based on variant
   const defaultIconColor =
@@ -92,7 +94,9 @@ export const AutopilotCard: FC<AutopilotCardProps> = ({
             iconBgClass || defaultIconBg
           )}
         >
-          <Sparkle className={iconColorClass || defaultIconColor} />
+          <div className={cn(isPending && "animate-pulse")}>
+            <Sparkle className={iconColorClass || defaultIconColor} />
+          </div>
         </div>
       </ItemMedia>
       <ItemContent>
@@ -107,7 +111,11 @@ export const AutopilotCard: FC<AutopilotCardProps> = ({
                 key={index}
                 size="sm"
                 variant="outline"
-                className={cn(action.variant === "default" && "!bg-indigo-500 !shadow-transparent !border-transparent !text-white hover:!bg-indigo-500/90")}
+                disabled={isPending}
+                className={cn(
+                  action.variant === "default" &&
+                    "!bg-indigo-500 !shadow-transparent !border-transparent !text-white hover:!bg-indigo-500/90"
+                )}
                 onClick={action.onClick}
               >
                 {action.icon ? <action.icon /> : null}
@@ -147,28 +155,28 @@ export const AutopilotActions = {
     onClick,
     variant: "default",
   }),
-  
+
   rephrase: (onClick?: () => void): AutopilotAction => ({
     label: "Rephrase",
     icon: ListRestart,
     onClick,
     variant: "outline",
   }),
-  
+
   shorten: (onClick?: () => void): AutopilotAction => ({
     label: "Shorten",
     icon: ArrowDownWideNarrow,
     onClick,
     variant: "outline",
   }),
-  
+
   suggestVariants: (onClick?: () => void): AutopilotAction => ({
     label: "Suggest variants",
     icon: ListStart,
     onClick,
     variant: "outline",
   }),
-  
+
   addContext: (onClick?: () => void): AutopilotAction => ({
     label: "Add context",
     icon: BookPlus,
@@ -176,4 +184,3 @@ export const AutopilotActions = {
     variant: "outline",
   }),
 };
-

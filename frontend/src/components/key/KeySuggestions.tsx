@@ -19,6 +19,8 @@ import {
 } from "@/graphql/ai";
 import { toast } from "sonner";
 import { useSaving, useSavingStore } from "@/stores";
+import { Skeleton } from "../ui/skeleton";
+import { Item } from "../ui/item";
 
 interface KeySuggestionsProps {
   currentKey: TranslationKey;
@@ -41,16 +43,18 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
 }) => {
   const withSaving = useSaving();
   const { isSaving } = useSavingStore();
-  
+
   // State for AI suggestions
   const [suggestion, setSuggestion] = useState<string | null>(null);
   const [variants, setVariants] = useState<string[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // AI mutations
   const [translateMutation] = useMutation<AiTranslateData>(AI_TRANSLATE);
   const [rephraseMutation] = useMutation<AiRephraseData>(AI_REPHRASE);
   const [shortenMutation] = useMutation<AiShortenData>(AI_SHORTEN);
-  const [variantsMutation] = useMutation<AiSuggestVariantsData>(AI_SUGGEST_VARIANTS);
+  const [variantsMutation] =
+    useMutation<AiSuggestVariantsData>(AI_SUGGEST_VARIANTS);
 
   // Clear suggestions when language changes
   useEffect(() => {
@@ -65,6 +69,7 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
 
     await withSaving(async () => {
       try {
+        setIsGenerating(true);
         const result = await translateMutation({
           variables: {
             input: {
@@ -84,6 +89,8 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
         }
       } catch (error) {
         toast("Translation failed. Please try again.");
+      } finally {
+        setIsGenerating(false);
       }
     }, "Translating with AI...");
   };
@@ -164,11 +171,16 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
           },
         });
 
-        if (result.data?.aiSuggestVariants.success && result.data.aiSuggestVariants.variants.length > 0) {
+        if (
+          result.data?.aiSuggestVariants.success &&
+          result.data.aiSuggestVariants.variants.length > 0
+        ) {
           setVariants(result.data.aiSuggestVariants.variants);
           toast("Variants generated");
         } else {
-          toast(result.data?.aiSuggestVariants.error || "Variant generation failed");
+          toast(
+            result.data?.aiSuggestVariants.error || "Variant generation failed"
+          );
         }
       } catch (error) {
         toast("Variant generation failed. Please try again.");
@@ -203,6 +215,7 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
     // If translation exists, show enhancement actions
     card = (
       <AutopilotCard
+        isPending={isSaving || isGenerating}
         variant="enhance"
         actions={[
           AutopilotActions.rephrase(handleRephrase),
@@ -216,6 +229,7 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
     // Show translate action for empty translation
     card = (
       <AutopilotCard
+        isPending={isSaving || isGenerating}
         variant="translate"
         actions={[
           AutopilotActions.translate(handleTranslate),
@@ -288,6 +302,22 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
           />
         </>
       ) : null}
+
+      <div>
+        <Item variant="outline" className="w-full flex flex-col gap-5 border-border/50">
+          <div className="flex gap-2 w-full">
+            <Skeleton className="h-3 w-3" />
+            <Skeleton className="w-full h-3" />
+          </div>
+          <div className="flex flex-col gap-2 w-full">
+            <Skeleton className="h-2.5 w-full" />
+            <Skeleton className="h-2.5 w-full" />
+          </div>
+          <div className="flex gap-2 w-full">
+            <Skeleton className="h-8 w-24" />
+          </div>
+        </Item>
+      </div>
     </AutopilotSuggestionsList>
   );
 };
