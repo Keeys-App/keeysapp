@@ -22,9 +22,9 @@ type AutopilotVariant = "disabled" | "translate" | "enhance";
 
 interface AutopilotAction {
   label: string;
-  icon?: LucideIcon;
-  onClick: () => void;
-  variant?: "default" | "outline";
+  icon: LucideIcon;
+  variant: "default" | "outline";
+  onClick?: () => void;
 }
 
 interface AutopilotCardProps {
@@ -141,35 +141,39 @@ function getDefaultDescription(variant: AutopilotVariant): string {
  * Preset action configurations
  */
 export const AutopilotActions = {
-  translate: (onClick: () => void): AutopilotAction => ({
+  translate: (onClick?: () => void): AutopilotAction => ({
     label: "Translate",
     icon: Wand,
     onClick,
     variant: "default",
   }),
   
-  rephrase: (onClick: () => void): AutopilotAction => ({
+  rephrase: (onClick?: () => void): AutopilotAction => ({
     label: "Rephrase",
     icon: ListRestart,
     onClick,
+    variant: "default",
   }),
   
-  shorten: (onClick: () => void): AutopilotAction => ({
+  shorten: (onClick?: () => void): AutopilotAction => ({
     label: "Shorten",
     icon: ArrowDownWideNarrow,
     onClick,
+    variant: "default",
   }),
   
-  suggestVariants: (onClick: () => void): AutopilotAction => ({
+  suggestVariants: (onClick?: () => void): AutopilotAction => ({
     label: "Suggest variants",
     icon: ListStart,
     onClick,
+    variant: "default",
   }),
   
-  addContext: (onClick: () => void): AutopilotAction => ({
+  addContext: (onClick?: () => void): AutopilotAction => ({
     label: "Add context",
     icon: BookPlus,
     onClick,
+    variant: "default",
   }),
 };
 

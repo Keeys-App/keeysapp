@@ -1,15 +1,16 @@
 import { type FC } from "react";
 import type { TranslationKey } from "@/types/translationKey";
 import { KeyManagement } from "./KeyManagement";
+import type { Language } from "@/types/project";
 
 interface KeysAsidePanelProps {
   selectedKey: TranslationKey | null;
   projectId: string;
   availableTags?: string[];
   onKeyDeleted?: () => void;
-  currentLanguage?: string | null;
+  currentLanguage?: Language | null;
   currentLanguageValue?: string;
-  defaultLanguage?: string | null;
+  defaultLanguage?: Language | null;
   defaultLanguageValue?: string;
 }
 

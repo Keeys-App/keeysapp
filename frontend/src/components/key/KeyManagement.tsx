@@ -5,15 +5,16 @@ import { KeyLogsTimeline } from "./KeyLogsTimeline";
 import { KeySettingsForm } from "./KeySettingsForm";
 import { KeySettings } from "./KeySettings";
 import { KeySuggestions } from "./KeySuggestions";
+import type { Language } from "@/types/project";
 
 interface KeyManagementProps {
   selectedKey: TranslationKey;
   projectId: string;
   availableTags?: string[];
   onKeyDeleted?: () => void;
-  currentLanguage?: string | null;
+  currentLanguage?: Language | null;
   currentLanguageValue?: string;
-  defaultLanguage?: string | null;
+  defaultLanguage?: Language | null;
   defaultLanguageValue?: string;
 }
 
@@ -42,6 +43,7 @@ export const KeyManagement: FC<KeyManagementProps> = ({
 
       <TabsContent value="suggestions" className="flex-1 px-4 pb-4 overflow-auto">
         <KeySuggestions
+          currentKey={selectedKey}
           currentLanguage={currentLanguage}
           currentLanguageValue={currentLanguageValue}
           defaultLanguage={defaultLanguage}
