@@ -21,6 +21,13 @@ import {
 import { toast } from "sonner";
 import { useSaving, useSavingStore } from "@/stores";
 
+interface AISuggestion {
+  id: string;
+  text: string;
+  type: "translate" | "rephrase" | "shorten";
+  timestamp: number;
+}
+
 interface KeySuggestionsProps {
   currentKey: TranslationKey;
   currentLanguage?: Language | null;
@@ -44,9 +51,10 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
   const { isSaving } = useSavingStore();
 
   // State for AI suggestions
-  const [suggestion, setSuggestion] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<AISuggestion[]>([]);
   const [variants, setVariants] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
 
   // AI mutations
   const [translateMutation] = useMutation<AiTranslateData>(AI_TRANSLATE);
@@ -57,8 +65,9 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
 
   // Clear suggestions when language changes
   useEffect(() => {
-    setSuggestion(null);
+    setSuggestions([]);
     setVariants([]);
+    setRemovingIds(new Set());
   }, [currentLanguage?.code, currentLanguageValue]);
 
   const handleTranslate = async () => {
@@ -81,7 +90,13 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
         });
 
         if (result.data?.aiTranslate.success && result.data.aiTranslate.text) {
-          setSuggestion(result.data.aiTranslate.text);
+          const newSuggestion: AISuggestion = {
+            id: `translate-${Date.now()}`,
+            text: result.data.aiTranslate.text,
+            type: "translate",
+            timestamp: Date.now(),
+          };
+          setSuggestions((prev) => [...prev, newSuggestion]);
           toast("Translation generated");
         } else {
           toast(result.data?.aiTranslate.error || "Translation failed");
@@ -112,7 +127,13 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
         });
 
         if (result.data?.aiRephrase.success && result.data.aiRephrase.text) {
-          setSuggestion(result.data.aiRephrase.text);
+          const newSuggestion: AISuggestion = {
+            id: `rephrase-${Date.now()}`,
+            text: result.data.aiRephrase.text,
+            type: "rephrase",
+            timestamp: Date.now(),
+          };
+          setSuggestions((prev) => [...prev, newSuggestion]);
           toast("Rephrase generated");
         } else {
           toast(result.data?.aiRephrase.error || "Rephrase failed");
@@ -141,7 +162,13 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
         });
 
         if (result.data?.aiShorten.success && result.data.aiShorten.text) {
-          setSuggestion(result.data.aiShorten.text);
+          const newSuggestion: AISuggestion = {
+            id: `shorten-${Date.now()}`,
+            text: result.data.aiShorten.text,
+            type: "shorten",
+            timestamp: Date.now(),
+          };
+          setSuggestions((prev) => [...prev, newSuggestion]);
           toast("Shortened version generated");
         } else {
           toast(result.data?.aiShorten.error || "Shorten failed");
@@ -197,12 +224,56 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
     toast("Apply suggestion - coming soon");
   };
 
-  const handleDiscardSuggestion = () => {
-    setSuggestion(null);
+  const handleDiscardSuggestion = (id: string) => {
+    // Mark as removing for animation
+    setRemovingIds((prev) => new Set(prev).add(id));
+    
+    // Remove from state after animation completes
+    setTimeout(() => {
+      setSuggestions((prev) => prev.filter((s) => s.id !== id));
+      setRemovingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }, 300); // Match animation duration
+  };
+
+  const handleClearAllSuggestions = () => {
+    // Mark all as removing
+    const allIds = new Set(suggestions.map((s) => s.id));
+    setRemovingIds(allIds);
+    
+    // Clear after animation
+    setTimeout(() => {
+      setSuggestions([]);
+      setRemovingIds(new Set());
+    }, 300);
   };
 
   const handleDiscardVariants = () => {
     setVariants([]);
+  };
+
+  // Get type-specific icon and label
+  const getSuggestionMeta = (type: AISuggestion["type"]) => {
+    switch (type) {
+      case "translate":
+        return {
+          icon: AutopilotActions.translate().icon,
+          label: "Translation",
+        };
+      case "rephrase":
+        return {
+          icon: AutopilotActions.rephrase().icon,
+          label: "Rephrased",
+        };
+      case "shorten":
+        return {
+          icon: AutopilotActions.shorten().icon,
+          label: "Shortened",
+        };
+    }
   };
 
   let card: React.ReactNode | null = null;
@@ -242,28 +313,41 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
     <AutopilotSuggestionsList>
       {card}
 
-      {/* Show single suggestion if available */}
-      {suggestion ? (
-        <AutopilotSuggestion
-          icon={AutopilotActions.translate().icon}
-          title="AI Suggestion"
-          description={suggestion}
-          actions={[
-            {
-              label: "Use suggestion",
-              onClick: () => {
-                handleUseSuggestion(suggestion);
+      {/* Show all accumulated suggestions */}
+      {suggestions.map((suggestion) => {
+        const meta = getSuggestionMeta(suggestion.type);
+        const isRemoving = removingIds.has(suggestion.id);
+        
+        return (
+          <AutopilotSuggestion
+            key={suggestion.id}
+            icon={meta.icon}
+            title={meta.label}
+            description={suggestion.text}
+            className={
+              isRemoving
+                ? "animate-out fade-out slide-out-to-right-2 duration-300"
+                : undefined
+            }
+            actions={[
+              {
+                label: "Use suggestion",
+                onClick: () => {
+                  handleUseSuggestion(suggestion.text);
+                },
+                variant: "outline",
               },
-              variant: "outline",
-            },
-            {
-              label: "Discard",
-              onClick: handleDiscardSuggestion,
-              variant: "ghost",
-            },
-          ]}
-        />
-      ) : null}
+              {
+                label: "Discard",
+                onClick: () => {
+                  handleDiscardSuggestion(suggestion.id);
+                },
+                variant: "ghost",
+              },
+            ]}
+          />
+        );
+      })}
 
       {/* Show variants if available */}
       {variants.length > 0 ? (

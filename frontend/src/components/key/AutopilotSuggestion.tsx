@@ -58,7 +58,9 @@ export const AutopilotSuggestion: FC<AutopilotSuggestionProps> = ({
     <Item
       variant="outline"
       className={cn(
-        "animate-in fade-in slide-in-from-bottom-2 duration-300",
+        // Default enter animation (will be overridden by className if removing)
+        !className?.includes("animate-out") &&
+          "animate-in fade-in slide-in-from-bottom-2 duration-300",
         withGradient &&
           "from-indigo-500/10 dark:from-indigo-500/20 to-25% to-transparent dark:to-transparent bg-gradient-to-br",
         className
