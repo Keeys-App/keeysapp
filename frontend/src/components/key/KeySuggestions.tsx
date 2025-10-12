@@ -346,42 +346,6 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
     <AutopilotSuggestionsList>
       {card}
 
-      {/* Show all accumulated suggestions (only when language is selected) */}
-      {currentLanguage && suggestions.map((suggestion) => {
-        const meta = getSuggestionMeta(suggestion.type);
-        const isRemoving = removingIds.has(suggestion.id);
-        
-        return (
-          <AutopilotSuggestion
-            key={suggestion.id}
-            icon={meta.icon}
-            title={meta.label}
-            description={suggestion.text}
-            className={
-              isRemoving
-                ? "animate-out fade-out slide-out-to-right-2 duration-300"
-                : undefined
-            }
-            actions={[
-              {
-                label: "Use suggestion",
-                onClick: () => {
-                  handleUseSuggestion(suggestion.text);
-                },
-                variant: "outline",
-              },
-              {
-                label: "Discard",
-                onClick: () => {
-                  handleDiscardSuggestion(suggestion.id);
-                },
-                variant: "ghost",
-              },
-            ]}
-          />
-        );
-      })}
-
       {/* Context card (single unified context) - only show when language is selected */}
       {currentLanguage && isEditingContext ? (
         // Edit mode
@@ -436,6 +400,42 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
           withGradient={false}
         />
       ) : null}
+
+      {/* Show all accumulated suggestions (only when language is selected) */}
+      {currentLanguage && suggestions.map((suggestion) => {
+        const meta = getSuggestionMeta(suggestion.type);
+        const isRemoving = removingIds.has(suggestion.id);
+        
+        return (
+          <AutopilotSuggestion
+            key={suggestion.id}
+            icon={meta.icon}
+            title={meta.label}
+            description={suggestion.text}
+            className={
+              isRemoving
+                ? "animate-out fade-out slide-out-to-right-2 duration-300"
+                : undefined
+            }
+            actions={[
+              {
+                label: "Use suggestion",
+                onClick: () => {
+                  handleUseSuggestion(suggestion.text);
+                },
+                variant: "outline",
+              },
+              {
+                label: "Discard",
+                onClick: () => {
+                  handleDiscardSuggestion(suggestion.id);
+                },
+                variant: "ghost",
+              },
+            ]}
+          />
+        );
+      })}
 
       {/* Show variants if available (only when language is selected) */}
       {currentLanguage && variants.length > 0 ? (
