@@ -18,9 +18,9 @@ import {
   type AiShortenData,
   type AiSuggestVariantsData,
 } from "@/graphql/ai";
-import { SET_TRANSLATION, GET_KEY, GET_KEY_LOGS } from "@/graphql/keys";
 import { toast } from "sonner";
 import { useSaving, useSavingStore } from "@/stores";
+import { useTranslationEditor } from "@/contexts";
 import { Textarea } from "@/components/ui/textarea";
 import { BookPlus } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
@@ -55,6 +55,7 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
 }) => {
   const withSaving = useSaving();
   const { isSaving } = useSavingStore();
+  const { editorRef } = useTranslationEditor();
 
   // State for AI suggestions
   const [suggestions, setSuggestions] = useState<AISuggestion[]>([]);
@@ -74,21 +75,6 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
   const [shortenMutation] = useMutation<AiShortenData>(AI_SHORTEN);
   const [variantsMutation] =
     useMutation<AiSuggestVariantsData>(AI_SUGGEST_VARIANTS);
-  
-  // Translation mutation
-  const [setTranslation] = useMutation(SET_TRANSLATION, {
-    refetchQueries: [
-      {
-        query: GET_KEY_LOGS,
-        variables: { keyId: currentKey.id, limit: 50 },
-      },
-      {
-        query: GET_KEY,
-        variables: { id: currentKey.id },
-      },
-    ],
-    awaitRefetchQueries: true,
-  });
 
   // Clear suggestions when language changes
   useEffect(() => {

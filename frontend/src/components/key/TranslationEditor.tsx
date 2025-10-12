@@ -9,10 +9,12 @@ import {
 } from "@/graphql/keys";
 import { getUserFriendlyErrorMessage } from "@/lib/utils";
 import { useSaving } from "@/stores";
+import { useTranslationEditor } from "@/contexts";
 import type { Language, LanguageWithLocale } from "@/types/project";
 import type { TranslationKey } from "@/types/translationKey";
 import { TranslationEditForm } from "./TranslationEditForm";
 import { TranslationView } from "./TranslationView";
+import type { TranslationTextEditorRef } from "./TranslationTextEditor";
 
 interface TranslationEditorProps {
   keyData: TranslationKey;
@@ -55,6 +57,12 @@ export const TranslationEditor = memo(
     const wasEditingRef = useRef(false);
     const valueToSaveRef = useRef<string | null>(null);
     const isAutoSavingRef = useRef(false);
+    const { setEditorRef } = useTranslationEditor();
+
+    // Register/unregister editor ref in context when editing starts/stops
+    const handleEditorReady = (ref: TranslationTextEditorRef | null) => {
+      setEditorRef(ref);
+    };
 
     // Update value when currentValue changes from outside (e.g., switching keys)
     useEffect(() => {
@@ -288,6 +296,7 @@ export const TranslationEditor = memo(
             defaultLanguageValue={defaultLanguageValue}
             markReviewedOnSave={markReviewedOnSave}
             onMarkReviewedOnSaveChange={setMarkReviewedOnSave}
+            onEditorReady={handleEditorReady}
           />
         )}
       </div>

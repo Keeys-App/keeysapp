@@ -1,4 +1,4 @@
-import { type FC, useState, useEffect, useMemo } from "react";
+import { type FC, useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { useSavingStore } from "@/stores";
 import { Badge } from "../ui";
@@ -14,7 +14,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Ellipsis } from "lucide-react";
-import { TranslationTextEditor } from "./TranslationTextEditor";
+import { TranslationTextEditor, type TranslationTextEditorRef } from "./TranslationTextEditor";
 
 interface TranslationEditFormProps {
   value: string;
@@ -26,6 +26,7 @@ interface TranslationEditFormProps {
   defaultLanguageValue?: string;
   markReviewedOnSave?: boolean;
   onMarkReviewedOnSaveChange?: (value: boolean) => void;
+  onEditorReady?: (ref: TranslationTextEditorRef | null) => void;
 }
 
 interface TextIssue {
@@ -88,8 +89,31 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
   defaultLanguageValue,
   markReviewedOnSave: externalMarkReviewedOnSave,
   onMarkReviewedOnSaveChange,
+  onEditorReady,
 }) => {
   const { isSaving } = useSavingStore();
+  const onEditorReadyRef = useRef(onEditorReady);
+
+  // Update ref when callback changes
+  useEffect(() => {
+    onEditorReadyRef.current = onEditorReady;
+  }, [onEditorReady]);
+
+  // Callback ref that notifies parent when ref is set
+  const editorRef = useCallback((node: TranslationTextEditorRef | null) => {
+    if (onEditorReadyRef.current) {
+      onEditorReadyRef.current(node);
+    }
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (onEditorReadyRef.current) {
+        onEditorReadyRef.current(null);
+      }
+    };
+  }, []);
 
   // Load initial value from localStorage or prop
   const [markReviewedOnSave, setMarkReviewedOnSave] = useState(() => {
@@ -168,6 +192,7 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
   return (
     <div className="bg-background">
       <TranslationTextEditor
+        ref={editorRef}
         value={value}
         onChange={onChange}
         onKeyDown={handleKeyDown}
