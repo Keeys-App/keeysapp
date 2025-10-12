@@ -217,22 +217,16 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
           {textIssues.length > 0 ? (
             <Popover>
               <PopoverTrigger asChild>
-                <button
-                  type="button"
-                  className="cursor-pointer"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <TriangleAlert className="!h-3.5 !w-3.5 text-orange-500" />
-                </button>
+                <Badge className="cursor-pointer bg-destructive/10 text-destructive">
+                  {textIssues.length} issues
+                </Badge>
               </PopoverTrigger>
               <PopoverContent className="w-64" align="end">
                 <div className="space-y-2">
                   <h2 className="font-medium">Translation Issues</h2>
                   <ul className="list-disc pl-4 text-sm">
                     {textIssues.map((issue, index) => (
-                      <li key={index}>
-                        {issue.description}
-                      </li>
+                      <li key={index}>{issue.description}</li>
                     ))}
                   </ul>
                 </div>
@@ -240,16 +234,7 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
             </Popover>
           ) : null}
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Badge variant="outline">{value.length}</Badge>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Character count</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Badge variant="outline">{value.length}</Badge>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

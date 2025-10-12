@@ -438,8 +438,8 @@ class KeyService:
         if value is None:
             value = ""
         
-        # If value is empty, delete the translation
-        if not value:
+        # If value is empty or only whitespace, delete the translation
+        if not value.strip():
             if translation:
                 # Log translation deletion
                 KeyService._create_log(
