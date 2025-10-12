@@ -444,16 +444,26 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
     card = <AutopilotCard isDisabled />;
   } else if (currentLanguageValue) {
     // If translation exists, show enhancement actions
+    const enhancementActions = [
+      AutopilotActions.rephrase(handleRephrase),
+      AutopilotActions.shorten(handleShorten),
+      AutopilotActions.suggestVariants(handleSuggestVariants),
+      AutopilotActions.addContext(handleAddContext),
+    ];
+
+    // Add Translate button if not default language and default value exists
+    if (
+      currentLanguage?.code !== defaultLanguage?.code &&
+      defaultLanguageValue
+    ) {
+      enhancementActions.unshift(AutopilotActions.translate(handleTranslate));
+    }
+
     card = (
       <AutopilotCard
         isPending={isSaving || isGenerating}
         description="Enhance the quality of this translation using AI."
-        actions={[
-          AutopilotActions.rephrase(handleRephrase),
-          AutopilotActions.shorten(handleShorten),
-          AutopilotActions.suggestVariants(handleSuggestVariants),
-          AutopilotActions.addContext(handleAddContext),
-        ]}
+        actions={enhancementActions}
       />
     );
   } else if (!defaultLanguageValue) {
