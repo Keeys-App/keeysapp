@@ -30,7 +30,6 @@ export const Key = memo(
     onEditingLanguageChange,
   }: KeyProps) {
     const handleClick = () => {
-      console.log('Key clicked:', keyData.key, 'isSelected:', isSelected);
       if (onSelect) {
         onSelect(keyData);
       }

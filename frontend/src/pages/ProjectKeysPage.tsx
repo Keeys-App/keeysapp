@@ -35,13 +35,6 @@ export const ProjectKeysPage: FC = () => {
   const project = data?.project;
   const selectedKey = keyData?.key || null;
 
-  // Debug logging
-  useEffect(() => {
-    console.log('Selected Key ID:', selectedKeyId);
-    console.log('Selected Key Data:', selectedKey);
-    console.log('Panel Open:', isPanelOpen);
-  }, [selectedKeyId, selectedKey, isPanelOpen]);
-
   // Show/hide panel toggle button when entering/leaving this page
   useEffect(() => {
     setShowPanelToggle(true);
@@ -75,7 +68,6 @@ export const ProjectKeysPage: FC = () => {
   }, []);
 
   const handleSelectKey = useCallback((key: TranslationKey) => {
-    console.log('Key selected:', key.id, key.key);
     setSelectedKeyId(key.id);
     // Automatically open panel when key is selected
     openPanel();
