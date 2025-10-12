@@ -5,7 +5,7 @@ import { GET_PROJECT_KEYS } from "@/graphql/keys";
 import { PATHS } from "@/constants/paths";
 import { useAuth, useBreadcrumbs } from "@/contexts";
 import { useEffect, useState, useMemo, useCallback, type FC } from "react";
-import { KeyList, CreateKeyDialog, KeyManagement } from "@/components/key";
+import { KeyList, CreateKeyDialog, KeysAsidePanel } from "@/components/key";
 import { COMMON_LANGUAGES, LANGUAGE_CONFIGS } from "@/types/project";
 import { LoadingState, ErrorState, NotFoundState } from "@/components/blocks";
 import type { TranslationKey } from "@/types/translationKey";
@@ -151,7 +151,7 @@ export const ProjectKeysPage: FC = () => {
         }`}
       >
         {isPanelOpen ? (
-          <KeyManagement
+          <KeysAsidePanel
             selectedKey={selectedKey}
             projectId={project.id}
             availableTags={project.availableTags || []}
