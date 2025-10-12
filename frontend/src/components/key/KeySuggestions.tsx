@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Languages, Info, Sparkles, ExternalLink } from "lucide-react";
+import { Item, ItemHeader, ItemContent, ItemDescription, ItemTitle } from "../ui/item";
 
 interface KeySuggestionsProps {
   currentLanguage?: string | null;
@@ -39,18 +40,16 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
   return (
     <div className="space-y-4">
       {currentLanguageValue ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">
+        <Item variant="outline">
+          <ItemContent>
+            <ItemTitle>
               Current Translation ({currentLanguage})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+            </ItemTitle>
+            <ItemDescription className="text-sm text-muted-foreground whitespace-pre-wrap">
               {currentLanguageValue}
-            </p>
-          </CardContent>
-        </Card>
+            </ItemDescription>
+          </ItemContent>
+        </Item>
       ) : (
         <Card className="border-primary/20 bg-primary/5">
           <CardContent className="flex flex-col items-center justify-center py-8 text-center">
