@@ -2,6 +2,13 @@ import { type FC } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useSavingStore } from "@/stores";
+import { Badge } from "../ui";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface TranslationEditFormProps {
   value: string;
@@ -81,32 +88,47 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
         autoFocus
       />
       <div className="flex gap-2 p-2 border-t">
-        <Button
-          onClick={handleSaveClick}
-          disabled={isSaving || !hasChanges}
-          variant="default"
-          size="sm"
-        >
-          Save
-        </Button>
-        <Button
-          onClick={handleCancelClick}
-          disabled={isSaving}
-          variant="outline"
-          size="sm"
-        >
-          Cancel
-        </Button>
-        {defaultLanguageValue && !value ? (
+        <div className="flex-1 flex gap-2 items-center">
           <Button
-            onClick={handleCopyFromDefault}
-            disabled={isSaving}
-            variant="ghost"
+            onClick={handleSaveClick}
+            disabled={isSaving || !hasChanges}
+            variant="default"
             size="sm"
           >
-            Copy from default
+            Save
           </Button>
-        ) : null}
+          <Button
+            onClick={handleCancelClick}
+            disabled={isSaving}
+            variant="outline"
+            size="sm"
+          >
+            Cancel
+          </Button>
+          {defaultLanguageValue && !value ? (
+            <Button
+              onClick={handleCopyFromDefault}
+              disabled={isSaving}
+              variant="ghost"
+              size="sm"
+            >
+              Copy from default
+            </Button>
+          ) : null}
+        </div>
+        <div className="flex gap-2 items-center">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="outline">{value.length}</Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Character count</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          
+        </div>
       </div>
     </div>
   );
