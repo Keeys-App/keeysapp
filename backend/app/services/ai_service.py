@@ -3,6 +3,7 @@ AI Service for translation assistance using OpenAI API
 """
 from typing import Optional
 import logging
+import json
 from openai import AsyncOpenAI, OpenAIError
 from app.core.config import settings
 
@@ -33,7 +34,7 @@ class AIService:
         target_language: str,
         source_language: Optional[str] = None,
         context: Optional[str] = None
-    ) -> str:
+    ) -> tuple[str, Optional[str]]:
         """
         Translate text to target language
         
@@ -44,10 +45,12 @@ class AIService:
             context: Optional context about the text
             
         Returns:
-            Translated text
+            Tuple of (translated_text, reason_if_failed)
+            - If successful: (translation, None)
+            - If failed: ("", reason)
             
         Raises:
-            Exception: If AI service is not available or translation fails
+            Exception: If AI service is not available or API error occurs
         """
         if not self._is_available():
             raise Exception("AI service is not configured")
@@ -80,10 +83,19 @@ class AIService:
 
             logger.info(f"Requesting translation to {target_language} (context: {bool(context)})")
             
-            # Build system message with context awareness
-            system_content = "You are a professional translator. Provide accurate, natural-sounding translations."
+            # Build system message with JSON response format
+            system_content = (
+                "You are a professional translator. "
+                "Respond ONLY with valid JSON in this exact format:\n"
+                '{"success": true/false, "result": "translated text or empty string", "reason": "optional reason if failed"}\n\n'
+                "Rules:\n"
+                "- If the text is translatable, set success=true and provide the translation in result\n"
+                "- If the text is gibberish/random characters, set success=false and explain in reason\n"
+                "- NEVER include apologies or explanations in the result field\n"
+                "- The result field should ONLY contain the translated text or be empty"
+            )
             if context:
-                system_content += " Pay close attention to the provided context to ensure the translation is appropriate for the intended use case."
+                system_content += f"\n- Context for translation: {context}"
             
             response = await self.client.chat.completions.create(
                 model=settings.openai_text_model,
@@ -93,11 +105,24 @@ class AIService:
                 ],
                 max_tokens=settings.openai_max_tokens,
                 temperature=settings.openai_temperature,
+                response_format={"type": "json_object"}
             )
 
-            translation = response.choices[0].message.content.strip()
+            # Parse JSON response
+            response_text = response.choices[0].message.content.strip()
+            response_data = json.loads(response_text)
+            
+            if not response_data.get("success", False):
+                reason = response_data.get("reason", "Unable to process this text")
+                logger.warning(f"AI could not translate: {reason}")
+                return ("", reason)
+            
+            translation = response_data.get("result", "").strip()
+            if not translation:
+                return ("", "Translation result is empty")
+            
             logger.info("Translation completed successfully")
-            return translation
+            return (translation, None)
 
         except OpenAIError as e:
             logger.error(f"OpenAI API error: {str(e)}")
@@ -111,7 +136,7 @@ class AIService:
         text: str,
         language: str,
         context: Optional[str] = None
-    ) -> str:
+    ) -> tuple[str, Optional[str]]:
         """
         Rephrase text while maintaining meaning
         
@@ -121,7 +146,9 @@ class AIService:
             context: Optional context
             
         Returns:
-            Rephrased text
+            Tuple of (rephrased_text, reason_if_failed)
+            - If successful: (rephrased, None)
+            - If failed: ("", reason)
         """
         if not self._is_available():
             raise Exception("AI service is not configured")
@@ -147,10 +174,19 @@ class AIService:
 
             logger.info(f"Requesting rephrase for {language} text (context: {bool(context)})")
             
-            # Build system message with context awareness
-            system_content = "You are a professional text editor. Provide natural, fluent rephrasing."
+            # Build system message with JSON response format
+            system_content = (
+                "You are a professional text editor. "
+                "Respond ONLY with valid JSON in this exact format:\n"
+                '{"success": true/false, "result": "rephrased text or empty string", "reason": "optional reason if failed"}\n\n'
+                "Rules:\n"
+                "- If the text can be rephrased, set success=true and provide the rephrased version in result\n"
+                "- If the text is gibberish/random characters, set success=false and explain in reason\n"
+                "- NEVER include apologies or explanations in the result field\n"
+                "- The result field should ONLY contain the rephrased text or be empty"
+            )
             if context:
-                system_content += " Pay close attention to the provided context to ensure the rephrasing is appropriate."
+                system_content += f"\n- Context for rephrasing: {context}"
             
             response = await self.client.chat.completions.create(
                 model=settings.openai_text_model,
@@ -160,11 +196,24 @@ class AIService:
                 ],
                 max_tokens=settings.openai_max_tokens,
                 temperature=settings.openai_temperature,
+                response_format={"type": "json_object"}
             )
 
-            rephrased = response.choices[0].message.content.strip()
+            # Parse JSON response
+            response_text = response.choices[0].message.content.strip()
+            response_data = json.loads(response_text)
+            
+            if not response_data.get("success", False):
+                reason = response_data.get("reason", "Unable to process this text")
+                logger.warning(f"AI could not rephrase: {reason}")
+                return ("", reason)
+            
+            rephrased = response_data.get("result", "").strip()
+            if not rephrased:
+                return ("", "Rephrase result is empty")
+            
             logger.info("Rephrase completed successfully")
-            return rephrased
+            return (rephrased, None)
 
         except OpenAIError as e:
             logger.error(f"OpenAI API error: {str(e)}")
@@ -178,7 +227,7 @@ class AIService:
         text: str,
         language: str,
         context: Optional[str] = None
-    ) -> str:
+    ) -> tuple[str, Optional[str]]:
         """
         Shorten text while preserving key meaning
         
@@ -188,7 +237,9 @@ class AIService:
             context: Optional context
             
         Returns:
-            Shortened text
+            Tuple of (shortened_text, reason_if_failed)
+            - If successful: (shortened, None)
+            - If failed: ("", reason)
         """
         if not self._is_available():
             raise Exception("AI service is not configured")
@@ -214,10 +265,19 @@ class AIService:
 
             logger.info(f"Requesting shorten for {language} text (context: {bool(context)})")
             
-            # Build system message with context awareness
-            system_content = "You are a professional text editor. Provide concise, clear text."
+            # Build system message with JSON response format
+            system_content = (
+                "You are a professional text editor. "
+                "Respond ONLY with valid JSON in this exact format:\n"
+                '{"success": true/false, "result": "shortened text or empty string", "reason": "optional reason if failed"}\n\n'
+                "Rules:\n"
+                "- If the text can be shortened, set success=true and provide the shortened version in result\n"
+                "- If the text is gibberish/random characters, set success=false and explain in reason\n"
+                "- NEVER include apologies or explanations in the result field\n"
+                "- The result field should ONLY contain the shortened text or be empty"
+            )
             if context:
-                system_content += " Pay close attention to the provided context to ensure the shortened text is appropriate."
+                system_content += f"\n- Context for shortening: {context}"
             
             response = await self.client.chat.completions.create(
                 model=settings.openai_text_model,
@@ -227,11 +287,24 @@ class AIService:
                 ],
                 max_tokens=settings.openai_max_tokens,
                 temperature=settings.openai_temperature,
+                response_format={"type": "json_object"}
             )
 
-            shortened = response.choices[0].message.content.strip()
+            # Parse JSON response
+            response_text = response.choices[0].message.content.strip()
+            response_data = json.loads(response_text)
+            
+            if not response_data.get("success", False):
+                reason = response_data.get("reason", "Unable to process this text")
+                logger.warning(f"AI could not shorten: {reason}")
+                return ("", reason)
+            
+            shortened = response_data.get("result", "").strip()
+            if not shortened:
+                return ("", "Shorten result is empty")
+            
             logger.info("Shorten completed successfully")
-            return shortened
+            return (shortened, None)
 
         except OpenAIError as e:
             logger.error(f"OpenAI API error: {str(e)}")
@@ -246,7 +319,7 @@ class AIService:
         language: str,
         context: Optional[str] = None,
         count: int = 3
-    ) -> list[str]:
+    ) -> tuple[list[str], Optional[str]]:
         """
         Generate alternative variants of the text
         
@@ -257,7 +330,9 @@ class AIService:
             count: Number of variants to generate (default: 3)
             
         Returns:
-            List of variant texts
+            Tuple of (variants_list, reason_if_failed)
+            - If successful: ([variants], None)
+            - If failed: ([], reason)
         """
         if not self._is_available():
             raise Exception("AI service is not configured")
@@ -283,10 +358,19 @@ class AIService:
 
             logger.info(f"Requesting {count} variants for {language} text (context: {bool(context)})")
             
-            # Build system message with context awareness
-            system_content = "You are a creative text editor. Provide natural, varied alternatives."
+            # Build system message with JSON response format
+            system_content = (
+                "You are a creative text editor. "
+                "Respond ONLY with valid JSON in this exact format:\n"
+                '{"success": true/false, "variants": ["variant1", "variant2", "variant3"], "reason": "optional reason if failed"}\n\n'
+                "Rules:\n"
+                f"- If the text can be varied, set success=true and provide exactly {count} variants in the variants array\n"
+                "- If the text is gibberish/random characters, set success=false and explain in reason\n"
+                "- NEVER include apologies or explanations in the variants\n"
+                "- Each variant should be a natural alternative with different wording"
+            )
             if context:
-                system_content += " Pay close attention to the provided context to ensure all variants are appropriate."
+                system_content += f"\n- Context for variants: {context}"
             
             response = await self.client.chat.completions.create(
                 model=settings.openai_text_model,
@@ -296,24 +380,24 @@ class AIService:
                 ],
                 max_tokens=settings.openai_max_tokens,
                 temperature=1.2,  # Higher temperature for more variety
+                response_format={"type": "json_object"}
             )
 
-            result = response.choices[0].message.content.strip()
+            # Parse JSON response
+            response_text = response.choices[0].message.content.strip()
+            response_data = json.loads(response_text)
             
-            # Parse numbered list
-            variants = []
-            for line in result.split('\n'):
-                line = line.strip()
-                if not line:
-                    continue
-                # Remove numbering (1., 2., etc.)
-                import re
-                cleaned = re.sub(r'^\d+\.\s*', '', line)
-                if cleaned:
-                    variants.append(cleaned)
+            if not response_data.get("success", False):
+                reason = response_data.get("reason", "Unable to process this text")
+                logger.warning(f"AI could not generate variants: {reason}")
+                return ([], reason)
+            
+            variants = response_data.get("variants", [])
+            if not variants or len(variants) == 0:
+                return ([], "No variants generated")
             
             logger.info(f"Generated {len(variants)} variants successfully")
-            return variants[:count]  # Ensure we don't return more than requested
+            return (variants[:count], None)  # Ensure we don't return more than requested
 
         except OpenAIError as e:
             logger.error(f"OpenAI API error: {str(e)}")

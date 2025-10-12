@@ -6,6 +6,7 @@ export const AI_TRANSLATE = gql`
       text
       success
       error
+      reason
     }
   }
 `;
@@ -16,6 +17,7 @@ export const AI_REPHRASE = gql`
       text
       success
       error
+      reason
     }
   }
 `;
@@ -26,6 +28,7 @@ export const AI_SHORTEN = gql`
       text
       success
       error
+      reason
     }
   }
 `;
@@ -36,6 +39,7 @@ export const AI_SUGGEST_VARIANTS = gql`
       variants
       success
       error
+      reason
     }
   }
 `;
@@ -45,12 +49,14 @@ export interface TranslationResult {
   text: string;
   success: boolean;
   error?: string | null;
+  reason?: string | null;
 }
 
 export interface VariantsResult {
   variants: string[];
   success: boolean;
   error?: string | null;
+  reason?: string | null;
 }
 
 export interface TranslateInput {

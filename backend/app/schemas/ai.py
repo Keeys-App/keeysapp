@@ -17,6 +17,7 @@ class TranslationResult:
     text: str
     success: bool
     error: Optional[str] = None
+    reason: Optional[str] = None  # AI's explanation when it cannot process
 
 
 @strawberry.type
@@ -25,6 +26,7 @@ class VariantsResult:
     variants: list[str]
     success: bool
     error: Optional[str] = None
+    reason: Optional[str] = None  # AI's explanation when it cannot process
 
 
 @strawberry.input
@@ -89,12 +91,20 @@ class AIMutation:
             logger.info(f"User {user_id} requesting AI translation")
 
             # Perform translation
-            translated_text = await ai_service.translate(
+            translated_text, reason = await ai_service.translate(
                 text=input.text,
                 target_language=input.target_language,
                 source_language=input.source_language,
                 context=input.context
             )
+
+            if reason:
+                # AI couldn't process the text
+                return TranslationResult(
+                    text="",
+                    success=False,
+                    reason=reason
+                )
 
             return TranslationResult(
                 text=translated_text,
@@ -133,11 +143,19 @@ class AIMutation:
             logger.info(f"User {user_id} requesting AI rephrase")
 
             # Perform rephrase
-            rephrased_text = await ai_service.rephrase(
+            rephrased_text, reason = await ai_service.rephrase(
                 text=input.text,
                 language=input.language,
                 context=input.context
             )
+
+            if reason:
+                # AI couldn't process the text
+                return TranslationResult(
+                    text="",
+                    success=False,
+                    reason=reason
+                )
 
             return TranslationResult(
                 text=rephrased_text,
@@ -176,11 +194,19 @@ class AIMutation:
             logger.info(f"User {user_id} requesting AI shorten")
 
             # Perform shorten
-            shortened_text = await ai_service.shorten(
+            shortened_text, reason = await ai_service.shorten(
                 text=input.text,
                 language=input.language,
                 context=input.context
             )
+
+            if reason:
+                # AI couldn't process the text
+                return TranslationResult(
+                    text="",
+                    success=False,
+                    reason=reason
+                )
 
             return TranslationResult(
                 text=shortened_text,
@@ -219,12 +245,20 @@ class AIMutation:
             logger.info(f"User {user_id} requesting AI variants")
 
             # Generate variants
-            variants = await ai_service.suggest_variants(
+            variants, reason = await ai_service.suggest_variants(
                 text=input.text,
                 language=input.language,
                 context=input.context,
                 count=input.count or 3
             )
+
+            if reason:
+                # AI couldn't process the text
+                return VariantsResult(
+                    variants=[],
+                    success=False,
+                    reason=reason
+                )
 
             return VariantsResult(
                 variants=variants,

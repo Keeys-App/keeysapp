@@ -30,6 +30,8 @@ interface AISuggestion {
   text: string;
   type: "translate" | "rephrase" | "shorten";
   timestamp: number;
+  isError?: boolean;
+  reason?: string;
 }
 
 interface KeySuggestionsProps {
@@ -140,6 +142,17 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
           };
           setSuggestions((prev) => [...prev, newSuggestion]);
           toast("Translation generated");
+        } else if (result.data?.aiTranslate.reason) {
+          // AI couldn't process - show as info card
+          const errorSuggestion: AISuggestion = {
+            id: `translate-error-${Date.now()}`,
+            text: result.data.aiTranslate.reason,
+            type: "translate",
+            timestamp: Date.now(),
+            isError: true,
+            reason: result.data.aiTranslate.reason,
+          };
+          setSuggestions((prev) => [...prev, errorSuggestion]);
         } else {
           toast(result.data?.aiTranslate.error || "Translation failed");
         }
@@ -177,6 +190,17 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
           };
           setSuggestions((prev) => [...prev, newSuggestion]);
           toast("Rephrase generated");
+        } else if (result.data?.aiRephrase.reason) {
+          // AI couldn't process - show as info card
+          const errorSuggestion: AISuggestion = {
+            id: `rephrase-error-${Date.now()}`,
+            text: result.data.aiRephrase.reason,
+            type: "rephrase",
+            timestamp: Date.now(),
+            isError: true,
+            reason: result.data.aiRephrase.reason,
+          };
+          setSuggestions((prev) => [...prev, errorSuggestion]);
         } else {
           toast(result.data?.aiRephrase.error || "Rephrase failed");
         }
@@ -212,6 +236,17 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
           };
           setSuggestions((prev) => [...prev, newSuggestion]);
           toast("Shortened version generated");
+        } else if (result.data?.aiShorten.reason) {
+          // AI couldn't process - show as info card
+          const errorSuggestion: AISuggestion = {
+            id: `shorten-error-${Date.now()}`,
+            text: result.data.aiShorten.reason,
+            type: "shorten",
+            timestamp: Date.now(),
+            isError: true,
+            reason: result.data.aiShorten.reason,
+          };
+          setSuggestions((prev) => [...prev, errorSuggestion]);
         } else {
           toast(result.data?.aiShorten.error || "Shorten failed");
         }
@@ -245,6 +280,17 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
         ) {
           setVariants(result.data.aiSuggestVariants.variants);
           toast("Variants generated");
+        } else if (result.data?.aiSuggestVariants.reason) {
+          // AI couldn't process - show as info card
+          const errorSuggestion: AISuggestion = {
+            id: `variants-error-${Date.now()}`,
+            text: result.data.aiSuggestVariants.reason,
+            type: "rephrase",
+            timestamp: Date.now(),
+            isError: true,
+            reason: result.data.aiSuggestVariants.reason,
+          };
+          setSuggestions((prev) => [...prev, errorSuggestion]);
         } else {
           toast(
             result.data?.aiSuggestVariants.error || "Variant generation failed"
@@ -501,29 +547,42 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
             <AutopilotSuggestion
               key={suggestion.id}
               icon={meta.icon}
-              title={meta.label}
+              title={suggestion.isError ? "Unable to process" : meta.label}
               description={suggestion.text}
               className={
                 isRemoving
                   ? "animate-out fade-out slide-out-to-right-2 duration-300"
                   : undefined
               }
-              actions={[
-                {
-                  label: "Use suggestion",
-                  onClick: () => {
-                    handleUseSuggestion(suggestion.text);
-                  },
-                  variant: "outline",
-                },
-                {
-                  label: "Discard",
-                  onClick: () => {
-                    handleDiscardSuggestion(suggestion.id);
-                  },
-                  variant: "ghost",
-                },
-              ]}
+              withGradient={!suggestion.isError}
+              actions={
+                suggestion.isError
+                  ? [
+                      {
+                        label: "Dismiss",
+                        onClick: () => {
+                          handleDiscardSuggestion(suggestion.id);
+                        },
+                        variant: "ghost",
+                      },
+                    ]
+                  : [
+                      {
+                        label: "Use suggestion",
+                        onClick: () => {
+                          handleUseSuggestion(suggestion.text);
+                        },
+                        variant: "outline",
+                      },
+                      {
+                        label: "Discard",
+                        onClick: () => {
+                          handleDiscardSuggestion(suggestion.id);
+                        },
+                        variant: "ghost",
+                      },
+                    ]
+              }
             />
           );
         })}
