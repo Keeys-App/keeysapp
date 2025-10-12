@@ -32,12 +32,26 @@ export const TranslationTextEditor: FC<TranslationTextEditorProps> = ({
   const editorRef = useRef<HTMLDivElement>(null);
   const [isFocused, setIsFocused] = useState(false);
 
+  // Get text content preserving all whitespace including trailing spaces
+  const getTextContent = (element: HTMLElement): string => {
+    return element.innerText;
+  };
+
+  // Set text content preserving all whitespace
+  const setTextContent = (element: HTMLElement, text: string) => {
+    // Replace trailing spaces with non-breaking spaces to preserve them
+    const processedText = text.replace(/( +)$/gm, (match) => 
+      match.replace(/ /g, '\u00A0')
+    );
+    element.textContent = processedText;
+  };
+
   // Sync external value changes to the editor
   useEffect(() => {
     if (editorRef.current && !isFocused) {
-      const currentText = editorRef.current.textContent || "";
+      const currentText = getTextContent(editorRef.current);
       if (currentText !== value) {
-        editorRef.current.textContent = value;
+        setTextContent(editorRef.current, value);
       }
     }
   }, [value, isFocused]);
@@ -58,7 +72,7 @@ export const TranslationTextEditor: FC<TranslationTextEditorProps> = ({
 
   const handleInput = () => {
     if (editorRef.current) {
-      const newValue = editorRef.current.textContent || "";
+      const newValue = getTextContent(editorRef.current);
       if (newValue !== value) {
         onChange(newValue);
       }
