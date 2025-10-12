@@ -23,7 +23,6 @@ class Query:
     
     # Include auth queries
     me: Optional[UserType] = strawberry.field(resolver=AuthQuery.me)
-    search_users: List[UserType] = strawberry.field(resolver=AuthQuery.search_users)
     
     # Include team queries
     teams: List[TeamType] = strawberry.field(resolver=TeamQuery.teams)

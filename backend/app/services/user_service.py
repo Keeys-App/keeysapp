@@ -1,6 +1,5 @@
-from typing import Optional, List
+from typing import Optional
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, func
 from uuid import UUID
 from app.models.user import User
 
@@ -119,30 +118,4 @@ class UserService:
             return None
         return user
 
-    @staticmethod
-    def search_users(db: Session, query: str, limit: int = 10) -> List[User]:
-        """
-        Search users by email or username.
-        Case-insensitive search.
-        
-        Args:
-            db: Database session
-            query: Search query
-            limit: Maximum number of results
-            
-        Returns:
-            List of matching users
-        """
-        if not query or len(query) < 2:
-            return []
-        
-        search_pattern = f"%{query.lower()}%"
-        
-        return db.query(User).filter(
-            User.is_active == True,
-            or_(
-                func.lower(User.email).like(search_pattern),
-                func.lower(User.username).like(search_pattern)
-            )
-        ).limit(limit).all()
 

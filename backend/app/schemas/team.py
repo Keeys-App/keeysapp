@@ -70,7 +70,7 @@ class AddTeamMemberInput:
     Input type for adding a member to a team.
     """
     team_id: str  # UUID
-    user_id: str  # UUID
+    user_email: str  # Email address of user to add
     role: str  # admin, editor, viewer, translator, reviewer
 
 
@@ -400,7 +400,7 @@ class TeamMutation:
     @strawberry.mutation
     def add_team_member(self, input: AddTeamMemberInput, info: Info) -> Optional[TeamType]:
         """
-        Add a member to a team.
+        Add a member to a team by email address.
         
         Args:
             input: Add member input
@@ -419,10 +419,10 @@ class TeamMutation:
         db: Session = next(get_db())
         
         try:
-            member = TeamService.add_team_member(
+            member = TeamService.add_team_member_by_email(
                 db=db,
                 team_public_id=input.team_id,
-                user_public_id=input.user_id,
+                user_email=input.user_email,
                 role=input.role,
                 added_by_user_id=current_user_id
             )

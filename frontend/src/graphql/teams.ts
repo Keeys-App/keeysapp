@@ -51,19 +51,6 @@ export const GET_TEAM = gql`
   }
 `;
 
-// Query to search users
-export const SEARCH_USERS = gql`
-  query SearchUsers($query: String!, $limit: Int) {
-    searchUsers(query: $query, limit: $limit) {
-      id
-      email
-      username
-      isActive
-      isSuperuser
-    }
-  }
-`;
-
 // Mutation to create a team
 export const CREATE_TEAM = gql`
   ${TEAM_FRAGMENT}
@@ -162,7 +149,7 @@ export interface UpdateTeamInput {
 
 export interface AddTeamMemberInput {
   teamId: string;
-  userId: string;
+  userEmail: string;
   role: 'admin' | 'editor' | 'viewer' | 'translator' | 'reviewer';
 }
 
@@ -175,10 +162,6 @@ export interface UpdateTeamMemberRoleInput {
   teamId: string;
   userId: string;
   role: 'admin' | 'editor' | 'viewer' | 'translator' | 'reviewer';
-}
-
-export interface SearchUsersResponse {
-  searchUsers: User[];
 }
 
 export interface GetTeamsResponse {

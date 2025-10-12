@@ -232,6 +232,66 @@ class TeamService:
         return member is not None
 
     @staticmethod
+    def add_team_member_by_email(
+        db: Session,
+        team_public_id: str,
+        user_email: str,
+        role: str,
+        added_by_user_id: int
+    ) -> Optional[TeamMember]:
+        """
+        Add a member to a team by email address. Only owner or admin can add members.
+        
+        Args:
+            db: Database session
+            team_public_id: Public UUID of the team
+            user_email: Email of the user to add
+            role: Role for the new member (admin, editor, viewer, translator, reviewer)
+            added_by_user_id: User ID who is adding the member
+            
+        Returns:
+            Created TeamMember or None if failed
+        """
+        # Get team
+        team = TeamService.get_team_by_public_id(db, team_public_id)
+        if not team:
+            return None
+        
+        # Check permission
+        if not TeamService.can_user_manage_team(db, team.id, added_by_user_id):
+            return None
+        
+        # Get user by email
+        user = db.query(User).filter(User.email == user_email.lower().strip()).first()
+        if not user:
+            logger.warning(f"User with email {user_email} not found")
+            return None
+        
+        # Check if already a member
+        existing_member = db.query(TeamMember).filter(
+            TeamMember.team_id == team.id,
+            TeamMember.user_id == user.id
+        ).first()
+        
+        if existing_member:
+            # Update role if already exists
+            existing_member.role = role
+            db.commit()
+            db.refresh(existing_member)
+            return existing_member
+        
+        # Create new member
+        member = TeamMember(
+            team_id=team.id,
+            user_id=user.id,
+            role=role
+        )
+        db.add(member)
+        db.commit()
+        db.refresh(member)
+        return member
+
+    @staticmethod
     def add_team_member(
         db: Session,
         team_public_id: str,
