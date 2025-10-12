@@ -5,6 +5,7 @@ import {
   AutopilotSuggestion,
   AutopilotSuggestionsList,
 } from "./AutopilotSuggestion";
+import { AutopilotSuggestionSkeleton } from "./AutopilotSuggestionSkeleton";
 import type { TranslationKey } from "@/types/translationKey";
 import type { Language } from "@/types/project";
 import {
@@ -19,8 +20,6 @@ import {
 } from "@/graphql/ai";
 import { toast } from "sonner";
 import { useSaving, useSavingStore } from "@/stores";
-import { Skeleton } from "../ui/skeleton";
-import { Item } from "../ui/item";
 
 interface KeySuggestionsProps {
   currentKey: TranslationKey;
@@ -303,21 +302,8 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
         </>
       ) : null}
 
-      <div>
-        <Item variant="outline" className="w-full flex flex-col gap-5 border-border/50">
-          <div className="flex gap-2 w-full">
-            <Skeleton className="h-3 w-3" />
-            <Skeleton className="w-full h-3" />
-          </div>
-          <div className="flex flex-col gap-2 w-full">
-            <Skeleton className="h-2.5 w-full" />
-            <Skeleton className="h-2.5 w-full" />
-          </div>
-          <div className="flex gap-2 w-full">
-            <Skeleton className="h-8 w-24" />
-          </div>
-        </Item>
-      </div>
+      {/* Loading skeleton (placeholder for future features) */}
+      {isGenerating || isSaving ? <AutopilotSuggestionSkeleton /> : null}
     </AutopilotSuggestionsList>
   );
 };

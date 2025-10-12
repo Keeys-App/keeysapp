@@ -100,7 +100,7 @@ export const AutopilotCard: FC<AutopilotCardProps> = ({
         </div>
       </ItemMedia>
       <ItemContent>
-        <ItemTitle>{title}</ItemTitle>
+        <ItemTitle>{isPending ? 'Generating...' : title}</ItemTitle>
         <ItemDescription className="text-balance">
           {defaultDescription}
         </ItemDescription>
