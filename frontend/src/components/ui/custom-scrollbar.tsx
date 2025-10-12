@@ -18,9 +18,9 @@ interface CustomScrollbarProps {
   loadedItems: number;
   
   /**
-   * Height of a single item (for calculations)
+   * Total virtual height (from virtualizer.getTotalSize())
    */
-  itemHeight: number;
+  totalHeight: number;
   
   /**
    * Additional className
@@ -32,7 +32,7 @@ export function CustomScrollbar({
   scrollContainerRef,
   totalItems,
   loadedItems,
-  itemHeight,
+  totalHeight,
   className,
 }: CustomScrollbarProps) {
   const [scrollPosition, setScrollPosition] = useState(0);
@@ -43,9 +43,7 @@ export function CustomScrollbar({
   const thumbRef = useRef<HTMLDivElement>(null);
   const dragStartY = useRef(0);
   const dragStartScrollTop = useRef(0);
-
-  // Calculate total virtual height
-  const totalHeight = totalItems * itemHeight;
+  const dragOffsetY = useRef(0); // Offset from thumb top to mouse position
   
   // Calculate visible height
   const visibleHeight = scrollContainerRef.current?.clientHeight || 0;
@@ -84,24 +82,43 @@ export function CustomScrollbar({
     setIsDragging(true);
     dragStartY.current = e.clientY;
     dragStartScrollTop.current = scrollPosition;
+    
+    // Calculate offset from top of thumb to mouse position
+    if (thumbRef.current) {
+      const thumbRect = thumbRef.current.getBoundingClientRect();
+      dragOffsetY.current = e.clientY - thumbRect.top;
+    }
   }, [scrollPosition]);
 
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (!isDragging || !scrollContainerRef.current) {
+      if (!isDragging || !scrollContainerRef.current || !scrollbarRef.current) {
         return;
       }
 
-      const deltaY = e.clientY - dragStartY.current;
-      const scrollDelta = (deltaY / (visibleHeight - thumbHeight - thumbPadding * 2)) * (totalHeight - visibleHeight);
-      const newScrollTop = Math.max(
-        0,
-        Math.min(totalHeight - visibleHeight, dragStartScrollTop.current + scrollDelta)
-      );
+      // Calculate position relative to scrollbar
+      const rect = scrollbarRef.current.getBoundingClientRect();
+      const mouseY = e.clientY - rect.top;
+      
+      // Calculate the top position of thumb (where user clicked - offset)
+      const thumbTopPosition = mouseY - dragOffsetY.current;
+      
+      // The scrollable range for the thumb (accounting for padding)
+      const scrollableRange = visibleHeight - thumbHeight - (thumbPadding * 2);
+      
+      // Thumb position relative to the start of scrollable area
+      const relativeThumbTop = thumbTopPosition - thumbPadding;
+      
+      // Clamp the position to valid range
+      const clampedPosition = Math.max(0, Math.min(scrollableRange, relativeThumbTop));
+      
+      // Calculate percentage and apply to content
+      const scrollPercentage = scrollableRange > 0 ? clampedPosition / scrollableRange : 0;
+      const newScrollTop = scrollPercentage * (totalHeight - visibleHeight);
 
-      scrollContainerRef.current.scrollTop = newScrollTop;
+      scrollContainerRef.current.scrollTop = Math.max(0, Math.min(totalHeight - visibleHeight, newScrollTop));
     },
-    [isDragging, scrollContainerRef, visibleHeight, thumbHeight, totalHeight]
+    [isDragging, scrollContainerRef, visibleHeight, thumbHeight, totalHeight, thumbPadding]
   );
 
   const handleMouseUp = useCallback(() => {

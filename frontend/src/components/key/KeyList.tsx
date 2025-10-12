@@ -233,7 +233,7 @@ export function KeyList({
             scrollContainerRef={parentRef}
             totalItems={totalCount}
             loadedItems={keys.length}
-            itemHeight={estimateSize()}
+            totalHeight={virtualizer.getTotalSize()}
           />
         </div>
       )}
