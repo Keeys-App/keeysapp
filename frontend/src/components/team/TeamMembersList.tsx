@@ -34,6 +34,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useSaving, useSavingStore } from '@/stores';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   REMOVE_TEAM_MEMBER,
   UPDATE_TEAM_MEMBER_ROLE,
@@ -65,6 +66,7 @@ export const TeamMembersList: FC<TeamMembersListProps> = ({ team }) => {
   const [memberToRemove, setMemberToRemove] = useState<TeamMember | null>(null);
   const withSaving = useSaving();
   const { isSaving } = useSavingStore();
+  const { user: currentUser } = useAuth();
 
   const [removeMember] = useMutation(REMOVE_TEAM_MEMBER, {
     refetchQueries: [{ query: GET_TEAM, variables: { id: team.id } }],
@@ -147,11 +149,18 @@ export const TeamMembersList: FC<TeamMembersListProps> = ({ team }) => {
         <TableBody>
           {allMembers.map((item, index) => {
             if (item.type === 'owner') {
+              const isCurrentUser = currentUser?.id === item.user.id;
+              
               return (
                 <TableRow key="owner">
                   <TableCell>
                     <div className="flex flex-col">
-                      <span className="font-medium">{item.user.username}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{item.user.username}</span>
+                        {isCurrentUser ? (
+                          <Badge variant="outline" className="text-xs">You</Badge>
+                        ) : null}
+                      </div>
                       <span className="text-sm text-muted-foreground">
                         {item.user.email}
                       </span>
@@ -164,7 +173,9 @@ export const TeamMembersList: FC<TeamMembersListProps> = ({ team }) => {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="default">Active</Badge>
+                    <Badge variant="default" className="bg-green-500/10 text-green-700 border-green-500/20">
+                      Active
+                    </Badge>
                   </TableCell>
                   <TableCell></TableCell>
                 </TableRow>
@@ -216,12 +227,18 @@ export const TeamMembersList: FC<TeamMembersListProps> = ({ team }) => {
             // Regular member
             const member = item as TeamMember & { type: 'member' };
             const roleInfo = ROLE_LABELS[member.role] || { label: member.role, variant: 'outline' };
+            const isCurrentUser = currentUser?.id === member.user.id;
 
             return (
               <TableRow key={member.user.id}>
                 <TableCell>
                   <div className="flex flex-col">
-                    <span className="font-medium">{member.user.username}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{member.user.username}</span>
+                      {isCurrentUser ? (
+                        <Badge variant="outline" className="text-xs">You</Badge>
+                      ) : null}
+                    </div>
                     <span className="text-sm text-muted-foreground">
                       {member.user.email}
                     </span>
