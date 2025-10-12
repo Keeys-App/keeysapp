@@ -3,6 +3,8 @@ import { AuthProvider, TranslationEditorProvider } from '@/contexts';
 import { ProtectedRoute, Layout, AuthLayout } from '@/components/layout';
 import { AuthPage } from '@/pages/AuthPage';
 import { DashboardPage } from '@/pages/DashboardPage';
+import { TeamsPage } from '@/pages/TeamsPage';
+import { CreateTeamPage } from '@/pages/CreateTeamPage';
 import { ProjectPage } from '@/pages/ProjectPage';
 import { ProjectKeysPage } from '@/pages/ProjectKeysPage';
 import { CreateProjectPage } from '@/pages/CreateProjectPage';
@@ -29,6 +31,8 @@ function App() {
             }
           >
             <Route path={PATHS.DASHBOARD} element={<DashboardPage />} />
+            <Route path={PATHS.TEAMS} element={<TeamsPage />} />
+            <Route path={PATHS.TEAM_CREATE} element={<CreateTeamPage />} />
             <Route path={PATHS.PROJECT_CREATE} element={<CreateProjectPage />} />
             <Route path={PATHS.PROJECT_EDIT} element={<EditProjectPage />} />
             <Route path={PATHS.PROJECT} element={<ProjectPage />} />

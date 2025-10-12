@@ -1,5 +1,5 @@
 import strawberry
-from typing import Optional
+from typing import Optional, List
 from datetime import timedelta
 from strawberry.types import Info
 from sqlalchemy.orm import Session
@@ -11,6 +11,7 @@ from app.services.user_service import UserService
 from app.core.security import create_access_token, decode_access_token
 from app.core.exceptions import (
     AuthenticationError,
+    UnauthorizedError,
     UserAlreadyExistsError,
     ValidationError,
     DatabaseError,
@@ -249,4 +250,58 @@ class AuthQuery:
             # Log error but return None (don't expose errors in queries)
             logger.error(f"Error in me query: {type(e).__name__}: {str(e)}")
             return None
+
+    @strawberry.field
+    def search_users(self, query: str, info: Info, limit: Optional[int] = 10) -> List[UserType]:
+        """
+        Search users by email or username.
+        Requires authentication.
+        
+        Args:
+            query: Search query string
+            info: GraphQL info object
+            limit: Maximum number of results (default 10)
+            
+        Returns:
+            List of matching users
+            
+        Raises:
+            UnauthorizedError: If user is not authenticated
+        """
+        try:
+            # Check if user is authenticated
+            request = info.context.get("request")
+            if not request:
+                raise UnauthorizedError("Authentication required to search users")
+            
+            auth_header = request.headers.get("Authorization")
+            if not auth_header or not auth_header.startswith("Bearer "):
+                raise UnauthorizedError("Authentication required to search users")
+            
+            token = auth_header.replace("Bearer ", "")
+            payload = decode_access_token(token)
+            
+            if not payload:
+                raise UnauthorizedError("Invalid authentication token")
+            
+            db: Session = next(get_db())
+            try:
+                users = UserService.search_users(db, query, limit or 10)
+                return [
+                    UserType(
+                        id=str(user.public_id),
+                        email=user.email,
+                        username=user.username,
+                        is_active=user.is_active,
+                        is_superuser=user.is_superuser
+                    )
+                    for user in users
+                ]
+            finally:
+                db.close()
+        except UnauthorizedError:
+            raise
+        except Exception as e:
+            logger.error(f"Error in search_users query: {type(e).__name__}: {str(e)}")
+            return []
 

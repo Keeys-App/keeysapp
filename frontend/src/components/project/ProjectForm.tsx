@@ -39,6 +39,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { LanguageConfigEditor } from "./LanguageConfigEditor";
+import { useTeamStore } from "@/stores";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 interface ProjectFormProps {
   mode: "create" | "edit";
@@ -59,6 +62,8 @@ export const ProjectForm: FC<ProjectFormProps> = ({
   const [defaultLanguage, setDefaultLanguage] = useState<string>("");
   const [color, setColor] = useState(DEFAULT_PROJECT_COLORS[0]);
   const [status, setStatus] = useState<string>(ProjectStatus.ACTIVE);
+  
+  const { selectedTeamId } = useTeamStore();
 
   // Store original values for edit mode
   const [originalValues, setOriginalValues] = useState<{
@@ -184,6 +189,11 @@ export const ProjectForm: FC<ProjectFormProps> = ({
       return;
     }
 
+    if (mode === "create" && !selectedTeamId) {
+      toast("Please select a team from the header");
+      return;
+    }
+
     if (!defaultLanguage) {
       toast("Please select a default language");
       return;
@@ -201,6 +211,7 @@ export const ProjectForm: FC<ProjectFormProps> = ({
     if (mode === "create") {
       const input: CreateProjectInput = {
         name: name.trim(),
+        teamId: selectedTeamId!,
         description: description.trim() || null,
         languages: cleanLanguages,
         defaultLanguage,
@@ -331,6 +342,30 @@ export const ProjectForm: FC<ProjectFormProps> = ({
             onSubmit={handleSubmit}
             className="space-y-4"
           >
+            {/* Team Info - show which team the project will be created in */}
+            {mode === "create" && selectedTeamId ? (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Creating in team</AlertTitle>
+                <AlertDescription>
+                  This project will be created in the currently selected team.
+                  You can change the team using the selector in the header.
+                </AlertDescription>
+              </Alert>
+            ) : null}
+            
+            {/* Team Warning - only in create mode if no team selected */}
+            {mode === "create" && !selectedTeamId ? (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>No team selected</AlertTitle>
+                <AlertDescription>
+                  Please select a team from the header before creating a project.
+                  A team should be automatically selected if you have any.
+                </AlertDescription>
+              </Alert>
+            ) : null}
+
             {/* Name */}
             <Field>
               <FieldLabel>

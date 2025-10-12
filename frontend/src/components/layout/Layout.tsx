@@ -12,7 +12,7 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
 import { useBreadcrumbs } from '@/contexts';
-import { useSavingStore, useLayoutStore } from '@/stores';
+import { useSavingStore, useLayoutStore, useTeamStore } from '@/stores';
 import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,11 +22,13 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { PanelRightClose, PanelRightOpen } from 'lucide-react';
+import { TeamSwitcher } from '@/components/team/TeamSwitcher';
 
 export const Layout: FC = () => {
   const { breadcrumbs } = useBreadcrumbs();
   const { isSaving, savingMessage } = useSavingStore();
   const { isPanelOpen, showPanelToggle, togglePanel } = useLayoutStore();
+  const { selectedTeamId, setSelectedTeamId } = useTeamStore();
 
   const getBreadcrumbs = () => {
     if (breadcrumbs.length === 0) {
@@ -59,12 +61,19 @@ export const Layout: FC = () => {
     <SidebarProvider defaultOpen={false}>
       <AppSidebar />
       <SidebarInset>
-        <header className="bg-background h-12 border-b box-border sticky z-10 top-0 flex shrink-0 items-center gap-2 px-4 py-3.5">
+        <header className="bg-background h-12 border-b box-border sticky z-10 top-0 flex shrink-0 items-center gap-3 px-4 py-3.5">
           {/* <SidebarTrigger className="-ml-1" /> */}
           {/* <Separator orientation="vertical" className="mr-2 h-4" /> */}
+          
+          <TeamSwitcher
+            selectedTeamId={selectedTeamId}
+            onTeamChange={setSelectedTeamId}
+          />
+          
           <Breadcrumb>
             <BreadcrumbList>{getBreadcrumbs()}</BreadcrumbList>
           </Breadcrumb>
+          
           {showPanelToggle ? (
             <div className="ml-auto">
               <TooltipProvider>

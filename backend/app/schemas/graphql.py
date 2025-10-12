@@ -2,6 +2,8 @@ import strawberry
 from typing import Optional, List
 from app.schemas.auth import AuthQuery, AuthMutation, UserType
 from app.schemas.project import ProjectQuery, ProjectMutation, ProjectType
+from app.schemas.team import TeamQuery, TeamMutation, TeamType
+from app.schemas.project_access import ProjectAccessMutation
 from app.schemas.key import KeyQuery, KeyMutation, KeyType, KeysConnection, ActivityLogType
 from app.schemas.ai import AIMutation
 
@@ -21,6 +23,11 @@ class Query:
     
     # Include auth queries
     me: Optional[UserType] = strawberry.field(resolver=AuthQuery.me)
+    search_users: List[UserType] = strawberry.field(resolver=AuthQuery.search_users)
+    
+    # Include team queries
+    teams: List[TeamType] = strawberry.field(resolver=TeamQuery.teams)
+    team: Optional[TeamType] = strawberry.field(resolver=TeamQuery.team)
     
     # Include project queries
     projects: List[ProjectType] = strawberry.field(resolver=ProjectQuery.projects)
@@ -46,11 +53,24 @@ class Mutation:
     register = strawberry.field(resolver=AuthMutation.register)
     login = strawberry.field(resolver=AuthMutation.login)
     
+    # Include team mutations
+    create_team = strawberry.field(resolver=TeamMutation.create_team)
+    update_team = strawberry.field(resolver=TeamMutation.update_team)
+    delete_team = strawberry.field(resolver=TeamMutation.delete_team)
+    add_team_member = strawberry.field(resolver=TeamMutation.add_team_member)
+    remove_team_member = strawberry.field(resolver=TeamMutation.remove_team_member)
+    update_team_member_role = strawberry.field(resolver=TeamMutation.update_team_member_role)
+    
     # Include project mutations
     create_project = strawberry.field(resolver=ProjectMutation.create_project)
     update_project = strawberry.field(resolver=ProjectMutation.update_project)
     delete_project = strawberry.field(resolver=ProjectMutation.delete_project)
     add_project_member = strawberry.field(resolver=ProjectMutation.add_project_member)
+    
+    # Include project access mutations
+    grant_project_access = strawberry.field(resolver=ProjectAccessMutation.grant_project_access)
+    revoke_project_access = strawberry.field(resolver=ProjectAccessMutation.revoke_project_access)
+    update_project_access_role = strawberry.field(resolver=ProjectAccessMutation.update_project_access_role)
     
     # Include key mutations
     create_key = strawberry.field(resolver=KeyMutation.create_key)

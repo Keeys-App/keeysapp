@@ -64,6 +64,16 @@ class ProjectMemberType:
 
 
 @strawberry.type
+class SimpleTeamType:
+    """
+    Simplified GraphQL type for Team (to avoid circular imports).
+    """
+    id: str  # UUID as string
+    name: str
+    description: Optional[str]
+
+
+@strawberry.type
 class ProjectType:
     """
     GraphQL type for Project.
@@ -77,8 +87,9 @@ class ProjectType:
     available_tags: List[str]
     color: str
     status: str
+    team: SimpleTeamType
     owner: UserType
-    members: List[ProjectMemberType]
+    access_members: List[ProjectMemberType]  # Users with access to this project
     can_edit: bool
     keys_count: int
     translation_progress: int  # Percentage of completed translations (0-100)
@@ -93,6 +104,7 @@ class CreateProjectInput:
     Input type for creating a project.
     """
     name: str
+    team_id: str  # UUID of the team this project belongs to
     description: Optional[str] = None
     languages: Optional[List[LanguageConfigInput]] = None
     default_language: Optional[str] = None
@@ -197,26 +209,33 @@ def build_project_type(project, current_user_id: int, stats: Optional[dict] = No
         is_superuser=project.owner.is_superuser
     )
     
-    # Build members
-    members = []
-    for member in project.members:
-        members.append(ProjectMemberType(
+    # Build team
+    team = SimpleTeamType(
+        id=str(project.team.public_id),
+        name=project.team.name,
+        description=project.team.description
+    )
+    
+    # Build access members
+    access_members = []
+    for access in project.access_members:
+        access_members.append(ProjectMemberType(
             user=UserType(
-                id=str(member.user.public_id),
-                email=member.user.email,
-                username=member.user.username,
-                is_active=member.user.is_active,
-                is_superuser=member.user.is_superuser
+                id=str(access.user.public_id),
+                email=access.user.email,
+                username=access.user.username,
+                is_active=access.user.is_active,
+                is_superuser=access.user.is_superuser
             ),
-            role=member.role,
-            created_at=member.created_at
+            role=access.role,
+            created_at=access.created_at
         ))
     
     # Check if current user can edit
     can_edit = project.owner_id == current_user_id
     if not can_edit:
-        for member in project.members:
-            if member.user_id == current_user_id and member.role == "admin":
+        for access in project.access_members:
+            if access.user_id == current_user_id and access.role == "admin":
                 can_edit = True
                 break
     
@@ -279,8 +298,9 @@ def build_project_type(project, current_user_id: int, stats: Optional[dict] = No
         available_tags=project.available_tags or [],
         color=project.color,
         status=project.status,
+        team=team,
         owner=owner,
-        members=members,
+        access_members=access_members,
         can_edit=can_edit,
         keys_count=keys_count,
         translation_progress=translation_progress,
@@ -385,7 +405,7 @@ class ProjectMutation:
     @strawberry.mutation
     def create_project(self, input: CreateProjectInput, info: Info) -> ProjectType:
         """
-        Create a new project.
+        Create a new project in a team.
         
         Args:
             input: Project creation input
@@ -398,6 +418,8 @@ class ProjectMutation:
             UnauthorizedError: If user is not authenticated
             DatabaseError: If database operation fails
         """
+        from app.services.team_service import TeamService
+        
         current_user_id = get_current_user_id(info)
         if not current_user_id:
             raise UnauthorizedError("User must be authenticated to create projects")
@@ -405,9 +427,19 @@ class ProjectMutation:
         db: Session = next(get_db())
         
         try:
+            # Get team by public_id
+            team = TeamService.get_team_by_public_id(db, input.team_id)
+            if not team:
+                raise UnauthorizedError("Team not found")
+            
+            # Verify user has access to team
+            if not TeamService.check_user_team_access(db, team.id, current_user_id):
+                raise UnauthorizedError("User does not have access to this team")
+            
             project = ProjectService.create_project(
                 db=db,
                 owner_id=current_user_id,
+                team_id=team.id,
                 name=input.name,
                 description=input.description,
                 languages=input.languages or [],

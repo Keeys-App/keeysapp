@@ -50,10 +50,15 @@ export const PROJECT_FRAGMENT = gql`
     availableTags
     color
     status
+    team {
+      id
+      name
+      description
+    }
     owner {
       ...UserFields
     }
-    members {
+    accessMembers {
       ...ProjectMemberFields
     }
     canEdit
@@ -142,8 +147,14 @@ export interface User {
 
 export interface ProjectMember {
   user: User;
-  role: 'admin' | 'editor' | 'viewer';
+  role: 'admin' | 'editor' | 'viewer' | 'translator' | 'reviewer';
   createdAt: string;
+}
+
+export interface SimpleTeam {
+  id: string;
+  name: string;
+  description?: string | null;
 }
 
 export interface LanguageConfig {
@@ -176,8 +187,9 @@ export interface Project {
   availableTags: string[];
   color: string;
   status: 'active' | 'archived' | 'draft';
+  team: SimpleTeam;
   owner: User;
-  members: ProjectMember[];
+  accessMembers: ProjectMember[];
   canEdit: boolean;
   keysCount: number;
   translationProgress: number;
@@ -188,6 +200,7 @@ export interface Project {
 
 export interface CreateProjectInput {
   name: string;
+  teamId: string;
   description?: string | null;
   languages?: LanguageConfigInput[] | null;
   defaultLanguage?: string | null;
@@ -208,7 +221,7 @@ export interface UpdateProjectInput {
 export interface AddProjectMemberInput {
   projectId: string;
   userId: string;
-  role: 'admin' | 'editor' | 'viewer';
+  role: 'admin' | 'editor' | 'viewer' | 'translator' | 'reviewer';
 }
 
 // Query result types

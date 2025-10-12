@@ -17,11 +17,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getUserFriendlyErrorMessage } from "@/lib/utils";
 import { PATHS } from "@/constants/paths";
 import { Button } from "@/components/ui/button";
-import { useSaving, useSavingStore } from "@/stores";
+import { useSaving, useSavingStore, useTeamStore } from "@/stores";
 
 export const ProjectList: FC = () => {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { selectedTeamId } = useTeamStore();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
@@ -103,7 +104,14 @@ export const ProjectList: FC = () => {
     );
   }
 
-  const projects = data?.projects || [];
+  const allProjects = data?.projects || [];
+  
+  // Filter projects by selected team (team selection is now mandatory)
+  const projects = selectedTeamId
+    ? allProjects.filter((project) => {
+        return project.team.id === selectedTeamId;
+      })
+    : [];
 
   return (
     <>

@@ -1,6 +1,6 @@
 import type { FC } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Settings, Sun, Moon, LogOut, Languages, FolderOpen } from 'lucide-react';
+import { LayoutDashboard, Settings, Sun, Moon, LogOut, Languages, FolderOpen, Users } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { PATHS } from '@/constants/paths';
@@ -38,6 +38,12 @@ export const AppSidebar: FC = () => {
       url: PATHS.DASHBOARD,
       icon: LayoutDashboard,
       isActive: location.pathname === PATHS.DASHBOARD,
+    },
+    {
+      title: 'Teams',
+      url: PATHS.TEAMS,
+      icon: Users,
+      isActive: location.pathname.startsWith('/team'),
     },
     {
       title: 'Projects',
