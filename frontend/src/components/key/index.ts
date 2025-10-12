@@ -10,4 +10,5 @@ export { KeysAsidePanel } from './KeysAsidePanel';
 export { KeyManagement } from './KeyManagement';
 export { KeyLogsTimeline } from './KeyLogsTimeline';
 export { InlineDiff } from './InlineDiff';
+export { TranslationTextEditor } from './TranslationTextEditor';
 

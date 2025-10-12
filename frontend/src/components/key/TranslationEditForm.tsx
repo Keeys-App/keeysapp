@@ -1,14 +1,7 @@
 import { type FC, useState, useEffect, useMemo } from "react";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useSavingStore } from "@/stores";
 import { Badge } from "../ui";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,7 +13,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Ellipsis, Settings, TriangleAlert } from "lucide-react";
+import { Ellipsis } from "lucide-react";
+import { TranslationTextEditor } from "./TranslationTextEditor";
 
 interface TranslationEditFormProps {
   value: string;
@@ -173,13 +167,11 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
 
   return (
     <div className="bg-background">
-      <Textarea
-        dir={direction}
-        className="bg-background rounded-none border-none focus-visible:ring-0 focus-visible:ring-offset-0 p-2 shadow-none"
+      <TranslationTextEditor
         value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onClick={(e) => e.stopPropagation()}
+        onChange={onChange}
         onKeyDown={handleKeyDown}
+        direction={direction}
         disabled={isSaving}
         rows={3}
         autoFocus
