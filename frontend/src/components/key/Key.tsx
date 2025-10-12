@@ -29,7 +29,18 @@ export const Key = memo(
     editingLanguage,
     onEditingLanguageChange,
   }: KeyProps) {
-    const handleSelect = () => {
+    /**
+     * Cancel editing and select key
+     * Only cancels editing if switching to a different key
+     */
+    const handleCancelEditingAndSelect = () => {
+      // Cancel editing only if this is NOT the currently selected key
+      // (meaning we're switching to a different key)
+      if (!isSelected) {
+        onEditingLanguageChange(null);
+      }
+      
+      // Then select the key
       if (onSelect) {
         onSelect(keyData);
       }
@@ -41,7 +52,7 @@ export const Key = memo(
           "border-b grid grid-cols-[220px_minmax(300px,3fr)] relative transition-colors",
           !isSelected && "cursor-pointer"
         )}
-        onClick={handleSelect}
+        onClick={handleCancelEditingAndSelect}
       >
         <div className="border-r -mr-px relative">
           <KeyHeader
@@ -69,7 +80,11 @@ export const Key = memo(
                 projectId={projectId}
                 isEditing={editingLanguage === language.code}
                 onEditingChange={(editing) => {
-                  handleSelect();
+                  // Select key when starting/ending editing
+                  if (onSelect) {
+                    onSelect(keyData);
+                  }
+                  // Change editing language (auto-save will happen in TranslationEditor)
                   onEditingLanguageChange(editing ? language.code : null);
                 }}
               />
