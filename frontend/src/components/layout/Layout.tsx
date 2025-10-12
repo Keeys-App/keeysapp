@@ -1,5 +1,5 @@
 import { Fragment, useMemo, type FC } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, Link } from 'react-router-dom';
 import { AppSidebar } from './AppSidebar';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
@@ -50,7 +50,9 @@ export const Layout: FC = () => {
             {isLast || !item.href ? (
               <BreadcrumbPage>{item.label}</BreadcrumbPage>
             ) : (
-              <BreadcrumbLink href={item.href}>{item.label}</BreadcrumbLink>
+              <BreadcrumbLink asChild>
+                <Link to={item.href}>{item.label}</Link>
+              </BreadcrumbLink>
             )}
           </BreadcrumbItem>
         </Fragment>

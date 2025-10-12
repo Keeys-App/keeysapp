@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { LayoutDashboard, Settings, Sun, Moon, LogOut, Languages, FolderOpen, Users } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -68,19 +68,16 @@ export const AppSidebar: FC = () => {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton 
-              size="lg" 
-              onClick={() => {
-                return navigate(PATHS.DASHBOARD);
-              }}
-            >
-              <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                <Languages className="size-5" />
-              </div>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">Locales</span>
-                <span className="truncate text-xs">Beta</span>
-              </div>
+            <SidebarMenuButton size="lg" asChild>
+              <Link to={PATHS.DASHBOARD}>
+                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                  <Languages className="size-5" />
+                </div>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-medium">Locales</span>
+                  <span className="truncate text-xs">Beta</span>
+                </div>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
