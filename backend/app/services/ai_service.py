@@ -92,7 +92,9 @@ class AIService:
                 "- If the text is translatable, set success=true and provide the translation in result\n"
                 "- If the text is gibberish/random characters, set success=false and explain in reason\n"
                 "- NEVER include apologies or explanations in the result field\n"
-                "- The result field should ONLY contain the translated text or be empty"
+                "- The result field should ONLY contain the translated text or be empty\n"
+                "- CRITICAL: Preserve ALL template variables in curly braces like {name}, {date}, {count}, etc. exactly as they are\n"
+                "- NEVER translate or modify variable names inside curly braces - they are code placeholders"
             )
             if context:
                 system_content += f"\n- Context for translation: {context}"
@@ -183,7 +185,9 @@ class AIService:
                 "- If the text can be rephrased, set success=true and provide the rephrased version in result\n"
                 "- If the text is gibberish/random characters, set success=false and explain in reason\n"
                 "- NEVER include apologies or explanations in the result field\n"
-                "- The result field should ONLY contain the rephrased text or be empty"
+                "- The result field should ONLY contain the rephrased text or be empty\n"
+                "- CRITICAL: Preserve ALL template variables in curly braces like {name}, {date}, {count}, etc. exactly as they are\n"
+                "- NEVER translate or modify variable names inside curly braces - they are code placeholders"
             )
             if context:
                 system_content += f"\n- Context for rephrasing: {context}"
@@ -274,7 +278,9 @@ class AIService:
                 "- If the text can be shortened, set success=true and provide the shortened version in result\n"
                 "- If the text is gibberish/random characters, set success=false and explain in reason\n"
                 "- NEVER include apologies or explanations in the result field\n"
-                "- The result field should ONLY contain the shortened text or be empty"
+                "- The result field should ONLY contain the shortened text or be empty\n"
+                "- CRITICAL: Preserve ALL template variables in curly braces like {name}, {date}, {count}, etc. exactly as they are\n"
+                "- NEVER translate or modify variable names inside curly braces - they are code placeholders"
             )
             if context:
                 system_content += f"\n- Context for shortening: {context}"
@@ -367,7 +373,9 @@ class AIService:
                 f"- If the text can be varied, set success=true and provide exactly {count} variants in the variants array\n"
                 "- If the text is gibberish/random characters, set success=false and explain in reason\n"
                 "- NEVER include apologies or explanations in the variants\n"
-                "- Each variant should be a natural alternative with different wording"
+                "- Each variant should be a natural alternative with different wording\n"
+                "- CRITICAL: Preserve ALL template variables in curly braces like {name}, {date}, {count}, etc. exactly as they are\n"
+                "- NEVER translate or modify variable names inside curly braces - they are code placeholders"
             )
             if context:
                 system_content += f"\n- Context for variants: {context}"

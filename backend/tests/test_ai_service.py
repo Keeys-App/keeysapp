@@ -184,3 +184,98 @@ class TestAIServiceMultipleLanguages:
         assert len(result) > 0
         assert reason is None
 
+
+class TestAIServiceVariablePreservation:
+    """Test that AI service preserves template variables"""
+    
+    @pytest.mark.asyncio
+    async def test_translate_preserves_single_variable(self):
+        """Test that translation preserves {date} variable"""
+        result, reason = await ai_service.translate(
+            text="Next payment: {date}",
+            target_language="Italian",
+            source_language="English"
+        )
+        
+        assert result is not None
+        assert len(result) > 0
+        assert reason is None
+        # Variable must be preserved exactly as is
+        assert "{date}" in result
+    
+    @pytest.mark.asyncio
+    async def test_translate_preserves_multiple_variables(self):
+        """Test that translation preserves multiple variables"""
+        result, reason = await ai_service.translate(
+            text="Hello {name}, your order {orderId} will arrive on {date}",
+            target_language="Spanish",
+            source_language="English"
+        )
+        
+        assert result is not None
+        assert len(result) > 0
+        assert reason is None
+        # All variables must be preserved
+        assert "{name}" in result
+        assert "{orderId}" in result
+        assert "{date}" in result
+    
+    @pytest.mark.asyncio
+    async def test_rephrase_preserves_variables(self):
+        """Test that rephrasing preserves variables"""
+        result, reason = await ai_service.rephrase(
+            text="Your payment of {amount} is due on {date}",
+            language="English"
+        )
+        
+        assert result is not None
+        assert len(result) > 0
+        assert reason is None
+        assert "{amount}" in result
+        assert "{date}" in result
+    
+    @pytest.mark.asyncio
+    async def test_shorten_preserves_variables(self):
+        """Test that shortening preserves variables"""
+        result, reason = await ai_service.shorten(
+            text="We kindly remind you that your next payment of {amount} is scheduled for {date}",
+            language="English"
+        )
+        
+        assert result is not None
+        assert len(result) > 0
+        assert reason is None
+        assert "{amount}" in result
+        assert "{date}" in result
+    
+    @pytest.mark.asyncio
+    async def test_suggest_variants_preserves_variables(self):
+        """Test that variants preserve variables"""
+        variants, reason = await ai_service.suggest_variants(
+            text="Welcome back, {username}!",
+            language="English",
+            count=3
+        )
+        
+        assert variants is not None
+        assert len(variants) >= 1
+        assert reason is None
+        # All variants must preserve the variable
+        for variant in variants:
+            assert "{username}" in variant
+    
+    @pytest.mark.asyncio
+    async def test_translate_preserves_complex_variables(self):
+        """Test that translation preserves variables with underscores and numbers"""
+        result, reason = await ai_service.translate(
+            text="Account {user_id} has {count} items",
+            target_language="French",
+            source_language="English"
+        )
+        
+        assert result is not None
+        assert len(result) > 0
+        assert reason is None
+        assert "{user_id}" in result
+        assert "{count}" in result
+
