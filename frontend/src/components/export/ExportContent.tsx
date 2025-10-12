@@ -1,9 +1,6 @@
 import { useState, useMemo, type FC } from "react";
-import { useQuery } from "@apollo/client";
 import { Download } from "lucide-react";
 import type { Project } from "@/types/project";
-import type { TranslationKey } from "@/types/translationKey";
-import { GET_PROJECT_KEYS } from "@/graphql/keys";
 import { COMMON_LANGUAGES } from "@/types/project";
 import { Button } from "@/components/ui/button";
 import { LoadingState, ErrorState } from "@/components/blocks";
@@ -15,6 +12,7 @@ import {
   getExportFilename,
 } from "./utils/exportFormats";
 import { getUserFriendlyErrorMessage } from "@/lib/utils";
+import { useAllProjectKeys } from "@/hooks/useAllProjectKeys";
 
 interface ExportContentProps {
   project: Project;
@@ -34,25 +32,15 @@ export const ExportContent: FC<ExportContentProps> = ({ project }) => {
     sortKeys: true,
   });
 
-  const { data, loading, error } = useQuery<{ 
-    projectKeys: { 
-      keys: TranslationKey[];
-      totalCount: number;
-      hasMore: boolean;
-    } 
-  }>(
-    GET_PROJECT_KEYS,
-    {
-      variables: { projectId: project.id, offset: 0, limit: 10000 },
-    }
-  );
+  // Load all project keys using pagination
+  const { keys, loading, error, totalCount } = useAllProjectKeys(project.id);
 
   const exportCode = useMemo(() => {
-    if (!data?.projectKeys?.keys) {
+    if (!keys || keys.length === 0) {
       return "";
     }
-    return generateExport(data.projectKeys.keys, options);
-  }, [data?.projectKeys?.keys, options]);
+    return generateExport(keys, options);
+  }, [keys, options]);
 
   const filename = useMemo(() => {
     return getExportFilename(project.name, options.language, options.format);
@@ -71,7 +59,7 @@ export const ExportContent: FC<ExportContentProps> = ({ project }) => {
   };
 
   if (loading) {
-    return <LoadingState message="Loading translations..." />;
+    return <LoadingState message={`Loading translations... ${keys.length > 0 ? `(${keys.length} of ${totalCount})` : ''}`} />;
   }
 
   if (error) {
@@ -79,7 +67,7 @@ export const ExportContent: FC<ExportContentProps> = ({ project }) => {
     return <ErrorState message={errorMessage} />;
   }
 
-  if (!data?.projectKeys?.keys || data.projectKeys.keys.length === 0) {
+  if (!keys || keys.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[40vh] gap-4">
         <p className="text-lg text-muted-foreground">

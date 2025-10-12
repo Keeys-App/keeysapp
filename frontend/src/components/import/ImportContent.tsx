@@ -1,9 +1,8 @@
 import { useState, useMemo, type FC } from "react";
-import { useQuery, useMutation } from "@apollo/client";
+import { useMutation } from "@apollo/client";
 import { Upload, ArrowRight, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import type { Project } from "@/types/project";
-import type { TranslationKey } from "@/types/translationKey";
 import { GET_PROJECT_KEYS, BATCH_IMPORT_TRANSLATIONS } from "@/graphql/keys";
 import { COMMON_LANGUAGES } from "@/types/project";
 import { Button } from "@/components/ui/button";
@@ -16,6 +15,7 @@ import { parseImport, type ParsedTranslation } from "./utils/importFormats";
 import { getBestLanguageMatch } from "./utils/languageDetector";
 import { getUserFriendlyErrorMessage } from "@/lib/utils";
 import { useSaving, useSavingStore } from "@/stores";
+import { useAllProjectKeys } from "@/hooks/useAllProjectKeys";
 
 interface ImportContentProps {
   project: Project;
@@ -39,18 +39,8 @@ export const ImportContent: FC<ImportContentProps> = ({ project }) => {
     strategy: "merge",
   });
 
-  const { data, loading, error } = useQuery<{ 
-    projectKeys: { 
-      keys: TranslationKey[];
-      totalCount: number;
-      hasMore: boolean;
-    } 
-  }>(
-    GET_PROJECT_KEYS,
-    {
-      variables: { projectId: project.id, offset: 0, limit: 10000 },
-    }
-  );
+  // Load all project keys using pagination
+  const { keys: existingKeysData, loading, error, totalCount } = useAllProjectKeys(project.id);
 
   const [batchImportTranslations] = useMutation(BATCH_IMPORT_TRANSLATIONS, {
     refetchQueries: [
@@ -65,8 +55,8 @@ export const ImportContent: FC<ImportContentProps> = ({ project }) => {
   const { isSaving } = useSavingStore();
 
   const existingKeys = useMemo(() => {
-    return data?.projectKeys?.keys?.map((key) => key.key) || [];
-  }, [data?.projectKeys?.keys]);
+    return existingKeysData?.map((key) => key.key) || [];
+  }, [existingKeysData]);
 
   // Parse all files and combine translations
   const parsedData = useMemo(() => {
@@ -217,7 +207,7 @@ export const ImportContent: FC<ImportContentProps> = ({ project }) => {
   };
 
   if (loading) {
-    return <LoadingState message="Loading project data..." />;
+    return <LoadingState message={`Loading project data... ${existingKeysData.length > 0 ? `(${existingKeysData.length} of ${totalCount})` : ''}`} />;
   }
 
   if (error) {
