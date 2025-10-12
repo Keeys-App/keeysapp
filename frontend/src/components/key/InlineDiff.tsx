@@ -27,7 +27,7 @@ export const InlineDiff: FC<InlineDiffProps> = ({ oldValue, newValue, language }
         </div>
       ) : null}
       
-      <div className="bg-muted/50 border border-border rounded px-3 py-2 text-xs font-mono break-all leading-relaxed">
+      <div className="bg-muted/50 border border-border rounded px-3 py-2 text-xs font-mono break-all leading-relaxed whitespace-pre-wrap">
         {isCreation ? (
           // Only new value - show all in green
           <span className="bg-green-500/10 text-green-700 dark:text-green-400 px-0.5 rounded">

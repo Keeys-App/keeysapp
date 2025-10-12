@@ -245,7 +245,7 @@ export const KeyLogsTimeline: FC<KeyLogsTimelineProps> = ({
                         </div>
                       ) : null}
                       {(log.newValue && log.action !== "REVIEW_DELETE") ? (
-                        <div className="text-sm">
+                        <div className="text-sm whitespace-pre-wrap">
                           {log.newValue}
                         </div>
                       ) : null}

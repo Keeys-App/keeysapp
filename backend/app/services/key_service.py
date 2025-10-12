@@ -434,8 +434,9 @@ class KeyService:
             Translation.language == language
         ).first()
         
-        # Trim whitespace (spaces, tabs, newlines) from start and end
-        value = value.strip() if value else ""
+        # Normalize None to empty string
+        if value is None:
+            value = ""
         
         # If value is empty, delete the translation
         if not value:
