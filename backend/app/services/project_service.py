@@ -651,8 +651,8 @@ class ProjectService:
                 project.available_tags = config.get('availableTags', [])
                 logger.info(f"Set available_tags: {config.get('availableTags')}")
             
-            # Import KeyLog model and action types for logging
-            from app.models.key_log import KeyLog, KeyActionType
+            # Import ActivityLog model and action types for logging
+            from app.models.activity_log import ActivityLog, ActionType
             
             # Create keys with descriptions and tags first
             logger.info(f"Creating {len(keys_data)} keys")
@@ -677,10 +677,11 @@ class ProjectService:
                 created_keys[key_str] = new_key
                 
                 # Log key import
-                log = KeyLog(
+                log = ActivityLog(
                     key_id=new_key.id,
+                    project_id=project.id,
                     user_id=owner_id,
-                    action=KeyActionType.IMPORT,
+                    action=ActionType.TRANSLATION_IMPORT,
                     field_name="key",
                     new_value=key_str
                 )
@@ -723,10 +724,11 @@ class ProjectService:
                             created_keys[key_str] = key_obj
                             
                             # Log key import
-                            log = KeyLog(
+                            log = ActivityLog(
                                 key_id=key_obj.id,
+                                project_id=project.id,
                                 user_id=owner_id,
-                                action=KeyActionType.IMPORT,
+                                action=ActionType.TRANSLATION_IMPORT,
                                 field_name="key",
                                 new_value=key_str
                             )
@@ -741,10 +743,11 @@ class ProjectService:
                     db.add(translation)
                     
                     # Log translation import
-                    log = KeyLog(
+                    log = ActivityLog(
                         key_id=key_obj.id,
+                        project_id=project.id,
                         user_id=owner_id,
-                        action=KeyActionType.IMPORT,
+                        action=ActionType.TRANSLATION_IMPORT,
                         field_name="translation",
                         language=language_code,
                         new_value=translation_value

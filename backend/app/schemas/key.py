@@ -20,20 +20,46 @@ from app.schemas.auth import UserType
 logger = logging.getLogger(__name__)
 
 
-class KeyActionTypeEnum(str, enum.Enum):
+class ActionTypeEnum(str, enum.Enum):
     """
-    GraphQL enum for key action types.
+    GraphQL enum for all activity log action types.
     """
-    CREATE = "CREATE"
-    UPDATE_KEY = "UPDATE_KEY"
-    UPDATE_DESCRIPTION = "UPDATE_DESCRIPTION"
-    UPDATE_TRANSLATION = "UPDATE_TRANSLATION"
-    DELETE_TRANSLATION = "DELETE_TRANSLATION"
-    DELETE = "DELETE"
-    IMPORT = "IMPORT"
+    # Project actions
+    PROJECT_CREATE = "PROJECT_CREATE"
+    PROJECT_UPDATE_NAME = "PROJECT_UPDATE_NAME"
+    PROJECT_UPDATE_DESCRIPTION = "PROJECT_UPDATE_DESCRIPTION"
+    PROJECT_UPDATE_LANGUAGES = "PROJECT_UPDATE_LANGUAGES"
+    PROJECT_UPDATE_DEFAULT_LANGUAGE = "PROJECT_UPDATE_DEFAULT_LANGUAGE"
+    PROJECT_UPDATE_COLOR = "PROJECT_UPDATE_COLOR"
+    PROJECT_UPDATE_STATUS = "PROJECT_UPDATE_STATUS"
+    PROJECT_DELETE = "PROJECT_DELETE"
+    PROJECT_EXPORT = "PROJECT_EXPORT"
+    PROJECT_IMPORT = "PROJECT_IMPORT"
+    
+    # Team management
+    MEMBER_ADD = "MEMBER_ADD"
+    MEMBER_REMOVE = "MEMBER_REMOVE"
+    MEMBER_ROLE_CHANGE = "MEMBER_ROLE_CHANGE"
+    
+    # Key actions
+    KEY_CREATE = "KEY_CREATE"
+    KEY_UPDATE = "KEY_UPDATE"
+    KEY_UPDATE_DESCRIPTION = "KEY_UPDATE_DESCRIPTION"
+    KEY_DELETE = "KEY_DELETE"
+    
+    # Translation actions
+    TRANSLATION_UPDATE = "TRANSLATION_UPDATE"
+    TRANSLATION_DELETE = "TRANSLATION_DELETE"
+    TRANSLATION_IMPORT = "TRANSLATION_IMPORT"
+    
+    # Review actions
     REVIEW_APPROVE = "REVIEW_APPROVE"
     REVIEW_REJECT = "REVIEW_REJECT"
     REVIEW_DELETE = "REVIEW_DELETE"
+
+
+# Keep legacy enum for backward compatibility (optional)
+KeyActionTypeEnum = ActionTypeEnum
 
 
 class ReviewStatusEnum(str, enum.Enum):
@@ -47,25 +73,32 @@ class ReviewStatusEnum(str, enum.Enum):
 
 
 # Register as Strawberry enums
-KeyActionTypeEnum = strawberry.enum(KeyActionTypeEnum)
+ActionTypeEnum = strawberry.enum(ActionTypeEnum)
 ReviewStatusEnum = strawberry.enum(ReviewStatusEnum)
 
 
 @strawberry.type
-class KeyLogType:
+class ActivityLogType:
     """
-    GraphQL type for Key Log (audit trail).
+    GraphQL type for Activity Log (universal audit trail).
     """
     id: int
-    key_id: int
+    project_id: Optional[int]
+    key_id: Optional[int]
     user_id: Optional[int]
+    affected_user_id: Optional[int]
     user: Optional['UserType']
-    action: KeyActionTypeEnum
+    affected_user: Optional['UserType']
+    action: ActionTypeEnum
     field_name: Optional[str]
     language: Optional[str]
     old_value: Optional[str]
     new_value: Optional[str]
     created_at: datetime
+
+
+# Keep legacy type for backward compatibility
+KeyLogType = ActivityLogType
 
 
 @strawberry.type
@@ -220,28 +253,50 @@ def build_key_type(key) -> KeyType:
     )
 
 
-def build_key_log_type(log) -> KeyLogType:
+def build_activity_log_type(log) -> ActivityLogType:
     """
-    Build KeyLogType from KeyLog model.
+    Build ActivityLogType from ActivityLog model.
     
     Args:
-        log: KeyLog model instance
+        log: ActivityLog model instance
         
     Returns:
-        KeyLogType
+        ActivityLogType
     """
-    # Map action to enum (now using uppercase values)
+    # Map action to enum
     action_map = {
-        "CREATE": KeyActionTypeEnum.CREATE,
-        "UPDATE_KEY": KeyActionTypeEnum.UPDATE_KEY,
-        "UPDATE_DESCRIPTION": KeyActionTypeEnum.UPDATE_DESCRIPTION,
-        "UPDATE_TRANSLATION": KeyActionTypeEnum.UPDATE_TRANSLATION,
-        "DELETE_TRANSLATION": KeyActionTypeEnum.DELETE_TRANSLATION,
-        "DELETE": KeyActionTypeEnum.DELETE,
-        "IMPORT": KeyActionTypeEnum.IMPORT,
-        "REVIEW_APPROVE": KeyActionTypeEnum.REVIEW_APPROVE,
-        "REVIEW_REJECT": KeyActionTypeEnum.REVIEW_REJECT,
-        "REVIEW_DELETE": KeyActionTypeEnum.REVIEW_DELETE,
+        # Project actions
+        "PROJECT_CREATE": ActionTypeEnum.PROJECT_CREATE,
+        "PROJECT_UPDATE_NAME": ActionTypeEnum.PROJECT_UPDATE_NAME,
+        "PROJECT_UPDATE_DESCRIPTION": ActionTypeEnum.PROJECT_UPDATE_DESCRIPTION,
+        "PROJECT_UPDATE_LANGUAGES": ActionTypeEnum.PROJECT_UPDATE_LANGUAGES,
+        "PROJECT_UPDATE_DEFAULT_LANGUAGE": ActionTypeEnum.PROJECT_UPDATE_DEFAULT_LANGUAGE,
+        "PROJECT_UPDATE_COLOR": ActionTypeEnum.PROJECT_UPDATE_COLOR,
+        "PROJECT_UPDATE_STATUS": ActionTypeEnum.PROJECT_UPDATE_STATUS,
+        "PROJECT_DELETE": ActionTypeEnum.PROJECT_DELETE,
+        "PROJECT_EXPORT": ActionTypeEnum.PROJECT_EXPORT,
+        "PROJECT_IMPORT": ActionTypeEnum.PROJECT_IMPORT,
+        
+        # Team management
+        "MEMBER_ADD": ActionTypeEnum.MEMBER_ADD,
+        "MEMBER_REMOVE": ActionTypeEnum.MEMBER_REMOVE,
+        "MEMBER_ROLE_CHANGE": ActionTypeEnum.MEMBER_ROLE_CHANGE,
+        
+        # Key actions
+        "KEY_CREATE": ActionTypeEnum.KEY_CREATE,
+        "KEY_UPDATE": ActionTypeEnum.KEY_UPDATE,
+        "KEY_UPDATE_DESCRIPTION": ActionTypeEnum.KEY_UPDATE_DESCRIPTION,
+        "KEY_DELETE": ActionTypeEnum.KEY_DELETE,
+        
+        # Translation actions
+        "TRANSLATION_UPDATE": ActionTypeEnum.TRANSLATION_UPDATE,
+        "TRANSLATION_DELETE": ActionTypeEnum.TRANSLATION_DELETE,
+        "TRANSLATION_IMPORT": ActionTypeEnum.TRANSLATION_IMPORT,
+        
+        # Review actions
+        "REVIEW_APPROVE": ActionTypeEnum.REVIEW_APPROVE,
+        "REVIEW_REJECT": ActionTypeEnum.REVIEW_REJECT,
+        "REVIEW_DELETE": ActionTypeEnum.REVIEW_DELETE,
     }
     
     # Build user info if available
@@ -255,18 +310,36 @@ def build_key_log_type(log) -> KeyLogType:
             is_superuser=log.user.is_superuser
         )
     
-    return KeyLogType(
+    # Build affected user info if available
+    affected_user = None
+    if log.affected_user:
+        affected_user = UserType(
+            id=str(log.affected_user.public_id),
+            email=log.affected_user.email,
+            username=log.affected_user.username,
+            is_active=log.affected_user.is_active,
+            is_superuser=log.affected_user.is_superuser
+        )
+    
+    return ActivityLogType(
         id=log.id,
+        project_id=log.project_id,
         key_id=log.key_id,
         user_id=log.user_id,
+        affected_user_id=log.affected_user_id,
         user=user,
-        action=action_map.get(log.action.value, KeyActionTypeEnum.UPDATE_KEY),
+        affected_user=affected_user,
+        action=action_map.get(log.action.value, ActionTypeEnum.KEY_UPDATE),
         field_name=log.field_name,
         language=log.language,
         old_value=log.old_value,
         new_value=log.new_value,
         created_at=log.created_at
     )
+
+
+# Legacy function for backward compatibility
+build_key_log_type = build_activity_log_type
 
 
 @strawberry.type
@@ -415,20 +488,72 @@ class KeyQuery:
                     raise UnauthorizedError("You don't have access to this key")
                 
                 # Get logs with eager loading of user
-                from app.models.key_log import KeyLog
-                logs = db.query(KeyLog).options(
-                    joinedload(KeyLog.user)
+                from app.models.activity_log import ActivityLog
+                logs = db.query(ActivityLog).options(
+                    joinedload(ActivityLog.user),
+                    joinedload(ActivityLog.affected_user)
                 ).filter(
-                    KeyLog.key_id == key.id
-                ).order_by(KeyLog.created_at.desc(), KeyLog.id.desc()).limit(limit or 50).all()
+                    ActivityLog.key_id == key.id
+                ).order_by(ActivityLog.created_at.desc(), ActivityLog.id.desc()).limit(limit or 50).all()
                 
-                return [build_key_log_type(log) for log in logs]
+                return [build_activity_log_type(log) for log in logs]
             finally:
                 db.close()
         except UnauthorizedError:
             raise
         except Exception as e:
             logger.error(f"Error in key_logs query: {type(e).__name__}: {str(e)}")
+            return []
+
+    @strawberry.field
+    def project_activity(self, info: Info, project_id: str, limit: Optional[int] = 100) -> List[ActivityLogType]:
+        """
+        Get all activity logs for a project (including key and translation changes).
+        
+        Args:
+            info: GraphQL info object
+            project_id: Project UUID
+            limit: Maximum number of logs to return (default: 100)
+            
+        Returns:
+            List of activity logs ordered by created_at DESC
+            
+        Raises:
+            UnauthorizedError: If user is not authenticated or doesn't have access
+        """
+        try:
+            current_user_id = get_current_user_id(info)
+            if not current_user_id:
+                raise UnauthorizedError("Authentication required to view activity")
+            
+            db: Session = next(get_db())
+            try:
+                # Get project to check access
+                from app.services.project_service import ProjectService
+                project = ProjectService.get_project_by_public_id(db, project_id)
+                if not project:
+                    return []
+                
+                # Check access
+                if not ProjectService.check_project_access(db, project.id, current_user_id):
+                    raise UnauthorizedError("You don't have access to this project")
+                
+                # Get all logs for this project with eager loading
+                from app.models.activity_log import ActivityLog
+                logs = db.query(ActivityLog).options(
+                    joinedload(ActivityLog.user),
+                    joinedload(ActivityLog.affected_user)
+                ).filter(
+                    ActivityLog.project_id == project.id
+                ).order_by(ActivityLog.created_at.desc(), ActivityLog.id.desc()).limit(limit or 100).all()
+                
+                return [build_activity_log_type(log) for log in logs]
+            finally:
+                db.close()
+        except UnauthorizedError:
+            raise
+        except Exception as e:
+            logger.error(f"Error in project_activity query: {type(e).__name__}: {str(e)}")
             return []
 
 

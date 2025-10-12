@@ -52,42 +52,72 @@ interface KeyLogsTimelineProps {
 }
 
 const actionLabels: Record<string, string> = {
-  CREATE: "Created",
-  UPDATE_KEY: "Key renamed",
-  UPDATE_DESCRIPTION: "Description updated",
-  UPDATE_TRANSLATION: "Translation updated",
-  DELETE_TRANSLATION: "Translation deleted",
-  DELETE: "Deleted",
-  IMPORT: "Imported",
+  // New action names (after ActivityLog migration)
+  KEY_CREATE: "Created",
+  KEY_UPDATE: "Key renamed",
+  KEY_UPDATE_DESCRIPTION: "Description updated",
+  KEY_DELETE: "Deleted",
+  TRANSLATION_UPDATE: "Translation updated",
+  TRANSLATION_DELETE: "Translation deleted",
+  TRANSLATION_IMPORT: "Imported",
   REVIEW_APPROVE: "Approved",
   REVIEW_REJECT: "Rejected",
   REVIEW_DELETE: "Review revoked",
+  
+  // Legacy support (old action names)
+  CREATE: "Created",
+  UPDATE_KEY: "Key renamed",
+  UPDATE_DESCRIPTION: "Description updated",
+  DELETE: "Deleted",
+  UPDATE_TRANSLATION: "Translation updated",
+  DELETE_TRANSLATION: "Translation deleted",
+  IMPORT: "Imported",
 };
 
 const actionIcons: Record<string, typeof History> = {
-  CREATE: Plus,
-  UPDATE_KEY: Edit,
-  UPDATE_DESCRIPTION: FileText,
-  UPDATE_TRANSLATION: Languages,
-  DELETE_TRANSLATION: Delete,
-  DELETE: Trash,
-  IMPORT: FileDown,
+  // New action names
+  KEY_CREATE: Plus,
+  KEY_UPDATE: Edit,
+  KEY_UPDATE_DESCRIPTION: FileText,
+  KEY_DELETE: Trash,
+  TRANSLATION_UPDATE: Languages,
+  TRANSLATION_DELETE: Delete,
+  TRANSLATION_IMPORT: FileDown,
   REVIEW_APPROVE: MessageSquareHeart,
   REVIEW_REJECT: MessageSquareX,
   REVIEW_DELETE: MessageSquareOff,
+  
+  // Legacy support
+  CREATE: Plus,
+  UPDATE_KEY: Edit,
+  UPDATE_DESCRIPTION: FileText,
+  DELETE: Trash,
+  UPDATE_TRANSLATION: Languages,
+  DELETE_TRANSLATION: Delete,
+  IMPORT: FileDown,
 };
 
 const actionColors: Record<string, string> = {
-  CREATE: "bg-green-500/10 text-green-600",
-  UPDATE_KEY: "bg-blue-500/10 text-blue-600",
-  UPDATE_DESCRIPTION: "bg-blue-500/10 text-blue-600",
-  UPDATE_TRANSLATION: "bg-purple-500/10 text-purple-600",
-  DELETE_TRANSLATION: "bg-red-500/10 text-red-600",
-  DELETE: "bg-red-500/10 text-red-600",
-  IMPORT: "bg-cyan-500/10 text-cyan-600",
+  // New action names
+  KEY_CREATE: "bg-green-500/10 text-green-600",
+  KEY_UPDATE: "bg-blue-500/10 text-blue-600",
+  KEY_UPDATE_DESCRIPTION: "bg-blue-500/10 text-blue-600",
+  KEY_DELETE: "bg-red-500/10 text-red-600",
+  TRANSLATION_UPDATE: "bg-purple-500/10 text-purple-600",
+  TRANSLATION_DELETE: "bg-red-500/10 text-red-600",
+  TRANSLATION_IMPORT: "bg-cyan-500/10 text-cyan-600",
   REVIEW_APPROVE: "bg-green-500/10 text-green-600",
   REVIEW_REJECT: "bg-red-500/10 text-red-600",
   REVIEW_DELETE: "bg-gray-500/10 text-gray-600",
+  
+  // Legacy support
+  CREATE: "bg-green-500/10 text-green-600",
+  UPDATE_KEY: "bg-blue-500/10 text-blue-600",
+  UPDATE_DESCRIPTION: "bg-blue-500/10 text-blue-600",
+  DELETE: "bg-red-500/10 text-red-600",
+  UPDATE_TRANSLATION: "bg-purple-500/10 text-purple-600",
+  DELETE_TRANSLATION: "bg-red-500/10 text-red-600",
+  IMPORT: "bg-cyan-500/10 text-cyan-600",
 };
 
 /**
@@ -207,14 +237,14 @@ export const KeyLogsTimeline: FC<KeyLogsTimelineProps> = ({
 
                 {/* Action details */}
                 <div className="text-sm text-muted-foreground space-y-1">
-                  {log.action === "REVIEW_APPROVE" || log.action === "REVIEW_REJECT" || log.action === "REVIEW_DELETE" ? (
+                  {(log.action === "REVIEW_APPROVE" || log.action === "REVIEW_REJECT" || log.action === "REVIEW_DELETE") ? (
                     <>
                       {log.language ? (
                         <div className="text-xs text-muted-foreground/70 mb-1">
                           Language: <span className="font-mono bg-muted px-1.5 py-0.5 rounded font-medium">{log.language.toUpperCase()}</span>
                         </div>
                       ) : null}
-                      {log.newValue && log.action !== "REVIEW_DELETE" ? (
+                      {(log.newValue && log.action !== "REVIEW_DELETE") ? (
                         <div className="text-sm">
                           {log.newValue}
                         </div>
@@ -228,7 +258,7 @@ export const KeyLogsTimeline: FC<KeyLogsTimelineProps> = ({
                     />
                   ) : null}
                   
-                  {!log.oldValue && !log.newValue && log.language ? (
+                  {(!log.oldValue && !log.newValue && log.language) ? (
                     <div className="text-xs text-muted-foreground/70">
                       Language: <span className="font-mono bg-muted px-1.5 py-0.5 rounded">{log.language}</span>
                     </div>

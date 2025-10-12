@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session, joinedload
 import uuid as uuid_lib
 
 from app.models.key import Key, Translation, ReviewStatus
-from app.models.key_log import KeyLog, KeyActionType
+from app.models.activity_log import ActivityLog, ActionType
 from app.models.project import Project
 from app.services.project_service import ProjectService
 
@@ -18,11 +18,12 @@ class KeyService:
         db: Session,
         key_id: int,
         user_id: Optional[int],
-        action: KeyActionType,
+        action: ActionType,
         field_name: Optional[str] = None,
         language: Optional[str] = None,
         old_value: Optional[str] = None,
-        new_value: Optional[str] = None
+        new_value: Optional[str] = None,
+        project_id: Optional[int] = None
     ) -> None:
         """
         Create a log entry for a key action.
@@ -36,9 +37,17 @@ class KeyService:
             language: Language code (for translations)
             old_value: Old value
             new_value: New value
+            project_id: ID of the project (optional, will be fetched from key if not provided)
         """
-        log_entry = KeyLog(
+        # Get project_id from key if not provided
+        if project_id is None and key_id is not None:
+            key = db.query(Key).filter(Key.id == key_id).first()
+            if key:
+                project_id = key.project_id
+        
+        log_entry = ActivityLog(
             key_id=key_id,
+            project_id=project_id,
             user_id=user_id,
             action=action,
             field_name=field_name,
@@ -106,9 +115,10 @@ class KeyService:
             db=db,
             key_id=new_key.id,
             user_id=user_id,
-            action=KeyActionType.CREATE,
+            action=ActionType.KEY_CREATE,
             field_name="key",
-            new_value=key
+            new_value=key,
+            project_id=project.id
         )
         
         # Update project's available_tags
@@ -130,10 +140,11 @@ class KeyService:
                     db=db,
                     key_id=new_key.id,
                     user_id=user_id,
-                    action=KeyActionType.UPDATE_TRANSLATION,
+                    action=ActionType.TRANSLATION_UPDATE,
                     field_name="translation",
                     language=language,
-                    new_value=value
+                    new_value=value,
+                    project_id=project.id
                 )
         
         db.commit()
@@ -273,7 +284,7 @@ class KeyService:
                 db=db,
                 key_id=key_obj.id,
                 user_id=user_id,
-                action=KeyActionType.UPDATE_KEY,
+                action=ActionType.KEY_UPDATE,
                 field_name="key",
                 old_value=old_key,
                 new_value=key
@@ -287,7 +298,7 @@ class KeyService:
                 db=db,
                 key_id=key_obj.id,
                 user_id=user_id,
-                action=KeyActionType.UPDATE_DESCRIPTION,
+                action=ActionType.KEY_UPDATE_DESCRIPTION,
                 field_name="description",
                 old_value=old_description,
                 new_value=description
@@ -332,7 +343,7 @@ class KeyService:
             db=db,
             key_id=key_obj.id,
             user_id=user_id,
-            action=KeyActionType.DELETE,
+            action=ActionType.KEY_DELETE,
             field_name="key",
             old_value=key_obj.key
         )
@@ -389,7 +400,7 @@ class KeyService:
                     db=db,
                     key_id=key_obj.id,
                     user_id=user_id,
-                    action=KeyActionType.DELETE_TRANSLATION,
+                    action=ActionType.TRANSLATION_DELETE,
                     field_name="translation",
                     language=language,
                     old_value=translation.value
@@ -408,7 +419,7 @@ class KeyService:
                 db=db,
                 key_id=key_obj.id,
                 user_id=user_id,
-                action=KeyActionType.UPDATE_TRANSLATION,
+                action=ActionType.TRANSLATION_UPDATE,
                 field_name="translation",
                 language=language,
                 old_value=old_value,
@@ -428,7 +439,7 @@ class KeyService:
                 db=db,
                 key_id=key_obj.id,
                 user_id=user_id,
-                action=KeyActionType.UPDATE_TRANSLATION,
+                action=ActionType.TRANSLATION_UPDATE,
                 field_name="translation",
                 language=language,
                 new_value=value
@@ -484,7 +495,7 @@ class KeyService:
             db=db,
             key_id=key_obj.id,
             user_id=user_id,
-            action=KeyActionType.DELETE_TRANSLATION,
+            action=ActionType.TRANSLATION_DELETE,
             field_name="translation",
             language=language,
             old_value=translation.value
@@ -581,11 +592,12 @@ class KeyService:
                                 db=db,
                                 key_id=key_obj.id,
                                 user_id=user_id,
-                                action=KeyActionType.IMPORT,
+                                action=ActionType.TRANSLATION_IMPORT,
                                 field_name="translation",
                                 language=language,
                                 old_value=old_value,
-                                new_value=value
+                                new_value=value,
+                                project_id=project.id
                             )
                         else:
                             translation = Translation(
@@ -600,10 +612,11 @@ class KeyService:
                                 db=db,
                                 key_id=key_obj.id,
                                 user_id=user_id,
-                                action=KeyActionType.IMPORT,
+                                action=ActionType.TRANSLATION_IMPORT,
                                 field_name="translation",
                                 language=language,
-                                new_value=value
+                                new_value=value,
+                                project_id=project.id
                             )
                         
                         updated_keys += 1
@@ -621,9 +634,10 @@ class KeyService:
                             db=db,
                             key_id=new_key.id,
                             user_id=user_id,
-                            action=KeyActionType.CREATE,
+                            action=ActionType.KEY_CREATE,
                             field_name="key",
-                            new_value=key_str
+                            new_value=key_str,
+                            project_id=project.id
                         )
                         
                         # Create translation
@@ -639,10 +653,11 @@ class KeyService:
                             db=db,
                             key_id=new_key.id,
                             user_id=user_id,
-                            action=KeyActionType.IMPORT,
+                            action=ActionType.TRANSLATION_IMPORT,
                             field_name="translation",
                             language=language,
-                            new_value=value
+                            new_value=value,
+                            project_id=project.id
                         )
                         
                         # Add to dict for future lookups in this batch
@@ -723,7 +738,7 @@ class KeyService:
             db=db,
             key_id=key.id,
             user_id=user_id,
-            action=KeyActionType.REVIEW_APPROVE,
+            action=ActionType.REVIEW_APPROVE,
             field_name="review_status",
             language=language,  # Include language in log
             old_value=old_status,
@@ -782,7 +797,7 @@ class KeyService:
             db=db,
             key_id=key.id,
             user_id=user_id,
-            action=KeyActionType.REVIEW_REJECT,
+            action=ActionType.REVIEW_REJECT,
             field_name="review_status",
             language=language,  # Include language in log
             old_value=old_status,
@@ -835,7 +850,7 @@ class KeyService:
             db=db,
             key_id=key.id,
             user_id=user_id,
-            action=KeyActionType.REVIEW_DELETE,
+            action=ActionType.REVIEW_DELETE,
             field_name="review_status",
             language=language,  # Include language in log
             old_value=old_status,

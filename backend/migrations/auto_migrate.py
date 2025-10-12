@@ -479,6 +479,41 @@ def migrate_move_review_to_translations_if_needed():
         return False
 
 
+def migrate_to_activity_logs_if_needed():
+    """
+    Migrate from key_logs to universal activity_logs system.
+    Safe to run multiple times.
+    """
+    try:
+        inspector = inspect(engine)
+        existing_tables = inspector.get_table_names()
+        
+        if 'activity_logs' in existing_tables:
+            logger.info("✅ Migration: activity_logs table already exists, skipping")
+            return True
+        
+        if 'key_logs' not in existing_tables:
+            logger.info("✅ Migration: No key_logs table to migrate, will create activity_logs")
+            # Create activity_logs table from scratch
+            from app.models.activity_log import ActivityLog
+            ActivityLog.__table__.create(bind=engine, checkfirst=True)
+            logger.info("✅ Migration: activity_logs table created successfully")
+            return True
+        
+        logger.info("🔄 Migration: Converting key_logs to activity_logs")
+         
+        # Run the migration script
+        from migrations.migrate_to_activity_logs import migrate
+        migrate()
+        
+        logger.info("✅ Migration: activity_logs conversion completed successfully")
+        return True
+        
+    except Exception as e:
+        logger.error(f"❌ Migration failed: {type(e).__name__}: {str(e)}")
+        return False
+
+
 def run_all_migrations():
     """
     Run all pending migrations.
@@ -495,6 +530,7 @@ def run_all_migrations():
         ("fix_key_logs_cascade", migrate_fix_key_logs_cascade_if_needed),
         ("add_review_status", migrate_add_review_status_if_needed),
         ("move_review_to_translations", migrate_move_review_to_translations_if_needed),
+        ("migrate_to_activity_logs", migrate_to_activity_logs_if_needed),
         # Add more migrations here as needed
     ]
     
