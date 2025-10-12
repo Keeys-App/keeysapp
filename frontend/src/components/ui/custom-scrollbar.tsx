@@ -37,6 +37,8 @@ export function CustomScrollbar({
 }: CustomScrollbarProps) {
   const [scrollPosition, setScrollPosition] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [hoverPosition, setHoverPosition] = useState<number | null>(null);
+  const [isHovered, setIsHovered] = useState(false);
   const scrollbarRef = useRef<HTMLDivElement>(null);
   const thumbRef = useRef<HTMLDivElement>(null);
   const dragStartY = useRef(0);
@@ -114,10 +116,33 @@ export function CustomScrollbar({
     }
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
+  // Handle mouse move on scrollbar track
+  const handleTrackMouseMove = useCallback(
+    (e: React.MouseEvent) => {
+      if (!scrollbarRef.current) {
+        return;
+      }
+
+      const rect = scrollbarRef.current.getBoundingClientRect();
+      const mouseY = e.clientY - rect.top;
+      setHoverPosition(mouseY);
+    },
+    []
+  );
+
+  const handleTrackMouseLeave = useCallback(() => {
+    setHoverPosition(null);
+    setIsHovered(false);
+  }, []);
+
+  const handleTrackMouseEnter = useCallback(() => {
+    setIsHovered(true);
+  }, []);
+
   // Handle click on scrollbar track
   const handleTrackClick = useCallback(
     (e: React.MouseEvent) => {
-      if (!scrollbarRef.current || !scrollContainerRef.current || e.target !== scrollbarRef.current) {
+      if (!scrollbarRef.current || !scrollContainerRef.current) {
         return;
       }
 
@@ -136,20 +161,98 @@ export function CustomScrollbar({
     return null;
   }
 
+  // Calculate visible item range
+  const firstVisibleItem = Math.floor((scrollPosition / totalHeight) * totalItems) + 1;
+  const lastVisibleItem = Math.min(
+    Math.ceil(((scrollPosition + visibleHeight) / totalHeight) * totalItems),
+    totalItems
+  );
+
+  // Calculate hover preview range
+  let hoverPreviewRange: { start: number; end: number; top: number; height: number } | null = null;
+  if (hoverPosition !== null) {
+    const hoverScrollPercentage = hoverPosition / visibleHeight;
+    const hoverScrollTop = hoverScrollPercentage * (totalHeight - visibleHeight);
+    const hoverFirstItem = Math.floor((hoverScrollTop / totalHeight) * totalItems) + 1;
+    const hoverLastItem = Math.min(
+      Math.ceil(((hoverScrollTop + visibleHeight) / totalHeight) * totalItems),
+      totalItems
+    );
+    
+    // Calculate visual position of the preview box
+    const previewTop = hoverPosition - (thumbHeight / 2);
+    const clampedTop = Math.max(0, Math.min(visibleHeight - thumbHeight, previewTop));
+    
+    hoverPreviewRange = {
+      start: hoverFirstItem,
+      end: hoverLastItem,
+      top: clampedTop,
+      height: thumbHeight,
+    };
+  }
+
   return (
     <div
       ref={scrollbarRef}
       className={cn(
-        "absolute right-0 top-0 bottom-0 w-3 bg-transparent hover:bg-muted/30 transition-colors cursor-pointer",
+        "absolute right-0 top-0 bottom-0 transition-all bg-background/50 border-l border-l-border/50",
+        isHovered && !isDragging ? "w-16 backdrop-blur-xs" : "w-3",
         className
       )}
       onClick={handleTrackClick}
+      onMouseMove={handleTrackMouseMove}
+      onMouseLeave={handleTrackMouseLeave}
+      onMouseEnter={handleTrackMouseEnter}
     >
+      {/* Position indicators - only show on hover */}
+      {isHovered && !isDragging ? (
+        <div className="absolute inset-0 flex flex-col justify-between py-2 px-2 pointer-events-none">
+          {/* First item */}
+          <div className="text-[11px] font-mono text-muted-foreground text-right">
+            1
+          </div>
+          
+          {/* Current position */}
+          {firstVisibleItem > 1 && lastVisibleItem < totalItems ? (
+            <div
+              className="text-[11px] font-mono font-medium text-foreground text-right bg-primary/10 px-1 rounded"
+              style={{
+                position: "absolute",
+                top: `${thumbTop + thumbHeight / 2 - 8}px`,
+              }}
+            >
+              {firstVisibleItem}
+            </div>
+          ) : null}
+          
+          {/* Last item */}
+          <div className="text-[11px] font-mono text-muted-foreground text-right">
+            {totalItems}
+          </div>
+        </div>
+      ) : null}
+
+      {/* Hover preview range box */}
+      {hoverPreviewRange && !isDragging ? (
+        <div
+          className="absolute left-0 right-0 border-1 box-border border-primary/60 bg-primary/10 rounded pointer-events-none"
+          style={{
+            top: `${hoverPreviewRange.top}px`,
+            height: `${hoverPreviewRange.height}px`,
+          }}
+        >
+          <div className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-mono font-medium text-primary bg-background/90 px-1.5 py-0.5 rounded whitespace-nowrap">
+            {hoverPreviewRange.start}
+          </div>
+        </div>
+      ) : null}
+
+      {/* Scrollbar thumb */}
       <div
         ref={thumbRef}
         className={cn(
-          "absolute right-0.5 w-2 rounded-full bg-border hover:bg-foreground/40 transition-colors cursor-grab",
-          isDragging && "bg-foreground/50 cursor-grabbing"
+          "absolute right-[2px] w-[7px] rounded-full overflow-hidden transition-all cursor-grab",
+          isDragging ? "bg-primary/40 w-1.5 cursor-grabbing" : "bg-primary/40"
         )}
         style={{
           height: `${thumbHeight}px`,
@@ -157,26 +260,14 @@ export function CustomScrollbar({
         }}
         onMouseDown={handleMouseDown}
       >
-        {/* Progress indicator */}
+        {/* Progress indicator inside thumb */}
         <div
-          className="absolute inset-0 rounded-full bg-primary/60 transition-all"
+          className="absolute inset-0 rounded-full bg-primary transition-all"
           style={{
             height: `${(loadedItems / totalItems) * 100}%`,
           }}
         />
       </div>
-      
-      {/* Loading indicator */}
-      {loadedItems < totalItems ? (
-        <div
-          className="absolute right-1 text-[10px] text-muted-foreground font-mono bg-background/80 px-1 rounded pointer-events-none"
-          style={{
-            top: `${thumbTop + thumbHeight / 2 - 8}px`,
-          }}
-        >
-          {Math.round((loadedItems / totalItems) * 100)}%
-        </div>
-      ) : null}
     </div>
   );
 }
