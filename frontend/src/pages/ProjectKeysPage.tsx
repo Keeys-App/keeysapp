@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@apollo/client";
 import { GET_PROJECT, type GetProjectData } from "@/graphql/projects";
+import { GET_PROJECT_KEYS } from "@/graphql/keys";
 import { PATHS } from "@/constants/paths";
 import { useAuth, useBreadcrumbs } from "@/contexts";
 import { useEffect, useState, useMemo, useCallback, type FC } from "react";
@@ -17,14 +18,31 @@ export const ProjectKeysPage: FC = () => {
   const { setBreadcrumbs } = useBreadcrumbs();
   const { isPanelOpen, setShowPanelToggle } = useLayoutStore();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [selectedKey, setSelectedKey] = useState<TranslationKey | null>(null);
+  const [selectedKeyId, setSelectedKeyId] = useState<string | null>(null);
 
   const { data, loading, error } = useQuery<GetProjectData>(GET_PROJECT, {
     variables: { id },
     skip: !id || !isAuthenticated || authLoading,
   });
 
+  // Query for keys to get updated key data from cache
+  const { data: keysData } = useQuery(GET_PROJECT_KEYS, {
+    variables: { projectId: id },
+    skip: !id,
+    fetchPolicy: 'cache-only', // Only read from cache, don't make network requests
+  });
+
   const project = data?.project;
+  
+  // Get selected key from cache based on selectedKeyId
+  const selectedKey = useMemo(() => {
+    if (!selectedKeyId || !keysData?.projectKeys) {
+      return null;
+    }
+    return keysData.projectKeys.find((key: TranslationKey) => {
+      return key.id === selectedKeyId;
+    }) || null;
+  }, [selectedKeyId, keysData?.projectKeys]);
 
   // Show/hide panel toggle button when entering/leaving this page
   useEffect(() => {
@@ -59,11 +77,11 @@ export const ProjectKeysPage: FC = () => {
   }, []);
 
   const handleSelectKey = useCallback((key: TranslationKey) => {
-    setSelectedKey(key);
+    setSelectedKeyId(key.id);
   }, []);
 
   const handleKeyDeleted = useCallback(() => {
-    setSelectedKey(null);
+    setSelectedKeyId(null);
   }, []);
 
   // Build enhanced language list with locale information
