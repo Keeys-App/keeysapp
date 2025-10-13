@@ -1,4 +1,4 @@
-import { FC, useState, useEffect, useRef } from 'react';
+import { type FC, useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, ChevronsUpDown, PlusCircle, Users } from 'lucide-react';
 import { useQuery } from '@apollo/client';
@@ -95,22 +95,20 @@ export const TeamSwitcher: FC<TeamSwitcherProps> = ({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
+      <PopoverTrigger asChild className="p-0">
+        <button
           role="combobox"
           aria-expanded={open}
           aria-label="Select a team"
-          className="w-[200px] justify-between"
+          className="h-8 px-2 rounded-md cursor-pointer flex items-center justify-between text-sm gap-2 mr-2 hover:bg-accent/50"
         >
           <div className="flex items-center gap-2 overflow-hidden">
-            <Users className="h-4 w-4 shrink-0" />
             <span className="truncate">
               {selectedTeam ? selectedTeam.name : 'Select team...'}
             </span>
           </div>
           <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
-        </Button>
+        </button>
       </PopoverTrigger>
       <PopoverContent className="w-[200px] p-0">
         <Command>
