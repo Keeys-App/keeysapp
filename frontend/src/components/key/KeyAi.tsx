@@ -58,7 +58,11 @@ interface VariantsWidget extends BaseWidget {
   selectedVariant: string;
 }
 
-type Widget = SuggestionWidget | ContextWidget | ContextEditWidget | VariantsWidget;
+type Widget =
+  | SuggestionWidget
+  | ContextWidget
+  | ContextEditWidget
+  | VariantsWidget;
 
 interface KeyAiProps {
   currentKey: TranslationKey;
@@ -358,7 +362,7 @@ export const KeyAi: FC<KeyAiProps> = ({
   const handleSaveContext = (widgetId: string, value: string) => {
     setCustomContext(value.trim());
     removeWidget(widgetId);
-    
+
     // If there's saved context, add context view widget
     if (value.trim()) {
       const contextWidget: ContextWidget = {
@@ -371,7 +375,7 @@ export const KeyAi: FC<KeyAiProps> = ({
         addWidget(contextWidget);
       }, 300);
     }
-    
+
     toast("Context saved");
   };
 
@@ -399,10 +403,12 @@ export const KeyAi: FC<KeyAiProps> = ({
 
   const handleEditContext = (widgetId: string) => {
     // Find and replace context view widget with context edit widget
-    const contextWidget = widgets.find((w) => w.id === widgetId) as ContextWidget;
+    const contextWidget = widgets.find(
+      (w) => w.id === widgetId
+    ) as ContextWidget;
     if (contextWidget) {
       removeWidget(widgetId);
-      
+
       // Add edit widget after animation
       setTimeout(() => {
         const editWidget: ContextEditWidget = {
@@ -440,7 +446,9 @@ export const KeyAi: FC<KeyAiProps> = ({
   useEffect(() => {
     if (customContext) {
       const hasContextWidget = widgets.some((w) => w.type === "context");
-      const hasContextEditWidget = widgets.some((w) => w.type === "context-edit");
+      const hasContextEditWidget = widgets.some(
+        (w) => w.type === "context-edit"
+      );
 
       if (!hasContextWidget && !hasContextEditWidget) {
         // Add context view widget if context exists but no widget is shown
@@ -482,10 +490,24 @@ export const KeyAi: FC<KeyAiProps> = ({
       enhancementActions.unshift(AutopilotActions.translate(handleTranslate));
     }
 
+    const idDefaultLanguage = currentLanguage?.code === defaultLanguage?.code;
+
     card = (
       <AutopilotCard
+        title="Suggestions"
         isPending={isGenerating}
-        description="Enhance the quality of this translation using AI."
+        description={
+          idDefaultLanguage ? (
+            <>
+              Improve or rewrite the <LanguageMark language={currentLanguage} /> text.
+            </>
+          ) : (
+            <>
+              Improve or rewrite the <LanguageMark language={currentLanguage} />{" "}
+              translation.
+            </>
+          )
+        }
         actions={enhancementActions}
       />
     );
@@ -505,11 +527,9 @@ export const KeyAi: FC<KeyAiProps> = ({
         description={
           <>
             Create a{" "}
-            <span className="text-indigo-500">{currentLanguage.name}</span>{" "}
+            <LanguageMark language={currentLanguage} />{" "}
             translation using the default{" "}
-            <span className="text-indigo-500">
-              {defaultLanguage?.name || ""}
-            </span>{" "}
+            <LanguageMark language={defaultLanguage} />{" "}
             as the source.
           </>
         }
@@ -614,7 +634,9 @@ export const KeyAi: FC<KeyAiProps> = ({
                 placeholder="e.g., Used in the checkout flow to confirm payment. Should be formal and reassuring."
                 value={widget.value}
                 onChange={(e) => {
-                  updateWidget(widget.id, { value: e.target.value } as Partial<Widget>);
+                  updateWidget(widget.id, {
+                    value: e.target.value,
+                  } as Partial<Widget>);
                 }}
                 rows={4}
                 className="resize-none mt-2"
@@ -659,7 +681,9 @@ export const KeyAi: FC<KeyAiProps> = ({
                 <RadioGroup
                   value={widget.selectedVariant}
                   onValueChange={(value) => {
-                    updateWidget(widget.id, { selectedVariant: value } as Partial<Widget>);
+                    updateWidget(widget.id, {
+                      selectedVariant: value,
+                    } as Partial<Widget>);
                   }}
                 >
                   {widget.variants.map((variant, index) => (
@@ -723,4 +747,10 @@ export const KeyAi: FC<KeyAiProps> = ({
       {currentLanguage && isGenerating ? <AutopilotSuggestionSkeleton /> : null}
     </AutopilotSuggestionsList>
   );
+};
+
+const LanguageMark: FC<{ language?: Language | null }> = ({ language }) => {
+  return language ? (
+    <span className="text-indigo-500">{language.name}</span>
+  ) : null;
 };
