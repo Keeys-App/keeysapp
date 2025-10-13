@@ -32,6 +32,7 @@ export const TeamSwitcher: FC<TeamSwitcherProps> = ({
   onTeamChange,
 }) => {
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
   const navigate = useNavigate();
   const { data, loading } = useQuery<GetTeamsResponse>(GET_TEAMS, {
     fetchPolicy: 'cache-and-network',
@@ -53,6 +54,13 @@ export const TeamSwitcher: FC<TeamSwitcherProps> = ({
       onTeamChange(teams[0].id);
     }
   }, [loading, teams, selectedTeamId, onTeamChange]);
+
+  // Clear search when popover closes
+  useEffect(() => {
+    if (!open) {
+      setSearch('');
+    }
+  }, [open]);
 
   const handleSelect = (team: Team) => {
     if (onTeamChange) {
@@ -112,7 +120,11 @@ export const TeamSwitcher: FC<TeamSwitcherProps> = ({
       </PopoverTrigger>
       <PopoverContent className="w-[200px] p-0">
         <Command>
-          <CommandInput placeholder="Search team..." />
+          <CommandInput 
+            placeholder="Search team..." 
+            value={search}
+            onValueChange={setSearch}
+          />
           <CommandList>
             <CommandEmpty>No team found.</CommandEmpty>
             <CommandGroup>
@@ -144,16 +156,20 @@ export const TeamSwitcher: FC<TeamSwitcherProps> = ({
                 );
               })}
             </CommandGroup>
-            <CommandSeparator />
-            <CommandGroup>
-              <CommandItem
-                onSelect={handleCreateTeam}
-                className="cursor-pointer"
-              >
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Create Team
-              </CommandItem>
-            </CommandGroup>
+            {!search ? (
+              <>
+                <CommandSeparator />
+                <CommandGroup>
+                  <CommandItem
+                    onSelect={handleCreateTeam}
+                    className="cursor-pointer"
+                  >
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Create Team
+                  </CommandItem>
+                </CommandGroup>
+              </>
+            ) : null}
           </CommandList>
         </Command>
       </PopoverContent>
