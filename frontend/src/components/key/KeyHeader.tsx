@@ -1,5 +1,4 @@
 import { cn } from "@/lib/utils";
-import { Kbd } from "../ui/kbd";
 import { Badge } from "../ui";
 
 interface KeyHeaderProps {
