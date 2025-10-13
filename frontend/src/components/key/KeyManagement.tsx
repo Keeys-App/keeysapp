@@ -2,7 +2,7 @@ import { type FC } from "react";
 import type { TranslationKey } from "@/types/translationKey";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { KeyLogsTimeline } from "./KeyLogsTimeline";
-import { KeySettingsForm } from "./KeySettingsForm";
+import { KeyMetadata } from "./KeyMetadata";
 import { KeySettings } from "./KeySettings";
 import { KeyAi } from "./KeyAi";
 import type { Language } from "@/types/project";
@@ -56,7 +56,7 @@ export const KeyManagement: FC<KeyManagementProps> = ({
       </TabsContent>
 
       <TabsContent value="meta" className="flex-1 overflow-auto">
-        <KeySettingsForm
+        <KeyMetadata
           selectedKey={selectedKey}
           availableTags={availableTags}
         />

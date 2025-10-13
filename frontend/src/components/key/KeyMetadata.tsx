@@ -10,7 +10,7 @@ import { useSaving, useSavingStore } from "@/stores";
 import { TagsEditor } from "./TagsEditor";
 import { Item } from "../ui/item";
 
-interface KeySettingsFormProps {
+interface KeyMetadataProps {
   selectedKey: TranslationKey;
   availableTags?: string[];
 }
@@ -18,7 +18,7 @@ interface KeySettingsFormProps {
 /**
  * Form for editing key settings (name, description, tags)
  */
-export const KeySettingsForm: FC<KeySettingsFormProps> = ({
+export const KeyMetadata: FC<KeyMetadataProps> = ({
   selectedKey,
   availableTags = [],
 }) => {
@@ -39,9 +39,9 @@ export const KeySettingsForm: FC<KeySettingsFormProps> = ({
     awaitRefetchQueries: true,
     update(cache) {
       // Invalidate key logs cache to force refetch
-      cache.evict({ 
-        id: 'ROOT_QUERY',
-        fieldName: 'keyLogs',
+      cache.evict({
+        id: "ROOT_QUERY",
+        fieldName: "keyLogs",
         args: { keyId: selectedKey.id },
       });
       cache.gc();
@@ -93,30 +93,32 @@ export const KeySettingsForm: FC<KeySettingsFormProps> = ({
       return;
     }
 
-    await withSaving(
-      async () => {
-        await updateKey({
-          variables: {
-            input: {
-              id: selectedKey.id,
-              key: keyName !== savedKeyName ? keyName : undefined,
-              description: description !== savedDescription ? description : undefined,
-              tags: JSON.stringify([...tags].sort()) !== JSON.stringify([...savedTags].sort()) ? tags : undefined,
-            },
+    await withSaving(async () => {
+      await updateKey({
+        variables: {
+          input: {
+            id: selectedKey.id,
+            key: keyName !== savedKeyName ? keyName : undefined,
+            description:
+              description !== savedDescription ? description : undefined,
+            tags:
+              JSON.stringify([...tags].sort()) !==
+              JSON.stringify([...savedTags].sort())
+                ? tags
+                : undefined,
           },
-        });
-      },
-      "Saving changes..."
-    );
+        },
+      });
+    }, "Saving changes...");
   };
 
-  const hasChanges = 
+  const hasChanges =
     description !== savedDescription ||
     keyName !== savedKeyName ||
     JSON.stringify([...tags].sort()) !== JSON.stringify([...savedTags].sort());
 
   return (
-    <Item variant="outline" className="space-y-4">
+    <Item variant="outline">
       <Field>
         <FieldLabel>Key Name</FieldLabel>
         <Textarea
@@ -142,7 +144,7 @@ export const KeySettingsForm: FC<KeySettingsFormProps> = ({
           disabled={isSaving}
         />
       </Field>
-      
+
       <Field>
         <FieldLabel>Tags</FieldLabel>
         <TagsEditor
@@ -165,4 +167,3 @@ export const KeySettingsForm: FC<KeySettingsFormProps> = ({
     </Item>
   );
 };
-
