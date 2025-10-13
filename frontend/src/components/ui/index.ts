@@ -17,3 +17,4 @@ export * from './scroll-area';
 export * from './select';
 export * from './separator';
 export * from './textarea';
+export * from './input-group';

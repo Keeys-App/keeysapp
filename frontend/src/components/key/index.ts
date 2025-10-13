@@ -1,5 +1,7 @@
 export { KeyList } from './KeyList';
 export { Key } from './Key';
+export { KeyHeader } from './KeyHeader';
+export { KeyFooter } from './KeyFooter';
 export { KeySkeleton } from './KeySkeleton';
 export { CreateKeyDialog } from './CreateKeyDialog';
 export { TranslationEditor } from './TranslationEditor';

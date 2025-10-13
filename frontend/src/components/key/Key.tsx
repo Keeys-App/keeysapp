@@ -2,6 +2,7 @@ import { memo } from "react";
 import { TranslationEditor } from "./TranslationEditor";
 import { LanguageHeader } from "./LanguageHeader";
 import { KeyHeader } from "./KeyHeader";
+import { KeyFooter } from "./KeyFooter";
 import type { TranslationKey } from "@/types/translationKey";
 import type { Language, LanguageWithLocale } from "@/types/project";
 import { cn } from "@/lib/utils";
@@ -49,18 +50,14 @@ export const Key = memo(
     return (
       <div
         className={cn(
-          "border-b grid grid-cols-[220px_minmax(300px,3fr)] relative transition-colors",
+          "border-b group/key grid grid-cols-[220px_minmax(300px,3fr)] relative transition-colors",
           !isSelected && "cursor-pointer"
         )}
         onClick={handleCancelEditingAndSelect}
       >
-        <div className="border-r -mr-px relative">
-          <KeyHeader
-            keyName={keyData.key}
-            description={keyData.description}
-            isSelected={isSelected}
-            tags={keyData.tags}
-          />
+        <div className="border-r -mr-px relative flex flex-col">
+          <KeyHeader keyName={keyData.key} isSelected={isSelected} />
+          <KeyFooter description={keyData.description} tags={keyData.tags} />
         </div>
         <div className="flex flex-col">
           {projectLanguages.map((language) => (

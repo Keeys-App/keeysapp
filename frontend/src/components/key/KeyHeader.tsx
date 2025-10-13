@@ -1,43 +1,66 @@
 import { cn } from "@/lib/utils";
-import { Badge } from "../ui";
+import { Copy, type LucideIcon, X } from "lucide-react";
+import { InputGroupButton } from "../ui";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../ui/tooltip";
+import type { FC } from "react";
 
 interface KeyHeaderProps {
   keyName: string;
-  description?: string | null;
   isSelected: boolean;
-  tags?: string[] | null;
 }
 
 /**
- * Component for displaying a translation key name and description
+ * Component for displaying a translation key name
  */
-export function KeyHeader({ keyName, description, isSelected, tags }: KeyHeaderProps) {
+export function KeyHeader({ keyName, isSelected }: KeyHeaderProps) {
   return (
-    <>
-      <div className="font-mono text-sm break-words sticky bg-background top-0 z-10 py-2 px-4">
-        <div
-          className={cn(
-            "transition-colors relative",
-            isSelected && "text-primary"
-          )}
-        >
-          {isSelected ? <div className="h-3 w-1 bg-primary rounded absolute top-[3px] left-[-9px]" /> : null}
-          {keyName}
-        </div>
+    <div className="font-mono text-sm break-words sticky bg-background top-0 z-10 py-2 px-4">
+      <div
+        className={cn(
+          "transition-colors relative",
+          isSelected && "text-primary"
+        )}
+      >
+        {isSelected ? (
+          <div className="h-3 w-1 bg-primary rounded absolute top-[3px] left-[-9px]" />
+        ) : null}
+        {keyName}
       </div>
-      {description ? (
-        <p className="text-sm break-words text-muted-foreground px-4 pb-2">
-          {description}
-        </p>
-      ) : null}
-      {tags ? (
-        <div className="text-sm break-words text-muted-foreground px-4 pb-2 flex gap-1 flex-wrap">
-          {tags.map((tag) => (
-            <Badge variant="secondary" key={tag}>{tag}</Badge>
-          ))}
-        </div>
-      ) : null}
-    </>
+      <div className="flex mt-3 mb-2 gap-2 flex-wrap group-hover/key:opacity-100 opacity-0">
+        <Button tooltip="Delete key" Icon={X} onClick={() => {}} />
+        <Button tooltip="Duplicate key" Icon={Copy} onClick={() => {}} />
+      </div>
+    </div>
   );
 }
 
+interface ButtonProps {
+  tooltip: string;
+  Icon: LucideIcon;
+  onClick: () => void;
+}
+
+const Button: FC<ButtonProps> = ({ tooltip, Icon, onClick }: ButtonProps) => {
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger>
+          <InputGroupButton
+            onClick={onClick}
+            variant="outline"
+            className="rounded-full cursor-pointer"
+            size="icon-xs"
+          >
+            <Icon className="!h-3.5 !w-3.5" />
+          </InputGroupButton>
+        </TooltipTrigger>
+        <TooltipContent>{tooltip}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+};
