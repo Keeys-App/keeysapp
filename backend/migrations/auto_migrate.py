@@ -553,6 +553,97 @@ def migrate_add_ai_translation_action_type_if_needed():
         return False
 
 
+def migrate_create_teams_system_if_needed():
+    """
+    Create teams system tables and add team_id to projects.
+    Safe to run multiple times.
+    """
+    try:
+        inspector = inspect(engine)
+        existing_tables = inspector.get_table_names()
+        
+        with engine.connect() as connection:
+            # Check if teams table exists
+            if 'teams' not in existing_tables:
+                logger.info("🔄 Migration: Creating teams table...")
+                connection.execute(text("""
+                    CREATE TABLE teams (
+                        id SERIAL PRIMARY KEY,
+                        public_id UUID UNIQUE NOT NULL DEFAULT gen_random_uuid(),
+                        name VARCHAR(255) NOT NULL,
+                        description TEXT,
+                        owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP WITH TIME ZONE
+                    );
+                    CREATE INDEX idx_teams_public_id ON teams(public_id);
+                    CREATE INDEX idx_teams_owner_id ON teams(owner_id);
+                """))
+                connection.commit()
+                logger.info("✅ Teams table created")
+            else:
+                logger.info("✅ Teams table already exists")
+            
+            # Check if team_members table exists
+            if 'team_members' not in existing_tables:
+                logger.info("🔄 Migration: Creating team_members table...")
+                connection.execute(text("""
+                    CREATE TABLE team_members (
+                        id SERIAL PRIMARY KEY,
+                        team_id INTEGER NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+                        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                        role VARCHAR(20) NOT NULL DEFAULT 'viewer',
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(team_id, user_id)
+                    );
+                    CREATE INDEX idx_team_members_team_id ON team_members(team_id);
+                    CREATE INDEX idx_team_members_user_id ON team_members(user_id);
+                """))
+                connection.commit()
+                logger.info("✅ Team members table created")
+            else:
+                logger.info("✅ Team members table already exists")
+            
+            # Check if project_access table exists
+            if 'project_access' not in existing_tables:
+                logger.info("🔄 Migration: Creating project_access table...")
+                connection.execute(text("""
+                    CREATE TABLE project_access (
+                        id SERIAL PRIMARY KEY,
+                        project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+                        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                        role VARCHAR(20) NOT NULL DEFAULT 'viewer',
+                        granted_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(project_id, user_id)
+                    );
+                    CREATE INDEX idx_project_access_project_id ON project_access(project_id);
+                    CREATE INDEX idx_project_access_user_id ON project_access(user_id);
+                """))
+                connection.commit()
+                logger.info("✅ Project access table created")
+            else:
+                logger.info("✅ Project access table already exists")
+            
+            # Check if team_id column exists in projects
+            if not check_column_exists('projects', 'team_id'):
+                logger.info("🔄 Migration: Adding team_id column to projects table...")
+                connection.execute(text("""
+                    ALTER TABLE projects ADD COLUMN team_id INTEGER;
+                """))
+                connection.commit()
+                logger.info("✅ team_id column added to projects")
+            else:
+                logger.info("✅ team_id column already exists in projects")
+            
+            logger.info("✅ Migration: Teams system completed successfully")
+            return True
+            
+    except Exception as e:
+        logger.error(f"❌ Migration failed: {type(e).__name__}: {str(e)}")
+        return False
+
+
 def run_all_migrations():
     """
     Run all pending migrations.
@@ -571,6 +662,7 @@ def run_all_migrations():
         ("move_review_to_translations", migrate_move_review_to_translations_if_needed),
         ("migrate_to_activity_logs", migrate_to_activity_logs_if_needed),
         ("add_ai_translation_action_type", migrate_add_ai_translation_action_type_if_needed),
+        ("create_teams_system", migrate_create_teams_system_if_needed),
         # Add more migrations here as needed
     ]
     
