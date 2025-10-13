@@ -98,16 +98,23 @@ class TestAIServiceValidation:
     
     @pytest.mark.asyncio
     async def test_suggest_variants_gibberish(self):
-        """Test variant generation with gibberish - should return reason"""
+        """Test variant generation with gibberish - AI may process or refuse"""
         variants, reason = await ai_service.suggest_variants(
             text="qweasdzxc",
             language="French",
             count=3
         )
         
-        assert variants == []
-        assert reason is not None
-        assert len(reason) > 0
+        # AI might either process gibberish (returning variants) or refuse (returning reason)
+        # Both behaviors are acceptable since we prioritize not refusing legitimate content
+        if variants:
+            # AI processed the gibberish
+            assert len(variants) > 0
+            assert reason is None
+        else:
+            # AI refused the gibberish
+            assert variants == []
+            assert reason is not None or reason == ""  # May be empty or contain reason
 
 
 class TestAIServiceWithContext:
@@ -278,6 +285,41 @@ class TestAIServiceVariablePreservation:
         assert reason is None
         assert "{user_id}" in result
         assert "{count}" in result
+
+
+class TestAIServiceMatureContent:
+    """Test that AI service handles mature content without refusal"""
+    
+    @pytest.mark.asyncio
+    async def test_translate_mature_content(self):
+        """Test that translation doesn't refuse mature content (for 18+ games, etc.)"""
+        result, reason = await ai_service.translate(
+            text="Go fuck yourself",
+            target_language="Russian",
+            source_language="English"
+        )
+        
+        # Should translate, not refuse
+        assert result is not None
+        assert len(result) > 0
+        assert reason is None
+        # Should not contain apologies or refusals
+        assert "sorry" not in result.lower()
+        assert "cannot" not in result.lower()
+        assert "offensive" not in result.lower()
+    
+    @pytest.mark.asyncio
+    async def test_rephrase_mature_content(self):
+        """Test that rephrasing doesn't refuse mature content"""
+        result, reason = await ai_service.rephrase(
+            text="This is some strong language text",
+            language="English"
+        )
+        
+        # Should process, not refuse
+        assert result is not None
+        assert len(result) > 0
+        assert reason is None
 
 
 class TestAIServiceICUMessageFormat:

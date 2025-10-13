@@ -11,24 +11,40 @@ Automatically translate text from the default language to the target language.
 - Uses context from key description
 - Preserves natural language flow
 - Supports all project languages
+- **Handles mature content** (18+ games, movies, etc.)
 
 ### 2. **Rephrase** ✏️
 Improve existing translations by rephrasing them.
 - Maintains original meaning
 - Makes text more natural and fluent
 - Context-aware
+- **Handles mature content** without filtering
 
 ### 3. **Shorten** ✂️
 Create concise versions of translations.
 - Preserves key meaning
 - Reduces text length
 - Maintains clarity
+- **Handles mature content** professionally
 
 ### 4. **Suggest Variants** 🔄
 Generate multiple alternative versions of a translation.
 - Provides 3 different variants
 - Each with slightly different tone or wording
 - Helps choose the best option
+- **Handles mature content** appropriately
+
+## Content Policy
+
+This is a **professional localization tool** designed for all types of content, including:
+
+- ✅ **Games** (including 18+ rated games)
+- ✅ **Movies and TV shows** (any rating)
+- ✅ **Books and literature**
+- ✅ **Applications** with diverse content
+- ✅ **Mature themes, profanity, and offensive language**
+
+The AI assistant is configured to translate/process **all content types** without filtering or refusing. This is intentional - the tool is meant for professional localization work where preserving the original meaning and tone is critical, regardless of content maturity.
 
 ## Configuration
 

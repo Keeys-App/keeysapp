@@ -85,7 +85,7 @@ class AIService:
             
             # Build system message with JSON response format
             system_content = (
-                "You are a professional translator. "
+                "You are a professional translator for a localization tool. "
                 "Respond ONLY with valid JSON in this exact format:\n"
                 '{"success": true/false, "result": "translated text or empty string", "reason": "optional reason if failed"}\n\n'
                 "Rules:\n"
@@ -93,6 +93,10 @@ class AIService:
                 "- Set success=true and provide the translation in result\n"
                 "- Only set success=false if the text is complete gibberish or random unreadable characters\n"
                 "- NEVER refuse translation due to lack of context - make your best reasonable translation\n"
+                "- NEVER refuse translation due to content type - this is a professional localization tool\n"
+                "- You MUST translate ALL content including profanity, mature themes, offensive language, etc.\n"
+                "- This tool is used for games (including 18+), movies, books, and other media that may contain mature content\n"
+                "- Your role is purely translation - do not judge or filter content\n"
                 "- NEVER include apologies or explanations in the result field\n"
                 "- The result field should ONLY contain the translated text or be empty\n"
                 "- CRITICAL: Preserve ALL template variables in curly braces like {name}, {date}, {count}, etc. exactly as they are\n"
@@ -187,7 +191,7 @@ class AIService:
             
             # Build system message with JSON response format
             system_content = (
-                "You are a professional text editor. "
+                "You are a professional text editor for a localization tool. "
                 "Respond ONLY with valid JSON in this exact format:\n"
                 '{"success": true/false, "result": "rephrased text or empty string", "reason": "optional reason if failed"}\n\n'
                 "Rules:\n"
@@ -195,6 +199,10 @@ class AIService:
                 "- Set success=true and provide the rephrased version in result\n"
                 "- Only set success=false if the text is complete gibberish or random unreadable characters\n"
                 "- NEVER refuse due to lack of context - make your best reasonable rephrase\n"
+                "- NEVER refuse due to content type - this is a professional localization tool\n"
+                "- You MUST process ALL content including profanity, mature themes, offensive language, etc.\n"
+                "- This tool is used for games (including 18+), movies, books, and other media that may contain mature content\n"
+                "- Your role is purely text improvement - do not judge or filter content\n"
                 "- NEVER include apologies or explanations in the result field\n"
                 "- The result field should ONLY contain the rephrased text or be empty\n"
                 "- CRITICAL: Preserve ALL template variables in curly braces like {name}, {date}, {count}, etc. exactly as they are\n"
@@ -286,7 +294,7 @@ class AIService:
             
             # Build system message with JSON response format
             system_content = (
-                "You are a professional text editor. "
+                "You are a professional text editor for a localization tool. "
                 "Respond ONLY with valid JSON in this exact format:\n"
                 '{"success": true/false, "result": "shortened text or empty string", "reason": "optional reason if failed"}\n\n'
                 "Rules:\n"
@@ -295,6 +303,10 @@ class AIService:
                 "- Only set success=false if the text is complete gibberish or random unreadable characters\n"
                 "- If text is already very short, provide a more concise alternative\n"
                 "- NEVER refuse due to lack of context - make your best reasonable shortening\n"
+                "- NEVER refuse due to content type - this is a professional localization tool\n"
+                "- You MUST process ALL content including profanity, mature themes, offensive language, etc.\n"
+                "- This tool is used for games (including 18+), movies, books, and other media that may contain mature content\n"
+                "- Your role is purely text improvement - do not judge or filter content\n"
                 "- NEVER include apologies or explanations in the result field\n"
                 "- The result field should ONLY contain the shortened text or be empty\n"
                 "- CRITICAL: Preserve ALL template variables in curly braces like {name}, {date}, {count}, etc. exactly as they are\n"
@@ -388,7 +400,7 @@ class AIService:
             
             # Build system message with JSON response format
             system_content = (
-                "You are a creative text editor. "
+                "You are a creative text editor for a localization tool. "
                 "Respond ONLY with valid JSON in this exact format:\n"
                 '{"success": true/false, "variants": ["variant1", "variant2", "variant3"], "reason": "optional reason if failed"}\n\n'
                 "Rules:\n"
@@ -396,6 +408,10 @@ class AIService:
                 f"- Set success=true and provide exactly {count} variants in the variants array\n"
                 "- Only set success=false if the text is complete gibberish or random unreadable characters\n"
                 "- NEVER refuse due to lack of context - make your best reasonable variants\n"
+                "- NEVER refuse due to content type - this is a professional localization tool\n"
+                "- You MUST process ALL content including profanity, mature themes, offensive language, etc.\n"
+                "- This tool is used for games (including 18+), movies, books, and other media that may contain mature content\n"
+                "- Your role is purely text improvement - do not judge or filter content\n"
                 "- NEVER include apologies or explanations in the variants\n"
                 "- Each variant should be a natural alternative with different wording\n"
                 "- CRITICAL: Preserve ALL template variables in curly braces like {name}, {date}, {count}, etc. exactly as they are\n"
