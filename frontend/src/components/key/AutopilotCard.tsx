@@ -5,9 +5,9 @@ import {
   ListRestart,
   ArrowDownWideNarrow,
   ListStart,
-  Wand,
   MessageSquareMore,
   type LucideIcon,
+  Languages,
 } from "lucide-react";
 import {
   Item,
@@ -44,7 +44,7 @@ interface AutopilotCardProps {
   /**
    * Custom description
    */
-  description?: string;
+  description?: string | React.ReactNode;
 
   /**
    * Actions to display (buttons)
@@ -117,7 +117,7 @@ export const AutopilotCard: FC<AutopilotCardProps> = ({
 export const AutopilotActions = {
   translate: (onClick?: () => void): AutopilotAction => ({
     label: "Translate",
-    icon: Wand,
+    icon: Languages,
     onClick,
     variant: "default",
   }),

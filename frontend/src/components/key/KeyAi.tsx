@@ -437,7 +437,17 @@ export const KeyAi: FC<KeyAiProps> = ({
     card = (
       <AutopilotCard
         isPending={isGenerating}
-        description="Translate with AI based on the default language."
+        description={
+          <>
+            Create a{" "}
+            <span className="text-indigo-500">{currentLanguage.name}</span>{" "}
+            translation using the default{" "}
+            <span className="text-indigo-500">
+              {defaultLanguage?.name || ""}
+            </span>{" "}
+            as the source.
+          </>
+        }
         actions={[
           AutopilotActions.translate(handleTranslate),
           AutopilotActions.addContext(handleAddContext),

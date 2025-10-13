@@ -53,9 +53,11 @@ export const KeysAsidePanel: FC<KeysAsidePanelProps> = ({
 
   if (!selectedKey && totalKeys > 0) {
     content = (
-      <p className="text-muted-foreground text-sm p-4">
-        Click on any translation key from the list to view and manage it.
-      </p>
+      <AutopilotCard
+        title="Tip"
+        isDisabled
+        description="Click on any translation key from the list to view and manage it."
+      />
     );
   }
 
@@ -63,6 +65,7 @@ export const KeysAsidePanel: FC<KeysAsidePanelProps> = ({
     content = (
       <AutopilotCard
         title="Tip"
+        isDisabled
         description="Looks like you haven’t added any translation keys yet. Create one or import existing translations to begin."
       />
     );
