@@ -1,4 +1,4 @@
-import { type FC, useState, useEffect } from "react";
+import { type FC, useState, useEffect, useCallback } from "react";
 import { useMutation } from "@apollo/client";
 import { AutopilotCard, AutopilotActions } from "./AutopilotCard";
 import {
@@ -24,14 +24,41 @@ import { useTranslationEditor } from "@/contexts";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 
-interface AISuggestion {
+type WidgetType = "suggestion" | "context" | "context-edit" | "variants";
+
+type SuggestionType = "translate" | "rephrase" | "shorten";
+
+interface BaseWidget {
   id: string;
+  type: WidgetType;
+  isRemoving?: boolean;
+}
+
+interface SuggestionWidget extends BaseWidget {
+  type: "suggestion";
+  suggestionType: SuggestionType;
   text: string;
-  type: "translate" | "rephrase" | "shorten";
-  timestamp: number;
   isError?: boolean;
   reason?: string;
 }
+
+interface ContextWidget extends BaseWidget {
+  type: "context";
+  text: string;
+}
+
+interface ContextEditWidget extends BaseWidget {
+  type: "context-edit";
+  value: string;
+}
+
+interface VariantsWidget extends BaseWidget {
+  type: "variants";
+  variants: string[];
+  selectedVariant: string;
+}
+
+type Widget = SuggestionWidget | ContextWidget | ContextEditWidget | VariantsWidget;
 
 interface KeyAiProps {
   currentKey: TranslationKey;
@@ -56,20 +83,10 @@ export const KeyAi: FC<KeyAiProps> = ({
   const { isSaving } = useSavingStore();
   const { editorRef } = useTranslationEditor();
 
-  // State for AI suggestions
-  const [suggestions, setSuggestions] = useState<AISuggestion[]>([]);
-  const [variants, setVariants] = useState<string[]>([]);
-  const [selectedVariant, setSelectedVariant] = useState<string>("");
+  // Unified state for all widgets
+  const [widgets, setWidgets] = useState<Widget[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
-  const [isRemovingContext, setIsRemovingContext] = useState(false);
-  const [isRemovingVariants, setIsRemovingVariants] = useState(false);
-
-  // Custom context (separate from key.description)
   const [customContext, setCustomContext] = useState<string>("");
-  const [isEditingContext, setIsEditingContext] = useState(false);
-  const [contextValue, setContextValue] = useState("");
-  const [isClosingContextForm, setIsClosingContextForm] = useState(false);
 
   // AI mutations
   const [translateMutation] = useMutation<AiTranslateData>(AI_TRANSLATE);
@@ -78,15 +95,42 @@ export const KeyAi: FC<KeyAiProps> = ({
   const [variantsMutation] =
     useMutation<AiSuggestVariantsData>(AI_SUGGEST_VARIANTS);
 
-  // Clear suggestions when language changes
+  // Widget management functions
+  const addWidget = useCallback((widget: Widget) => {
+    setWidgets((prev) => [...prev, widget]);
+  }, []);
+
+  const removeWidget = useCallback((id: string) => {
+    // Mark as removing for animation
+    setWidgets((prev) =>
+      prev.map((w) => {
+        if (w.id === id) {
+          return { ...w, isRemoving: true };
+        }
+        return w;
+      })
+    );
+
+    // Remove from state after animation completes
+    setTimeout(() => {
+      setWidgets((prev) => prev.filter((w) => w.id !== id));
+    }, 300); // Match animation duration
+  }, []);
+
+  const updateWidget = useCallback((id: string, updates: Partial<Widget>) => {
+    setWidgets((prev) =>
+      prev.map((w) => {
+        if (w.id === id) {
+          return { ...w, ...updates } as Widget;
+        }
+        return w;
+      })
+    );
+  }, []);
+
+  // Clear widgets when language changes
   useEffect(() => {
-    setSuggestions([]);
-    setVariants([]);
-    setSelectedVariant("");
-    setRemovingIds(new Set());
-    setIsRemovingContext(false);
-    setIsRemovingVariants(false);
-    setIsClosingContextForm(false);
+    setWidgets([]);
   }, [currentLanguage?.code, currentLanguageValue]);
 
   // Auto-populate context from key description when key changes
@@ -97,13 +141,6 @@ export const KeyAi: FC<KeyAiProps> = ({
       setCustomContext("");
     }
   }, [currentKey.id]);
-
-  // Auto-select first variant when variants are generated
-  useEffect(() => {
-    if (variants.length > 0 && !selectedVariant) {
-      setSelectedVariant(variants[0]);
-    }
-  }, [variants]);
 
   const handleTranslate = async () => {
     if (!defaultLanguageValue || !currentLanguage || !defaultLanguage) {
@@ -125,25 +162,25 @@ export const KeyAi: FC<KeyAiProps> = ({
         });
 
         if (result.data?.aiTranslate.success && result.data.aiTranslate.text) {
-          const newSuggestion: AISuggestion = {
+          const newWidget: SuggestionWidget = {
             id: `translate-${Date.now()}`,
+            type: "suggestion",
+            suggestionType: "translate",
             text: result.data.aiTranslate.text,
-            type: "translate",
-            timestamp: Date.now(),
           };
-          setSuggestions((prev) => [...prev, newSuggestion]);
+          addWidget(newWidget);
           toast("Translation generated");
         } else if (result.data?.aiTranslate.reason) {
           // AI couldn't process - show as info card
-          const errorSuggestion: AISuggestion = {
+          const errorWidget: SuggestionWidget = {
             id: `translate-error-${Date.now()}`,
+            type: "suggestion",
+            suggestionType: "translate",
             text: result.data.aiTranslate.reason,
-            type: "translate",
-            timestamp: Date.now(),
             isError: true,
             reason: result.data.aiTranslate.reason,
           };
-          setSuggestions((prev) => [...prev, errorSuggestion]);
+          addWidget(errorWidget);
         } else {
           toast(result.data?.aiTranslate.error || "Translation failed");
         }
@@ -162,6 +199,7 @@ export const KeyAi: FC<KeyAiProps> = ({
 
     await withSaving(async () => {
       try {
+        setIsGenerating(true);
         const result = await rephraseMutation({
           variables: {
             input: {
@@ -173,30 +211,32 @@ export const KeyAi: FC<KeyAiProps> = ({
         });
 
         if (result.data?.aiRephrase.success && result.data.aiRephrase.text) {
-          const newSuggestion: AISuggestion = {
+          const newWidget: SuggestionWidget = {
             id: `rephrase-${Date.now()}`,
+            type: "suggestion",
+            suggestionType: "rephrase",
             text: result.data.aiRephrase.text,
-            type: "rephrase",
-            timestamp: Date.now(),
           };
-          setSuggestions((prev) => [...prev, newSuggestion]);
+          addWidget(newWidget);
           toast("Rephrase generated");
         } else if (result.data?.aiRephrase.reason) {
           // AI couldn't process - show as info card
-          const errorSuggestion: AISuggestion = {
+          const errorWidget: SuggestionWidget = {
             id: `rephrase-error-${Date.now()}`,
+            type: "suggestion",
+            suggestionType: "rephrase",
             text: result.data.aiRephrase.reason,
-            type: "rephrase",
-            timestamp: Date.now(),
             isError: true,
             reason: result.data.aiRephrase.reason,
           };
-          setSuggestions((prev) => [...prev, errorSuggestion]);
+          addWidget(errorWidget);
         } else {
           toast(result.data?.aiRephrase.error || "Rephrase failed");
         }
       } catch (error) {
         toast("Rephrase failed. Please try again.");
+      } finally {
+        setIsGenerating(false);
       }
     }, "Rephrasing with AI...");
   };
@@ -208,6 +248,7 @@ export const KeyAi: FC<KeyAiProps> = ({
 
     await withSaving(async () => {
       try {
+        setIsGenerating(true);
         const result = await shortenMutation({
           variables: {
             input: {
@@ -219,30 +260,32 @@ export const KeyAi: FC<KeyAiProps> = ({
         });
 
         if (result.data?.aiShorten.success && result.data.aiShorten.text) {
-          const newSuggestion: AISuggestion = {
+          const newWidget: SuggestionWidget = {
             id: `shorten-${Date.now()}`,
+            type: "suggestion",
+            suggestionType: "shorten",
             text: result.data.aiShorten.text,
-            type: "shorten",
-            timestamp: Date.now(),
           };
-          setSuggestions((prev) => [...prev, newSuggestion]);
+          addWidget(newWidget);
           toast("Shortened version generated");
         } else if (result.data?.aiShorten.reason) {
           // AI couldn't process - show as info card
-          const errorSuggestion: AISuggestion = {
+          const errorWidget: SuggestionWidget = {
             id: `shorten-error-${Date.now()}`,
+            type: "suggestion",
+            suggestionType: "shorten",
             text: result.data.aiShorten.reason,
-            type: "shorten",
-            timestamp: Date.now(),
             isError: true,
             reason: result.data.aiShorten.reason,
           };
-          setSuggestions((prev) => [...prev, errorSuggestion]);
+          addWidget(errorWidget);
         } else {
           toast(result.data?.aiShorten.error || "Shorten failed");
         }
       } catch (error) {
         toast("Shorten failed. Please try again.");
+      } finally {
+        setIsGenerating(false);
       }
     }, "Shortening with AI...");
   };
@@ -254,6 +297,7 @@ export const KeyAi: FC<KeyAiProps> = ({
 
     await withSaving(async () => {
       try {
+        setIsGenerating(true);
         const result = await variantsMutation({
           variables: {
             input: {
@@ -269,19 +313,26 @@ export const KeyAi: FC<KeyAiProps> = ({
           result.data?.aiSuggestVariants.success &&
           result.data.aiSuggestVariants.variants.length > 0
         ) {
-          setVariants(result.data.aiSuggestVariants.variants);
+          const variantsArray = result.data.aiSuggestVariants.variants;
+          const newWidget: VariantsWidget = {
+            id: `variants-${Date.now()}`,
+            type: "variants",
+            variants: variantsArray,
+            selectedVariant: variantsArray[0], // Auto-select first variant
+          };
+          addWidget(newWidget);
           toast("Variants generated");
         } else if (result.data?.aiSuggestVariants.reason) {
           // AI couldn't process - show as info card
-          const errorSuggestion: AISuggestion = {
+          const errorWidget: SuggestionWidget = {
             id: `variants-error-${Date.now()}`,
+            type: "suggestion",
+            suggestionType: "rephrase",
             text: result.data.aiSuggestVariants.reason,
-            type: "rephrase",
-            timestamp: Date.now(),
             isError: true,
             reason: result.data.aiSuggestVariants.reason,
           };
-          setSuggestions((prev) => [...prev, errorSuggestion]);
+          addWidget(errorWidget);
         } else {
           toast(
             result.data?.aiSuggestVariants.error || "Variant generation failed"
@@ -289,50 +340,49 @@ export const KeyAi: FC<KeyAiProps> = ({
         }
       } catch (error) {
         toast("Variant generation failed. Please try again.");
+      } finally {
+        setIsGenerating(false);
       }
     }, "Generating variants...");
   };
 
   const handleAddContext = () => {
-    setContextValue(customContext);
-    setIsEditingContext(true);
+    const editWidget: ContextEditWidget = {
+      id: "context-edit",
+      type: "context-edit",
+      value: customContext,
+    };
+    addWidget(editWidget);
   };
 
-  const handleSaveContext = () => {
-    // Mark as closing for animation
-    setIsClosingContextForm(true);
-
-    // Save and close after animation
-    setTimeout(() => {
-      setCustomContext(contextValue.trim());
-      setIsEditingContext(false);
-      setIsClosingContextForm(false);
-      toast("Context saved");
-    }, 300); // Match animation duration
+  const handleSaveContext = (widgetId: string, value: string) => {
+    setCustomContext(value.trim());
+    removeWidget(widgetId);
+    
+    // If there's saved context, add context view widget
+    if (value.trim()) {
+      const contextWidget: ContextWidget = {
+        id: "context-view",
+        type: "context",
+        text: value.trim(),
+      };
+      // Add after animation completes
+      setTimeout(() => {
+        addWidget(contextWidget);
+      }, 300);
+    }
+    
+    toast("Context saved");
   };
 
-  const handleCancelContext = () => {
-    // Mark as closing for animation
-    setIsClosingContextForm(true);
-
-    // Close after animation
-    setTimeout(() => {
-      setContextValue(customContext);
-      setIsEditingContext(false);
-      setIsClosingContextForm(false);
-    }, 300); // Match animation duration
+  const handleCancelContext = (widgetId: string) => {
+    removeWidget(widgetId);
   };
 
-  const handleDiscardContext = () => {
-    // Mark as removing for animation
-    setIsRemovingContext(true);
-
-    // Remove from state after animation completes
-    setTimeout(() => {
-      setCustomContext("");
-      setIsRemovingContext(false);
-      toast("Context removed");
-    }, 300); // Match animation duration
+  const handleDiscardContext = (widgetId: string) => {
+    setCustomContext("");
+    removeWidget(widgetId);
+    toast("Context removed");
   };
 
   const handleUseSuggestion = (text: string) => {
@@ -347,63 +397,26 @@ export const KeyAi: FC<KeyAiProps> = ({
     toast("Suggestion inserted into editor");
   };
 
-  const handleDiscardSuggestion = (id: string) => {
-    // Mark as removing for animation
-    setRemovingIds((prev) => new Set(prev).add(id));
-
-    // Remove from state after animation completes
-    setTimeout(() => {
-      setSuggestions((prev) => prev.filter((s) => s.id !== id));
-      setRemovingIds((prev) => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
-    }, 300); // Match animation duration
-  };
-
-  const handleClearAllSuggestions = () => {
-    // Mark all as removing
-    const allIds = new Set(suggestions.map((s) => s.id));
-    setRemovingIds(allIds);
-
-    // Clear after animation
-    setTimeout(() => {
-      setSuggestions([]);
-      setRemovingIds(new Set());
-    }, 300);
-  };
-
-  const handleDiscardVariants = () => {
-    // Mark as removing for animation
-    setIsRemovingVariants(true);
-
-    // Remove from state after animation completes
-    setTimeout(() => {
-      setVariants([]);
-      setSelectedVariant("");
-      setIsRemovingVariants(false);
-    }, 300); // Match animation duration
-  };
-
-  const handleUseSelectedVariant = () => {
-    if (!selectedVariant) {
-      return;
+  const handleEditContext = (widgetId: string) => {
+    // Find and replace context view widget with context edit widget
+    const contextWidget = widgets.find((w) => w.id === widgetId) as ContextWidget;
+    if (contextWidget) {
+      removeWidget(widgetId);
+      
+      // Add edit widget after animation
+      setTimeout(() => {
+        const editWidget: ContextEditWidget = {
+          id: "context-edit",
+          type: "context-edit",
+          value: contextWidget.text,
+        };
+        addWidget(editWidget);
+      }, 300);
     }
-
-    if (!editorRef) {
-      toast("Please open the translation editor first");
-      return;
-    }
-
-    // Insert text into the editor
-    editorRef.insertText(selectedVariant);
-
-    toast("Variant inserted into editor");
   };
 
   // Get type-specific icon and label
-  const getSuggestionMeta = (type: AISuggestion["type"]) => {
+  const getSuggestionMeta = (type: SuggestionType) => {
     switch (type) {
       case "translate":
         return {
@@ -422,6 +435,24 @@ export const KeyAi: FC<KeyAiProps> = ({
         };
     }
   };
+
+  // Sync context widget with customContext state on mount and key change
+  useEffect(() => {
+    if (customContext) {
+      const hasContextWidget = widgets.some((w) => w.type === "context");
+      const hasContextEditWidget = widgets.some((w) => w.type === "context-edit");
+
+      if (!hasContextWidget && !hasContextEditWidget) {
+        // Add context view widget if context exists but no widget is shown
+        const contextWidget: ContextWidget = {
+          id: "context-view",
+          type: "context",
+          text: customContext,
+        };
+        setWidgets((prev) => [...prev, contextWidget]);
+      }
+    }
+  }, [currentKey.id]);
 
   let card: React.ReactNode | null = null;
 
@@ -490,177 +521,203 @@ export const KeyAi: FC<KeyAiProps> = ({
     );
   }
 
+  // Render widget function
+  const renderWidget = (widget: Widget) => {
+    switch (widget.type) {
+      case "suggestion": {
+        const meta = getSuggestionMeta(widget.suggestionType);
+        return (
+          <AutopilotSuggestion
+            key={widget.id}
+            icon={meta.icon}
+            title={widget.isError ? "Unable to process" : meta.label}
+            description={widget.text}
+            className={
+              widget.isRemoving
+                ? "animate-out fade-out slide-out-to-right-2 duration-300"
+                : undefined
+            }
+            variant={widget.isError ? "warning" : "default"}
+            actions={
+              widget.isError
+                ? [
+                    {
+                      label: "Dismiss",
+                      onClick: () => {
+                        removeWidget(widget.id);
+                      },
+                      variant: "outline",
+                    },
+                  ]
+                : [
+                    {
+                      label: "Insert",
+                      onClick: () => {
+                        handleUseSuggestion(widget.text);
+                      },
+                      variant: "outline",
+                    },
+                    {
+                      label: "Discard",
+                      onClick: () => {
+                        removeWidget(widget.id);
+                      },
+                      variant: "ghost",
+                    },
+                  ]
+            }
+          />
+        );
+      }
+
+      case "context": {
+        return (
+          <AutopilotSuggestion
+            key={widget.id}
+            icon={AutopilotActions.addContext().icon}
+            title="Context"
+            description={widget.text}
+            className={
+              widget.isRemoving
+                ? "animate-out fade-out slide-out-to-right-2 duration-300"
+                : undefined
+            }
+            actions={[
+              {
+                label: "Edit",
+                onClick: () => {
+                  handleEditContext(widget.id);
+                },
+                variant: "outline",
+              },
+              {
+                label: "Remove",
+                onClick: () => {
+                  handleDiscardContext(widget.id);
+                },
+                variant: "ghost",
+              },
+            ]}
+            variant="none"
+          />
+        );
+      }
+
+      case "context-edit": {
+        return (
+          <AutopilotSuggestion
+            key={widget.id}
+            icon={AutopilotActions.addContext().icon}
+            title="Context for AI"
+            description={
+              <Textarea
+                placeholder="e.g., Used in the checkout flow to confirm payment. Should be formal and reassuring."
+                value={widget.value}
+                onChange={(e) => {
+                  updateWidget(widget.id, { value: e.target.value } as Partial<Widget>);
+                }}
+                rows={4}
+                className="resize-none mt-2"
+                disabled={isSaving}
+                autoFocus
+              />
+            }
+            className={
+              widget.isRemoving
+                ? "animate-out fade-out slide-out-to-right-2 duration-300"
+                : undefined
+            }
+            actions={[
+              {
+                label: "Save",
+                onClick: () => {
+                  handleSaveContext(widget.id, widget.value);
+                },
+                variant: "outline",
+              },
+              {
+                label: "Cancel",
+                onClick: () => {
+                  handleCancelContext(widget.id);
+                },
+                variant: "ghost",
+              },
+            ]}
+            variant="none"
+          />
+        );
+      }
+
+      case "variants": {
+        return (
+          <AutopilotSuggestion
+            key={widget.id}
+            icon={AutopilotActions.suggestVariants().icon}
+            title="Variants"
+            description={
+              <div className="space-y-3 mt-2">
+                <RadioGroup
+                  value={widget.selectedVariant}
+                  onValueChange={(value) => {
+                    updateWidget(widget.id, { selectedVariant: value } as Partial<Widget>);
+                  }}
+                >
+                  {widget.variants.map((variant, index) => (
+                    <div key={index} className="flex gap-2">
+                      <RadioGroupItem
+                        className="mt-0.5"
+                        value={variant}
+                        id={`${widget.id}-variant-${index}`}
+                      />
+                      <label
+                        className="text-sm cursor-pointer flex-1"
+                        htmlFor={`${widget.id}-variant-${index}`}
+                      >
+                        {variant}
+                      </label>
+                    </div>
+                  ))}
+                </RadioGroup>
+              </div>
+            }
+            className={
+              widget.isRemoving
+                ? "animate-out fade-out slide-out-to-right-2 duration-300"
+                : undefined
+            }
+            actions={[
+              {
+                label: "Insert",
+                onClick: () => {
+                  if (widget.selectedVariant && editorRef) {
+                    editorRef.insertText(widget.selectedVariant);
+                    toast("Variant inserted into editor");
+                  } else if (!editorRef) {
+                    toast("Please open the translation editor first");
+                  }
+                },
+                variant: "outline",
+              },
+              {
+                label: "Discard all",
+                onClick: () => {
+                  removeWidget(widget.id);
+                },
+                variant: "ghost",
+              },
+            ]}
+          />
+        );
+      }
+    }
+  };
+
   return (
     <AutopilotSuggestionsList>
       {card}
 
-      {/* Context card (single unified context) - only show when language is selected and not in disabled state */}
-      {currentLanguage &&
-      (currentLanguageValue || defaultLanguageValue) &&
-      isEditingContext ? (
-        // Edit mode
-        <AutopilotSuggestion
-          icon={AutopilotActions.addContext().icon}
-          title="Context for AI"
-          description={
-            <Textarea
-              placeholder="e.g., Used in the checkout flow to confirm payment. Should be formal and reassuring."
-              value={contextValue}
-              onChange={(e) => {
-                setContextValue(e.target.value);
-              }}
-              rows={4}
-              className="resize-none mt-2"
-              disabled={isSaving}
-              autoFocus
-            />
-          }
-          className={
-            isClosingContextForm
-              ? "animate-out fade-out slide-out-to-right-2 duration-300"
-              : undefined
-          }
-          actions={[
-            {
-              label: "Save",
-              onClick: handleSaveContext,
-              variant: "outline",
-            },
-            {
-              label: "Cancel",
-              onClick: handleCancelContext,
-              variant: "ghost",
-            },
-          ]}
-          variant="none"
-        />
-      ) : currentLanguage &&
-        (currentLanguageValue || defaultLanguageValue) &&
-        customContext ? (
-        // View mode (saved context)
-        <AutopilotSuggestion
-          icon={AutopilotActions.addContext().icon}
-          title="Context"
-          description={customContext}
-          className={
-            isRemovingContext
-              ? "animate-out fade-out slide-out-to-right-2 duration-300"
-              : undefined
-          }
-          actions={[
-            {
-              label: "Edit",
-              onClick: handleAddContext,
-              variant: "outline",
-            },
-            {
-              label: "Remove",
-              onClick: handleDiscardContext,
-              variant: "ghost",
-            },
-          ]}
-          variant="none"
-        />
-      ) : null}
-
-      {/* Show all accumulated suggestions (only when language is selected) */}
-      {currentLanguage &&
-        suggestions.map((suggestion) => {
-          const meta = getSuggestionMeta(suggestion.type);
-          const isRemoving = removingIds.has(suggestion.id);
-
-          return (
-            <AutopilotSuggestion
-              key={suggestion.id}
-              icon={meta.icon}
-              title={suggestion.isError ? "Unable to process" : meta.label}
-              description={suggestion.text}
-              className={
-                isRemoving
-                  ? "animate-out fade-out slide-out-to-right-2 duration-300"
-                  : undefined
-              }
-              variant={suggestion.isError ? "warning" : "default"}
-              actions={
-                suggestion.isError
-                  ? [
-                      {
-                        label: "Dismiss",
-                        onClick: () => {
-                          handleDiscardSuggestion(suggestion.id);
-                        },
-                        variant: "outline",
-                      },
-                    ]
-                  : [
-                      {
-                        label: "Insert",
-                        onClick: () => {
-                          handleUseSuggestion(suggestion.text);
-                        },
-                        variant: "outline",
-                      },
-                      {
-                        label: "Discard",
-                        onClick: () => {
-                          handleDiscardSuggestion(suggestion.id);
-                        },
-                        variant: "ghost",
-                      },
-                    ]
-              }
-            />
-          );
-        })}
-
-      {/* Show variants if available (only when language is selected) */}
-      {currentLanguage && variants.length > 0 ? (
-        <AutopilotSuggestion
-          icon={AutopilotActions.suggestVariants().icon}
-          title="Variants"
-          description={
-            <div className="space-y-3 mt-2">
-              <RadioGroup
-                value={selectedVariant}
-                onValueChange={setSelectedVariant}
-              >
-                {variants.map((variant, index) => (
-                  <div key={index} className="flex gap-2">
-                    <RadioGroupItem
-                      className="mt-0.5"
-                      value={variant}
-                      id={`variant-${index}`}
-                    />
-                    <label
-                      className="text-sm cursor-pointer flex-1"
-                      htmlFor={`variant-${index}`}
-                    >
-                      {variant}
-                    </label>
-                  </div>
-                ))}
-              </RadioGroup>
-            </div>
-          }
-          className={
-            isRemovingVariants
-              ? "animate-out fade-out slide-out-to-right-2 duration-300"
-              : undefined
-          }
-          actions={[
-            {
-              label: "Insert",
-              onClick: handleUseSelectedVariant,
-              variant: "outline",
-            },
-            {
-              label: "Discard all",
-              onClick: handleDiscardVariants,
-              variant: "ghost",
-            },
-          ]}
-        />
-      ) : null}
+      {/* Render all widgets */}
+      {currentLanguage && widgets.map(renderWidget)}
 
       {/* Loading skeleton (only when language is selected) */}
       {currentLanguage && isGenerating ? <AutopilotSuggestionSkeleton /> : null}
