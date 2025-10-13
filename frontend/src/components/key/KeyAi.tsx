@@ -491,7 +491,7 @@ export const KeyAi: FC<KeyAiProps> = ({
               variant: "outline",
             },
             {
-              label: "Discard",
+              label: "Remove",
               onClick: handleDiscardContext,
               variant: "ghost",
             },
