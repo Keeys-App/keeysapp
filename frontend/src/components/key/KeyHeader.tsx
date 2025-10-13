@@ -102,7 +102,7 @@ const Button: FC<ButtonProps> = ({ tooltip, Icon, onClick, disabled }: ButtonPro
   return (
     <TooltipProvider>
       <Tooltip>
-        <TooltipTrigger>
+        <TooltipTrigger asChild>
           <InputGroupButton
             onClick={onClick}
             variant="outline"
