@@ -32,8 +32,10 @@ export const KeysAsidePanel: FC<KeysAsidePanelProps> = ({
   defaultLanguageValue,
 }) => {
   let content: React.ReactNode | null = null;
+  let title = 'Suggestions';
 
   if (selectedKey && totalKeys > 0) {
+    title = "Key Management";
     content = (
       <KeyManagement
         selectedKey={selectedKey}
@@ -69,7 +71,7 @@ export const KeysAsidePanel: FC<KeysAsidePanelProps> = ({
     <div className="h-full flex flex-col">
       <div className="px-4 py-3 border-b h-12 box-border">
         <h2 className="text-base font-semibold">
-          {selectedKey?.key ? "Key Management" : "Activity"}
+          {title}
         </h2>
       </div>
       <div className="flex-1 overflow-auto">{content}</div>
