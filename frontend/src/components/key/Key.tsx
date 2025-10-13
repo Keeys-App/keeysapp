@@ -59,6 +59,7 @@ export const Key = memo(
             keyName={keyData.key}
             description={keyData.description}
             isSelected={isSelected}
+            tags={keyData.tags}
           />
         </div>
         <div className="flex flex-col">

@@ -1,15 +1,18 @@
 import { cn } from "@/lib/utils";
+import { Kbd } from "../ui/kbd";
+import { Badge } from "../ui";
 
 interface KeyHeaderProps {
   keyName: string;
   description?: string | null;
   isSelected: boolean;
+  tags?: string[] | null;
 }
 
 /**
  * Component for displaying a translation key name and description
  */
-export function KeyHeader({ keyName, description, isSelected }: KeyHeaderProps) {
+export function KeyHeader({ keyName, description, isSelected, tags }: KeyHeaderProps) {
   return (
     <>
       <div className="font-mono text-sm break-words sticky bg-background top-0 z-10 py-2 px-4">
@@ -27,6 +30,13 @@ export function KeyHeader({ keyName, description, isSelected }: KeyHeaderProps) 
         <p className="text-sm break-words text-muted-foreground px-4 pb-2">
           {description}
         </p>
+      ) : null}
+      {tags ? (
+        <div className="text-sm break-words text-muted-foreground px-4 pb-2 flex gap-1 flex-wrap">
+          {tags.map((tag) => (
+            <Badge variant="secondary" key={tag}>{tag}</Badge>
+          ))}
+        </div>
       ) : null}
     </>
   );
