@@ -62,11 +62,14 @@ export const KeyAi: FC<KeyAiProps> = ({
   const [selectedVariant, setSelectedVariant] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
+  const [isRemovingContext, setIsRemovingContext] = useState(false);
+  const [isRemovingVariants, setIsRemovingVariants] = useState(false);
 
   // Custom context (separate from key.description)
   const [customContext, setCustomContext] = useState<string>("");
   const [isEditingContext, setIsEditingContext] = useState(false);
   const [contextValue, setContextValue] = useState("");
+  const [isClosingContextForm, setIsClosingContextForm] = useState(false);
 
   // AI mutations
   const [translateMutation] = useMutation<AiTranslateData>(AI_TRANSLATE);
@@ -81,6 +84,9 @@ export const KeyAi: FC<KeyAiProps> = ({
     setVariants([]);
     setSelectedVariant("");
     setRemovingIds(new Set());
+    setIsRemovingContext(false);
+    setIsRemovingVariants(false);
+    setIsClosingContextForm(false);
   }, [currentLanguage?.code, currentLanguageValue]);
 
   // Auto-populate context from key description when key changes
@@ -293,19 +299,40 @@ export const KeyAi: FC<KeyAiProps> = ({
   };
 
   const handleSaveContext = () => {
-    setCustomContext(contextValue.trim());
-    setIsEditingContext(false);
-    toast("Context saved");
+    // Mark as closing for animation
+    setIsClosingContextForm(true);
+
+    // Save and close after animation
+    setTimeout(() => {
+      setCustomContext(contextValue.trim());
+      setIsEditingContext(false);
+      setIsClosingContextForm(false);
+      toast("Context saved");
+    }, 300); // Match animation duration
   };
 
   const handleCancelContext = () => {
-    setContextValue(customContext);
-    setIsEditingContext(false);
+    // Mark as closing for animation
+    setIsClosingContextForm(true);
+
+    // Close after animation
+    setTimeout(() => {
+      setContextValue(customContext);
+      setIsEditingContext(false);
+      setIsClosingContextForm(false);
+    }, 300); // Match animation duration
   };
 
   const handleDiscardContext = () => {
-    setCustomContext("");
-    toast("Context removed");
+    // Mark as removing for animation
+    setIsRemovingContext(true);
+
+    // Remove from state after animation completes
+    setTimeout(() => {
+      setCustomContext("");
+      setIsRemovingContext(false);
+      toast("Context removed");
+    }, 300); // Match animation duration
   };
 
   const handleUseSuggestion = (text: string) => {
@@ -348,8 +375,15 @@ export const KeyAi: FC<KeyAiProps> = ({
   };
 
   const handleDiscardVariants = () => {
-    setVariants([]);
-    setSelectedVariant("");
+    // Mark as removing for animation
+    setIsRemovingVariants(true);
+
+    // Remove from state after animation completes
+    setTimeout(() => {
+      setVariants([]);
+      setSelectedVariant("");
+      setIsRemovingVariants(false);
+    }, 300); // Match animation duration
   };
 
   const handleUseSelectedVariant = () => {
@@ -481,6 +515,11 @@ export const KeyAi: FC<KeyAiProps> = ({
               autoFocus
             />
           }
+          className={
+            isClosingContextForm
+              ? "animate-out fade-out slide-out-to-right-2 duration-300"
+              : undefined
+          }
           actions={[
             {
               label: "Save",
@@ -503,6 +542,11 @@ export const KeyAi: FC<KeyAiProps> = ({
           icon={AutopilotActions.addContext().icon}
           title="Context"
           description={customContext}
+          className={
+            isRemovingContext
+              ? "animate-out fade-out slide-out-to-right-2 duration-300"
+              : undefined
+          }
           actions={[
             {
               label: "Edit",
@@ -597,6 +641,11 @@ export const KeyAi: FC<KeyAiProps> = ({
                 ))}
               </RadioGroup>
             </div>
+          }
+          className={
+            isRemovingVariants
+              ? "animate-out fade-out slide-out-to-right-2 duration-300"
+              : undefined
           }
           actions={[
             {
