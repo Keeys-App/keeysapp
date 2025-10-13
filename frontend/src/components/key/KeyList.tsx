@@ -17,6 +17,7 @@ import { useKeysSearchStore } from "@/stores";
 interface KeyListProps {
   projectId: string;
   projectLanguages: (Language | LanguageWithLocale)[];
+  projectKeysCount: number;
   onCreateKey: () => void;
   selectedKey?: TranslationKey | null;
   onSelectKey?: (key: TranslationKey) => void;
@@ -35,6 +36,7 @@ const PAGE_SIZE = 20;
 export function KeyList({
   projectId,
   projectLanguages,
+  projectKeysCount,
   onCreateKey,
   selectedKey,
   onSelectKey,
@@ -259,10 +261,12 @@ export function KeyList({
 
   // Show skeletons only on initial load (not during search)
   const isInitialLoading = loading && !search && keys.length === 0;
+  // Show controls if project has any keys (regardless of search results)
+  const hasKeys = projectKeysCount > 0;
 
   return (
     <div className="flex flex-col h-full">
-      <KeyControls projectId={projectId} onCreateKey={onCreateKey} totalCount={displayTotalCount} isSearching={loading} />
+      <KeyControls projectId={projectId} onCreateKey={onCreateKey} totalCount={displayTotalCount} isSearching={loading} hasKeys={hasKeys} />
       {isInitialLoading ? (
         <div className="flex-1 overflow-auto">
           <KeySkeleton languagesCount={projectLanguages.length || 5} />

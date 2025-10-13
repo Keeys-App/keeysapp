@@ -150,6 +150,7 @@ export const ProjectKeysPage: FC = () => {
         <KeyList
           projectId={project.id}
           projectLanguages={projectLanguages}
+          projectKeysCount={project.keysCount}
           onCreateKey={handleCreateKey}
           selectedKey={selectedKey}
           onSelectKey={handleSelectKey}
