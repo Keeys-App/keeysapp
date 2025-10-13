@@ -34,7 +34,7 @@ export const KeyManagement: FC<KeyManagementProps> = ({
 }) => {
   return (
     <Tabs defaultValue="ai" className="h-full flex flex-col">
-      <TabsList className="mb-2 gap-0">
+      <TabsList className="mb-2 gap-0 w-full">
         <TabsTrigger value="ai">Autopilot</TabsTrigger>
         <TabsTrigger value="history">History</TabsTrigger>
         <TabsTrigger value="meta">Metadata</TabsTrigger>

@@ -199,7 +199,7 @@ export const KeyLogsTimeline: FC<KeyLogsTimelineProps> = ({
   }
 
   return (
-    <Item variant="outline" className="relative pb-3">
+    <Item variant="outline" className="relative pb-2 block">
       {/* Timeline items */}
       <div className="space-y-4">
         {logs.map((log, index) => {
@@ -223,7 +223,7 @@ export const KeyLogsTimeline: FC<KeyLogsTimelineProps> = ({
               </div>
 
               {/* Content */}
-              <div className="flex-1 pb-2">
+              <div className="flex-1 w-full pb-2">
                 <div className="flex items-center justify-between gap-2 mb-1 pt-0.5">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-sm">{label}</span>
