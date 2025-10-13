@@ -56,7 +56,12 @@ export const Key = memo(
         onClick={handleCancelEditingAndSelect}
       >
         <div className="border-r -mr-px relative flex flex-col">
-          <KeyHeader keyName={keyData.key} isSelected={isSelected} />
+          <KeyHeader 
+            keyName={keyData.key} 
+            isSelected={isSelected}
+            keyData={keyData}
+            projectId={projectId}
+          />
           <KeyFooter description={keyData.description} tags={keyData.tags} />
         </div>
         <div className="flex flex-col">

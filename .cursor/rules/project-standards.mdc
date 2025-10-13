@@ -219,3 +219,97 @@ className={cn(
   variant === "primary" && "primary-class"
 )}
 ```
+
+## Code Reusability and DRY Principle
+
+### Before Creating New Components or Logic
+
+**ALWAYS check if similar functionality already exists in the project:**
+
+1. **Search for existing components** - use grep/codebase_search to find similar dialogs, forms, or UI components
+2. **Search for existing hooks** - check `/frontend/src/hooks/` for business logic that can be reused
+3. **Search for existing utilities** - check `/frontend/src/lib/` for helper functions
+
+### Component and Hook Design
+
+**When implementing new features:**
+
+1. **Separate concerns:**
+   - UI components should only handle presentation
+   - Business logic should live in custom hooks
+   - Data fetching and mutations should be in hooks, not components
+
+2. **Create reusable abstractions:**
+   - If logic is used in 2+ places, extract it to a hook
+   - If a dialog/modal is used in 2+ places, create a dedicated component
+   - Use composition over duplication
+
+3. **Hook design pattern:**
+   ```typescript
+   // ✅ GOOD - Hook handles logic, returns state and handlers
+   function useEntityActions({ entity, onSuccess }) {
+     const { isSaving } = useSavingStore();
+     const [mutate, { data, error, loading }] = useMutation(MUTATION);
+     
+     useEffect(() => {
+       if (data && onSuccess) onSuccess();
+     }, [data, onSuccess]);
+     
+     const handleAction = async () => {
+       await withSaving(async () => {
+         await mutate({ variables: { id: entity.id } });
+       });
+     };
+     
+     return { isLoading: loading, isSaving, handleAction };
+   }
+   
+   // ❌ BAD - Component contains all logic
+   function Component() {
+     const [mutate] = useMutation(MUTATION);
+     const withSaving = useSaving();
+     // ... all logic here
+   }
+   ```
+
+4. **Component reuse pattern:**
+   ```typescript
+   // ✅ GOOD - Reusable dialog component
+   <DeleteKeyDialog 
+     open={isOpen}
+     onOpenChange={setIsOpen}
+     keyName={key.name}
+     onConfirm={handleDelete}
+   />
+   
+   // ❌ BAD - Inline dialog logic in every component
+   <AlertDialog>
+     <AlertDialogContent>
+       {/* ... same content in multiple places ... */}
+     </AlertDialogContent>
+   </AlertDialog>
+   ```
+
+### Refactoring Existing Code
+
+**If you find duplicated code while implementing a feature:**
+1. Extract the common logic/component first
+2. Update all usages to use the new abstraction
+3. Then implement the new feature using the abstraction
+
+**Signs that refactoring is needed:**
+- Same mutation/query used in 2+ components with similar logic
+- Similar dialog/modal content in multiple places
+- Copy-pasted useEffect handlers for mutations
+- Repeated error handling patterns
+
+### DRY Checklist
+
+Before committing code, ask:
+- [ ] Does similar functionality exist elsewhere?
+- [ ] Can this logic be extracted to a hook?
+- [ ] Can this UI be extracted to a component?
+- [ ] Am I copying code from another file?
+- [ ] Will this pattern be used again?
+
+If you answer "yes" to any question, refactor before proceeding.

@@ -19,4 +19,5 @@ export { AutopilotCard, AutopilotActions } from './AutopilotCard';
 export { AutopilotSuggestion, AutopilotSuggestionsList } from './AutopilotSuggestion';
 export { AutopilotSuggestionSkeleton } from './AutopilotSuggestionSkeleton';
 export { KeysSearch } from './KeysSearch';
+export { DeleteKeyDialog } from './DeleteKeyDialog';
 
