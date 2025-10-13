@@ -34,7 +34,7 @@ interface AISuggestion {
   reason?: string;
 }
 
-interface KeySuggestionsProps {
+interface KeyAiProps {
   currentKey: TranslationKey;
   currentLanguage?: Language | null;
   currentLanguageValue?: string;
@@ -46,7 +46,7 @@ interface KeySuggestionsProps {
  * Component for displaying translation suggestions and context
  * Shows AI-powered suggestions for translation and improvement
  */
-export const KeySuggestions: FC<KeySuggestionsProps> = ({
+export const KeyAi: FC<KeyAiProps> = ({
   currentKey,
   currentLanguage,
   currentLanguageValue,
@@ -394,7 +394,7 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
 
   // If no language is being edited, show disabled state
   if (!currentLanguage) {
-    card = <AutopilotCard isDisabled />;
+    card = <AutopilotCard isDisabled description="Select a translation field to edit to see autopilot suggestions" />;
   } else if (currentLanguageValue) {
     // If translation exists, show enhancement actions
     const enhancementActions = [
@@ -424,7 +424,7 @@ export const KeySuggestions: FC<KeySuggestionsProps> = ({
     card = (
       <AutopilotCard
         isDisabled
-        description="Add a translation in the default language first to enable AI translation."
+        description="Add a translation in the default language first to enable suggestions."
       />
     );
   } else {

@@ -4,6 +4,8 @@ import { KeyManagement } from "./KeyManagement";
 import type { Language } from "@/types/project";
 
 interface KeysAsidePanelProps {
+  totalKeys: number;
+  keysLoading: boolean;
   selectedKey: TranslationKey | null;
   projectId: string;
   availableTags?: string[];
@@ -18,6 +20,8 @@ interface KeysAsidePanelProps {
  * Component for managing a selected translation key
  */
 export const KeysAsidePanel: FC<KeysAsidePanelProps> = ({
+  totalKeys,
+  keysLoading,
   selectedKey,
   projectId,
   availableTags = [],
@@ -27,6 +31,36 @@ export const KeysAsidePanel: FC<KeysAsidePanelProps> = ({
   defaultLanguage,
   defaultLanguageValue,
 }) => {
+  let content: React.ReactNode | null = null;
+
+  if (selectedKey && totalKeys > 0) {
+    content = (
+      <KeyManagement
+        selectedKey={selectedKey}
+        projectId={projectId}
+        availableTags={availableTags}
+        onKeyDeleted={onKeyDeleted}
+      />
+    );
+  }
+
+  if (!selectedKey && totalKeys > 0) {
+    content = (
+      <p className="text-muted-foreground text-sm p-4">
+        Click on any translation key from the list to view and manage it.
+      </p>
+    );
+  }
+
+  if (totalKeys === 0) {
+    content = (
+      <p className="text-muted-foreground text-sm p-4">
+        No translation keys found, create your first translation key to get
+        started or import your existing translations.
+      </p>
+    );
+  }
+
   return (
     <div className="h-full flex flex-col">
       <div className="px-4 py-3 border-b h-12 box-border">
@@ -34,24 +68,7 @@ export const KeysAsidePanel: FC<KeysAsidePanelProps> = ({
           {selectedKey?.key ? "Key Management" : "Activity"}
         </h2>
       </div>
-      <div className="flex-1 overflow-auto">
-        {!selectedKey ? (
-          <p className="text-muted-foreground text-sm p-4">
-            Click on any translation key from the list to view and manage it
-          </p>
-        ) : (
-          <KeyManagement
-            selectedKey={selectedKey}
-            projectId={projectId}
-            availableTags={availableTags}
-            onKeyDeleted={onKeyDeleted}
-            currentLanguage={currentLanguage}
-            currentLanguageValue={currentLanguageValue}
-            defaultLanguage={defaultLanguage}
-            defaultLanguageValue={defaultLanguageValue}
-          />
-        )}
-      </div>
+      <div className="flex-1 overflow-auto">{content}</div>
     </div>
   );
 };

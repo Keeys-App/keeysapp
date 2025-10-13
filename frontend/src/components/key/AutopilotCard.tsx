@@ -58,7 +58,7 @@ interface AutopilotCardProps {
  */
 export const AutopilotCard: FC<AutopilotCardProps> = ({
   isDisabled = false,
-  title = "Autopilot",
+  title = "Agent",
   description,
   actions = [],
   isPending,
@@ -66,9 +66,6 @@ export const AutopilotCard: FC<AutopilotCardProps> = ({
   // Colors based on disabled flag
   const iconColor = isDisabled ? "text-gray-500/70" : "text-indigo-500";
   const iconBg = isDisabled ? "bg-gray-500/10" : "bg-indigo-500/10";
-
-  // Default description when disabled
-  const defaultDescription = description || (isDisabled ? "Select a translation field to edit to see suggestions" : undefined);
 
   return (
     <Item variant="outline">
@@ -87,7 +84,7 @@ export const AutopilotCard: FC<AutopilotCardProps> = ({
       <ItemContent>
         <ItemTitle>{isPending ? 'Generating...' : title}</ItemTitle>
         <ItemDescription>
-          {defaultDescription}
+          {description}
         </ItemDescription>
         {actions.length > 0 ? (
           <div className="flex flex-wrap items-center gap-2 mt-2">

@@ -166,6 +166,8 @@ export const ProjectKeysPage: FC = () => {
       >
         {isPanelOpen ? (
           <KeysAsidePanel
+            totalKeys={project.keysCount}
+            keysLoading={loading}
             selectedKey={selectedKey}
             projectId={project.id}
             availableTags={project.availableTags || []}
