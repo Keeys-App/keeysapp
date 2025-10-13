@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useSaving, useSavingStore } from "@/stores";
+import { useSaving, useSavingStore, useTeamStore } from "@/stores";
 
 interface ImportProjectDialogProps {
   open: boolean;
@@ -30,6 +30,7 @@ export const ImportProjectDialog: FC<ImportProjectDialogProps> = ({
   
   const withSaving = useSaving();
   const { isSaving } = useSavingStore();
+  const { selectedTeamId } = useTeamStore();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -50,6 +51,12 @@ export const ImportProjectDialog: FC<ImportProjectDialogProps> = ({
       return;
     }
 
+    if (!selectedTeamId) {
+      setError("Please select a team from the header");
+      toast("Please select a team before importing");
+      return;
+    }
+
     setError(null);
 
     await withSaving(
@@ -62,6 +69,7 @@ export const ImportProjectDialog: FC<ImportProjectDialogProps> = ({
 
           const formData = new FormData();
           formData.append("file", file);
+          formData.append("team_id", selectedTeamId);
 
           const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
           const response = await fetch(`${API_BASE_URL}/api/projects/import`, {

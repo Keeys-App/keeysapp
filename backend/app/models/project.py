@@ -10,6 +10,7 @@ class Project(Base):
     """
     Project model for managing localization projects.
     Uses UUID for public identification to prevent enumeration attacks.
+    Projects belong to teams and access is managed through ProjectAccess.
     """
     __tablename__ = "projects"
 
@@ -22,14 +23,18 @@ class Project(Base):
     available_tags = Column(JSON, default=list, nullable=False)  # Array of tag strings available in project
     color = Column(String(7), default="#6366f1", nullable=False)  # Hex color code
     status = Column(String(20), default="active", nullable=False)  # active, archived, draft
+    team_id = Column(Integer, ForeignKey("teams.id", ondelete="CASCADE"), nullable=False)  # Project belongs to team
     owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Relationships
+    team = relationship("Team", back_populates="projects")
     owner = relationship("User", back_populates="owned_projects")
-    members = relationship("ProjectMember", back_populates="project", cascade="all, delete-orphan")
+    access_members = relationship("ProjectAccess", back_populates="project", cascade="all, delete-orphan")
     keys = relationship("Key", back_populates="project", cascade="all, delete-orphan")
+    # Legacy relationship kept for compatibility during migration
+    members = relationship("ProjectMember", back_populates="project", cascade="all, delete-orphan")
 
 
 class ProjectMember(Base):

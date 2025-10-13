@@ -36,6 +36,10 @@ class User(Base):
 
     # Relationships
     owned_projects = relationship("Project", back_populates="owner", cascade="all, delete-orphan")
+    owned_teams = relationship("Team", back_populates="owner", cascade="all, delete-orphan")
+    team_memberships = relationship("TeamMember", back_populates="user", cascade="all, delete-orphan")
+    project_access = relationship("ProjectAccess", foreign_keys="[ProjectAccess.user_id]", back_populates="user", cascade="all, delete-orphan")
+    # Legacy relationship kept for compatibility during migration
     project_memberships = relationship("ProjectMember", back_populates="user", cascade="all, delete-orphan")
 
     def verify_password(self, plain_password: str) -> bool:

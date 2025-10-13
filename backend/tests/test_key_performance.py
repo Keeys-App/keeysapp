@@ -35,20 +35,21 @@ class TestKeyPerformance:
     """
 
     @pytest.fixture
-    def project_with_keys(self, db_session, created_user):
+    def project_with_keys(self, db_session, created_user, test_team):
         """
         Create a project with multiple keys and translations.
         """
         # Create project
         project = ProjectService.create_project(
             db=db_session,
+            owner_id=created_user.id,
+            team_id=test_team.id,
             name="Performance Test Project",
             languages=[
                 {"code": "en", "locale": "en-US"},
                 {"code": "ru", "locale": "ru-RU"},
                 {"code": "de", "locale": "de-DE"}
-            ],
-            owner_id=created_user.id
+            ]
         )
 
         # Create 20 keys with translations in 3 languages

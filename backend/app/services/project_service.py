@@ -5,6 +5,8 @@ import uuid as uuid_lib
 import logging
 
 from app.models.project import Project, ProjectMember
+from app.models.project_access import ProjectAccess
+from app.models.team import Team
 from app.models.user import User
 from app.models.key import Key, Translation
 
@@ -20,6 +22,7 @@ class ProjectService:
     def create_project(
         db: Session,
         owner_id: int,
+        team_id: int,
         name: str,
         description: Optional[str] = None,
         languages: Optional[List] = None,
@@ -28,11 +31,12 @@ class ProjectService:
         status: str = "active"
     ) -> Project:
         """
-        Create a new project.
+        Create a new project in a team.
         
         Args:
             db: Database session
             owner_id: ID of the project owner
+            team_id: ID of the team this project belongs to
             name: Project name
             description: Project description
             languages: List of language configurations (dict with code and locale)
@@ -67,7 +71,8 @@ class ProjectService:
             default_language=default_language,
             color=color,
             status=status,
-            owner_id=owner_id
+            owner_id=owner_id,
+            team_id=team_id
         )
         db.add(project)
         db.commit()
@@ -93,7 +98,8 @@ class ProjectService:
             # Eager load related data except keys/translations (they're heavy and calculated via SQL)
             return db.query(Project).options(
                 joinedload(Project.owner),
-                selectinload(Project.members).joinedload(ProjectMember.user)
+                joinedload(Project.team),
+                selectinload(Project.access_members).joinedload(ProjectAccess.user)
             ).filter(Project.public_id == uuid_obj).first()
         except (ValueError, AttributeError):
             return None
@@ -216,7 +222,7 @@ class ProjectService:
     @staticmethod
     def get_user_projects(db: Session, user_id: int) -> List[Project]:
         """
-        Get all projects where user is owner or member.
+        Get all projects where user is owner or has access through ProjectAccess.
         Uses eager loading to prevent N+1 query problems.
         Note: Does not load keys/translations - use get_projects_stats() for statistics.
         
@@ -229,8 +235,9 @@ class ProjectService:
         """
         # Eager load related data except keys/translations (they're heavy and calculated via SQL)
         eager_options = [
-            joinedload(Project.owner),  # Load owner (many-to-one)
-            selectinload(Project.members).joinedload(ProjectMember.user),  # Load members and their users
+            joinedload(Project.owner),
+            joinedload(Project.team),
+            selectinload(Project.access_members).joinedload(ProjectAccess.user),
         ]
         
         # Get projects where user is owner
@@ -241,18 +248,18 @@ class ProjectService:
         ).all()
         owned_project_ids = {p.id for p in owned_projects}
         
-        # Get projects where user is member
-        member_projects = db.query(Project).options(
+        # Get projects where user has access
+        access_projects = db.query(Project).options(
             *eager_options
         ).join(
-            ProjectMember, Project.id == ProjectMember.project_id
+            ProjectAccess, Project.id == ProjectAccess.project_id
         ).filter(
-            ProjectMember.user_id == user_id
+            ProjectAccess.user_id == user_id
         ).all()
         
         # Combine and deduplicate
         all_projects = owned_projects.copy()
-        for project in member_projects:
+        for project in access_projects:
             if project.id not in owned_project_ids:
                 all_projects.append(project)
         
@@ -354,7 +361,7 @@ class ProjectService:
     @staticmethod
     def check_project_access(db: Session, project_id: int, user_id: int) -> bool:
         """
-        Check if user has access to a project (owner or member).
+        Check if user has access to a project (owner or has ProjectAccess).
         
         Args:
             db: Database session
@@ -372,18 +379,18 @@ class ProjectService:
         if project.owner_id == user_id:
             return True
         
-        # Check if member
-        member = db.query(ProjectMember).filter(
-            ProjectMember.project_id == project_id,
-            ProjectMember.user_id == user_id
+        # Check if has project access
+        access = db.query(ProjectAccess).filter(
+            ProjectAccess.project_id == project_id,
+            ProjectAccess.user_id == user_id
         ).first()
         
-        return member is not None
+        return access is not None
 
     @staticmethod
     def can_user_edit_project(db: Session, project_id: int, user_id: int) -> bool:
         """
-        Check if user can edit a project (owner or admin member).
+        Check if user can edit a project (owner or admin access).
         
         Args:
             db: Database session
@@ -401,14 +408,14 @@ class ProjectService:
         if project.owner_id == user_id:
             return True
         
-        # Check if admin member
-        member = db.query(ProjectMember).filter(
-            ProjectMember.project_id == project_id,
-            ProjectMember.user_id == user_id,
-            ProjectMember.role == "admin"
+        # Check if has admin access
+        access = db.query(ProjectAccess).filter(
+            ProjectAccess.project_id == project_id,
+            ProjectAccess.user_id == user_id,
+            ProjectAccess.role == "admin"
         ).first()
         
-        return member is not None
+        return access is not None
 
     @staticmethod
     def add_project_member(
@@ -514,18 +521,66 @@ class ProjectService:
         if project.owner_id == user.id:
             return False
         
-        # Find and remove member
-        member = db.query(ProjectMember).filter(
-            ProjectMember.project_id == project.id,
-            ProjectMember.user_id == user.id
+        # Find and remove project access
+        access = db.query(ProjectAccess).filter(
+            ProjectAccess.project_id == project.id,
+            ProjectAccess.user_id == user.id
         ).first()
         
-        if not member:
+        if not access:
             return False
         
-        db.delete(member)
+        db.delete(access)
         db.commit()
         return True
+
+    @staticmethod
+    def transfer_project(
+        db: Session,
+        project_public_id: str,
+        new_team_id: int,
+        user_id: int
+    ) -> Optional[Project]:
+        """
+        Transfer a project to another team. Only owner can transfer.
+        All ProjectAccess entries are removed when transferring.
+        
+        Args:
+            db: Database session
+            project_public_id: Public UUID of the project
+            new_team_id: New team ID
+            user_id: User ID requesting the transfer (must be owner)
+            
+        Returns:
+            Updated project or None if failed
+        """
+        project = ProjectService.get_project_by_public_id(db, project_public_id)
+        if not project:
+            return None
+        
+        # Only owner can transfer
+        if project.owner_id != user_id:
+            return None
+        
+        # Verify new team exists and user has access to it
+        team = db.query(Team).filter(Team.id == new_team_id).first()
+        if not team:
+            return None
+        
+        # Verify user is owner or member of new team
+        from app.services.team_service import TeamService
+        if not TeamService.check_user_team_access(db, new_team_id, user_id):
+            return None
+        
+        # Remove all existing project access entries
+        db.query(ProjectAccess).filter(ProjectAccess.project_id == project.id).delete()
+        
+        # Update project team
+        project.team_id = new_team_id
+        db.commit()
+        db.refresh(project)
+        
+        return project
 
     @staticmethod
     def export_project_data(db: Session, project_public_id: str, user_id: int) -> Optional[dict]:
@@ -601,21 +656,23 @@ class ProjectService:
     def import_project_data(
         db: Session,
         owner_id: int,
+        team_id: int,
         project_data: dict
     ) -> Optional[Project]:
         """
-        Import project data from exported JSON format.
+        Import project data from exported JSON format into a team.
         
         Args:
             db: Database session
             owner_id: ID of the user creating the project
+            team_id: ID of the team to import into
             project_data: Dict with project data in export format
             
         Returns:
             Created project or None if failed
         """
         try:
-            logger.info(f"Starting import_project_data for owner_id: {owner_id}")
+            logger.info(f"Starting import_project_data for owner_id: {owner_id}, team_id: {team_id}")
             
             # Extract project config
             name = project_data.get('name', 'Imported Project')
@@ -636,6 +693,7 @@ class ProjectService:
             project = ProjectService.create_project(
                 db=db,
                 owner_id=owner_id,
+                team_id=team_id,
                 name=name,
                 description=config.get('description'),
                 languages=config.get('languages', []),

@@ -1,5 +1,5 @@
-import { Fragment, type FC } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Fragment, useMemo, type FC } from 'react';
+import { Outlet, Link } from 'react-router-dom';
 import { AppSidebar } from './AppSidebar';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
@@ -12,7 +12,7 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
 import { useBreadcrumbs } from '@/contexts';
-import { useSavingStore, useLayoutStore } from '@/stores';
+import { useSavingStore, useLayoutStore, useTeamStore } from '@/stores';
 import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,13 +22,16 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { PanelRightClose, PanelRightOpen } from 'lucide-react';
+import { TeamSwitcher } from '@/components/team/TeamSwitcher';
 
 export const Layout: FC = () => {
   const { breadcrumbs } = useBreadcrumbs();
   const { isSaving, savingMessage } = useSavingStore();
   const { isPanelOpen, showPanelToggle, togglePanel } = useLayoutStore();
+  const { selectedTeamId, setSelectedTeamId } = useTeamStore();
 
-  const getBreadcrumbs = () => {
+  const getBreadcrumbs = useMemo(() => {
+    return () => {
     if (breadcrumbs.length === 0) {
       return (
         <BreadcrumbItem>
@@ -47,24 +50,34 @@ export const Layout: FC = () => {
             {isLast || !item.href ? (
               <BreadcrumbPage>{item.label}</BreadcrumbPage>
             ) : (
-              <BreadcrumbLink href={item.href}>{item.label}</BreadcrumbLink>
+              <BreadcrumbLink asChild>
+                <Link to={item.href}>{item.label}</Link>
+              </BreadcrumbLink>
             )}
           </BreadcrumbItem>
         </Fragment>
       );
     });
-  };
+    };
+  }, [breadcrumbs]);
 
   return (
     <SidebarProvider defaultOpen={false}>
       <AppSidebar />
       <SidebarInset>
-        <header className="bg-background h-12 border-b box-border sticky z-10 top-0 flex shrink-0 items-center gap-2 px-4 py-3.5">
+        <header className="bg-background h-12 border-b box-border sticky z-10 top-0 flex shrink-0 items-center gap-3 px-4 py-3.5">
           {/* <SidebarTrigger className="-ml-1" /> */}
           {/* <Separator orientation="vertical" className="mr-2 h-4" /> */}
+          
+          <TeamSwitcher
+            selectedTeamId={selectedTeamId}
+            onTeamChange={setSelectedTeamId}
+          />
+          
           <Breadcrumb>
             <BreadcrumbList>{getBreadcrumbs()}</BreadcrumbList>
           </Breadcrumb>
+          
           {showPanelToggle ? (
             <div className="ml-auto">
               <TooltipProvider>

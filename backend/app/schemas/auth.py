@@ -250,3 +250,4 @@ class AuthQuery:
             logger.error(f"Error in me query: {type(e).__name__}: {str(e)}")
             return None
 
+

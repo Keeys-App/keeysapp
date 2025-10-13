@@ -24,9 +24,9 @@ export const EmptyProjects: FC<EmptyProjectsProps> = ({ onCreateProject, onImpor
           <EmptyMedia variant="icon">
             <FolderOpen />
           </EmptyMedia>
-          <EmptyTitle>No Projects Yet</EmptyTitle>
+          <EmptyTitle>No Projects in This Team</EmptyTitle>
           <EmptyDescription>
-            You haven&apos;t created any projects yet. Get started by creating your first project.
+            This team doesn&apos;t have any projects yet. Get started by creating your first project.
           </EmptyDescription>
         </EmptyHeader>
         <EmptyContent>

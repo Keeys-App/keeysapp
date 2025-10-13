@@ -1,6 +1,6 @@
 import type { FC } from "react";
 import { Link } from "react-router-dom";
-import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, Users } from "lucide-react";
 import type { Project } from "@/types/project";
 import {
   Item,
@@ -73,11 +73,17 @@ export const ProjectCard: FC<ProjectCardProps> = ({
           <ItemDescription>
             {project.description || "No description"}
           </ItemDescription>
-          <div className="flex flex-wrap items-center gap-x-3 text-sm text-muted-foreground mt-1">
-            <ProjectStatus status={project.status} />
-            <span>{project.keysCount} keys</span>
-            <span>{project.members.length + 1} mem</span>
-            <span>{project.languages.length} lan</span>
+          <div className="flex flex-col gap-1 mt-2">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Users className="h-3 w-3" />
+              <span>{project.team.name}</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-3 text-sm text-muted-foreground">
+              <ProjectStatus status={project.status} />
+              <span>{project.keysCount} keys</span>
+              <span>{(project.accessMembers?.length || 0) + 1} members</span>
+              <span>{project.languages.length} languages</span>
+            </div>
           </div>
         </ItemContent>
 

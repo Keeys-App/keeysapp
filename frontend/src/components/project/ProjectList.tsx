@@ -1,4 +1,4 @@
-import { useState, useEffect, type FC } from "react";
+import { useState, useEffect, useMemo, type FC } from "react";
 import { useQuery, useMutation } from "@apollo/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -17,11 +17,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getUserFriendlyErrorMessage } from "@/lib/utils";
 import { PATHS } from "@/constants/paths";
 import { Button } from "@/components/ui/button";
-import { useSaving, useSavingStore } from "@/stores";
+import { useSaving, useSavingStore, useTeamStore } from "@/stores";
 
 export const ProjectList: FC = () => {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { selectedTeamId } = useTeamStore();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
@@ -30,6 +31,8 @@ export const ProjectList: FC = () => {
     GET_PROJECTS,
     {
       skip: !isAuthenticated || authLoading,
+      fetchPolicy: 'cache-and-network',
+      nextFetchPolicy: 'cache-first',
     }
   );
 
@@ -85,7 +88,22 @@ export const ProjectList: FC = () => {
     refetch();
   };
 
-  if (loading) {
+  // Extract projects data first (before any conditional returns)
+  const allProjects = data?.projects || [];
+  
+  // Filter projects by selected team (team selection is now mandatory)
+  // Use useMemo to prevent re-filtering on every render
+  const projects = useMemo(() => {
+    if (!selectedTeamId) {
+      return [];
+    }
+    return allProjects.filter((project) => {
+      return project.team.id === selectedTeamId;
+    });
+  }, [allProjects, selectedTeamId]);
+
+  // Only show loading if no cached data
+  if (loading && !data) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh]">
         <p className="text-lg text-muted-foreground">Loading projects...</p>
@@ -102,8 +120,6 @@ export const ProjectList: FC = () => {
       </div>
     );
   }
-
-  const projects = data?.projects || [];
 
   return (
     <>

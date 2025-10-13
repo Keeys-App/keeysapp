@@ -1,6 +1,6 @@
 import type { FC } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Settings, Sun, Moon, LogOut, Languages, FolderOpen } from 'lucide-react';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
+import { LayoutDashboard, Settings, Sun, Moon, LogOut, Languages, FolderOpen, Users } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { PATHS } from '@/constants/paths';
@@ -40,6 +40,12 @@ export const AppSidebar: FC = () => {
       isActive: location.pathname === PATHS.DASHBOARD,
     },
     {
+      title: 'Teams',
+      url: PATHS.TEAMS,
+      icon: Users,
+      isActive: location.pathname.startsWith('/team'),
+    },
+    {
       title: 'Projects',
       url: PATHS.DASHBOARD,
       icon: FolderOpen,
@@ -63,7 +69,7 @@ export const AppSidebar: FC = () => {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <a href="/">
+              <Link to={PATHS.DASHBOARD}>
                 <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
                   <Languages className="size-5" />
                 </div>
@@ -71,7 +77,7 @@ export const AppSidebar: FC = () => {
                   <span className="truncate font-medium">Locales</span>
                   <span className="truncate text-xs">Beta</span>
                 </div>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

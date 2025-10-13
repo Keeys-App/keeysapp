@@ -4,16 +4,18 @@ Tests for ProjectService.
 import pytest
 from app.models.user import User
 from app.models.project import Project, ProjectMember
+from app.models.project_access import ProjectAccess
 from app.services.project_service import ProjectService
 
 
-def test_create_project(db_session, test_user):
+def test_create_project(db_session, test_user, test_team):
     """
     Test creating a project.
     """
     project = ProjectService.create_project(
         db=db_session,
         owner_id=test_user.id,
+        team_id=test_team.id,
         name="Test Project",
         description="Test Description",
         languages=[
@@ -33,16 +35,18 @@ def test_create_project(db_session, test_user):
     assert project.color == "#FF0000"
     assert project.status == "active"
     assert project.owner_id == test_user.id
+    assert project.team_id == test_team.id
     assert project.public_id is not None
 
 
-def test_get_project_by_public_id(db_session, test_user):
+def test_get_project_by_public_id(db_session, test_user, test_team):
     """
     Test getting a project by public ID.
     """
     project = ProjectService.create_project(
         db=db_session,
         owner_id=test_user.id,
+        team_id=test_team.id,
         name="Test Project",
         languages=[{"code": "en", "locale": "en-US"}]
     )
@@ -69,13 +73,14 @@ def test_get_project_by_invalid_public_id(db_session):
     assert project is None
 
 
-def test_get_user_projects_as_owner(db_session, test_user):
+def test_get_user_projects_as_owner(db_session, test_user, test_team):
     """
     Test getting projects where user is owner.
     """
     project1 = ProjectService.create_project(
         db=db_session,
         owner_id=test_user.id,
+        team_id=test_team.id,
         name="Project 1",
         languages=[{"code": "en", "locale": "en-US"}]
     )
@@ -83,6 +88,7 @@ def test_get_user_projects_as_owner(db_session, test_user):
     project2 = ProjectService.create_project(
         db=db_session,
         owner_id=test_user.id,
+        team_id=test_team.id,
         name="Project 2",
         languages=[{"code": "ru", "locale": "ru-RU"}]
     )
@@ -95,7 +101,7 @@ def test_get_user_projects_as_owner(db_session, test_user):
     assert project2.id in project_ids
 
 
-def test_get_user_projects_as_member(db_session, test_user):
+def test_get_user_projects_as_member(db_session, test_user, test_team):
     """
     Test getting projects where user is member.
     """
@@ -111,17 +117,19 @@ def test_get_user_projects_as_member(db_session, test_user):
     project = ProjectService.create_project(
         db=db_session,
         owner_id=owner.id,
+        team_id=test_team.id,
         name="Shared Project",
         languages=[{"code": "en", "locale": "en-US"}]
     )
     
-    # Add test_user as member
-    member = ProjectMember(
+    # Add test_user with project access
+    access = ProjectAccess(
         project_id=project.id,
         user_id=test_user.id,
-        role="editor"
+        role="editor",
+        granted_by_user_id=owner.id
     )
-    db_session.add(member)
+    db_session.add(access)
     db_session.commit()
     
     projects = ProjectService.get_user_projects(db=db_session, user_id=test_user.id)
@@ -130,13 +138,14 @@ def test_get_user_projects_as_member(db_session, test_user):
     assert projects[0].id == project.id
 
 
-def test_update_project(db_session, test_user):
+def test_update_project(db_session, test_user, test_team):
     """
     Test updating a project.
     """
     project = ProjectService.create_project(
         db=db_session,
         owner_id=test_user.id,
+        team_id=test_team.id,
         name="Original Name",
         languages=[{"code": "en", "locale": "en-US"}]
     )
@@ -163,7 +172,7 @@ def test_update_project(db_session, test_user):
     assert updated_project.languages[2]['code'] == "de"
 
 
-def test_update_project_without_permission(db_session, test_user):
+def test_update_project_without_permission(db_session, test_user, test_team):
     """
     Test that non-owner cannot update project.
     """
@@ -179,6 +188,7 @@ def test_update_project_without_permission(db_session, test_user):
     project = ProjectService.create_project(
         db=db_session,
         owner_id=owner.id,
+        team_id=test_team.id,
         name="Owner's Project",
         languages=[{"code": "en", "locale": "en-US"}]
     )
@@ -194,13 +204,14 @@ def test_update_project_without_permission(db_session, test_user):
     assert updated_project is None
 
 
-def test_delete_project(db_session, test_user):
+def test_delete_project(db_session, test_user, test_team):
     """
     Test deleting a project.
     """
     project = ProjectService.create_project(
         db=db_session,
         owner_id=test_user.id,
+        team_id=test_team.id,
         name="To Delete",
         languages=[{"code": "en", "locale": "en-US"}]
     )
@@ -221,7 +232,7 @@ def test_delete_project(db_session, test_user):
     assert deleted_project is None
 
 
-def test_delete_project_without_permission(db_session, test_user):
+def test_delete_project_without_permission(db_session, test_user, test_team):
     """
     Test that non-owner cannot delete project.
     """
@@ -237,6 +248,7 @@ def test_delete_project_without_permission(db_session, test_user):
     project = ProjectService.create_project(
         db=db_session,
         owner_id=owner.id,
+        team_id=test_team.id,
         name="Owner's Project",
         languages=[{"code": "en", "locale": "en-US"}]
     )
@@ -251,13 +263,14 @@ def test_delete_project_without_permission(db_session, test_user):
     assert result is False
 
 
-def test_check_project_access_as_owner(db_session, test_user):
+def test_check_project_access_as_owner(db_session, test_user, test_team):
     """
     Test checking access for project owner.
     """
     project = ProjectService.create_project(
         db=db_session,
         owner_id=test_user.id,
+        team_id=test_team.id,
         name="My Project",
         languages=[{"code": "en", "locale": "en-US"}]
     )
@@ -271,7 +284,7 @@ def test_check_project_access_as_owner(db_session, test_user):
     assert has_access is True
 
 
-def test_check_project_access_as_member(db_session, test_user):
+def test_check_project_access_as_member(db_session, test_user, test_team):
     """
     Test checking access for project member.
     """
@@ -287,17 +300,19 @@ def test_check_project_access_as_member(db_session, test_user):
     project = ProjectService.create_project(
         db=db_session,
         owner_id=owner.id,
+        team_id=test_team.id,
         name="Shared Project",
         languages=[{"code": "en", "locale": "en-US"}]
     )
     
-    # Add test_user as member
-    member = ProjectMember(
+    # Add test_user with project access
+    access = ProjectAccess(
         project_id=project.id,
         user_id=test_user.id,
-        role="viewer"
+        role="viewer",
+        granted_by_user_id=owner.id
     )
-    db_session.add(member)
+    db_session.add(access)
     db_session.commit()
     
     has_access = ProjectService.check_project_access(
@@ -309,7 +324,7 @@ def test_check_project_access_as_member(db_session, test_user):
     assert has_access is True
 
 
-def test_check_project_access_no_permission(db_session, test_user):
+def test_check_project_access_no_permission(db_session, test_user, test_team):
     """
     Test checking access for user with no permission.
     """
@@ -325,6 +340,7 @@ def test_check_project_access_no_permission(db_session, test_user):
     project = ProjectService.create_project(
         db=db_session,
         owner_id=owner.id,
+        team_id=test_team.id,
         name="Private Project",
         languages=[{"code": "en", "locale": "en-US"}]
     )
@@ -338,13 +354,14 @@ def test_check_project_access_no_permission(db_session, test_user):
     assert has_access is False
 
 
-def test_can_user_edit_project_as_owner(db_session, test_user):
+def test_can_user_edit_project_as_owner(db_session, test_user, test_team):
     """
     Test that owner can edit project.
     """
     project = ProjectService.create_project(
         db=db_session,
         owner_id=test_user.id,
+        team_id=test_team.id,
         name="My Project",
         languages=[{"code": "en", "locale": "en-US"}]
     )
@@ -358,7 +375,7 @@ def test_can_user_edit_project_as_owner(db_session, test_user):
     assert can_edit is True
 
 
-def test_can_user_edit_project_as_admin(db_session, test_user):
+def test_can_user_edit_project_as_admin(db_session, test_user, test_team):
     """
     Test that admin member can edit project.
     """
@@ -374,17 +391,19 @@ def test_can_user_edit_project_as_admin(db_session, test_user):
     project = ProjectService.create_project(
         db=db_session,
         owner_id=owner.id,
+        team_id=test_team.id,
         name="Shared Project",
         languages=[{"code": "en", "locale": "en-US"}]
     )
     
     # Add test_user as admin
-    member = ProjectMember(
+    access = ProjectAccess(
         project_id=project.id,
         user_id=test_user.id,
-        role="admin"
+        role="admin",
+        granted_by_user_id=owner.id
     )
-    db_session.add(member)
+    db_session.add(access)
     db_session.commit()
     
     can_edit = ProjectService.can_user_edit_project(
@@ -396,7 +415,7 @@ def test_can_user_edit_project_as_admin(db_session, test_user):
     assert can_edit is True
 
 
-def test_can_user_edit_project_as_editor(db_session, test_user):
+def test_can_user_edit_project_as_editor(db_session, test_user, test_team):
     """
     Test that editor member cannot edit project settings (only owner/admin can).
     """
@@ -412,17 +431,19 @@ def test_can_user_edit_project_as_editor(db_session, test_user):
     project = ProjectService.create_project(
         db=db_session,
         owner_id=owner.id,
+        team_id=test_team.id,
         name="Shared Project",
         languages=[{"code": "en", "locale": "en-US"}]
     )
     
     # Add test_user as editor
-    member = ProjectMember(
+    access = ProjectAccess(
         project_id=project.id,
         user_id=test_user.id,
-        role="editor"
+        role="editor",
+        granted_by_user_id=owner.id
     )
-    db_session.add(member)
+    db_session.add(access)
     db_session.commit()
     
     can_edit = ProjectService.can_user_edit_project(
@@ -434,13 +455,14 @@ def test_can_user_edit_project_as_editor(db_session, test_user):
     assert can_edit is False
 
 
-def test_add_project_member(db_session, test_user):
+def test_add_project_member(db_session, test_user, test_team):
     """
     Test adding a member to a project.
     """
     project = ProjectService.create_project(
         db=db_session,
         owner_id=test_user.id,
+        team_id=test_team.id,
         name="My Project",
         languages=[{"code": "en", "locale": "en-US"}]
     )
@@ -454,7 +476,7 @@ def test_add_project_member(db_session, test_user):
     db_session.add(new_member)
     db_session.commit()
     
-    member = ProjectService.add_project_member(
+    access = ProjectService.add_project_member(
         db=db_session,
         project_public_id=str(project.public_id),
         user_public_id=str(new_member.public_id),
@@ -462,13 +484,13 @@ def test_add_project_member(db_session, test_user):
         added_by_user_id=test_user.id
     )
     
-    assert member is not None
-    assert member.project_id == project.id
-    assert member.user_id == new_member.id
-    assert member.role == "editor"
+    assert access is not None
+    assert access.project_id == project.id
+    assert access.user_id == new_member.id
+    assert access.role == "editor"
 
 
-def test_add_project_member_without_permission(db_session, test_user):
+def test_add_project_member_without_permission(db_session, test_user, test_team):
     """
     Test that non-admin cannot add members.
     """
@@ -484,6 +506,7 @@ def test_add_project_member_without_permission(db_session, test_user):
     project = ProjectService.create_project(
         db=db_session,
         owner_id=owner.id,
+        team_id=test_team.id,
         name="Owner's Project",
         languages=[{"code": "en", "locale": "en-US"}]
     )
@@ -498,7 +521,7 @@ def test_add_project_member_without_permission(db_session, test_user):
     db_session.commit()
     
     # test_user (not owner/admin) tries to add member
-    member = ProjectService.add_project_member(
+    access = ProjectService.add_project_member(
         db=db_session,
         project_public_id=str(project.public_id),
         user_public_id=str(new_member.public_id),
@@ -506,16 +529,17 @@ def test_add_project_member_without_permission(db_session, test_user):
         added_by_user_id=test_user.id
     )
     
-    assert member is None
+    assert access is None
 
 
-def test_remove_project_member(db_session, test_user):
+def test_remove_project_member(db_session, test_user, test_team):
     """
     Test removing a member from a project.
     """
     project = ProjectService.create_project(
         db=db_session,
         owner_id=test_user.id,
+        team_id=test_team.id,
         name="My Project",
         languages=[{"code": "en", "locale": "en-US"}]
     )
@@ -529,12 +553,13 @@ def test_remove_project_member(db_session, test_user):
     db_session.add(member_user)
     db_session.commit()
     
-    member = ProjectMember(
+    access = ProjectAccess(
         project_id=project.id,
         user_id=member_user.id,
-        role="editor"
+        role="editor",
+        granted_by_user_id=test_user.id
     )
-    db_session.add(member)
+    db_session.add(access)
     db_session.commit()
     
     # Remove member
@@ -556,13 +581,14 @@ def test_remove_project_member(db_session, test_user):
     assert has_access is False
 
 
-def test_cannot_remove_owner(db_session, test_user):
+def test_cannot_remove_owner(db_session, test_user, test_team):
     """
     Test that owner cannot be removed from project.
     """
     project = ProjectService.create_project(
         db=db_session,
         owner_id=test_user.id,
+        team_id=test_team.id,
         name="My Project",
         languages=[{"code": "en", "locale": "en-US"}]
     )
