@@ -73,16 +73,10 @@ export const KeyManagement: FC<KeyManagementProps> = ({
       </TabsContent>
 
       <TabsContent value="meta" className="flex-1 overflow-auto">
-        <KeyMetadata
-          selectedKey={selectedKey}
-          availableTags={availableTags}
-        />
+        <KeyMetadata selectedKey={selectedKey} availableTags={availableTags} />
       </TabsContent>
 
-      <TabsContent
-        value="settings"
-        className="flex-1 overflow-auto"
-      >
+      <TabsContent value="settings" className="flex-1 overflow-auto">
         <KeySettings
           selectedKey={selectedKey}
           projectId={projectId}

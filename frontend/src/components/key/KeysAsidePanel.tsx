@@ -7,8 +7,6 @@ import { AutopilotCard } from "./AutopilotCard";
 interface KeysAsidePanelProps {
   totalKeys: number;
   keysLoading: boolean;
-  keyLoading?: boolean;
-  selectedKeyId?: string | null;
   selectedKey: TranslationKey | null;
   projectId: string;
   availableTags?: string[];
@@ -25,8 +23,6 @@ interface KeysAsidePanelProps {
 export const KeysAsidePanel: FC<KeysAsidePanelProps> = ({
   totalKeys,
   keysLoading,
-  keyLoading = false,
-  selectedKeyId,
   selectedKey,
   projectId,
   availableTags = [],
@@ -39,19 +35,10 @@ export const KeysAsidePanel: FC<KeysAsidePanelProps> = ({
   let content: React.ReactNode | null = null;
   let title = "Suggestions";
 
-  // Show loading state when a key is selected but data is still loading
-  if (selectedKeyId && !selectedKey && keyLoading && totalKeys > 0) {
-    title = "Key Management";
-    content = (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-muted-foreground">Loading key...</div>
-      </div>
-    );
-  } else if (selectedKey && totalKeys > 0) {
+  if (selectedKey && totalKeys > 0) {
     title = "Key Management";
     content = (
       <KeyManagement
-        key={selectedKey.id}
         selectedKey={selectedKey}
         projectId={projectId}
         availableTags={availableTags}
@@ -62,7 +49,9 @@ export const KeysAsidePanel: FC<KeysAsidePanelProps> = ({
         defaultLanguageValue={defaultLanguageValue}
       />
     );
-  } else if (!selectedKeyId && totalKeys > 0) {
+  }
+
+  if (!selectedKey && totalKeys > 0) {
     content = (
       <AutopilotCard
         title="Tip"
@@ -70,7 +59,9 @@ export const KeysAsidePanel: FC<KeysAsidePanelProps> = ({
         description="Click on any translation key from the list to view and manage it."
       />
     );
-  } else if (totalKeys === 0) {
+  }
+
+  if (totalKeys === 0) {
     content = (
       <AutopilotCard
         title="Tip"
