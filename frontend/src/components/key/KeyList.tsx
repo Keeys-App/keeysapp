@@ -205,22 +205,6 @@ export function KeyList({
     });
   }, [virtualItems, loading, totalCount, loadKeysRange]);
 
-  // Show skeletons only on initial load (not during search)
-  if (loading && !search && keys.length === 0) {
-    return (
-      <div className="flex flex-col h-full">
-        <KeyControls projectId={projectId} onCreateKey={onCreateKey} totalCount={totalCount} isSearching={false} />
-        <div className="flex-1 overflow-auto">
-          <KeySkeleton languagesCount={projectLanguages.length || 5} />
-          <KeySkeleton languagesCount={projectLanguages.length || 5} />
-          <KeySkeleton languagesCount={projectLanguages.length || 5} />
-          <KeySkeleton languagesCount={projectLanguages.length || 5} />
-          <KeySkeleton languagesCount={projectLanguages.length || 5} />
-        </div>
-      </div>
-    );
-  }
-
   if (error) {
     const errorMessage = getUserFriendlyErrorMessage(
       error,
@@ -229,10 +213,21 @@ export function KeyList({
     return <ErrorState message={errorMessage} />;
   }
 
+  // Show skeletons only on initial load (not during search)
+  const isInitialLoading = loading && !search && keys.length === 0;
+
   return (
     <div className="flex flex-col h-full">
       <KeyControls projectId={projectId} onCreateKey={onCreateKey} totalCount={totalCount} isSearching={loading} />
-      {keys.length === 0 ? (
+      {isInitialLoading ? (
+        <div className="flex-1 overflow-auto">
+          <KeySkeleton languagesCount={projectLanguages.length || 5} />
+          <KeySkeleton languagesCount={projectLanguages.length || 5} />
+          <KeySkeleton languagesCount={projectLanguages.length || 5} />
+          <KeySkeleton languagesCount={projectLanguages.length || 5} />
+          <KeySkeleton languagesCount={projectLanguages.length || 5} />
+        </div>
+      ) : keys.length === 0 ? (
         <div className="flex flex-col flex-1 min-h-[50vh]">
           {search ? (
             <EmptySearchResults searchQuery={search} />
