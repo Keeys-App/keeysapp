@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, type FC } from "react";
+import { useState, useEffect, useRef, type FC } from "react";
 import { useMutation, useLazyQuery, gql } from "@apollo/client";
 import { toast } from "sonner";
 import { Info } from "lucide-react";
@@ -54,6 +54,9 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
   const [addAnother, setAddAnother] = useState(false);
   const [isDuplicate, setIsDuplicate] = useState(false);
   const [lastCheckedKey, setLastCheckedKey] = useState<string>("");
+  
+  // Track the last processed mutation result to avoid duplicate toasts
+  const lastProcessedDataRef = useRef<any>(null);
 
   // Lazy query to check if key exists
   const [checkKeyExists, { loading: checkingKey, data: checkKeyData, error: checkKeyError }] = useLazyQuery(
@@ -117,6 +120,8 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
       setTags([]);
       setIsDuplicate(false);
       setLastCheckedKey("");
+      // Reset processed data ref when dialog closes
+      lastProcessedDataRef.current = null;
     }
   }, [open]);
 
@@ -172,7 +177,17 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
 
   // Handle create key success
   useEffect(() => {
-    if (createKeyData) {
+    if (createKeyData && createKeyData !== lastProcessedDataRef.current) {
+      // Mark this data as processed
+      lastProcessedDataRef.current = createKeyData;
+      
+      // If createKey is null, the creation failed (likely due to duplicate key)
+      if (!createKeyData.createKey) {
+        toast("Key already exists. Please choose a different name.");
+        setIsDuplicate(true);
+        return;
+      }
+      
       const keyValue = key;
       
       // Reset form
@@ -192,7 +207,7 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
         description: keyValue,
       });
     }
-  }, [createKeyData, addAnother, onOpenChange]);
+  }, [createKeyData, addAnother, onOpenChange, key]);
 
   // Handle create key error
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { type FC, useState, useEffect } from "react";
+import { type FC, useState, useEffect, useRef } from "react";
 import { useMutation } from "@apollo/client";
 import { toast } from "sonner";
 import type { TranslationKey } from "@/types/translationKey";
@@ -28,6 +28,9 @@ export const KeyMetadata: FC<KeyMetadataProps> = ({
   const [savedDescription, setSavedDescription] = useState("");
   const [savedKeyName, setSavedKeyName] = useState("");
   const [savedTags, setSavedTags] = useState<string[]>([]);
+  
+  // Track the last processed mutation result to avoid duplicate toasts
+  const lastProcessedDataRef = useRef<any>(null);
 
   const [updateKey, { data, error }] = useMutation(UPDATE_KEY, {
     refetchQueries: [
@@ -61,24 +64,38 @@ export const KeyMetadata: FC<KeyMetadataProps> = ({
     setSavedDescription(desc);
     setSavedKeyName(key);
     setSavedTags(keyTags);
+    // Reset processed data ref when key changes
+    lastProcessedDataRef.current = null;
   }, [selectedKey]);
 
   // Handle mutation success
   useEffect(() => {
-    if (data) {
+    if (data && data !== lastProcessedDataRef.current) {
+      // Mark this data as processed
+      lastProcessedDataRef.current = data;
+      
+      // If updateKey is null, the update failed (likely due to duplicate key name)
+      if (!data.updateKey) {
+        toast("Key name already exists. Please choose a different name.");
+        // Revert to old name
+        setKeyName(savedKeyName);
+        return;
+      }
+      
       toast("Key updated successfully");
       // Update saved values if key was updated
-      if (data.updateKey?.key) {
+      if (data.updateKey.key) {
         setSavedKeyName(data.updateKey.key);
+        setKeyName(data.updateKey.key);
       }
-      if (data.updateKey?.description !== undefined) {
+      if (data.updateKey.description !== undefined) {
         setSavedDescription(data.updateKey.description || "");
       }
-      if (data.updateKey?.tags !== undefined) {
+      if (data.updateKey.tags !== undefined) {
         setSavedTags(data.updateKey.tags || []);
       }
     }
-  }, [data]);
+  }, [data, savedKeyName]);
 
   // Handle mutation error
   useEffect(() => {

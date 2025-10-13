@@ -1,4 +1,4 @@
-import { type FC } from "react";
+import { type FC, useState, useEffect } from "react";
 import type { TranslationKey } from "@/types/translationKey";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { KeyLogsTimeline } from "./KeyLogsTimeline";
@@ -18,6 +18,8 @@ interface KeyManagementProps {
   defaultLanguageValue?: string;
 }
 
+const ACTIVE_TAB_STORAGE_KEY = "keyManagementActiveTab";
+
 /**
  * Tabs component for displaying different views of a translation key's details.
  * Supports multiple views: suggestions, history, metadata, and settings.
@@ -32,8 +34,23 @@ export const KeyManagement: FC<KeyManagementProps> = ({
   defaultLanguage,
   defaultLanguageValue,
 }) => {
+  // Load saved tab from localStorage or default to "ai"
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    const saved = localStorage.getItem(ACTIVE_TAB_STORAGE_KEY);
+    return saved || "ai";
+  });
+
+  // Save active tab to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem(ACTIVE_TAB_STORAGE_KEY, activeTab);
+  }, [activeTab]);
+
   return (
-    <Tabs defaultValue="ai" className="h-full flex flex-col">
+    <Tabs
+      value={activeTab}
+      onValueChange={setActiveTab}
+      className="h-full flex flex-col"
+    >
       <TabsList className="mb-2 gap-0 w-full">
         <TabsTrigger value="ai">Autopilot</TabsTrigger>
         <TabsTrigger value="history">History</TabsTrigger>

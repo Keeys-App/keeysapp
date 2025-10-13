@@ -1,11 +1,14 @@
 from typing import Optional, List, Dict
 from sqlalchemy.orm import Session, joinedload
 import uuid as uuid_lib
+import logging
 
 from app.models.key import Key, Translation, ReviewStatus
 from app.models.activity_log import ActivityLog, ActionType
 from app.models.project import Project
 from app.services.project_service import ProjectService
+
+logger = logging.getLogger(__name__)
 
 
 class KeyService:
@@ -98,6 +101,11 @@ class KeyService:
         ).first()
         
         if existing_key:
+            logger.warning(
+                f"Attempt to create duplicate key: "
+                f"project_id={project.id}, key='{key}', "
+                f"existing_key_id={existing_key.id}"
+            )
             return None
         
         # Create key
@@ -357,6 +365,11 @@ class KeyService:
             ).first()
             
             if existing:
+                logger.warning(
+                    f"Attempt to update key to duplicate name: "
+                    f"project_id={key_obj.project_id}, key='{key}', "
+                    f"existing_key_id={existing.id}"
+                )
                 return None
             
             # Log key name change
