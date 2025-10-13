@@ -22,7 +22,6 @@ import { toast } from "sonner";
 import { useSaving, useSavingStore } from "@/stores";
 import { useTranslationEditor } from "@/contexts";
 import { Textarea } from "@/components/ui/textarea";
-import { BookPlus } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 
 interface AISuggestion {
@@ -317,7 +316,7 @@ export const KeyAi: FC<KeyAiProps> = ({
 
     // Insert text into the editor
     editorRef.insertText(text);
-    
+
     toast("Suggestion inserted into editor");
   };
 
@@ -365,7 +364,7 @@ export const KeyAi: FC<KeyAiProps> = ({
 
     // Insert text into the editor
     editorRef.insertText(selectedVariant);
-    
+
     toast("Variant inserted into editor");
   };
 
@@ -394,7 +393,12 @@ export const KeyAi: FC<KeyAiProps> = ({
 
   // If no language is being edited, show disabled state
   if (!currentLanguage) {
-    card = <AutopilotCard isDisabled description="Select a translation field to edit to see autopilot suggestions" />;
+    card = (
+      <AutopilotCard
+        isDisabled
+        description="Select a translation field to edit to see autopilot suggestions"
+      />
+    );
   } else if (currentLanguageValue) {
     // If translation exists, show enhancement actions
     const enhancementActions = [
@@ -446,10 +450,12 @@ export const KeyAi: FC<KeyAiProps> = ({
       {card}
 
       {/* Context card (single unified context) - only show when language is selected and not in disabled state */}
-      {currentLanguage && (currentLanguageValue || defaultLanguageValue) && isEditingContext ? (
+      {currentLanguage &&
+      (currentLanguageValue || defaultLanguageValue) &&
+      isEditingContext ? (
         // Edit mode
         <AutopilotSuggestion
-          icon={BookPlus}
+          icon={AutopilotActions.addContext().icon}
           title="Context for AI"
           description={
             <Textarea
@@ -478,10 +484,12 @@ export const KeyAi: FC<KeyAiProps> = ({
           ]}
           variant="none"
         />
-      ) : currentLanguage && (currentLanguageValue || defaultLanguageValue) && customContext ? (
+      ) : currentLanguage &&
+        (currentLanguageValue || defaultLanguageValue) &&
+        customContext ? (
         // View mode (saved context)
         <AutopilotSuggestion
-          icon={BookPlus}
+          icon={AutopilotActions.addContext().icon}
           title="Context"
           description={customContext}
           actions={[
@@ -557,7 +565,10 @@ export const KeyAi: FC<KeyAiProps> = ({
           title="Variants"
           description={
             <div className="space-y-3 mt-2">
-              <RadioGroup value={selectedVariant} onValueChange={setSelectedVariant}>
+              <RadioGroup
+                value={selectedVariant}
+                onValueChange={setSelectedVariant}
+              >
                 {variants.map((variant, index) => (
                   <div key={index} className="flex gap-2">
                     <RadioGroupItem
@@ -571,10 +582,10 @@ export const KeyAi: FC<KeyAiProps> = ({
                     >
                       {variant}
                     </label>
-          </div>
+                  </div>
                 ))}
               </RadioGroup>
-          </div>
+            </div>
           }
           actions={[
             {
@@ -592,9 +603,7 @@ export const KeyAi: FC<KeyAiProps> = ({
       ) : null}
 
       {/* Loading skeleton (only when language is selected) */}
-      {currentLanguage && isGenerating ? (
-        <AutopilotSuggestionSkeleton />
-      ) : null}
+      {currentLanguage && isGenerating ? <AutopilotSuggestionSkeleton /> : null}
     </AutopilotSuggestionsList>
   );
 };

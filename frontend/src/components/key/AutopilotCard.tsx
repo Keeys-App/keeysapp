@@ -1,4 +1,4 @@
-import { type FC, type ReactNode } from "react";
+import { type FC } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Sparkle,
@@ -6,7 +6,7 @@ import {
   ArrowDownWideNarrow,
   ListStart,
   Wand,
-  BookPlus,
+  MessageSquareMore,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -145,7 +145,7 @@ export const AutopilotActions = {
 
   addContext: (onClick?: () => void): AutopilotAction => ({
     label: "Add context",
-    icon: BookPlus,
+    icon: MessageSquareMore,
     onClick,
     variant: "outline",
   }),
