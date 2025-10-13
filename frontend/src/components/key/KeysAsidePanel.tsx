@@ -40,6 +40,10 @@ export const KeysAsidePanel: FC<KeysAsidePanelProps> = ({
         projectId={projectId}
         availableTags={availableTags}
         onKeyDeleted={onKeyDeleted}
+        currentLanguage={currentLanguage}
+        currentLanguageValue={currentLanguageValue}
+        defaultLanguage={defaultLanguage}
+        defaultLanguageValue={defaultLanguageValue}
       />
     );
   }
