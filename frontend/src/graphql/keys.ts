@@ -1,8 +1,8 @@
 import { gql } from '@apollo/client';
 
 export const GET_PROJECT_KEYS = gql`
-  query GetProjectKeys($projectId: String!, $offset: Int, $limit: Int) {
-    projectKeys(projectId: $projectId, offset: $offset, limit: $limit) {
+  query GetProjectKeys($projectId: String!, $offset: Int, $limit: Int, $search: String) {
+    projectKeys(projectId: $projectId, offset: $offset, limit: $limit, search: $search) {
       keys {
         id
         key

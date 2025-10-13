@@ -4,6 +4,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { GET_PROJECT_KEYS } from "@/graphql/keys";
 import type { TranslationKey } from "@/types/translationKey";
 import { EmptyKeys } from "./EmptyKeys";
+import { EmptySearchResults } from "./EmptySearchResults";
 import { Key } from "./Key";
 import { KeySkeleton } from "./KeySkeleton";
 import { KeyControls } from "./KeyControls";
@@ -11,6 +12,7 @@ import type { Language, LanguageWithLocale } from "@/types/project";
 import { getUserFriendlyErrorMessage } from "@/lib/utils";
 import { ErrorState } from "../blocks";
 import { CustomScrollbar } from "@/components/ui/custom-scrollbar";
+import { useKeysSearchStore } from "@/stores";
 
 interface KeyListProps {
   projectId: string;
@@ -40,13 +42,16 @@ export function KeyList({
   onEditingTranslationChange,
 }: KeyListProps) {
   const [loadingRanges, setLoadingRanges] = useState<Set<number>>(new Set());
+  const [, forceUpdate] = useState({});
   const keysMapRef = useRef<Map<number, TranslationKey>>(new Map());
+  const { search } = useKeysSearchStore();
 
   const { data, loading, error, fetchMore } = useQuery(GET_PROJECT_KEYS, {
     variables: { 
       projectId,
       offset: 0,
-      limit: PAGE_SIZE
+      limit: PAGE_SIZE,
+      search: search || undefined
     },
     skip: !projectId,
     fetchPolicy: 'cache-and-network',
@@ -60,18 +65,20 @@ export function KeyList({
   const initialKeys: TranslationKey[] = data?.projectKeys?.keys || [];
   const totalCount = data?.projectKeys?.totalCount || 0;
 
-  // Clear cache when project changes
+  // Clear cache when project or search changes
   useEffect(() => {
     keysMapRef.current.clear();
     setLoadingRanges(new Set());
-  }, [projectId]);
+  }, [projectId, search]);
 
-  // Update keys map with initial data
+  // Update keys map with initial data and force re-render
   useEffect(() => {
     if (initialKeys.length > 0) {
       initialKeys.forEach((key, index) => {
         keysMapRef.current.set(index, key);
       });
+      // Force re-render to show the loaded keys
+      forceUpdate(() => ({}));
     }
   }, [initialKeys]);
 
@@ -107,6 +114,7 @@ export function KeyList({
         variables: {
           offset: pageOffset,
           limit: PAGE_SIZE,
+          search: search || undefined,
         },
       });
 
@@ -116,12 +124,15 @@ export function KeyList({
         keysMapRef.current.set(pageOffset + index, key);
       });
 
-      // Force re-render
+      // Remove loading state and force re-render
       setLoadingRanges((prev) => {
         const next = new Set(prev);
         next.delete(pageOffset);
         return next;
       });
+      
+      // Force re-render to show the loaded keys
+      forceUpdate(() => ({}));
     } catch (err) {
       console.error("Failed to load keys range:", err);
       setLoadingRanges((prev) => {
@@ -130,7 +141,7 @@ export function KeyList({
         return next;
       });
     }
-  }, [fetchMore, totalCount, loadingRanges]);
+  }, [fetchMore, totalCount, loadingRanges, search]);
 
   // Calculate estimated size based on number of languages
   // Each language row is approximately 60px, plus some padding
@@ -194,10 +205,11 @@ export function KeyList({
     });
   }, [virtualItems, loading, totalCount, loadKeysRange]);
 
-  if (loading) {
+  // Show skeletons only on initial load (not during search)
+  if (loading && !search && keys.length === 0) {
     return (
       <div className="flex flex-col h-full">
-        <KeyControls projectId={projectId} onCreateKey={onCreateKey} />
+        <KeyControls projectId={projectId} onCreateKey={onCreateKey} totalCount={totalCount} isSearching={false} />
         <div className="flex-1 overflow-auto">
           <KeySkeleton languagesCount={projectLanguages.length || 5} />
           <KeySkeleton languagesCount={projectLanguages.length || 5} />
@@ -219,10 +231,14 @@ export function KeyList({
 
   return (
     <div className="flex flex-col h-full">
-      <KeyControls projectId={projectId} onCreateKey={onCreateKey} />
+      <KeyControls projectId={projectId} onCreateKey={onCreateKey} totalCount={totalCount} isSearching={loading} />
       {keys.length === 0 ? (
         <div className="flex flex-col flex-1 min-h-[50vh]">
-          <EmptyKeys projectId={projectId} onCreateKey={onCreateKey} />
+          {search ? (
+            <EmptySearchResults searchQuery={search} />
+          ) : (
+            <EmptyKeys projectId={projectId} onCreateKey={onCreateKey} />
+          )}
         </div>
       ) : (
         <div className="relative flex-1">

@@ -367,16 +367,18 @@ class KeyQuery:
         info: Info, 
         project_id: str,
         offset: Optional[int] = 0,
-        limit: Optional[int] = 50
+        limit: Optional[int] = 50,
+        search: Optional[str] = None
     ) -> KeysConnection:
         """
-        Get keys for a project with pagination support.
+        Get keys for a project with pagination and search support.
         
         Args:
             info: GraphQL info object
             project_id: Project UUID
             offset: Number of keys to skip (default: 0)
             limit: Maximum number of keys to return (default: 50)
+            search: Optional search query to filter keys (default: None)
             
         Returns:
             Paginated keys with total count
@@ -405,7 +407,8 @@ class KeyQuery:
                     project_id, 
                     current_user_id,
                     offset=offset,
-                    limit=limit
+                    limit=limit,
+                    search=search
                 )
                 
                 if result is None:
@@ -425,8 +428,11 @@ class KeyQuery:
         except UnauthorizedError:
             raise
         except Exception as e:
-            logger.error(f"Error in project_keys query: {type(e).__name__}: {str(e)}")
-            return KeysConnection(keys=[], total_count=0, has_more=False)
+            # Log technical error details with full traceback
+            logger.error(f"Error in project_keys query: {type(e).__name__}: {str(e)}", exc_info=True)
+            # Raise user-friendly error that doesn't expose internals
+            from app.core.exceptions import DatabaseError
+            raise DatabaseError(internal_message=f"Error loading keys: {type(e).__name__}: {str(e)}")
 
     @strawberry.field
     def key(self, info: Info, id: str) -> Optional[KeyType]:

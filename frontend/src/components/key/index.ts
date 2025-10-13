@@ -5,6 +5,7 @@ export { CreateKeyDialog } from './CreateKeyDialog';
 export { TranslationEditor } from './TranslationEditor';
 export { ReviewStatusButton } from './ReviewStatusButton';
 export { EmptyKeys } from './EmptyKeys';
+export { EmptySearchResults } from './EmptySearchResults';
 export { KeyControls } from './KeyControls';
 export { KeysAsidePanel } from './KeysAsidePanel';
 export { KeyManagement } from './KeyManagement';
@@ -15,4 +16,5 @@ export { TranslationTextEditor } from './TranslationTextEditor';
 export { AutopilotCard, AutopilotActions } from './AutopilotCard';
 export { AutopilotSuggestion, AutopilotSuggestionsList } from './AutopilotSuggestion';
 export { AutopilotSuggestionSkeleton } from './AutopilotSuggestionSkeleton';
+export { KeysSearch } from './KeysSearch';
 

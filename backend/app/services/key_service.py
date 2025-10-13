@@ -208,10 +208,11 @@ class KeyService:
         project_public_id: str, 
         user_id: int,
         offset: int = 0,
-        limit: int = 50
+        limit: int = 50,
+        search: Optional[str] = None
     ) -> Optional[Dict[str, any]]:
         """
-        Get keys for a project with pagination.
+        Get keys for a project with pagination and optional search.
         
         Args:
             db: Database session
@@ -219,6 +220,7 @@ class KeyService:
             user_id: User ID requesting the keys
             offset: Number of keys to skip
             limit: Maximum number of keys to return
+            search: Optional search query to filter keys by key name, description or translation values
             
         Returns:
             Dict with 'keys' list, 'total_count' int, or None if no access
@@ -232,15 +234,50 @@ class KeyService:
         if not ProjectService.check_project_access(db, project.id, user_id):
             return None
         
-        # Get total count
-        total_count = db.query(Key).filter(Key.project_id == project.id).count()
-        
-        # Get paginated keys with eager loading of translations
-        keys = db.query(Key).options(
-            joinedload(Key.translations)
-        ).filter(
-            Key.project_id == project.id
-        ).order_by(Key.key).offset(offset).limit(limit).all()
+        # Apply search filter if provided
+        if search and search.strip():
+            search_term = f"%{search.strip()}%"
+            # Search in key name, description, and translation values
+            from app.models.key import Translation
+            from sqlalchemy import or_
+            
+            # Build search filter conditions
+            search_filter = or_(
+                Key.key.ilike(search_term),
+                Key.description.ilike(search_term)
+            )
+            
+            # For translation search, we need a subquery to find keys with matching translations
+            translation_key_ids = db.query(Translation.key_id.distinct()).filter(
+                Translation.value.ilike(search_term)
+            ).subquery()
+            
+            # Combine filters: match by key/description OR by translation
+            base_filter = (
+                (Key.project_id == project.id) &
+                (search_filter | Key.id.in_(translation_key_ids))
+            )
+            
+            # Get total count of matching keys
+            total_count = db.query(Key).filter(base_filter).count()
+            
+            # Get paginated keys with eager loading of translations
+            keys = db.query(Key).options(
+                joinedload(Key.translations)
+            ).filter(
+                base_filter
+            ).order_by(Key.key).offset(offset).limit(limit).all()
+        else:
+            # No search - use simple query
+            # Get total count
+            total_count = db.query(Key).filter(Key.project_id == project.id).count()
+            
+            # Get paginated keys with eager loading of translations
+            keys = db.query(Key).options(
+                joinedload(Key.translations)
+            ).filter(
+                Key.project_id == project.id
+            ).order_by(Key.key).offset(offset).limit(limit).all()
         
         return {
             'keys': keys,
