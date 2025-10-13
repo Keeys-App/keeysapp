@@ -12,8 +12,7 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
 import { useBreadcrumbs } from '@/contexts';
-import { useSavingStore, useLayoutStore, useTeamStore } from '@/stores';
-import { Spinner } from '@/components/ui/spinner';
+import { useLayoutStore, useTeamStore } from '@/stores';
 import { Button } from '@/components/ui/button';
 import {
   Tooltip,
@@ -23,10 +22,10 @@ import {
 } from '@/components/ui/tooltip';
 import { PanelRightClose, PanelRightOpen } from 'lucide-react';
 import { TeamSwitcher } from '@/components/team/TeamSwitcher';
+import { SavingIndicator } from './SavingIndicator';
 
 export const Layout: FC = () => {
   const { breadcrumbs } = useBreadcrumbs();
-  const { isSaving, savingMessage } = useSavingStore();
   const { isPanelOpen, showPanelToggle, togglePanel } = useLayoutStore();
   const { selectedTeamId, setSelectedTeamId } = useTeamStore();
 
@@ -107,12 +106,7 @@ export const Layout: FC = () => {
         <div className="flex flex-1 flex-col">
           <Outlet />
         </div>
-        {isSaving ? (
-          <footer className="bg-background h-10 border-t box-border sticky z-10 bottom-0 flex shrink-0 items-center gap-2 px-4 py-2">
-            <Spinner className="h-4 w-4" />
-            <span className="text-sm text-muted-foreground">{savingMessage}</span>
-          </footer>
-        ) : null}
+        <SavingIndicator />
       </SidebarInset>
     </SidebarProvider>
   );

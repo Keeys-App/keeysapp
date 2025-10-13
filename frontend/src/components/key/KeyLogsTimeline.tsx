@@ -66,7 +66,7 @@ const actionLabels: Record<string, string> = {
   REVIEW_APPROVE: "Approved",
   REVIEW_REJECT: "Rejected",
   REVIEW_DELETE: "Review revoked",
-  
+
   // Legacy support (old action names)
   CREATE: "Created",
   UPDATE_KEY: "Key renamed",
@@ -90,7 +90,7 @@ const actionIcons: Record<string, typeof History> = {
   REVIEW_APPROVE: MessageSquareHeart,
   REVIEW_REJECT: MessageSquareX,
   REVIEW_DELETE: MessageSquareOff,
-  
+
   // Legacy support
   CREATE: Plus,
   UPDATE_KEY: Edit,
@@ -114,7 +114,7 @@ const actionColors: Record<string, string> = {
   REVIEW_APPROVE: "bg-green-500/10 text-green-600",
   REVIEW_REJECT: "bg-red-500/10 text-red-600",
   REVIEW_DELETE: "bg-gray-500/10 text-gray-600",
-  
+
   // Legacy support
   CREATE: "bg-green-500/10 text-green-600",
   UPDATE_KEY: "bg-blue-500/10 text-blue-600",
@@ -137,9 +137,12 @@ export const KeyLogsTimeline: FC<KeyLogsTimelineProps> = ({
     {
       variables: { keyId, limit },
       skip: !keyId,
-      fetchPolicy: 'cache-and-network',
+      fetchPolicy: "cache-and-network",
+      nextFetchPolicy: 'cache-first'
     }
   );
+  const logs = data?.keyLogs || [];
+  let content: React.ReactNode | null = null;
 
   // Refetch logs when keyId changes
   useEffect(() => {
@@ -149,8 +152,8 @@ export const KeyLogsTimeline: FC<KeyLogsTimelineProps> = ({
   }, [keyId, refetch]);
 
   if (loading) {
-    return (
-      <div className="space-y-6">
+    content = (
+      <div className="space-y-6 mb-2">
         {Array.from({ length: 10 }).map((_, i) => {
           return (
             <div key={i} className="flex gap-3">
@@ -164,9 +167,7 @@ export const KeyLogsTimeline: FC<KeyLogsTimelineProps> = ({
         })}
       </div>
     );
-  }
-
-  if (error) {
+  } else if (error) {
     return (
       <div className="text-center py-8">
         <AlertCircle className="w-12 h-12 mx-auto mb-3 text-destructive opacity-70" />
@@ -176,12 +177,8 @@ export const KeyLogsTimeline: FC<KeyLogsTimelineProps> = ({
         </Button>
       </div>
     );
-  }
-
-  const logs = data?.keyLogs || [];
-
-  if (logs.length === 0) {
-    return (
+  } else if (logs.length === 0) {
+    content = (
       <div className="flex items-center justify-center py-8">
         <Empty>
           <EmptyHeader>
@@ -190,21 +187,20 @@ export const KeyLogsTimeline: FC<KeyLogsTimelineProps> = ({
             </EmptyMedia>
             <EmptyTitle>No events yet</EmptyTitle>
             <EmptyDescription>
-              Here you can see all events that have happened to this key over time.
+              Here you can see all events that have happened to this key over
+              time.
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
       </div>
     );
-  }
-
-  return (
-    <Item variant="outline" className="relative pb-2 block">
-      {/* Timeline items */}
+  } else {
+    content = (
       <div className="space-y-4">
         {logs.map((log, index) => {
           const Icon = actionIcons[log.action] || History;
-          const colorClass = actionColors[log.action] || "bg-gray-500/10 text-gray-600";
+          const colorClass =
+            actionColors[log.action] || "bg-gray-500/10 text-gray-600";
           const label = actionLabels[log.action] || log.action;
           const isLast = index === logs.length - 1;
 
@@ -214,7 +210,7 @@ export const KeyLogsTimeline: FC<KeyLogsTimelineProps> = ({
               {!isLast ? (
                 <div className="absolute left-3 top-6 bottom-[-1rem] w-px bg-border" />
               ) : null}
-              
+
               {/* Icon */}
               <div
                 className={`flex-shrink-0 w-6 h-6 rounded-full ${colorClass} flex items-center justify-center z-10 relative`}
@@ -242,30 +238,38 @@ export const KeyLogsTimeline: FC<KeyLogsTimelineProps> = ({
 
                 {/* Action details */}
                 <div className="text-sm text-muted-foreground space-y-1">
-                  {(log.action === "REVIEW_APPROVE" || log.action === "REVIEW_REJECT" || log.action === "REVIEW_DELETE") ? (
+                  {log.action === "REVIEW_APPROVE" ||
+                  log.action === "REVIEW_REJECT" ||
+                  log.action === "REVIEW_DELETE" ? (
                     <>
                       {log.language ? (
                         <div className="text-xs text-muted-foreground/70 mb-1">
-                          Language: <span className="font-mono bg-muted px-1.5 py-0.5 rounded font-medium">{log.language.toUpperCase()}</span>
+                          Language:{" "}
+                          <span className="font-mono bg-muted px-1.5 py-0.5 rounded font-medium">
+                            {log.language.toUpperCase()}
+                          </span>
                         </div>
                       ) : null}
-                      {(log.newValue && log.action !== "REVIEW_DELETE") ? (
+                      {log.newValue && log.action !== "REVIEW_DELETE" ? (
                         <div className="text-sm whitespace-pre-wrap">
                           {log.newValue}
                         </div>
                       ) : null}
                     </>
-                  ) : (log.oldValue || log.newValue) ? (
-                    <InlineDiff 
-                      oldValue={log.oldValue || ''} 
-                      newValue={log.newValue || ''}
+                  ) : log.oldValue || log.newValue ? (
+                    <InlineDiff
+                      oldValue={log.oldValue || ""}
+                      newValue={log.newValue || ""}
                       language={log.language || undefined}
                     />
                   ) : null}
-                  
-                  {(!log.oldValue && !log.newValue && log.language) ? (
+
+                  {!log.oldValue && !log.newValue && log.language ? (
                     <div className="text-xs text-muted-foreground/70">
-                      Language: <span className="font-mono bg-muted px-1.5 py-0.5 rounded">{log.language}</span>
+                      Language:{" "}
+                      <span className="font-mono bg-muted px-1.5 py-0.5 rounded">
+                        {log.language}
+                      </span>
                     </div>
                   ) : null}
                 </div>
@@ -274,7 +278,12 @@ export const KeyLogsTimeline: FC<KeyLogsTimelineProps> = ({
           );
         })}
       </div>
+    );
+  }
+
+  return (
+    <Item variant="outline" className="relative pb-2 block">
+      {content}
     </Item>
   );
 };
-
