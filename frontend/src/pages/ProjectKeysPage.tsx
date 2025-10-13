@@ -30,7 +30,7 @@ export const ProjectKeysPage: FC = () => {
   });
 
   // Query for selected key data
-  const { data: keyData } = useQuery(GET_KEY, {
+  const { data: keyData, loading: keyLoading } = useQuery(GET_KEY, {
     variables: { id: selectedKeyId },
     skip: !selectedKeyId,
     fetchPolicy: 'cache-first',
@@ -152,7 +152,7 @@ export const ProjectKeysPage: FC = () => {
           projectLanguages={projectLanguages}
           projectKeysCount={project.keysCount}
           onCreateKey={handleCreateKey}
-          selectedKey={selectedKey}
+          selectedKeyId={selectedKeyId}
           onSelectKey={handleSelectKey}
           editingTranslation={editingTranslation}
           onEditingTranslationChange={setEditingTranslation}
@@ -170,6 +170,8 @@ export const ProjectKeysPage: FC = () => {
             totalKeys={project.keysCount}
             keysLoading={loading}
             selectedKey={selectedKey}
+            selectedKeyId={selectedKeyId}
+            keyLoading={keyLoading}
             projectId={project.id}
             availableTags={project.availableTags || []}
             onKeyDeleted={handleKeyDeleted}

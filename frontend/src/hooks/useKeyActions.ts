@@ -6,7 +6,7 @@ import { useSaving, useSavingStore } from "@/stores";
 import type { TranslationKey } from "@/types/translationKey";
 
 interface UseKeyActionsOptions {
-  keyData: TranslationKey;
+  keyData?: TranslationKey;
   projectId: string;
   onKeyDeleted?: () => void;
   onDeleteSuccess?: () => void;
@@ -85,6 +85,10 @@ export function useKeyActions({
    * Delete the key
    */
   const handleDelete = async () => {
+    if (!keyData) {
+      return;
+    }
+    
     await withSaving(async () => {
       await deleteKey({
         variables: {
@@ -98,6 +102,10 @@ export function useKeyActions({
    * Duplicate the key with all its translations
    */
   const handleDuplicate = async () => {
+    if (!keyData) {
+      return;
+    }
+    
     // Generate unique key name by adding _copy suffix
     let newKeyName = `${keyData.key}_copy`;
     

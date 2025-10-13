@@ -8,7 +8,8 @@ import { KeyAi } from "./KeyAi";
 import type { Language } from "@/types/project";
 
 interface KeyManagementProps {
-  selectedKey: TranslationKey;
+  selectedKey: TranslationKey | null;
+  keyLoading?: boolean;
   projectId: string;
   availableTags?: string[];
   onKeyDeleted?: () => void;
@@ -26,6 +27,7 @@ const ACTIVE_TAB_STORAGE_KEY = "keyManagementActiveTab";
  */
 export const KeyManagement: FC<KeyManagementProps> = ({
   selectedKey,
+  keyLoading = false,
   projectId,
   availableTags = [],
   onKeyDeleted,
@@ -61,6 +63,7 @@ export const KeyManagement: FC<KeyManagementProps> = ({
       <TabsContent value="ai" className="flex-1 overflow-auto">
         <KeyAi
           currentKey={selectedKey}
+          isLoading={keyLoading}
           currentLanguage={currentLanguage}
           currentLanguageValue={currentLanguageValue}
           defaultLanguage={defaultLanguage}
@@ -69,11 +72,11 @@ export const KeyManagement: FC<KeyManagementProps> = ({
       </TabsContent>
 
       <TabsContent value="history" className="flex-1 overflow-auto">
-        <KeyLogsTimeline keyId={selectedKey.id} />
+        <KeyLogsTimeline keyId={selectedKey?.id} isLoading={keyLoading} />
       </TabsContent>
 
       <TabsContent value="meta" className="flex-1 overflow-auto">
-        <KeyMetadata selectedKey={selectedKey} availableTags={availableTags} />
+        <KeyMetadata selectedKey={selectedKey} availableTags={availableTags} isLoading={keyLoading} />
       </TabsContent>
 
       <TabsContent value="settings" className="flex-1 overflow-auto">
@@ -81,6 +84,7 @@ export const KeyManagement: FC<KeyManagementProps> = ({
           selectedKey={selectedKey}
           projectId={projectId}
           onKeyDeleted={onKeyDeleted}
+          isLoading={keyLoading}
         />
       </TabsContent>
     </Tabs>

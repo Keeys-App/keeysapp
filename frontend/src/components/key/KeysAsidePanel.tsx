@@ -8,6 +8,8 @@ interface KeysAsidePanelProps {
   totalKeys: number;
   keysLoading: boolean;
   selectedKey: TranslationKey | null;
+  selectedKeyId?: string | null;
+  keyLoading?: boolean;
   projectId: string;
   availableTags?: string[];
   onKeyDeleted?: () => void;
@@ -24,6 +26,8 @@ export const KeysAsidePanel: FC<KeysAsidePanelProps> = ({
   totalKeys,
   keysLoading,
   selectedKey,
+  selectedKeyId,
+  keyLoading = false,
   projectId,
   availableTags = [],
   onKeyDeleted,
@@ -35,11 +39,12 @@ export const KeysAsidePanel: FC<KeysAsidePanelProps> = ({
   let content: React.ReactNode | null = null;
   let title = "Suggestions";
 
-  if (selectedKey && totalKeys > 0) {
+  if (selectedKeyId && totalKeys > 0) {
     title = "Key Management";
     content = (
       <KeyManagement
         selectedKey={selectedKey}
+        keyLoading={keyLoading}
         projectId={projectId}
         availableTags={availableTags}
         onKeyDeleted={onKeyDeleted}
@@ -49,9 +54,7 @@ export const KeysAsidePanel: FC<KeysAsidePanelProps> = ({
         defaultLanguageValue={defaultLanguageValue}
       />
     );
-  }
-
-  if (!selectedKey && totalKeys > 0) {
+  } else if (!selectedKeyId && totalKeys > 0) {
     content = (
       <AutopilotCard
         title="Tip"

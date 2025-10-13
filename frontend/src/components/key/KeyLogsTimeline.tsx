@@ -49,7 +49,8 @@ interface KeyLog {
 }
 
 interface KeyLogsTimelineProps {
-  keyId: string;
+  keyId?: string;
+  isLoading?: boolean;
   limit?: number;
 }
 
@@ -130,6 +131,7 @@ const actionColors: Record<string, string> = {
  */
 export const KeyLogsTimeline: FC<KeyLogsTimelineProps> = ({
   keyId,
+  isLoading = false,
   limit = 50,
 }) => {
   const { data, loading, error, refetch } = useQuery<{ keyLogs: KeyLog[] }>(

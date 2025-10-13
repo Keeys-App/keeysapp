@@ -19,7 +19,7 @@ interface KeyListProps {
   projectLanguages: (Language | LanguageWithLocale)[];
   projectKeysCount: number;
   onCreateKey: () => void;
-  selectedKey?: TranslationKey | null;
+  selectedKeyId?: string | null;
   onSelectKey?: (key: TranslationKey) => void;
   editingTranslation?: {
     keyId: string;
@@ -38,7 +38,7 @@ export function KeyList({
   projectLanguages,
   projectKeysCount,
   onCreateKey,
-  selectedKey,
+  selectedKeyId,
   onSelectKey,
   editingTranslation = null,
   onEditingTranslationChange,
@@ -324,7 +324,7 @@ export function KeyList({
                       keyData={key}
                       projectId={projectId}
                       projectLanguages={projectLanguages}
-                      isSelected={selectedKey?.id === key.id}
+                      isSelected={selectedKeyId === key.id}
                       onSelect={onSelectKey}
                       editingLanguage={
                         editingTranslation?.keyId === key.id

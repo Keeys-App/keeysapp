@@ -11,7 +11,8 @@ import { TagsEditor } from "./TagsEditor";
 import { Item } from "../ui/item";
 
 interface KeyMetadataProps {
-  selectedKey: TranslationKey;
+  selectedKey: TranslationKey | null;
+  isLoading?: boolean;
   availableTags?: string[];
 }
 
@@ -20,6 +21,7 @@ interface KeyMetadataProps {
  */
 export const KeyMetadata: FC<KeyMetadataProps> = ({
   selectedKey,
+  isLoading = false,
   availableTags = [],
 }) => {
   const [description, setDescription] = useState("");
@@ -33,14 +35,17 @@ export const KeyMetadata: FC<KeyMetadataProps> = ({
   const lastProcessedDataRef = useRef<any>(null);
 
   const [updateKey, { data, error }] = useMutation(UPDATE_KEY, {
-    refetchQueries: [
+    refetchQueries: selectedKey ? [
       {
         query: GET_KEY_LOGS,
         variables: { keyId: selectedKey.id, limit: 50 },
       },
-    ],
+    ] : [],
     awaitRefetchQueries: true,
     update(cache) {
+      if (!selectedKey) {
+        return;
+      }
       // Invalidate key logs cache to force refetch
       cache.evict({
         id: "ROOT_QUERY",
@@ -55,6 +60,9 @@ export const KeyMetadata: FC<KeyMetadataProps> = ({
 
   // Update local state when selected key changes
   useEffect(() => {
+    if (!selectedKey) {
+      return;
+    }
     const desc = selectedKey.description || "";
     const key = selectedKey.key;
     const keyTags = selectedKey.tags || [];
@@ -105,6 +113,10 @@ export const KeyMetadata: FC<KeyMetadataProps> = ({
   }, [error]);
 
   const handleSaveChanges = async () => {
+    if (!selectedKey) {
+      return;
+    }
+    
     if (!keyName.trim()) {
       toast("Key name cannot be empty");
       return;

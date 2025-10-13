@@ -65,7 +65,8 @@ type Widget =
   | VariantsWidget;
 
 interface KeyAiProps {
-  currentKey: TranslationKey;
+  currentKey: TranslationKey | null;
+  isLoading?: boolean;
   currentLanguage?: Language | null;
   currentLanguageValue?: string;
   defaultLanguage?: Language | null;
@@ -78,6 +79,7 @@ interface KeyAiProps {
  */
 export const KeyAi: FC<KeyAiProps> = ({
   currentKey,
+  isLoading = false,
   currentLanguage,
   currentLanguageValue,
   defaultLanguage,
@@ -139,12 +141,12 @@ export const KeyAi: FC<KeyAiProps> = ({
 
   // Auto-populate context from key description when key changes
   useEffect(() => {
-    if (currentKey.description) {
+    if (currentKey?.description) {
       setCustomContext(currentKey.description);
     } else {
       setCustomContext("");
     }
-  }, [currentKey.id]);
+  }, [currentKey?.id]);
 
   const handleTranslate = async () => {
     if (!defaultLanguageValue || !currentLanguage || !defaultLanguage) {
@@ -460,7 +462,7 @@ export const KeyAi: FC<KeyAiProps> = ({
         setWidgets((prev) => [...prev, contextWidget]);
       }
     }
-  }, [currentKey.id]);
+  }, [currentKey?.id]);
 
   let card: React.ReactNode | null = null;
 

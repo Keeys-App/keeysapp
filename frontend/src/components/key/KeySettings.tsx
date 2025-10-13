@@ -8,7 +8,8 @@ import { useKeyActions } from "@/hooks/useKeyActions";
 import { DeleteKeyDialog } from "./DeleteKeyDialog";
 
 interface KeySettingsProps {
-  selectedKey: TranslationKey;
+  selectedKey: TranslationKey | null;
+  isLoading?: boolean;
   projectId: string;
   onKeyDeleted?: () => void;
 }
@@ -18,6 +19,7 @@ interface KeySettingsProps {
  */
 export const KeySettings: FC<KeySettingsProps> = ({
   selectedKey,
+  isLoading = false,
   projectId,
   onKeyDeleted,
 }) => {
@@ -25,7 +27,7 @@ export const KeySettings: FC<KeySettingsProps> = ({
   const { isSaving } = useSavingStore();
   
   const { isDeleting, handleDelete } = useKeyActions({
-    keyData: selectedKey,
+    keyData: selectedKey || undefined,
     projectId,
     onKeyDeleted,
     onDeleteSuccess: () => setIsDeleteDialogOpen(false),
@@ -34,6 +36,10 @@ export const KeySettings: FC<KeySettingsProps> = ({
   const handleDeleteClick = () => {
     setIsDeleteDialogOpen(true);
   };
+
+  if (!selectedKey) {
+    return null;
+  }
 
   return (
     <Item variant="outline">
