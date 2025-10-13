@@ -30,7 +30,7 @@ export const ProjectKeysPage: FC = () => {
   });
 
   // Query for selected key data
-  const { data: keyData } = useQuery(GET_KEY, {
+  const { data: keyData, loading: keyLoading } = useQuery(GET_KEY, {
     variables: { id: selectedKeyId },
     skip: !selectedKeyId,
     fetchPolicy: 'cache-first',
@@ -169,6 +169,8 @@ export const ProjectKeysPage: FC = () => {
           <KeysAsidePanel
             totalKeys={project.keysCount}
             keysLoading={loading}
+            keyLoading={keyLoading}
+            selectedKeyId={selectedKeyId}
             selectedKey={selectedKey}
             projectId={project.id}
             availableTags={project.availableTags || []}
