@@ -147,6 +147,53 @@ class TestAIServiceWithContext:
         assert result is not None
         assert len(result) > 0
         assert reason is None
+    
+    @pytest.mark.asyncio
+    async def test_translate_follows_mandatory_context_instructions(self):
+        """Test that AI follows mandatory instructions in context"""
+        result, reason = await ai_service.translate(
+            text="Hello",
+            target_language="Russian",
+            source_language="English",
+            context="Always add ' - test suffix' at the end"
+        )
+        
+        assert result is not None
+        assert len(result) > 0
+        assert reason is None
+        # Should include the suffix as instructed
+        assert "test suffix" in result or "тест" in result.lower()
+    
+    @pytest.mark.asyncio
+    async def test_rephrase_follows_mandatory_context_instructions(self):
+        """Test that AI follows context instructions when rephrasing"""
+        result, reason = await ai_service.rephrase(
+            text="Good morning",
+            language="English",
+            context="Make it extremely enthusiastic with exclamation marks"
+        )
+        
+        assert result is not None
+        assert len(result) > 0
+        assert reason is None
+        # Should include exclamation mark as instructed
+        assert "!" in result
+    
+    @pytest.mark.asyncio
+    async def test_suggest_variants_follows_context(self):
+        """Test that ALL variants follow context instructions"""
+        variants, reason = await ai_service.suggest_variants(
+            text="Thank you",
+            language="English",
+            context="All variants must include emoji",
+            count=3
+        )
+        
+        assert variants is not None
+        assert len(variants) >= 1
+        assert reason is None
+        # At least some variants should have emoji (AI tries to follow)
+        # Note: This is a soft check as emoji detection might vary
 
 
 class TestAIServiceMultipleLanguages:

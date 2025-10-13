@@ -70,8 +70,9 @@ class AIService:
             
             if context:
                 prompt_parts.append(
-                    f"\nIMPORTANT CONTEXT: {context}\n"
-                    "Please take this context into account when translating."
+                    f"\n🔴 MANDATORY CONTEXT - YOU MUST FOLLOW THESE INSTRUCTIONS EXACTLY:\n{context}\n"
+                    "This context contains REQUIRED instructions that you MUST apply to your translation.\n"
+                    "If the context says to add/modify/format something specific, you MUST do it."
                 )
             
             prompt_parts.append(
@@ -107,10 +108,15 @@ class AIService:
                 "- ONLY translate the text inside one {...} and other {...} blocks\n"
                 "- PRESERVE all variables inside these blocks like {user}, {removedTypes}, etc.\n"
                 "- Example: {count, plural, one {{user} added item} other {{user} added items}}\n"
-                "  Should translate text but keep structure and variables intact"
+                "  Should translate text but keep structure and variables intact\n\n"
+                "Context Handling:\n"
+                "- If context is provided, it contains MANDATORY instructions you MUST follow\n"
+                "- Context may include: formatting rules, required additions, specific style requirements\n"
+                "- ALWAYS apply context instructions exactly as specified\n"
+                "- Context instructions override general translation rules"
             )
             if context:
-                system_content += f"\n- Context for translation: {context}"
+                system_content += f"\n\n⚠️ CRITICAL: User provided mandatory context:\n{context}\nYou MUST follow these instructions in your translation."
             
             response = await self.client.chat.completions.create(
                 model=settings.openai_text_model,
@@ -176,8 +182,9 @@ class AIService:
             
             if context:
                 prompt_parts.append(
-                    f"\nIMPORTANT CONTEXT: {context}\n"
-                    "Please take this context into account when rephrasing."
+                    f"\n🔴 MANDATORY CONTEXT - YOU MUST FOLLOW THESE INSTRUCTIONS EXACTLY:\n{context}\n"
+                    "This context contains REQUIRED instructions that you MUST apply to your rephrasing.\n"
+                    "If the context says to add/modify/format something specific, you MUST do it."
                 )
             
             prompt_parts.append(
@@ -210,10 +217,15 @@ class AIService:
                 "ICU MessageFormat Support:\n"
                 "- Text may contain ICU MessageFormat syntax: {count, plural, one {...} other {...}}\n"
                 "- PRESERVE the entire structure when rephrasing\n"
-                "- Only rephrase the actual text inside the blocks, keep all variables and structure intact"
+                "- Only rephrase the actual text inside the blocks, keep all variables and structure intact\n\n"
+                "Context Handling:\n"
+                "- If context is provided, it contains MANDATORY instructions you MUST follow\n"
+                "- Context may include: formatting rules, required additions, specific style requirements\n"
+                "- ALWAYS apply context instructions exactly as specified\n"
+                "- Context instructions override general rephrasing rules"
             )
             if context:
-                system_content += f"\n- Context for rephrasing: {context}"
+                system_content += f"\n\n⚠️ CRITICAL: User provided mandatory context:\n{context}\nYou MUST follow these instructions in your rephrasing."
             
             response = await self.client.chat.completions.create(
                 model=settings.openai_text_model,
@@ -279,8 +291,9 @@ class AIService:
             
             if context:
                 prompt_parts.append(
-                    f"\nIMPORTANT CONTEXT: {context}\n"
-                    "Please take this context into account when shortening."
+                    f"\n🔴 MANDATORY CONTEXT - YOU MUST FOLLOW THESE INSTRUCTIONS EXACTLY:\n{context}\n"
+                    "This context contains REQUIRED instructions that you MUST apply to your shortened version.\n"
+                    "If the context says to add/modify/format something specific, you MUST do it."
                 )
             
             prompt_parts.append(
@@ -314,10 +327,15 @@ class AIService:
                 "ICU MessageFormat Support:\n"
                 "- Text may contain ICU MessageFormat syntax: {count, plural, one {...} other {...}}\n"
                 "- PRESERVE the entire structure when shortening\n"
-                "- Only shorten the actual text inside the blocks, keep all variables and structure intact"
+                "- Only shorten the actual text inside the blocks, keep all variables and structure intact\n\n"
+                "Context Handling:\n"
+                "- If context is provided, it contains MANDATORY instructions you MUST follow\n"
+                "- Context may include: formatting rules, required additions, specific style requirements\n"
+                "- ALWAYS apply context instructions exactly as specified\n"
+                "- Context instructions override general shortening rules"
             )
             if context:
-                system_content += f"\n- Context for shortening: {context}"
+                system_content += f"\n\n⚠️ CRITICAL: User provided mandatory context:\n{context}\nYou MUST follow these instructions in your shortened version."
             
             response = await self.client.chat.completions.create(
                 model=settings.openai_text_model,
@@ -385,8 +403,9 @@ class AIService:
             
             if context:
                 prompt_parts.append(
-                    f"\nIMPORTANT CONTEXT: {context}\n"
-                    "Please ensure all variants are appropriate for this context."
+                    f"\n🔴 MANDATORY CONTEXT - YOU MUST FOLLOW THESE INSTRUCTIONS EXACTLY:\n{context}\n"
+                    "This context contains REQUIRED instructions that you MUST apply to ALL variants.\n"
+                    "If the context says to add/modify/format something specific, you MUST do it in EVERY variant."
                 )
             
             prompt_parts.append(
@@ -419,10 +438,15 @@ class AIService:
                 "ICU MessageFormat Support:\n"
                 "- Text may contain ICU MessageFormat syntax: {count, plural, one {...} other {...}}\n"
                 "- PRESERVE the entire structure in all variants\n"
-                "- Only vary the actual text inside the blocks, keep all variables and structure intact"
+                "- Only vary the actual text inside the blocks, keep all variables and structure intact\n\n"
+                "Context Handling:\n"
+                "- If context is provided, it contains MANDATORY instructions you MUST follow\n"
+                "- Context may include: formatting rules, required additions, specific style requirements\n"
+                "- ALWAYS apply context instructions exactly as specified in ALL variants\n"
+                "- Context instructions override general variant generation rules"
             )
             if context:
-                system_content += f"\n- Context for variants: {context}"
+                system_content += f"\n\n⚠️ CRITICAL: User provided mandatory context:\n{context}\nYou MUST follow these instructions in ALL variants you generate."
             
             response = await self.client.chat.completions.create(
                 model=settings.openai_text_model,
