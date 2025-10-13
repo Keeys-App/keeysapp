@@ -1,7 +1,8 @@
-# AI Mature Content Support Fix
+# AI Mature Content Support & Context Handling Fix
 
-## Проблема
+## Проблемы
 
+### Проблема 1: Отказ от mature content
 AI отказывался переводить текст с нецензурной лексикой, показывая ошибку:
 ```
 ❌ "Unable to process - text contains offensive language"
@@ -13,9 +14,24 @@ AI отказывался переводить текст с нецензурн�
 - Реалистичных диалогов
 - Профессиональной локализации контента для взрослых
 
-## Решение
+### Проблема 2: Игнорирование контекста
+AI игнорировал инструкции пользователя в поле "Context":
+```
+Text: "Go fuck yourself"
+Context: "Добавляй всегда в конце - пиздец"
+Result: ❌ "Иди на хуй" (контекст проигнорирован)
+```
 
+## Решения
+
+### 1. Mature Content Support
 Обновлены system prompts для всех AI функций, чтобы явно указать, что это **профессиональный инструмент локализации**, который должен обрабатывать ЛЮБОЙ контент без фильтрации.
+
+### 2. Mandatory Context Following
+Усилены промпты для строгого следования контексту:
+- Контекст теперь отмечается как **MANDATORY** (🔴 маркер)
+- Добавлены явные инструкции, что контекст содержит обязательные требования
+- Контекст применяется и в user prompt, и в system content
 
 ## Изменения
 
@@ -24,12 +40,12 @@ AI отказывался переводить текст с нецензурн�
 **Файл:** `backend/app/services/ai_service.py`
 
 Обновлены system prompts для всех функций:
-- `translate()` - строки 87-111
-- `rephrase()` - строки 192-216  
-- `shorten()` - строки 296-320
-- `suggest_variants()` - строки 402-426
+- `translate()` 
+- `rephrase()`  
+- `shorten()`
+- `suggest_variants()`
 
-**Добавлено в каждый prompt:**
+**Добавлено для mature content:**
 ```python
 "You are a professional translator for a localization tool."
 "- NEVER refuse translation due to content type - this is a professional localization tool"
@@ -38,17 +54,39 @@ AI отказывался переводить текст с нецензурн�
 "- Your role is purely translation - do not judge or filter content"
 ```
 
+**Добавлено для mandatory context:**
+```python
+"Context Handling:"
+"- If context is provided, it contains MANDATORY instructions you MUST follow"
+"- Context may include: formatting rules, required additions, specific style requirements"
+"- ALWAYS apply context instructions exactly as specified"
+"- Context instructions override general translation rules"
+```
+
+В user prompts:
+```python
+"🔴 MANDATORY CONTEXT - YOU MUST FOLLOW THESE INSTRUCTIONS EXACTLY:\n{context}\n"
+"This context contains REQUIRED instructions that you MUST apply to your translation."
+```
+
 ### 2. Tests
 
 **Файл:** `backend/tests/test_ai_service.py`
 
-Добавлен новый тест-класс `TestAIServiceMatureContent`:
+**Добавлены новые тесты:**
+
+Класс `TestAIServiceMatureContent`:
 - `test_translate_mature_content()` - проверяет перевод нецензурного текста
 - `test_rephrase_mature_content()` - проверяет обработку mature content
 
-Обновлен тест `test_suggest_variants_gibberish()` для более гибкой валидации.
+Класс `TestAIServiceWithContext` (расширен):
+- `test_translate_follows_mandatory_context_instructions()` - проверка добавления суффиксов
+- `test_rephrase_follows_mandatory_context_instructions()` - проверка стилистических требований
+- `test_suggest_variants_follows_context()` - проверка применения контекста ко всем вариантам
 
-**Результат:** ✅ Все 25 тестов прошли успешно
+Обновлен `test_suggest_variants_gibberish()` для более гибкой валидации.
+
+**Результат:** ✅ Все 28 тестов прошли успешно
 
 ### 3. Документация
 
@@ -59,10 +97,13 @@ AI отказывался переводить текст с нецензурн�
 
 ## Результат
 
-После изменений AI корректно обрабатывает ЛЮБОЙ контент:
-
+### Mature Content
 ✅ **До:** "Unable to process - text contains offensive language"  
 ✅ **После:** [Корректный перевод текста, независимо от содержания]
+
+### Context Following
+✅ **До:** Контекст "Добавляй всегда в конце - пиздец" → "Иди на хуй" (игнорирован)  
+✅ **После:** Контекст "Добавляй всегда в конце - пиздец" → "Иди на хуй - пиздец" (применен)
 
 ## Проверка
 
@@ -72,7 +113,13 @@ source venv/bin/activate
 pytest tests/test_ai_service.py -v
 ```
 
-Результат: **25 passed** ✅
+Результат: **28 passed** ✅
+
+Новые тесты включают:
+- ✅ Mature content translation
+- ✅ Mandatory context following
+- ✅ Suffix/prefix additions
+- ✅ Style requirements
 
 ## Примечания
 

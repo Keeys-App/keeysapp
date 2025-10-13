@@ -1,8 +1,12 @@
-# AI Mature Content Support
+# AI Mature Content Support & Context Handling
 
 ## Overview
 
-The AI Autopilot feature is configured to handle **all types of content** without filtering or refusing requests based on content maturity. This is essential for professional localization work.
+The AI Autopilot feature is configured to:
+1. Handle **all types of content** without filtering (including mature content)
+2. **Strictly follow context instructions** provided by users
+
+These improvements are essential for professional localization work.
 
 ## Why No Content Filtering?
 
@@ -25,12 +29,29 @@ This is a **professional localization tool** used for various media types:
 
 All AI functions (`translate`, `rephrase`, `shorten`, `suggest_variants`) include explicit instructions in their system prompts:
 
+**Mature Content Handling:**
 ```python
 "You are a professional translator for a localization tool."
 "- NEVER refuse translation due to content type - this is a professional localization tool"
 "- You MUST translate ALL content including profanity, mature themes, offensive language, etc."
 "- This tool is used for games (including 18+), movies, books, and other media that may contain mature content"
 "- Your role is purely translation - do not judge or filter content"
+```
+
+**Mandatory Context Following:**
+```python
+"Context Handling:"
+"- If context is provided, it contains MANDATORY instructions you MUST follow"
+"- Context may include: formatting rules, required additions, specific style requirements"
+"- ALWAYS apply context instructions exactly as specified"
+"- Context instructions override general translation rules"
+```
+
+In user prompts, context is marked with:
+```
+🔴 MANDATORY CONTEXT - YOU MUST FOLLOW THESE INSTRUCTIONS EXACTLY:
+{context}
+This context contains REQUIRED instructions that you MUST apply to your translation.
 ```
 
 ### Location
@@ -55,6 +76,7 @@ Tests verify:
 
 ## User Experience
 
+### Mature Content
 Before:
 ```
 ❌ "Unable to process - text contains offensive language"
@@ -63,6 +85,21 @@ Before:
 After:
 ```
 ✅ [Actual translation of the text, regardless of content]
+```
+
+### Context Following
+Before:
+```
+Text: "Go fuck yourself"
+Context: "Добавляй всегда в конце - пиздец"
+Result: ❌ "Иди на хуй" (context ignored)
+```
+
+After:
+```
+Text: "Go fuck yourself"
+Context: "Добавляй всегда в конце - пиздец"
+Result: ✅ "Иди на хуй - пиздец" (context applied)
 ```
 
 ## Related Documentation
