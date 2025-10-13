@@ -2,7 +2,6 @@ import { Search, X } from "lucide-react";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "../ui/input-group";
 import { useKeysSearchStore } from "@/stores";
 import { useState, useEffect, type FC, type ChangeEvent } from "react";
-import { cn } from "@/lib/utils";
 import { Spinner } from "../ui/spinner";
 
 interface KeysSearchProps {
@@ -14,6 +13,13 @@ export const KeysSearch: FC<KeysSearchProps> = ({ resultsCount, isLoading = fals
   const { search, setSearch, clearSearch } = useKeysSearchStore();
   const [localValue, setLocalValue] = useState(search);
   const [isTyping, setIsTyping] = useState(false);
+
+  // Clear search on component unmount
+  useEffect(() => {
+    return () => {
+      clearSearch();
+    };
+  }, [clearSearch]);
 
   // Sync local value with store
   useEffect(() => {

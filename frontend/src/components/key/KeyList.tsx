@@ -45,6 +45,9 @@ export function KeyList({
   const [, forceUpdate] = useState({});
   const keysMapRef = useRef<Map<number, TranslationKey>>(new Map());
   const { search } = useKeysSearchStore();
+  const previousSearchRef = useRef<string | undefined>(search);
+  const previousKeysRef = useRef<(TranslationKey | undefined)[]>([]);
+  const previousTotalCountRef = useRef<number>(0);
 
   const { data, loading, error, fetchMore } = useQuery(GET_PROJECT_KEYS, {
     variables: { 
@@ -65,28 +68,69 @@ export function KeyList({
   const initialKeys: TranslationKey[] = data?.projectKeys?.keys || [];
   const totalCount = data?.projectKeys?.totalCount || 0;
 
-  // Clear cache when project or search changes
+  // Clear cache only when project changes
   useEffect(() => {
     keysMapRef.current.clear();
     setLoadingRanges(new Set());
-  }, [projectId, search]);
+    previousKeysRef.current = [];
+    previousTotalCountRef.current = 0;
+  }, [projectId]);
 
+  // Detect if search query changed
+  const searchChanged = previousSearchRef.current !== search;
+  
   // Update keys map with initial data and force re-render
   useEffect(() => {
-    if (initialKeys.length > 0) {
+    // If search changed and we got new data, clear the map and update previousSearchRef
+    if (searchChanged && !loading) {
+      keysMapRef.current.clear();
+      setLoadingRanges(new Set());
+      previousSearchRef.current = search;
+      
+      // Update map with new data
       initialKeys.forEach((key, index) => {
         keysMapRef.current.set(index, key);
       });
+      
+      // Save current state as previous
+      const currentKeys = Array.from(
+        { length: totalCount },
+        (_, index) => keysMapRef.current.get(index)
+      );
+      previousKeysRef.current = currentKeys;
+      previousTotalCountRef.current = totalCount;
+      
+      // Force re-render to show the loaded keys
+      forceUpdate(() => ({}));
+    } else if (!searchChanged && initialKeys.length > 0) {
+      // Same search, just update with new data
+      initialKeys.forEach((key, index) => {
+        keysMapRef.current.set(index, key);
+      });
+      
+      // Save current state as previous
+      const currentKeys = Array.from(
+        { length: totalCount },
+        (_, index) => keysMapRef.current.get(index)
+      );
+      previousKeysRef.current = currentKeys;
+      previousTotalCountRef.current = totalCount;
+      
       // Force re-render to show the loaded keys
       forceUpdate(() => ({}));
     }
-  }, [initialKeys]);
+  }, [initialKeys, totalCount, loading, search, searchChanged]);
 
   // Convert map to array for rendering
-  const keys: (TranslationKey | undefined)[] = Array.from(
-    { length: totalCount },
-    (_, index) => keysMapRef.current.get(index)
-  );
+  // Show previous results while loading new search
+  const isSearching = searchChanged && loading;
+  const keys: (TranslationKey | undefined)[] = isSearching 
+    ? previousKeysRef.current
+    : Array.from(
+        { length: totalCount },
+        (_, index) => keysMapRef.current.get(index)
+      );
+  const displayTotalCount = isSearching ? previousTotalCountRef.current : totalCount;
 
   // Load specific range of keys
   const loadKeysRange = useCallback(async (startIndex: number) => {
@@ -103,7 +147,7 @@ export function KeyList({
       (_, i) => keysMapRef.current.has(pageOffset + i)
     ).every(Boolean);
 
-    if (rangeLoaded && pageOffset + PAGE_SIZE <= totalCount) {
+    if (rangeLoaded && pageOffset + PAGE_SIZE <= displayTotalCount) {
       return;
     }
 
@@ -141,7 +185,7 @@ export function KeyList({
         return next;
       });
     }
-  }, [fetchMore, totalCount, loadingRanges, search]);
+  }, [fetchMore, displayTotalCount, loadingRanges, search]);
 
   // Calculate estimated size based on number of languages
   // Each language row is approximately 60px, plus some padding
@@ -149,9 +193,9 @@ export function KeyList({
     return projectLanguages.length * 60 + 40;
   };
 
-  // Use totalCount for virtualizer to show correct scrollbar proportions
+  // Use displayTotalCount for virtualizer to show correct scrollbar proportions
   const virtualizer = useVirtualizer({
-    count: totalCount || keys.length,
+    count: displayTotalCount || keys.length,
     getScrollElement: () => parentRef.current,
     estimateSize,
     overscan: 5,
@@ -166,7 +210,7 @@ export function KeyList({
   const virtualItems = virtualizer.getVirtualItems();
   
   useEffect(() => {
-    if (!virtualItems.length || loading || !totalCount) {
+    if (!virtualItems.length || loading || !displayTotalCount) {
       return;
     }
 
@@ -184,7 +228,7 @@ export function KeyList({
     // Also preload adjacent pages for smooth scrolling
     const preloadCount = PAGE_SIZE;
     const preloadBefore = Math.max(0, minIndex - preloadCount);
-    const preloadAfter = Math.min(totalCount - 1, maxIndex + preloadCount);
+    const preloadAfter = Math.min(displayTotalCount - 1, maxIndex + preloadCount);
 
     const allIndicesToCheck = [
       ...Array.from({ length: minIndex - preloadBefore }, (_, i) => preloadBefore + i),
@@ -203,7 +247,7 @@ export function KeyList({
     pagesToLoad.forEach(pageOffset => {
       loadKeysRange(pageOffset);
     });
-  }, [virtualItems, loading, totalCount, loadKeysRange]);
+  }, [virtualItems, loading, displayTotalCount, loadKeysRange]);
 
   if (error) {
     const errorMessage = getUserFriendlyErrorMessage(
@@ -218,7 +262,7 @@ export function KeyList({
 
   return (
     <div className="flex flex-col h-full">
-      <KeyControls projectId={projectId} onCreateKey={onCreateKey} totalCount={totalCount} isSearching={loading} />
+      <KeyControls projectId={projectId} onCreateKey={onCreateKey} totalCount={displayTotalCount} isSearching={loading} />
       {isInitialLoading ? (
         <div className="flex-1 overflow-auto">
           <KeySkeleton languagesCount={projectLanguages.length || 5} />
@@ -300,7 +344,7 @@ export function KeyList({
           {/* Custom scrollbar */}
           <CustomScrollbar
             scrollContainerRef={parentRef}
-            totalItems={totalCount}
+            totalItems={displayTotalCount}
             totalHeight={virtualizer.getTotalSize()}
           />
         </div>
