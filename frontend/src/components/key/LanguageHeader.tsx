@@ -37,21 +37,20 @@ export const LanguageHeader = memo(function LanguageHeader({
         <div className="text-muted-foreground text-xs">
           {"locale" in language ? language.locale : language.code}
         </div>
-        <div
-          className={cn(
-            "relative top-[5px] right-[-3px] transition-opacity",
-            isReviewOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+        <div className="relative top-[1px] right-[-3px] h-5">
+          {hasTranslation && (
+            <div
+              className={isReviewOpen ? "block" : "hidden group-hover:block"}
+            >
+              <ReviewStatusButton
+                keyId={keyId}
+                language={language.code}
+                reviewStatus={translation?.reviewStatus || "NOT_REVIEWED"}
+                projectId={projectId}
+                onOpenChange={setIsReviewOpen}
+              />
+            </div>
           )}
-        >
-          {hasTranslation ? (
-            <ReviewStatusButton
-              keyId={keyId}
-              language={language.code}
-              reviewStatus={translation?.reviewStatus || "NOT_REVIEWED"}
-              projectId={projectId}
-              onOpenChange={setIsReviewOpen}
-            />
-          ) : null}
         </div>
       </div>
     </div>
