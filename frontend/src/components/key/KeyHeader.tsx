@@ -63,7 +63,7 @@ export function KeyHeader({ keyName, isSelected, keyData, projectId, onKeyDelete
           {keyName}
         </div>
         <div className="mt-3 mb-2 h-6">
-          <div className="group-hover/key:flex gap-2 hidden">
+          <div className={cn("group-hover/key:flex gap-2 hidden", isSelected && "flex")}>
             <Button 
               tooltip="Delete key" 
               Icon={Trash2} 
