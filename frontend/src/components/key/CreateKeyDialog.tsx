@@ -128,9 +128,7 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
   // Check if form is valid and ready to submit
   const isFormValid =
     key.trim() !== "" &&
-    !isDuplicate &&
-    !checkingKey &&
-    key.trim() === lastCheckedKey; // Ensure current key has been checked
+    !isDuplicate; // Ensure current key has been checked
 
   const [createKey, { data: createKeyData, error: createKeyError }] = useMutation(CREATE_KEY, {
     update(cache, { data }) {
