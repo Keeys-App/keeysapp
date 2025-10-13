@@ -49,7 +49,7 @@ export const SavingIndicator: FC = () => {
   return (
     <footer 
       className={cn(
-        'bg-background h-10 border-t box-border sticky z-10 bottom-0 flex shrink-0 items-center gap-2 px-4 py-2',
+        'bg-background h-12 border-t box-border sticky z-10 bottom-0 flex shrink-0 items-center gap-2 px-4 py-4',
         'transition-all duration-300 ease-in-out',
         isFooterVisible 
           ? 'opacity-100 translate-y-0' 
