@@ -108,7 +108,7 @@ export const TeamSwitcher: FC<TeamSwitcherProps> = ({
           role="combobox"
           aria-expanded={open}
           aria-label="Select a team"
-          className="h-8 px-2 rounded-md cursor-pointer flex items-center justify-between text-sm gap-2 mr-2 hover:bg-accent/50"
+          className="h-8 px-2 border rounded-md cursor-pointer flex items-center justify-between text-sm gap-2 hover:bg-accent/50"
         >
           <div className="flex items-center gap-2 overflow-hidden">
             <span className="truncate">
