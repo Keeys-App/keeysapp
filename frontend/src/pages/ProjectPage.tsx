@@ -382,10 +382,10 @@ export const ProjectPage: FC = () => {
             </div>
 
             {/* Members */}
-            {project.members && project.members.length > 0 ? (
+            {project.accessMembers && project.accessMembers.length > 0 ? (
               <>
                 <Separator />
-                {project.members.map((member) => (
+                {project.accessMembers.map((member) => (
                   <div key={member.user.id} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Avatar>

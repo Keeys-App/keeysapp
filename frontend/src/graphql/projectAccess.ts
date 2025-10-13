@@ -1,4 +1,4 @@
-import { gql } from 'graphql-request';
+import { gql } from '@apollo/client';
 
 // Mutation to grant project access
 export const GRANT_PROJECT_ACCESS = gql`

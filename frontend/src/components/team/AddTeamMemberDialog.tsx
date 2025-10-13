@@ -1,4 +1,4 @@
-import { FC, useState } from 'react';
+import { useState, type FC } from 'react';
 import { useMutation } from '@apollo/client';
 import { toast } from 'sonner';
 import {
