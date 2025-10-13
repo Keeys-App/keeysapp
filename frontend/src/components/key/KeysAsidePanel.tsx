@@ -66,7 +66,7 @@ export const KeysAsidePanel: FC<KeysAsidePanelProps> = ({
       <AutopilotCard
         title="Tip"
         isDisabled
-        description="Looks like you haven’t added any translation keys yet. Create one or import existing translations to begin."
+        description="No translation keys yet. Create one or import existing translations."
       />
     );
   }
