@@ -187,7 +187,7 @@ def get_current_user_id(info: Info) -> Optional[int]:
         return None
 
 
-def build_project_type(project, current_user_id: int, stats: Optional[dict] = None, db: Optional[Session] = None) -> ProjectType:
+def build_project_type(project, current_user_id: int, stats: Optional[dict] = None, db: Optional[Session] = None) -> Optional[ProjectType]:
     """
     Build ProjectType from Project model.
     
@@ -198,8 +198,13 @@ def build_project_type(project, current_user_id: int, stats: Optional[dict] = No
         db: Optional database session for fetching language progress
         
     Returns:
-        ProjectType
+        ProjectType or None if required relations are missing
     """
+    # Check required relationships
+    if not project.owner or not project.team:
+        logger.warning(f"Project {project.id} has missing owner or team relationship")
+        return None
+    
     # Build owner
     owner = UserType(
         id=str(project.owner.public_id),
@@ -219,6 +224,11 @@ def build_project_type(project, current_user_id: int, stats: Optional[dict] = No
     # Build access members
     access_members = []
     for access in project.access_members:
+        # Skip if user relationship is missing
+        if not access.user:
+            logger.warning(f"ProjectAccess {access.id} has missing user relationship")
+            continue
+            
         access_members.append(ProjectMemberType(
             user=UserType(
                 id=str(access.user.public_id),
@@ -345,7 +355,13 @@ class ProjectQuery:
                 project_ids = [p.id for p in projects]
                 stats = ProjectService.get_projects_stats(db, project_ids) if project_ids else {}
                 
-                return [build_project_type(project, current_user_id, stats.get(project.id), db) for project in projects]
+                # Build project types and filter out None values (projects with missing relations)
+                result = []
+                for project in projects:
+                    project_type = build_project_type(project, current_user_id, stats.get(project.id), db)
+                    if project_type:
+                        result.append(project_type)
+                return result
             finally:
                 db.close()
         except UnauthorizedError:

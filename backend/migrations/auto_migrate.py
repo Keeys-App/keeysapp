@@ -556,6 +556,7 @@ def migrate_add_ai_translation_action_type_if_needed():
 def migrate_create_teams_system_if_needed():
     """
     Create teams system tables and add team_id to projects.
+    Creates default teams for existing projects.
     Safe to run multiple times.
     """
     try:
@@ -626,7 +627,9 @@ def migrate_create_teams_system_if_needed():
                 logger.info("✅ Project access table already exists")
             
             # Check if team_id column exists in projects
-            if not check_column_exists('projects', 'team_id'):
+            team_id_exists = check_column_exists('projects', 'team_id')
+            
+            if not team_id_exists:
                 logger.info("🔄 Migration: Adding team_id column to projects table...")
                 connection.execute(text("""
                     ALTER TABLE projects ADD COLUMN team_id INTEGER;
@@ -635,6 +638,119 @@ def migrate_create_teams_system_if_needed():
                 logger.info("✅ team_id column added to projects")
             else:
                 logger.info("✅ team_id column already exists in projects")
+            
+            # Create teams for existing projects without team_id
+            logger.info("🔄 Migration: Creating teams for projects without team_id...")
+            result = connection.execute(text("""
+                SELECT id, owner_id, name 
+                FROM projects 
+                WHERE team_id IS NULL
+            """))
+            projects_without_team = result.fetchall()
+            
+            if projects_without_team:
+                logger.info(f"Found {len(projects_without_team)} projects without team_id")
+                
+                # Group projects by owner
+                owners = {}
+                for project_id, owner_id, project_name in projects_without_team:
+                    if owner_id not in owners:
+                        owners[owner_id] = []
+                    owners[owner_id].append((project_id, project_name))
+                
+                # Create team for each owner and assign projects
+                for owner_id, projects in owners.items():
+                    # Get user info
+                    user_result = connection.execute(text("""
+                        SELECT username, email FROM users WHERE id = :owner_id
+                    """), {"owner_id": owner_id})
+                    user = user_result.fetchone()
+                    
+                    if not user:
+                        logger.warning(f"Owner {owner_id} not found, skipping projects")
+                        continue
+                    
+                    username = user[0] or user[1].split('@')[0]
+                    team_name = f"{username}'s Team"
+                    
+                    # Check if team already exists for this owner
+                    team_result = connection.execute(text("""
+                        SELECT id FROM teams WHERE owner_id = :owner_id LIMIT 1
+                    """), {"owner_id": owner_id})
+                    team = team_result.fetchone()
+                    
+                    if team:
+                        team_id = team[0]
+                        logger.info(f"Using existing team {team_id} for owner {owner_id}")
+                    else:
+                        # Create new team
+                        team_result = connection.execute(text("""
+                            INSERT INTO teams (name, description, owner_id)
+                            VALUES (:name, :description, :owner_id)
+                            RETURNING id
+                        """), {
+                            "name": team_name,
+                            "description": f"Default team for {username}",
+                            "owner_id": owner_id
+                        })
+                        team_id = team_result.fetchone()[0]
+                        connection.commit()
+                        logger.info(f"Created team {team_id} for owner {owner_id}")
+                    
+                    # Assign all projects to this team
+                    for project_id, project_name in projects:
+                        connection.execute(text("""
+                            UPDATE projects SET team_id = :team_id WHERE id = :project_id
+                        """), {"team_id": team_id, "project_id": project_id})
+                        logger.info(f"Assigned project {project_id} ({project_name}) to team {team_id}")
+                    
+                    connection.commit()
+                
+                logger.info(f"✅ Created teams and assigned {len(projects_without_team)} projects")
+            else:
+                logger.info("✅ All projects already have team_id")
+            
+            # Add NOT NULL constraint and foreign key if not present
+            logger.info("🔄 Migration: Checking team_id constraints...")
+            
+            # Check if foreign key exists
+            fk_result = connection.execute(text("""
+                SELECT constraint_name 
+                FROM information_schema.table_constraints 
+                WHERE table_name = 'projects' 
+                AND constraint_type = 'FOREIGN KEY'
+                AND constraint_name LIKE '%team_id%'
+            """))
+            fk_exists = fk_result.fetchone() is not None
+            
+            if not fk_exists:
+                # First, make sure all projects have team_id (shouldn't happen, but safety check)
+                null_check = connection.execute(text("""
+                    SELECT COUNT(*) FROM projects WHERE team_id IS NULL
+                """))
+                null_count = null_check.fetchone()[0]
+                
+                if null_count > 0:
+                    logger.warning(f"Found {null_count} projects with NULL team_id, cannot add constraints")
+                else:
+                    logger.info("🔄 Migration: Adding NOT NULL constraint and foreign key to team_id...")
+                    
+                    # Add NOT NULL constraint
+                    connection.execute(text("""
+                        ALTER TABLE projects ALTER COLUMN team_id SET NOT NULL;
+                    """))
+                    
+                    # Add foreign key constraint
+                    connection.execute(text("""
+                        ALTER TABLE projects 
+                        ADD CONSTRAINT projects_team_id_fkey 
+                        FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE;
+                    """))
+                    
+                    connection.commit()
+                    logger.info("✅ Added NOT NULL constraint and foreign key to team_id")
+            else:
+                logger.info("✅ team_id constraints already exist")
             
             logger.info("✅ Migration: Teams system completed successfully")
             return True
