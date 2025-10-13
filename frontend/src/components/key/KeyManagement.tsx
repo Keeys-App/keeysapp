@@ -34,14 +34,14 @@ export const KeyManagement: FC<KeyManagementProps> = ({
 }) => {
   return (
     <Tabs defaultValue="ai" className="h-full flex flex-col">
-      <TabsList className="mx-4 mt-4 mb-2 gap-0">
+      <TabsList className="mb-2 gap-0">
         <TabsTrigger value="ai">Autopilot</TabsTrigger>
         <TabsTrigger value="history">History</TabsTrigger>
         <TabsTrigger value="meta">Metadata</TabsTrigger>
         <TabsTrigger value="settings">Settings</TabsTrigger>
       </TabsList>
 
-      <TabsContent value="ai" className="flex-1 px-4 pb-4 overflow-auto">
+      <TabsContent value="ai" className="flex-1 overflow-auto">
         <KeyAi
           currentKey={selectedKey}
           currentLanguage={currentLanguage}
@@ -51,11 +51,11 @@ export const KeyManagement: FC<KeyManagementProps> = ({
         />
       </TabsContent>
 
-      <TabsContent value="history" className="flex-1 px-4 pb-4 overflow-auto">
+      <TabsContent value="history" className="flex-1 overflow-auto">
         <KeyLogsTimeline keyId={selectedKey.id} />
       </TabsContent>
 
-      <TabsContent value="meta" className="flex-1 px-4 pb-4 overflow-auto">
+      <TabsContent value="meta" className="flex-1 overflow-auto">
         <KeySettingsForm
           selectedKey={selectedKey}
           availableTags={availableTags}
@@ -64,7 +64,7 @@ export const KeyManagement: FC<KeyManagementProps> = ({
 
       <TabsContent
         value="settings"
-        className="flex-1 px-4 pb-4 overflow-auto"
+        className="flex-1 overflow-auto"
       >
         <KeySettings
           selectedKey={selectedKey}

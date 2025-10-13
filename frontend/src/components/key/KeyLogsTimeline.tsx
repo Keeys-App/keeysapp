@@ -27,6 +27,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { InlineDiff } from "./InlineDiff";
+import { Item } from "../ui/item";
 
 interface User {
   id: string;
@@ -198,7 +199,7 @@ export const KeyLogsTimeline: FC<KeyLogsTimelineProps> = ({
   }
 
   return (
-    <div className="relative">
+    <Item variant="outline" className="relative pb-3">
       {/* Timeline items */}
       <div className="space-y-4">
         {logs.map((log, index) => {
@@ -273,7 +274,7 @@ export const KeyLogsTimeline: FC<KeyLogsTimelineProps> = ({
           );
         })}
       </div>
-    </div>
+    </Item>
   );
 };
 

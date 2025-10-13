@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { useSaving, useSavingStore } from "@/stores";
 import { TagsEditor } from "./TagsEditor";
+import { Item } from "../ui/item";
 
 interface KeySettingsFormProps {
   selectedKey: TranslationKey;
@@ -115,7 +116,7 @@ export const KeySettingsForm: FC<KeySettingsFormProps> = ({
     JSON.stringify([...tags].sort()) !== JSON.stringify([...savedTags].sort());
 
   return (
-    <div className="space-y-4">
+    <Item variant="outline" className="space-y-4">
       <Field>
         <FieldLabel>Key Name</FieldLabel>
         <Textarea
@@ -161,7 +162,7 @@ export const KeySettingsForm: FC<KeySettingsFormProps> = ({
       >
         Save Changes
       </Button>
-    </div>
+    </Item>
   );
 };
 

@@ -396,7 +396,8 @@ export const KeyAi: FC<KeyAiProps> = ({
     card = (
       <AutopilotCard
         isDisabled
-        description="Select a translation field to edit to see autopilot suggestions"
+        title="Tip"
+        description="Start editing any translation field to see suggestions."
       />
     );
   } else if (currentLanguageValue) {

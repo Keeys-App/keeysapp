@@ -2,6 +2,7 @@ import { type FC } from "react";
 import type { TranslationKey } from "@/types/translationKey";
 import { KeyManagement } from "./KeyManagement";
 import type { Language } from "@/types/project";
+import { AutopilotCard } from "./AutopilotCard";
 
 interface KeysAsidePanelProps {
   totalKeys: number;
@@ -32,7 +33,7 @@ export const KeysAsidePanel: FC<KeysAsidePanelProps> = ({
   defaultLanguageValue,
 }) => {
   let content: React.ReactNode | null = null;
-  let title = 'Suggestions';
+  let title = "Suggestions";
 
   if (selectedKey && totalKeys > 0) {
     title = "Key Management";
@@ -60,21 +61,19 @@ export const KeysAsidePanel: FC<KeysAsidePanelProps> = ({
 
   if (totalKeys === 0) {
     content = (
-      <p className="text-muted-foreground text-sm p-4">
-        No translation keys found, create your first translation key to get
-        started or import your existing translations.
-      </p>
+      <AutopilotCard
+        title="Tip"
+        description="Looks like you haven’t added any translation keys yet. Create one or import existing translations to begin."
+      />
     );
   }
 
   return (
     <div className="h-full flex flex-col">
       <div className="px-4 py-3 border-b h-12 box-border">
-        <h2 className="text-base font-semibold">
-          {title}
-        </h2>
+        <h2 className="text-base font-semibold">{title}</h2>
       </div>
-      <div className="flex-1 overflow-auto">{content}</div>
+      <div className="flex-1 overflow-auto p-4">{content}</div>
     </div>
   );
 };

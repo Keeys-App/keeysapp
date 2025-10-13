@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { DeleteConfirmationDialog } from "@/components/blocks/DeleteConfirmationDialog";
 import { useSaving, useSavingStore } from "@/stores";
 import type { TranslationKey } from "@/types/translationKey";
+import { Item } from "../ui/item";
 
 interface KeySettingsProps {
   selectedKey: TranslationKey;
@@ -58,24 +59,22 @@ export const KeySettings: FC<KeySettingsProps> = ({
   };
 
   const handleConfirmDelete = async () => {
-    await withSaving(
-      async () => {
-        await deleteKey({
-          variables: {
-            id: selectedKey.id,
-          },
-        });
-      },
-      "Deleting key..."
-    );
+    await withSaving(async () => {
+      await deleteKey({
+        variables: {
+          id: selectedKey.id,
+        },
+      });
+    }, "Deleting key...");
   };
 
   return (
-    <div className="space-y-4">
+    <Item variant="outline" className="space-y-4">
       <div className="space-y-2">
         <h3 className="text-sm font-semibold text-destructive">Danger Zone</h3>
         <p className="text-sm text-muted-foreground">
-          Deleting a key will permanently remove it and all its translations. This action cannot be undone.
+          Deleting a key will permanently remove it and all its translations.
+          This action cannot be undone.
         </p>
       </div>
 
@@ -98,10 +97,12 @@ export const KeySettings: FC<KeySettingsProps> = ({
           <div className="space-y-2">
             <p>
               Are you sure you want to delete the key{" "}
-              <span className="font-mono font-semibold">{selectedKey.key}</span>?
+              <span className="font-mono font-semibold">{selectedKey.key}</span>
+              ?
             </p>
             <p className="text-destructive">
-              This will permanently delete all translations for this key. This action cannot be undone.
+              This will permanently delete all translations for this key. This
+              action cannot be undone.
             </p>
           </div>
         }
@@ -109,7 +110,6 @@ export const KeySettings: FC<KeySettingsProps> = ({
         confirmButtonText="Delete Key"
         isDeleting={loading}
       />
-    </div>
+    </Item>
   );
 };
-
