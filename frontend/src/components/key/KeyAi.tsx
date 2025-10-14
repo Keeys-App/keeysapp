@@ -195,7 +195,7 @@ export const KeyAi: FC<KeyAiProps> = ({
       } finally {
         setIsGenerating(false);
       }
-    }, "Translating with AI...");
+    }, "Translating...");
   };
 
   const handleRephrase = async () => {
@@ -244,7 +244,7 @@ export const KeyAi: FC<KeyAiProps> = ({
       } finally {
         setIsGenerating(false);
       }
-    }, "Rephrasing with AI...");
+    }, "Rephrasing...");
   };
 
   const handleShorten = async () => {
@@ -293,7 +293,7 @@ export const KeyAi: FC<KeyAiProps> = ({
       } finally {
         setIsGenerating(false);
       }
-    }, "Shortening with AI...");
+    }, "Shortening...");
   };
 
   const handleSuggestVariants = async () => {

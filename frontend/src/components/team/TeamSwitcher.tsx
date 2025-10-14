@@ -78,7 +78,7 @@ export const TeamSwitcher: FC<TeamSwitcherProps> = ({
 
   if (loading) {
     return (
-      <div className="flex h-9 w-[200px] items-center justify-center rounded-md border border-input bg-transparent px-3">
+      <div className="flex h-8 items-center justify-center rounded-md border border-input bg-transparent px-3">
         <Spinner className="h-4 w-4" />
       </div>
     );
@@ -88,7 +88,7 @@ export const TeamSwitcher: FC<TeamSwitcherProps> = ({
     return (
       <Button
         variant="outline"
-        className="w-[200px] justify-between"
+        className="justify-between"
         onClick={() => {
           return navigate('/team/create');
         }}
