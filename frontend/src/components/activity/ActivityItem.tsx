@@ -171,7 +171,7 @@ export const ActivityItem: FC<ActivityItemProps> = ({ log, isLast, showProject =
 
       {/* Icon */}
       <div
-        className={`flex-shrink-0 w-6 h-6 rounded-full ${colorClass} flex items-center justify-center z-10 relative`}
+        className={`flex-shrink-0 w-6 h-6 rounded-full ${colorClass} flex items-center justify-center z-3 relative`}
       >
         <Icon className="w-3.5 h-3.5" />
       </div>
