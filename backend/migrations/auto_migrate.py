@@ -635,6 +635,37 @@ def migrate_add_team_id_to_activity_logs_if_needed():
         return False
 
 
+def migrate_set_default_project_status_if_needed():
+    """
+    Ensure all projects have a status set (default to 'active' for NULL/empty values).
+    Safe to run multiple times.
+    """
+    try:
+        logger.info("🔄 Migration: Checking project status values...")
+        
+        with engine.connect() as connection:
+            # Update NULL or empty status values to 'active'
+            result = connection.execute(text("""
+                UPDATE projects 
+                SET status = 'active' 
+                WHERE status IS NULL OR status = ''
+            """))
+            
+            updated_count = result.rowcount
+            connection.commit()
+            
+            if updated_count > 0:
+                logger.info(f"✅ Migration: Updated {updated_count} projects with default status 'active'")
+            else:
+                logger.info("✅ Migration: All projects already have status set")
+            
+            return True
+            
+    except Exception as e:
+        logger.error(f"❌ Migration failed: {type(e).__name__}: {str(e)}")
+        return False
+
+
 def migrate_create_teams_system_if_needed():
     """
     Create teams system tables and add team_id to projects.
@@ -863,6 +894,7 @@ def run_all_migrations():
         ("create_teams_system", migrate_create_teams_system_if_needed),
         ("add_team_action_types", migrate_add_team_action_types_if_needed),
         ("add_team_id_to_activity_logs", migrate_add_team_id_to_activity_logs_if_needed),
+        ("set_default_project_status", migrate_set_default_project_status_if_needed),
         # Add more migrations here as needed
     ]
     

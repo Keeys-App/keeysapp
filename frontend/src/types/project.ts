@@ -42,20 +42,43 @@ export const ProjectMemberRole = {
 export type ProjectMemberRoleType = typeof ProjectMemberRole[keyof typeof ProjectMemberRole];
 
 /**
- * Default project colors.
+ * Project color with name.
  */
-export const DEFAULT_PROJECT_COLORS = [
-  '#6366f1', // Indigo
-  '#8b5cf6', // Violet
-  '#ec4899', // Pink
-  '#f43f5e', // Rose
-  '#f97316', // Orange
-  '#eab308', // Yellow
-  '#22c55e', // Green
-  '#14b8a6', // Teal
-  '#06b6d4', // Cyan
-  '#3b82f6', // Blue
+export interface ProjectColor {
+  hex: string;
+  name: string;
+}
+
+/**
+ * Available project colors with their names.
+ */
+export const PROJECT_COLORS: ProjectColor[] = [
+  { hex: '#6366f1', name: 'Indigo' },
+  { hex: '#8b5cf6', name: 'Violet' },
+  { hex: '#ec4899', name: 'Pink' },
+  { hex: '#f43f5e', name: 'Rose' },
+  { hex: '#f97316', name: 'Orange' },
+  { hex: '#eab308', name: 'Yellow' },
+  { hex: '#22c55e', name: 'Green' },
+  { hex: '#14b8a6', name: 'Teal' },
+  { hex: '#06b6d4', name: 'Cyan' },
+  { hex: '#3b82f6', name: 'Blue' },
 ];
+
+/**
+ * Default project colors (hex values only for backward compatibility).
+ */
+export const DEFAULT_PROJECT_COLORS = PROJECT_COLORS.map(c => c.hex);
+
+/**
+ * Get color name by hex value.
+ */
+export const getColorName = (hex?: string): string | undefined => {
+  if (!hex) {
+    return undefined;
+  }
+  return PROJECT_COLORS.find(c => c.hex.toLowerCase() === hex.toLowerCase())?.name;
+};
 
 /**
  * Language configuration with all metadata and detection patterns.

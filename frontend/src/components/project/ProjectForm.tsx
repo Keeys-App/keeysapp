@@ -50,6 +50,19 @@ interface ProjectFormProps {
   onCancel?: () => void;
 }
 
+const getStatusLabel = (status: string): string => {
+  switch (status) {
+    case ProjectStatus.ACTIVE:
+      return "Active";
+    case ProjectStatus.DRAFT:
+      return "Draft";
+    case ProjectStatus.ARCHIVED:
+      return "Archived";
+    default:
+      return "Active";
+  }
+};
+
 export const ProjectForm: FC<ProjectFormProps> = ({
   mode,
   project,
@@ -81,6 +94,12 @@ export const ProjectForm: FC<ProjectFormProps> = ({
   // Initialize form with project data in edit mode
   useEffect(() => {
     if (mode === "edit" && project) {
+      console.log("🔍 Project data:", { 
+        status: project.status, 
+        statusType: typeof project.status,
+        ProjectStatus 
+      });
+      
       setName(project.name);
       setDescription(project.description || "");
 
@@ -98,7 +117,10 @@ export const ProjectForm: FC<ProjectFormProps> = ({
       const defaultLang = project.defaultLanguage ?? "";
       setDefaultLanguage(defaultLang);
       setColor(project.color);
-      setStatus(project.status);
+      // Ensure status is always set to a valid value, fallback to active if undefined/null
+      const projectStatus = project.status || ProjectStatus.ACTIVE;
+      console.log("🎯 Setting status to:", projectStatus);
+      setStatus(projectStatus);
 
       // Store original values for comparison
       setOriginalValues({
@@ -107,7 +129,7 @@ export const ProjectForm: FC<ProjectFormProps> = ({
         languages: languages,
         defaultLanguage: defaultLang,
         color: project.color,
-        status: project.status,
+        status: projectStatus,
       });
     }
   }, [mode, project]);
@@ -428,7 +450,15 @@ export const ProjectForm: FC<ProjectFormProps> = ({
               <FieldLabel>Status</FieldLabel>
               <Select
                 value={status}
-                onValueChange={setStatus}
+                onValueChange={(newValue) => {
+                  // Защита от установки пустого значения
+                  if (newValue && newValue.trim()) {
+                    console.log("🔄 Status changed from", status, "to", newValue);
+                    setStatus(newValue);
+                  } else {
+                    console.warn("⚠️ Attempted to set empty status, ignoring");
+                  }
+                }}
                 disabled={isSaving}
               >
                 <SelectTrigger>

@@ -1,4 +1,5 @@
 import { type FC } from 'react';
+import { getColorName } from '@/types/project';
 
 interface ColorChangeContentProps {
   oldValue?: string;
@@ -12,6 +13,9 @@ export const ColorChangeContent: FC<ColorChangeContentProps> = ({
   oldValue,
   newValue,
 }) => {
+  const oldColorName = getColorName(oldValue);
+  const newColorName = getColorName(newValue);
+
   return (
     <div className="flex items-center gap-2 mt-1">
       {oldValue ? (
@@ -20,8 +24,8 @@ export const ColorChangeContent: FC<ColorChangeContentProps> = ({
             className="w-3 h-3 rounded"
             style={{ backgroundColor: oldValue }}
           />
-          <span className="font-mono text-xs text-muted-foreground">
-            {oldValue}
+          <span className="text-xs text-muted-foreground">
+            {oldColorName || oldValue}
           </span>
         </div>
       ) : null}
@@ -34,8 +38,8 @@ export const ColorChangeContent: FC<ColorChangeContentProps> = ({
             className="w-3 h-3 rounded"
             style={{ backgroundColor: newValue }}
           />
-          <span className="font-mono text-xs font-medium text-foreground">
-            {newValue}
+          <span className="text-xs font-medium text-foreground">
+            {newColorName || newValue}
           </span>
         </div>
       ) : null}
