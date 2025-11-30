@@ -98,9 +98,9 @@ export const ActivityTimeline: FC<ActivityTimelineProps> = ({
   }
 
   return (
-    <Item variant="outline" className="relative pb-2 block">
+    <div className="relative block">
       {content}
-    </Item>
+    </div>
   );
 };
 

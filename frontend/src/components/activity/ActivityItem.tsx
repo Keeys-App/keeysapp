@@ -24,8 +24,14 @@ import {
   FileUp,
   Mail,
 } from 'lucide-react';
-import { InlineDiff } from '@/components/key/InlineDiff';
 import type { ActivityLog } from '@/types/activity';
+import {
+  ReviewContent,
+  ColorChangeContent,
+  DiffContent,
+  SimpleValueContent,
+  LanguageInfoContent,
+} from './content';
 
 interface ActivityItemProps {
   log: ActivityLog;
@@ -180,7 +186,7 @@ export const ActivityItem: FC<ActivityItemProps> = ({ log, isLast, showProject =
                   in{' '}
                   <Link 
                     to={PATHS.PROJECT.replace(':id', log.project.id)}
-                    className="font-medium text-foreground hover:underline"
+                    className="font-medium text-sm text-foreground hover:underline"
                   >
                     {log.project.name}
                   </Link>
@@ -208,44 +214,32 @@ export const ActivityItem: FC<ActivityItemProps> = ({ log, isLast, showProject =
           {(log.action === 'REVIEW_APPROVE' ||
             log.action === 'REVIEW_REJECT' ||
             log.action === 'REVIEW_DELETE') ? (
-            <>
-              {log.language ? (
-                <div className="text-xs text-muted-foreground/70 mb-1">
-                  Language:{' '}
-                  <span className="font-mono bg-muted px-1.5 py-0.5 rounded font-medium">
-                    {log.language.toUpperCase()}
-                  </span>
-                </div>
-              ) : null}
-              {log.newValue && log.action !== 'REVIEW_DELETE' ? (
-                <div className="text-sm whitespace-pre-wrap">{log.newValue}</div>
-              ) : null}
-            </>
+            <ReviewContent
+              action={log.action}
+              language={log.language || undefined}
+              newValue={log.newValue || undefined}
+            />
+          ) : log.action === 'PROJECT_UPDATE_COLOR' && (log.oldValue || log.newValue) ? (
+            <ColorChangeContent
+              oldValue={log.oldValue || undefined}
+              newValue={log.newValue || undefined}
+            />
           ) : showDiff && (log.oldValue || log.newValue) ? (
-            <InlineDiff
-              oldValue={log.oldValue || ''}
-              newValue={log.newValue || ''}
+            <DiffContent
+              oldValue={log.oldValue || undefined}
+              newValue={log.newValue || undefined}
               language={log.language || undefined}
             />
           ) : !showDiff && (log.oldValue || log.newValue) ? (
-            // Show simple value for project/team actions without diff
-            <div className="text-sm">
-              {log.newValue || log.oldValue ? (
-                <span className="font-medium text-foreground">
-                  {log.newValue || log.oldValue}
-                </span>
-              ) : null}
-            </div>
+            <SimpleValueContent
+              oldValue={log.oldValue || undefined}
+              newValue={log.newValue || undefined}
+            />
           ) : null}
 
           {/* Language info if no values */}
           {!log.oldValue && !log.newValue && log.language ? (
-            <div className="text-xs text-muted-foreground/70">
-              Language:{' '}
-              <span className="font-mono bg-muted px-1.5 py-0.5 rounded">
-                {log.language}
-              </span>
-            </div>
+            <LanguageInfoContent language={log.language} />
           ) : null}
         </div>
       </div>
