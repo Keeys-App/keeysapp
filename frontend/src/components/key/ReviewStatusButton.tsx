@@ -22,6 +22,7 @@ import {
   MessageSquareHeart,
   MessageSquare,
   MessageSquareX,
+  MessageSquareQuote
 } from "lucide-react";
 
 interface ReviewStatusButtonProps {
@@ -200,12 +201,12 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
         <Button
           variant="ghost"
           size="icon"
-          className={`h-5.5 w-5.5 ${statusColor} rounded-sm hover:bg-muted`}
+          className={`h-5.5 w-5.5 ${statusColor} rounded-sm hover:bg-muted cursor-pointer`}
           onClick={(e) => {
             e.stopPropagation();
           }}
         >
-          <StatusIcon className="!h-3.5 !w-3.5" />
+          <StatusIcon className={`!h-3.5 !w-3.5 ${statusColor}`} />
         </Button>
       </PopoverTrigger>
       <PopoverContent
