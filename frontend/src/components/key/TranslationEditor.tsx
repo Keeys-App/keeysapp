@@ -174,7 +174,7 @@ export const TranslationEditor = memo(
             },
           },
         });
-      }, `Auto-saving...`);
+      }, `Saving...`);
       // Reset flag after a short delay to ensure toast effect runs
       setTimeout(() => {
         isAutoSavingRef.current = false;
