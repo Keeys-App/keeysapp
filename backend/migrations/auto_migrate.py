@@ -873,6 +873,35 @@ def migrate_create_teams_system_if_needed():
         return False
 
 
+def migrate_add_onboarding_completed_if_needed():
+    """
+    Add onboarding_completed column to users table if it doesn't exist.
+    Safe to run multiple times.
+    """
+    try:
+        # Check if column already exists
+        if check_column_exists('users', 'onboarding_completed'):
+            logger.info("✅ Migration: onboarding_completed column already exists, skipping")
+            return True
+        
+        logger.info("🔄 Migration: Adding onboarding_completed column to users table")
+        
+        with engine.connect() as connection:
+            # Add onboarding_completed column with default False
+            connection.execute(text("""
+                ALTER TABLE users 
+                ADD COLUMN IF NOT EXISTS onboarding_completed BOOLEAN NOT NULL DEFAULT FALSE
+            """))
+            connection.commit()
+            
+            logger.info("✅ Migration: onboarding_completed column added successfully")
+            return True
+            
+    except Exception as e:
+        logger.error(f"❌ Migration failed: {type(e).__name__}: {str(e)}")
+        return False
+
+
 def run_all_migrations():
     """
     Run all pending migrations.
@@ -895,6 +924,7 @@ def run_all_migrations():
         ("add_team_action_types", migrate_add_team_action_types_if_needed),
         ("add_team_id_to_activity_logs", migrate_add_team_id_to_activity_logs_if_needed),
         ("set_default_project_status", migrate_set_default_project_status_if_needed),
+        ("add_onboarding_completed", migrate_add_onboarding_completed_if_needed),
         # Add more migrations here as needed
     ]
     
