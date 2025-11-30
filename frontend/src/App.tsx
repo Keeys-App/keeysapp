@@ -3,6 +3,7 @@ import { AuthProvider, TranslationEditorProvider } from '@/contexts';
 import { ProtectedRoute, Layout, AuthLayout } from '@/components/layout';
 import { AuthPage } from '@/pages/AuthPage';
 import { DashboardPage } from '@/pages/DashboardPage';
+import { OnboardingPage } from '@/pages/OnboardingPage';
 import { TeamsPage } from '@/pages/TeamsPage';
 import { TeamPage } from '@/pages/TeamPage';
 import { CreateTeamPage } from '@/pages/CreateTeamPage';
@@ -25,6 +26,14 @@ function App() {
           <Route element={<AuthLayout />}>
             <Route path={PATHS.AUTH} element={<AuthPage />} />
           </Route>
+          <Route
+            path={PATHS.ONBOARDING}
+            element={
+              <ProtectedRoute>
+                <OnboardingPage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             element={
               <ProtectedRoute>

@@ -1,5 +1,6 @@
 export { AuthPage } from './AuthPage';
 export { DashboardPage } from './DashboardPage';
+export { OnboardingPage } from './OnboardingPage';
 export { TeamsPage } from './TeamsPage';
 export { TeamPage } from './TeamPage';
 export { CreateTeamPage } from './CreateTeamPage';

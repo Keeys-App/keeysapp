@@ -11,6 +11,17 @@
 - Yarn
 
 ### Запуск Backend
+
+**Сначала запустите PostgreSQL:**
+```bash
+# macOS (Homebrew)
+brew services start postgresql@14
+
+# или если установлен Postgres.app
+# просто запустите приложение Postgres.app
+```
+
+**Затем запустите backend:**
 ```bash
 cd backend
 source venv/bin/activate
