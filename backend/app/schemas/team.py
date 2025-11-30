@@ -1,8 +1,8 @@
 import strawberry
-from typing import Optional, List
+from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
 from strawberry.types import Info
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import IntegrityError, OperationalError
 import logging
 
@@ -14,6 +14,9 @@ from app.core.exceptions import (
     handle_database_exception
 )
 from app.schemas.auth import UserType
+
+if TYPE_CHECKING:
+    from app.schemas.key import ActivityLogType
 
 logger = logging.getLogger(__name__)
 
@@ -319,6 +322,104 @@ class TeamQuery:
         except Exception as e:
             logger.error(f"Error in team query: {type(e).__name__}: {str(e)}")
             return None
+
+    @strawberry.field
+    def team_activity(self, info: Info, team_id: str, limit: Optional[int] = 100) -> List['ActivityLogType']:
+        """
+        Get all activity logs for all projects in a team.
+        
+        Args:
+            info: GraphQL info object
+            team_id: Team UUID
+            limit: Maximum number of logs to return (default: 100)
+            
+        Returns:
+            List of activity logs ordered by created_at DESC
+            
+        Raises:
+            UnauthorizedError: If user is not authenticated or doesn't have access
+        """
+        # Import here to avoid circular dependency
+        from app.schemas.key import ActivityLogType, build_activity_log_type
+        from app.models.activity_log import ActivityLog, ActionType
+        from app.models.project import Project
+        
+        try:
+            current_user_id = get_current_user_id(info)
+            if not current_user_id:
+                raise UnauthorizedError("Authentication required to view activity")
+            
+            db: Session = next(get_db())
+            try:
+                # Get team to check access
+                team = TeamService.get_team_by_public_id(db, team_id)
+                if not team:
+                    return []
+                
+                # Check access
+                if not TeamService.check_user_team_access(db, team.id, current_user_id):
+                    raise UnauthorizedError("You don't have access to this team")
+                
+                # Get all project IDs in this team
+                projects = db.query(Project).filter(Project.team_id == team.id).all()
+                project_ids = [p.id for p in projects]
+                logger.info(f"team_activity: team_id={team.id}, project_ids={project_ids}")
+                
+                # Define project and team level actions (exclude key/translation/review actions)
+                team_and_project_actions = [
+                    # Team lifecycle
+                    ActionType.TEAM_CREATE,
+                    ActionType.TEAM_UPDATE_NAME,
+                    ActionType.TEAM_UPDATE_DESCRIPTION,
+                    ActionType.TEAM_DELETE,
+                    # Project actions
+                    ActionType.PROJECT_CREATE,
+                    ActionType.PROJECT_UPDATE_NAME,
+                    ActionType.PROJECT_UPDATE_DESCRIPTION,
+                    ActionType.PROJECT_UPDATE_LANGUAGES,
+                    ActionType.PROJECT_UPDATE_DEFAULT_LANGUAGE,
+                    ActionType.PROJECT_UPDATE_COLOR,
+                    ActionType.PROJECT_UPDATE_STATUS,
+                    ActionType.PROJECT_DELETE,
+                    ActionType.PROJECT_EXPORT,
+                    ActionType.PROJECT_IMPORT,
+                    # Team management
+                    ActionType.MEMBER_ADD,
+                    ActionType.MEMBER_REMOVE,
+                    ActionType.MEMBER_ROLE_CHANGE,
+                    ActionType.TEAM_INVITE,
+                ]
+                
+                # Get all logs for this team (team_id) or its projects (project_id)
+                from sqlalchemy import or_
+                
+                # Build filter conditions
+                filter_conditions = [ActivityLog.team_id == team.id]
+                if project_ids:
+                    filter_conditions.append(ActivityLog.project_id.in_(project_ids))
+                
+                logs = db.query(ActivityLog).options(
+                    joinedload(ActivityLog.user),
+                    joinedload(ActivityLog.affected_user),
+                    joinedload(ActivityLog.project),
+                    joinedload(ActivityLog.team)
+                ).filter(
+                    or_(*filter_conditions),
+                    ActivityLog.action.in_(team_and_project_actions)
+                ).order_by(ActivityLog.created_at.desc(), ActivityLog.id.desc()).limit(limit or 100).all()
+                
+                logger.info(f"team_activity: found {len(logs)} logs")
+                for log in logs[:3]:
+                    logger.info(f"  Log: id={log.id}, action={log.action}, team_id={log.team_id}, project_id={log.project_id}")
+                
+                return [build_activity_log_type(log) for log in logs]
+            finally:
+                db.close()
+        except UnauthorizedError:
+            raise
+        except Exception as e:
+            logger.error(f"Error in team_activity query: {type(e).__name__}: {str(e)}")
+            return []
 
 
 @strawberry.type

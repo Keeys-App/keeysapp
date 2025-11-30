@@ -74,7 +74,7 @@ export const Layout: FC = () => {
     <SidebarProvider defaultOpen={false}>
       <AppSidebar />
       <SidebarInset>
-        <header className="bg-background h-12 border-b box-border sticky z-10 top-0 flex shrink-0 items-center gap-3 px-4 py-3.5">
+        <header className="bg-background h-12 border-b box-border sticky z-1000 top-0 flex shrink-0 items-center gap-3 px-4 py-3.5">
           {/* <SidebarTrigger className="-ml-1" /> */}
           {/* <Separator orientation="vertical" className="mr-2 h-4" /> */}
           

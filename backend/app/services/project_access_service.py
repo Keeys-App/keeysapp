@@ -6,6 +6,7 @@ from app.models.project_access import ProjectAccess
 from app.models.project import Project
 from app.models.user import User
 from app.models.team import TeamMember
+from app.models.activity_log import ActivityLog, ActionType
 
 logger = logging.getLogger(__name__)
 
@@ -69,8 +70,23 @@ class ProjectAccessService:
         
         if existing_access:
             # Update role if already exists
+            old_role = existing_access.role
             existing_access.role = role
             existing_access.granted_by_user_id = granted_by_user_id
+            
+            # Log role change if different
+            if old_role != role:
+                log = ActivityLog(
+                    project_id=project_id,
+                    user_id=granted_by_user_id,
+                    affected_user_id=user_id,
+                    action=ActionType.MEMBER_ROLE_CHANGE,
+                    field_name="role",
+                    old_value=old_role,
+                    new_value=role
+                )
+                db.add(log)
+            
             db.commit()
             db.refresh(existing_access)
             return existing_access
@@ -83,6 +99,19 @@ class ProjectAccessService:
             granted_by_user_id=granted_by_user_id
         )
         db.add(access)
+        db.flush()
+        
+        # Log member addition
+        log = ActivityLog(
+            project_id=project_id,
+            user_id=granted_by_user_id,
+            affected_user_id=user_id,
+            action=ActionType.MEMBER_ADD,
+            field_name="role",
+            new_value=role
+        )
+        db.add(log)
+        
         db.commit()
         db.refresh(access)
         return access
@@ -127,6 +156,17 @@ class ProjectAccessService:
         
         if not access:
             return False
+        
+        # Log member removal
+        log = ActivityLog(
+            project_id=project_id,
+            user_id=revoked_by_user_id,
+            affected_user_id=user_id,
+            action=ActionType.MEMBER_REMOVE,
+            field_name="role",
+            old_value=access.role
+        )
+        db.add(log)
         
         db.delete(access)
         db.commit()
@@ -175,8 +215,23 @@ class ProjectAccessService:
         if not access:
             return None
         
+        # Log role change if different
+        old_role = access.role
         access.role = role
         access.granted_by_user_id = updated_by_user_id
+        
+        if old_role != role:
+            log = ActivityLog(
+                project_id=project_id,
+                user_id=updated_by_user_id,
+                affected_user_id=user_id,
+                action=ActionType.MEMBER_ROLE_CHANGE,
+                field_name="role",
+                old_value=old_role,
+                new_value=role
+            )
+            db.add(log)
+        
         db.commit()
         db.refresh(access)
         return access

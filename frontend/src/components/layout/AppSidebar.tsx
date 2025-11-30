@@ -9,9 +9,11 @@ import {
   Languages,
   FolderOpen,
   Users,
+  History,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTeamStore } from "@/stores";
 import { PATHS } from "@/constants/paths";
 import {
   Sidebar,
@@ -38,6 +40,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 export const AppSidebar: FC = () => {
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
+  const { selectedTeamId } = useTeamStore();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -52,8 +55,18 @@ export const AppSidebar: FC = () => {
       title: "Teams",
       url: PATHS.TEAMS,
       icon: Users,
-      isActive: location.pathname.startsWith("/team"),
+      isActive: location.pathname.startsWith("/team") && !location.pathname.includes("/logs"),
     },
+    ...(selectedTeamId
+      ? [
+          {
+            title: "Team Activity",
+            url: `/team/${selectedTeamId}/logs`,
+            icon: History,
+            isActive: location.pathname.includes("/logs"),
+          },
+        ]
+      : []),
     {
       title: "Projects",
       url: PATHS.DASHBOARD,

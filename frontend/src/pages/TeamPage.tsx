@@ -1,7 +1,7 @@
 import { useEffect, useState, type FC } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@apollo/client';
-import { Plus, Settings } from 'lucide-react';
+import { Plus, Settings, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
@@ -75,17 +75,28 @@ export const TeamPage: FC = () => {
             <p className="text-muted-foreground mt-1">{team.description}</p>
           ) : null}
         </div>
-        {team.canManage ? (
+        <div className="flex gap-2">
           <Button
             variant="outline"
             onClick={() => {
-              return navigate(`/team/${team.id}/edit`);
+              return navigate(`/team/${team.id}/logs`);
             }}
           >
-            <Settings className="mr-2 h-4 w-4" />
-            Edit Team
+            <History className="mr-2 h-4 w-4" />
+            Activity
           </Button>
-        ) : null}
+          {team.canManage ? (
+            <Button
+              variant="outline"
+              onClick={() => {
+                return navigate(`/team/${team.id}/edit`);
+              }}
+            >
+              <Settings className="mr-2 h-4 w-4" />
+              Edit Team
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       <div className="grid gap-6">

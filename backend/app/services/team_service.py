@@ -6,6 +6,7 @@ import logging
 from app.models.team import Team, TeamMember
 from app.models.team_invitation import TeamInvitation, InvitationStatus
 from app.models.user import User
+from app.models.activity_log import ActivityLog, ActionType
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,18 @@ class TeamService:
             owner_id=owner_id
         )
         db.add(team)
+        db.flush()
+        
+        # Log team creation
+        log = ActivityLog(
+            team_id=team.id,
+            user_id=owner_id,
+            action=ActionType.TEAM_CREATE,
+            field_name="name",
+            new_value=name
+        )
+        db.add(log)
+        
         db.commit()
         db.refresh(team)
         return team
@@ -140,11 +153,32 @@ class TeamService:
         if not TeamService.can_user_manage_team(db, team.id, user_id):
             return None
         
-        # Update fields if provided
-        if name is not None:
+        # Update fields if provided and log changes
+        if name is not None and name != team.name:
+            old_name = team.name
             team.name = name
-        if description is not None:
+            log = ActivityLog(
+                team_id=team.id,
+                user_id=user_id,
+                action=ActionType.TEAM_UPDATE_NAME,
+                field_name="name",
+                old_value=old_name,
+                new_value=name
+            )
+            db.add(log)
+        
+        if description is not None and description != team.description:
+            old_description = team.description
             team.description = description
+            log = ActivityLog(
+                team_id=team.id,
+                user_id=user_id,
+                action=ActionType.TEAM_UPDATE_DESCRIPTION,
+                field_name="description",
+                old_value=old_description or '',
+                new_value=description
+            )
+            db.add(log)
         
         db.commit()
         db.refresh(team)
@@ -170,6 +204,16 @@ class TeamService:
         # Only owner can delete
         if team.owner_id != user_id:
             return False
+        
+        # Log team deletion before deleting
+        log = ActivityLog(
+            team_id=team.id,
+            user_id=user_id,
+            action=ActionType.TEAM_DELETE,
+            field_name="name",
+            old_value=team.name
+        )
+        db.add(log)
         
         db.delete(team)
         db.commit()
@@ -283,7 +327,22 @@ class TeamService:
             
             if existing_member:
                 # Already a member - update role
+                old_role = existing_member.role
                 existing_member.role = role
+                
+                # Log role change if different
+                if old_role != role:
+                    log = ActivityLog(
+                        team_id=team.id,
+                        user_id=added_by_user_id,
+                        affected_user_id=user.id,
+                        action=ActionType.MEMBER_ROLE_CHANGE,
+                        field_name="role",
+                        old_value=old_role,
+                        new_value=role
+                    )
+                    db.add(log)
+                
                 db.commit()
                 logger.info(f"Updated role for existing team member: {email}")
             else:
@@ -294,6 +353,19 @@ class TeamService:
                     role=role
                 )
                 db.add(member)
+                db.flush()
+                
+                # Log member addition
+                log = ActivityLog(
+                    team_id=team.id,
+                    user_id=added_by_user_id,
+                    affected_user_id=user.id,
+                    action=ActionType.MEMBER_ADD,
+                    field_name="role",
+                    new_value=role
+                )
+                db.add(log)
+                
                 db.commit()
                 logger.info(f"Added existing user to team: {email}")
             
@@ -316,6 +388,17 @@ class TeamService:
                 existing_invitation.role = role
                 existing_invitation.status = InvitationStatus.PENDING
                 existing_invitation.invited_by_user_id = added_by_user_id
+                
+                # Log invitation update
+                log = ActivityLog(
+                    team_id=team.id,
+                    user_id=added_by_user_id,
+                    action=ActionType.TEAM_INVITE,
+                    field_name="email",
+                    new_value=f"{email} ({role})"
+                )
+                db.add(log)
+                
                 db.commit()
                 logger.info(f"Updated invitation for: {email}")
             else:
@@ -328,6 +411,18 @@ class TeamService:
                     invited_by_user_id=added_by_user_id
                 )
                 db.add(invitation)
+                db.flush()
+                
+                # Log invitation
+                log = ActivityLog(
+                    team_id=team.id,
+                    user_id=added_by_user_id,
+                    action=ActionType.TEAM_INVITE,
+                    field_name="email",
+                    new_value=f"{email} ({role})"
+                )
+                db.add(log)
+                
                 db.commit()
                 logger.info(f"Created invitation for: {email}")
         
@@ -380,7 +475,22 @@ class TeamService:
         
         if existing_member:
             # Update role if already exists
+            old_role = existing_member.role
             existing_member.role = role
+            
+            # Log role change if different
+            if old_role != role:
+                log = ActivityLog(
+                    team_id=team.id,
+                    user_id=added_by_user_id,
+                    affected_user_id=user.id,
+                    action=ActionType.MEMBER_ROLE_CHANGE,
+                    field_name="role",
+                    old_value=old_role,
+                    new_value=role
+                )
+                db.add(log)
+            
             db.commit()
             db.refresh(existing_member)
             return existing_member
@@ -392,6 +502,19 @@ class TeamService:
             role=role
         )
         db.add(member)
+        db.flush()
+        
+        # Log member addition
+        log = ActivityLog(
+            team_id=team.id,
+            user_id=added_by_user_id,
+            affected_user_id=user.id,
+            action=ActionType.MEMBER_ADD,
+            field_name="role",
+            new_value=role
+        )
+        db.add(log)
+        
         db.commit()
         db.refresh(member)
         return member
@@ -445,6 +568,17 @@ class TeamService:
         
         if not member:
             return False
+        
+        # Log member removal
+        log = ActivityLog(
+            team_id=team.id,
+            user_id=removed_by_user_id,
+            affected_user_id=user.id,
+            action=ActionType.MEMBER_REMOVE,
+            field_name="role",
+            old_value=member.role
+        )
+        db.add(log)
         
         db.delete(member)
         db.commit()
@@ -502,7 +636,22 @@ class TeamService:
         if not member:
             return None
         
+        # Log role change if different
+        old_role = member.role
         member.role = role
+        
+        if old_role != role:
+            log = ActivityLog(
+                team_id=team.id,
+                user_id=updated_by_user_id,
+                affected_user_id=user.id,
+                action=ActionType.MEMBER_ROLE_CHANGE,
+                field_name="role",
+                old_value=old_role,
+                new_value=role
+            )
+            db.add(log)
+        
         db.commit()
         db.refresh(member)
         return member

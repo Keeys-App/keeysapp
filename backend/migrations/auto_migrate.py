@@ -553,6 +553,88 @@ def migrate_add_ai_translation_action_type_if_needed():
         return False
 
 
+def migrate_add_team_action_types_if_needed():
+    """
+    Add team-related action types to enum (TEAM_CREATE, TEAM_UPDATE_NAME, etc.).
+    Safe to run multiple times.
+    """
+    try:
+        logger.info("🔄 Migration: Adding team action types")
+        
+        new_types = [
+            'TEAM_CREATE',
+            'TEAM_UPDATE_NAME',
+            'TEAM_UPDATE_DESCRIPTION',
+            'TEAM_DELETE',
+            'TEAM_INVITE'
+        ]
+        
+        with engine.connect() as connection:
+            for action_type in new_types:
+                # Check if enum value exists
+                result = connection.execute(text(f"""
+                    SELECT EXISTS (
+                        SELECT 1 
+                        FROM pg_type t 
+                        JOIN pg_enum e ON t.oid = e.enumtypid 
+                        WHERE t.typname = 'actiontype' 
+                        AND e.enumlabel = '{action_type}'
+                    )
+                """))
+                exists = result.scalar()
+                
+                if not exists:
+                    logger.info(f"Adding {action_type} to actiontype enum...")
+                    connection.execute(
+                        text(f"ALTER TYPE actiontype ADD VALUE '{action_type}'")
+                    )
+                    connection.commit()
+                    logger.info(f"✅ {action_type} added successfully")
+                else:
+                    logger.info(f"✅ {action_type} already exists, skipping")
+            
+            logger.info("✅ Migration: Team action types completed successfully")
+            return True
+        
+    except Exception as e:
+        logger.error(f"❌ Migration failed: {str(e)}")
+        return False
+
+
+def migrate_add_team_id_to_activity_logs_if_needed():
+    """
+    Add team_id column to activity_logs table for team-level logging.
+    Safe to run multiple times.
+    """
+    try:
+        # Check if column already exists
+        if check_column_exists('activity_logs', 'team_id'):
+            logger.info("✅ Migration: team_id column already exists in activity_logs, skipping")
+            return True
+        
+        logger.info("🔄 Migration: Adding team_id column to activity_logs table")
+        
+        with engine.connect() as connection:
+            # Add the column (nullable)
+            connection.execute(text("""
+                ALTER TABLE activity_logs 
+                ADD COLUMN team_id INTEGER REFERENCES teams(id) ON DELETE SET NULL
+            """))
+            
+            # Add index
+            connection.execute(text("""
+                CREATE INDEX IF NOT EXISTS ix_activity_logs_team_id ON activity_logs(team_id)
+            """))
+            
+            connection.commit()
+            logger.info("✅ Migration: team_id column added successfully")
+            return True
+            
+    except Exception as e:
+        logger.error(f"❌ Migration failed: {type(e).__name__}: {str(e)}")
+        return False
+
+
 def migrate_create_teams_system_if_needed():
     """
     Create teams system tables and add team_id to projects.
@@ -779,6 +861,8 @@ def run_all_migrations():
         ("migrate_to_activity_logs", migrate_to_activity_logs_if_needed),
         ("add_ai_translation_action_type", migrate_add_ai_translation_action_type_if_needed),
         ("create_teams_system", migrate_create_teams_system_if_needed),
+        ("add_team_action_types", migrate_add_team_action_types_if_needed),
+        ("add_team_id_to_activity_logs", migrate_add_team_id_to_activity_logs_if_needed),
         # Add more migrations here as needed
     ]
     

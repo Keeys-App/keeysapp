@@ -10,6 +10,7 @@ export const PATHS = {
   ONBOARDING: '/onboarding',
   TEAMS: '/teams',
   TEAM: '/team/:id',
+  TEAM_LOGS: '/team/:id/logs',
   TEAM_CREATE: '/team/create',
   TEAM_EDIT: '/team/:id/edit',
   PROJECT: '/project/:id',

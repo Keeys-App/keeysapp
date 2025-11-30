@@ -3,12 +3,14 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import func
 import uuid as uuid_lib
 import logging
+import json
 
 from app.models.project import Project, ProjectMember
 from app.models.project_access import ProjectAccess
 from app.models.team import Team
 from app.models.user import User
 from app.models.key import Key, Translation
+from app.models.activity_log import ActivityLog, ActionType
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +19,50 @@ class ProjectService:
     """
     Service for managing projects and project memberships.
     """
+
+    @staticmethod
+    def _create_log(
+        db: Session,
+        project_id: int,
+        user_id: int,
+        action: ActionType,
+        field_name: Optional[str] = None,
+        old_value: Optional[str] = None,
+        new_value: Optional[str] = None,
+        affected_user_id: Optional[int] = None,
+        extra_data: Optional[dict] = None
+    ):
+        """
+        Create an activity log entry for project actions.
+        Automatically includes team_id from the project.
+        
+        Args:
+            db: Database session
+            project_id: Internal project ID
+            user_id: User who performed the action
+            action: Type of action
+            field_name: Name of the field that changed
+            old_value: Previous value
+            new_value: New value
+            affected_user_id: User affected by the action (for team management)
+            extra_data: Additional data as JSON
+        """
+        # Get team_id from project
+        project = db.query(Project).filter(Project.id == project_id).first()
+        team_id = project.team_id if project else None
+        
+        log = ActivityLog(
+            team_id=team_id,
+            project_id=project_id,
+            user_id=user_id,
+            action=action,
+            field_name=field_name,
+            old_value=old_value,
+            new_value=new_value,
+            affected_user_id=affected_user_id,
+            extra_data=extra_data
+        )
+        db.add(log)
 
     @staticmethod
     def create_project(
@@ -75,6 +121,18 @@ class ProjectService:
             team_id=team_id
         )
         db.add(project)
+        db.flush()
+        
+        # Log project creation
+        ProjectService._create_log(
+            db=db,
+            project_id=project.id,
+            user_id=owner_id,
+            action=ActionType.PROJECT_CREATE,
+            field_name="name",
+            new_value=name
+        )
+        
         db.commit()
         db.refresh(project)
         return project
@@ -302,11 +360,33 @@ class ProjectService:
         if not ProjectService.can_user_edit_project(db, project.id, user_id):
             return None
         
-        # Update fields if provided
-        if name is not None:
+        # Update fields if provided and log changes
+        if name is not None and name != project.name:
+            old_name = project.name
             project.name = name
-        if description is not None:
+            ProjectService._create_log(
+                db=db,
+                project_id=project.id,
+                user_id=user_id,
+                action=ActionType.PROJECT_UPDATE_NAME,
+                field_name="name",
+                old_value=old_name,
+                new_value=name
+            )
+        
+        if description is not None and description != project.description:
+            old_description = project.description
             project.description = description
+            ProjectService._create_log(
+                db=db,
+                project_id=project.id,
+                user_id=user_id,
+                action=ActionType.PROJECT_UPDATE_DESCRIPTION,
+                field_name="description",
+                old_value=old_description or '',
+                new_value=description
+            )
+        
         if languages is not None:
             # Convert LanguageConfigInput to dict format for JSON storage
             languages_data = []
@@ -321,13 +401,68 @@ class ProjectService:
                 elif isinstance(lang, dict):
                     # It's already a dict
                     languages_data.append(lang)
-            project.languages = languages_data
-        if default_language is not None:
+            
+            # Check if languages actually changed
+            if json.dumps(languages_data, sort_keys=True) != json.dumps(project.languages, sort_keys=True):
+                old_languages = project.languages
+                project.languages = languages_data
+                
+                # Format languages as readable string for display
+                old_langs_str = ', '.join([lang.get('code', '') for lang in old_languages]) if old_languages else ''
+                new_langs_str = ', '.join([lang.get('code', '') for lang in languages_data])
+                
+                ProjectService._create_log(
+                    db=db,
+                    project_id=project.id,
+                    user_id=user_id,
+                    action=ActionType.PROJECT_UPDATE_LANGUAGES,
+                    field_name="languages",
+                    old_value=old_langs_str,
+                    new_value=new_langs_str,
+                    extra_data={
+                        'old_languages': old_languages,
+                        'new_languages': languages_data
+                    }
+                )
+        
+        if default_language is not None and default_language != project.default_language:
+            old_default_language = project.default_language
             project.default_language = default_language
-        if color is not None:
+            ProjectService._create_log(
+                db=db,
+                project_id=project.id,
+                user_id=user_id,
+                action=ActionType.PROJECT_UPDATE_DEFAULT_LANGUAGE,
+                field_name="default_language",
+                old_value=old_default_language or '',
+                new_value=default_language
+            )
+        
+        if color is not None and color != project.color:
+            old_color = project.color
             project.color = color
-        if status is not None:
+            ProjectService._create_log(
+                db=db,
+                project_id=project.id,
+                user_id=user_id,
+                action=ActionType.PROJECT_UPDATE_COLOR,
+                field_name="color",
+                old_value=old_color,
+                new_value=color
+            )
+        
+        if status is not None and status != project.status:
+            old_status = project.status
             project.status = status
+            ProjectService._create_log(
+                db=db,
+                project_id=project.id,
+                user_id=user_id,
+                action=ActionType.PROJECT_UPDATE_STATUS,
+                field_name="status",
+                old_value=old_status,
+                new_value=status
+            )
         
         db.commit()
         db.refresh(project)
@@ -353,6 +488,16 @@ class ProjectService:
         # Only owner can delete
         if project.owner_id != user_id:
             return False
+        
+        # Log project deletion before deleting
+        ProjectService._create_log(
+            db=db,
+            project_id=project.id,
+            user_id=user_id,
+            action=ActionType.PROJECT_DELETE,
+            field_name="name",
+            old_value=project.name
+        )
         
         db.delete(project)
         db.commit()
@@ -604,6 +749,16 @@ class ProjectService:
         if not ProjectService.check_project_access(db, project.id, user_id):
             return None
         
+        # Log export action
+        ProjectService._create_log(
+            db=db,
+            project_id=project.id,
+            user_id=user_id,
+            action=ActionType.PROJECT_EXPORT,
+            field_name="export"
+        )
+        db.commit()
+        
         # Get all keys with translations
         keys = db.query(Key).filter(Key.project_id == project.id).all()
         
@@ -709,8 +864,19 @@ class ProjectService:
                 project.available_tags = config.get('availableTags', [])
                 logger.info(f"Set available_tags: {config.get('availableTags')}")
             
-            # Import ActivityLog model and action types for logging
-            from app.models.activity_log import ActivityLog, ActionType
+            # Log project import (ActivityLog already imported at top of file)
+            # Note: ActivityLog is already imported at module level
+            ProjectService._create_log(
+                db=db,
+                project_id=project.id,
+                user_id=owner_id,
+                action=ActionType.PROJECT_IMPORT,
+                field_name="import",
+                extra_data={
+                    'keys_count': len(keys_data),
+                    'locales_count': len(locales)
+                }
+            )
             
             # Create keys with descriptions and tags first
             logger.info(f"Creating {len(keys_data)} keys")

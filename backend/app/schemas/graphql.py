@@ -27,6 +27,7 @@ class Query:
     # Include team queries
     teams: List[TeamType] = strawberry.field(resolver=TeamQuery.teams)
     team: Optional[TeamType] = strawberry.field(resolver=TeamQuery.team)
+    team_activity: List[ActivityLogType] = strawberry.field(resolver=TeamQuery.team_activity)
     
     # Include project queries
     projects: List[ProjectType] = strawberry.field(resolver=ProjectQuery.projects)

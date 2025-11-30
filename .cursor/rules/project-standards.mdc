@@ -313,3 +313,26 @@ Before committing code, ask:
 - [ ] Will this pattern be used again?
 
 If you answer "yes" to any question, refactor before proceeding.
+
+## Routing & Navigation
+
+- Всегда используйте константы из `PATHS` (`@/constants/paths`) для навигации и ссылок.
+- Никогда не используйте хардкод путей типа `'/project/123'` или `'/team/:id/edit'`.
+- Для динамических путей используйте `.replace()`:
+
+// ❌ BAD - хардкод пути
+<Link to={`/project/${projectId}/keys`}>
+
+// ✅ GOOD - использование PATHS
+import { PATHS } from '@/constants/paths';
+<Link to={PATHS.PROJECT_KEYS.replace(':id', projectId)}>
+
+// ❌ BAD - хардкод в navigate
+navigate(`/team/${teamId}/edit`);
+
+// ✅ GOOD - использование PATHS
+navigate(PATHS.TEAM_EDIT.replace(':id', teamId));**Преимущества:**
+- Type safety при рефакторинге
+- Централизованное управление путями
+- Легко найти все использования маршрута
+- Предотвращение опечаток

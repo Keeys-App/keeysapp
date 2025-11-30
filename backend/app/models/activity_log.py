@@ -20,10 +20,17 @@ class ActionType(str, enum.Enum):
     PROJECT_EXPORT = "PROJECT_EXPORT"
     PROJECT_IMPORT = "PROJECT_IMPORT"
     
+    # Team lifecycle actions
+    TEAM_CREATE = "TEAM_CREATE"
+    TEAM_UPDATE_NAME = "TEAM_UPDATE_NAME"
+    TEAM_UPDATE_DESCRIPTION = "TEAM_UPDATE_DESCRIPTION"
+    TEAM_DELETE = "TEAM_DELETE"
+    
     # Team management actions
     MEMBER_ADD = "MEMBER_ADD"
     MEMBER_REMOVE = "MEMBER_REMOVE"
     MEMBER_ROLE_CHANGE = "MEMBER_ROLE_CHANGE"
+    TEAM_INVITE = "TEAM_INVITE"
     
     # Key actions
     KEY_CREATE = "KEY_CREATE"
@@ -54,6 +61,7 @@ class ActivityLog(Base):
     id = Column(Integer, primary_key=True, index=True)
     
     # Entity references (nullable to preserve history after deletion)
+    team_id = Column(Integer, ForeignKey("teams.id", ondelete="SET NULL"), nullable=True, index=True)
     project_id = Column(Integer, ForeignKey("projects.id", ondelete="SET NULL"), nullable=True, index=True)
     key_id = Column(Integer, ForeignKey("keys.id", ondelete="SET NULL"), nullable=True, index=True)
     
@@ -78,6 +86,7 @@ class ActivityLog(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
 
     # Relationships
+    team = relationship("Team", backref="activity_logs")
     project = relationship("Project", backref="activity_logs")
     key = relationship("Key", backref="activity_logs")
     user = relationship("User", backref="activity_logs_performed", foreign_keys=[user_id])

@@ -6,6 +6,7 @@ import { DashboardPage } from '@/pages/DashboardPage';
 import { OnboardingPage } from '@/pages/OnboardingPage';
 import { TeamsPage } from '@/pages/TeamsPage';
 import { TeamPage } from '@/pages/TeamPage';
+import { TeamLogsPage } from '@/pages/TeamLogsPage';
 import { CreateTeamPage } from '@/pages/CreateTeamPage';
 import { EditTeamPage } from '@/pages/EditTeamPage';
 import { ProjectPage } from '@/pages/ProjectPage';
@@ -44,6 +45,7 @@ function App() {
             <Route path={PATHS.DASHBOARD} element={<DashboardPage />} />
             <Route path={PATHS.TEAMS} element={<TeamsPage />} />
             <Route path={PATHS.TEAM} element={<TeamPage />} />
+            <Route path={PATHS.TEAM_LOGS} element={<TeamLogsPage />} />
             <Route path={PATHS.TEAM_CREATE} element={<CreateTeamPage />} />
             <Route path={PATHS.TEAM_EDIT} element={<EditTeamPage />} />
             <Route path={PATHS.PROJECT_CREATE} element={<CreateProjectPage />} />

@@ -24,6 +24,12 @@ class ActionTypeEnum(str, enum.Enum):
     """
     GraphQL enum for all activity log action types.
     """
+    # Team lifecycle
+    TEAM_CREATE = "TEAM_CREATE"
+    TEAM_UPDATE_NAME = "TEAM_UPDATE_NAME"
+    TEAM_UPDATE_DESCRIPTION = "TEAM_UPDATE_DESCRIPTION"
+    TEAM_DELETE = "TEAM_DELETE"
+    
     # Project actions
     PROJECT_CREATE = "PROJECT_CREATE"
     PROJECT_UPDATE_NAME = "PROJECT_UPDATE_NAME"
@@ -40,6 +46,7 @@ class ActionTypeEnum(str, enum.Enum):
     MEMBER_ADD = "MEMBER_ADD"
     MEMBER_REMOVE = "MEMBER_REMOVE"
     MEMBER_ROLE_CHANGE = "MEMBER_ROLE_CHANGE"
+    TEAM_INVITE = "TEAM_INVITE"
     
     # Key actions
     KEY_CREATE = "KEY_CREATE"
@@ -79,6 +86,16 @@ ReviewStatusEnum = strawberry.enum(ReviewStatusEnum)
 
 
 @strawberry.type
+class ActivityProjectInfo:
+    """
+    Simplified project info for activity logs (to avoid circular dependency).
+    """
+    id: str
+    name: str
+    color: Optional[str]
+
+
+@strawberry.type
 class ActivityLogType:
     """
     GraphQL type for Activity Log (universal audit trail).
@@ -90,6 +107,7 @@ class ActivityLogType:
     affected_user_id: Optional[int]
     user: Optional['UserType']
     affected_user: Optional['UserType']
+    project: Optional[ActivityProjectInfo]
     action: ActionTypeEnum
     field_name: Optional[str]
     language: Optional[str]
@@ -277,6 +295,12 @@ def build_activity_log_type(log) -> ActivityLogType:
     """
     # Map action to enum
     action_map = {
+        # Team lifecycle
+        "TEAM_CREATE": ActionTypeEnum.TEAM_CREATE,
+        "TEAM_UPDATE_NAME": ActionTypeEnum.TEAM_UPDATE_NAME,
+        "TEAM_UPDATE_DESCRIPTION": ActionTypeEnum.TEAM_UPDATE_DESCRIPTION,
+        "TEAM_DELETE": ActionTypeEnum.TEAM_DELETE,
+        
         # Project actions
         "PROJECT_CREATE": ActionTypeEnum.PROJECT_CREATE,
         "PROJECT_UPDATE_NAME": ActionTypeEnum.PROJECT_UPDATE_NAME,
@@ -293,6 +317,7 @@ def build_activity_log_type(log) -> ActivityLogType:
         "MEMBER_ADD": ActionTypeEnum.MEMBER_ADD,
         "MEMBER_REMOVE": ActionTypeEnum.MEMBER_REMOVE,
         "MEMBER_ROLE_CHANGE": ActionTypeEnum.MEMBER_ROLE_CHANGE,
+        "TEAM_INVITE": ActionTypeEnum.TEAM_INVITE,
         
         # Key actions
         "KEY_CREATE": ActionTypeEnum.KEY_CREATE,
@@ -336,6 +361,15 @@ def build_activity_log_type(log) -> ActivityLogType:
             onboarding_completed=log.affected_user.onboarding_completed
         )
     
+    # Build project info if available
+    project = None
+    if log.project:
+        project = ActivityProjectInfo(
+            id=str(log.project.public_id),
+            name=log.project.name,
+            color=log.project.color
+        )
+    
     return ActivityLogType(
         id=log.id,
         project_id=log.project_id,
@@ -344,6 +378,7 @@ def build_activity_log_type(log) -> ActivityLogType:
         affected_user_id=log.affected_user_id,
         user=user,
         affected_user=affected_user,
+        project=project,
         action=action_map.get(log.action.value, ActionTypeEnum.KEY_UPDATE),
         field_name=log.field_name,
         language=log.language,

@@ -58,7 +58,7 @@ export function KeyHeader({ keyName, isSelected, keyData, projectId, onKeyDelete
           )}
         >
           {isSelected ? (
-            <div className="h-3 w-1 bg-primary rounded absolute top-[3px] left-[-9px]" />
+            <div className="w-1 bg-primary rounded absolute top-[3px] bottom-[5px] left-[-9px]" />
           ) : null}
           {keyName}
         </div>

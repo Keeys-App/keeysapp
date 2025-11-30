@@ -3,6 +3,7 @@ export { DashboardPage } from './DashboardPage';
 export { OnboardingPage } from './OnboardingPage';
 export { TeamsPage } from './TeamsPage';
 export { TeamPage } from './TeamPage';
+export { TeamLogsPage } from './TeamLogsPage';
 export { CreateTeamPage } from './CreateTeamPage';
 export { EditTeamPage } from './EditTeamPage';
 export { ProjectPage } from './ProjectPage';
