@@ -20,17 +20,34 @@ interface ExportContentProps {
 }
 
 export const ExportContent: FC<ExportContentProps> = ({ project }) => {
-  const projectLanguages = COMMON_LANGUAGES.filter((language) => {
-    return project.languages.some((lang) => {
-      return lang.code === language.code;
+  const sourceLanguage = project.defaultLanguage || "en";
+  
+  // Sort languages: source language first, then rest alphabetically
+  const projectLanguages = COMMON_LANGUAGES
+    .filter((language) => {
+      return project.languages.some((lang) => {
+        return lang.code === language.code;
+      });
+    })
+    .sort((a, b) => {
+      // Source language always first
+      if (a.code === sourceLanguage) {
+        return -1;
+      }
+      if (b.code === sourceLanguage) {
+        return 1;
+      }
+      // Rest alphabetically
+      return a.name.localeCompare(b.name);
     });
-  });
 
   const [options, setOptions] = useState<ExportOptions>({
     format: "i18n",
-    language: projectLanguages[0]?.code || "en",
+    language: sourceLanguage,
     indent: 2,
     sortKeys: true,
+    fillEmptyFromSource: false,
+    sourceLanguage,
   });
 
   // Load all project keys using pagination

@@ -31,10 +31,22 @@ export function useAllProjectKeys(projectId: string): UseAllProjectKeysResult {
     fetchPolicy: 'network-only', // Always fetch fresh data for export/import
   });
 
+  // Reset state when projectId changes
+  useEffect(() => {
+    setAllKeys([]);
+    setIsLoadingAll(true);
+    setTotalCount(0);
+  }, [projectId]);
+
   useEffect(() => {
     const loadAllKeys = async () => {
       if (!data?.projectKeys) {
         return;
+      }
+
+      // Reset when we get fresh data from the first page
+      if (data.projectKeys.keys) {
+        setAllKeys([]); // Clear before loading to ensure fresh data
       }
 
       let currentKeys = [...(data.projectKeys.keys || [])];

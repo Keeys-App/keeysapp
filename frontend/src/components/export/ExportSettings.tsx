@@ -39,6 +39,15 @@ export const ExportSettings: FC<ExportSettingsProps> = ({
     onOptionsChange({ ...options, sortKeys });
   };
 
+  const handleFillEmptyFromSourceChange = (fillEmptyFromSource: boolean) => {
+    onOptionsChange({ ...options, fillEmptyFromSource });
+  };
+
+  // Get source language name for display
+  const sourceLanguageName = languages.find(
+    (lang) => lang.code === options.sourceLanguage
+  )?.name || options.sourceLanguage;
+
   return (
     <Card>
       <CardHeader>
@@ -56,6 +65,7 @@ export const ExportSettings: FC<ExportSettingsProps> = ({
               {languages.map((lang) => (
                 <SelectItem key={lang.code} value={lang.code}>
                   {lang.flag} {lang.name}
+                  {lang.code === options.sourceLanguage ? " (source)" : ""}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -107,6 +117,25 @@ export const ExportSettings: FC<ExportSettingsProps> = ({
             onCheckedChange={handleSortKeysChange}
           />
         </div>
+
+        {/* Fill Empty From Source - only show for non-source languages */}
+        {options.language !== options.sourceLanguage ? (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="fill-empty" className="cursor-pointer">
+                Fill empty from source
+              </Label>
+              <Switch
+                id="fill-empty"
+                checked={options.fillEmptyFromSource}
+                onCheckedChange={handleFillEmptyFromSourceChange}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Use {sourceLanguageName} value when translation is missing
+            </p>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );

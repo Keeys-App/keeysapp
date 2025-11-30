@@ -576,19 +576,15 @@ export const CodeBlockContent = ({
   ...props
 }: CodeBlockContentProps) => {
   const [highlightedCode, setHighlightedCode] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(syntaxHighlighting);
   const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
     if (!syntaxHighlighting) {
-      setIsLoading(false);
       return;
     }
 
-    // Reset states when children or language changes
-    setIsLoading(true);
+    // Don't reset highlightedCode - keep showing previous while loading new
     setHasError(false);
-    setHighlightedCode('');
 
     const loadHighlightedCode = async () => {
       try {
@@ -603,19 +599,17 @@ export const CodeBlockContent = ({
         });
 
         setHighlightedCode(html);
-        setIsLoading(false);
       } catch (error) {
         console.error(`Failed to highlight code for language "${language}":`, error);
         setHasError(true);
-        setIsLoading(false);
       }
     };
 
     loadHighlightedCode();
   }, [children, language, themes, syntaxHighlighting]);
 
-  // Show fallback when: no syntax highlighting, loading, error, or empty code
-  if (!syntaxHighlighting || isLoading || hasError || !highlightedCode) {
+  // Show fallback when: no syntax highlighting, error, or no highlighted code yet
+  if (!syntaxHighlighting || hasError || !highlightedCode) {
     return <CodeBlockFallback {...props}>{children}</CodeBlockFallback>;
   }
 

@@ -100,6 +100,43 @@ function unescapeIosStringsValue(value: string): string {
 }
 
 /**
+ * Convert iOS Strings variables to i18n format
+ * Positional: %1$@, %2$d -> {var1}, {var2}
+ * Simple: %@, %d, %f -> {var1}, {var2}, {var3}
+ * 
+ * Supported iOS formats:
+ * - %@ - string
+ * - %d, %i - integer
+ * - %f - float
+ * - %ld, %li - long integer
+ * - %1$@, %2$d - positional arguments
+ */
+function convertIosVariablesToI18n(value: string): string {
+  // First, handle positional arguments like %1$@, %2$d
+  const positionalRegex = /%(\d+)\$[@disfl]/g;
+  let hasPositional = false;
+  let result = value.replace(positionalRegex, (_, position) => {
+    hasPositional = true;
+    return `{var${position}}`;
+  });
+  
+  // If we had positional args, we're done
+  if (hasPositional) {
+    return result;
+  }
+  
+  // Handle simple format specifiers: %@, %d, %i, %f, %ld, %li, %s
+  const simpleRegex = /%(?:l?[disf]|@|s)/g;
+  let varIndex = 0;
+  result = result.replace(simpleRegex, () => {
+    varIndex++;
+    return `{var${varIndex}}`;
+  });
+  
+  return result;
+}
+
+/**
  * Parse iOS Strings format (.strings files)
  * @example "key.name" = "Translation value";
  * 
@@ -162,7 +199,9 @@ export function parseIosStringsFormat(content: string): ParseResult {
       const match = line.match(lineRegex);
       if (match) {
         const key = unescapeIosStringsValue(match[1]);
-        const value = unescapeIosStringsValue(match[2]);
+        const rawValue = unescapeIosStringsValue(match[2]);
+        // Convert iOS format specifiers to i18n variables
+        const value = convertIosVariablesToI18n(rawValue);
         translations.push({ key, value });
       }
     }
