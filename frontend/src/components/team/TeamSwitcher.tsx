@@ -1,6 +1,6 @@
-import { type FC, useState, useEffect, useRef } from 'react';
+import { type FC, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, ChevronsUpDown, PlusCircle, Users } from 'lucide-react';
+import { Check, ChevronsUpDown, PlusCircle } from 'lucide-react';
 import { useQuery } from '@apollo/client';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -44,16 +44,8 @@ export const TeamSwitcher: FC<TeamSwitcherProps> = ({
     return team.id === selectedTeamId;
   });
 
-  // Auto-select first team if none selected and teams are loaded
-  // Use ref to prevent infinite loops
-  const hasAutoSelectedRef = useRef(false);
-  
-  useEffect(() => {
-    if (!loading && teams.length > 0 && !selectedTeamId && onTeamChange && !hasAutoSelectedRef.current) {
-      hasAutoSelectedRef.current = true;
-      onTeamChange(teams[0].id);
-    }
-  }, [loading, teams, selectedTeamId, onTeamChange]);
+  // Note: Auto-selection of team is handled in Layout.tsx
+  // TeamSwitcher only handles display and manual team switching
 
   // Clear search when popover closes
   useEffect(() => {

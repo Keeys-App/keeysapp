@@ -1,5 +1,6 @@
 import { Fragment, useMemo, useEffect, type FC } from 'react';
-import { Outlet, Link, useNavigate } from 'react-router-dom';
+import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
+import { useQuery } from '@apollo/client';
 import { AppSidebar } from './AppSidebar';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
@@ -24,13 +25,23 @@ import { PanelRightClose, PanelRightOpen } from 'lucide-react';
 import { TeamSwitcher } from '@/components/team/TeamSwitcher';
 import { SavingIndicator } from './SavingIndicator';
 import { PATHS } from '@/constants/paths';
+import { GET_TEAMS, type GetTeamsResponse } from '@/graphql/teams';
 
 export const Layout: FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { breadcrumbs } = useBreadcrumbs();
   const { isPanelOpen, showPanelToggle, togglePanel } = useLayoutStore();
   const { selectedTeamId, setSelectedTeamId } = useTeamStore();
   const { isOnboardingComplete } = useOnboardingStore();
+
+  // Fetch teams to check if user has any teams
+  const { data: teamsData, loading: teamsLoading } = useQuery<GetTeamsResponse>(GET_TEAMS, {
+    fetchPolicy: 'cache-and-network',
+    nextFetchPolicy: 'cache-first',
+  });
+
+  const teams = teamsData?.teams || [];
 
   // Redirect to onboarding if not completed
   useEffect(() => {
@@ -38,6 +49,29 @@ export const Layout: FC = () => {
       navigate(PATHS.ONBOARDING, { replace: true });
     }
   }, [isOnboardingComplete, navigate]);
+
+  // Redirect to teams page if user has no teams (except when on team create page)
+  useEffect(() => {
+    if (!teamsLoading && teams.length === 0) {
+      // Allow access to team create page
+      if (location.pathname !== PATHS.TEAM_CREATE && location.pathname !== PATHS.TEAMS) {
+        navigate(PATHS.TEAMS, { replace: true });
+      }
+    }
+  }, [teamsLoading, teams.length, location.pathname, navigate]);
+
+  // Auto-select first team if no team selected or selected team doesn't exist
+  useEffect(() => {
+    if (!teamsLoading && teams.length > 0) {
+      const selectedTeamExists = teams.some((team) => {
+        return team.id === selectedTeamId;
+      });
+      
+      if (!selectedTeamId || !selectedTeamExists) {
+        setSelectedTeamId(teams[0].id);
+      }
+    }
+  }, [teamsLoading, teams, selectedTeamId, setSelectedTeamId]);
 
   const getBreadcrumbs = useMemo(() => {
     return () => {
