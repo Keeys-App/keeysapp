@@ -210,7 +210,7 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-64 p-3 data-[state=closed]:zoom-out-100"
+        className="w-64 p-3"
         align="start"
         onClick={(e) => {
           e.stopPropagation();

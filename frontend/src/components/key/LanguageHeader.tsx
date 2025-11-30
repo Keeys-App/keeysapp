@@ -40,7 +40,10 @@ export const LanguageHeader = memo(function LanguageHeader({
         <div className="relative top-[1px] right-[-3px] h-5">
           {hasTranslation && (
             <div
-              className={isReviewOpen ? "block" : "hidden group-hover:block"}
+              className={cn(
+                "transition-opacity duration-200",
+                isReviewOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+              )}
             >
               <ReviewStatusButton
                 keyId={keyId}
