@@ -10,6 +10,7 @@ import sib_api_v3_sdk
 from sib_api_v3_sdk.rest import ApiException
 
 from app.core.config import settings
+from app.services.email_template_service import EmailTemplateService
 
 logger = logging.getLogger(__name__)
 
@@ -73,39 +74,67 @@ class EmailService:
             logger.warning(f"Email service not configured. Skipping welcome email to {email}")
             return False
         
-        sender = self._get_sender()
+        # Render template with variables
+        template_service = EmailTemplateService.get_instance()
+        template = template_service.render("welcome", {
+            "username": username,
+            "app_name": settings.brevo_sender_name,
+        })
         
-        # Simple text content for welcome email
-        text_content = f"""Hello {username}!
-
-Welcome to Locales App! We're excited to have you on board.
-
-Your account has been successfully created and you can now start using the app to manage your translations and localization projects.
-
-If you have any questions, feel free to reach out to our support team.
-
-Best regards,
-The Locales Team
-"""
+        if not template:
+            logger.error(f"Failed to render welcome email template for {email}")
+            return False
+        
+        return self._send_email(
+            to_email=email,
+            to_name=username,
+            subject=template.subject,
+            text_content=template.text_content,
+            html_content=template.html_content
+        )
+    
+    def _send_email(
+        self,
+        to_email: str,
+        to_name: str,
+        subject: str,
+        text_content: str,
+        html_content: Optional[str] = None
+    ) -> bool:
+        """
+        Send an email via Brevo API.
+        
+        Args:
+            to_email: Recipient email address
+            to_name: Recipient name
+            subject: Email subject
+            text_content: Plain text content
+            html_content: Optional HTML content
+            
+        Returns:
+            True if email was sent successfully, False otherwise
+        """
+        sender = self._get_sender()
         
         send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
             sender=sender,
-            to=[{"email": email, "name": username}],
-            subject="Welcome to Locales App!",
-            text_content=text_content
+            to=[{"email": to_email, "name": to_name}],
+            subject=subject,
+            text_content=text_content,
+            html_content=html_content
         )
         
         try:
             response = self._api_instance.send_transac_email(send_smtp_email)
-            logger.info(f"Welcome email sent successfully to {email}. Message ID: {response.message_id}")
+            logger.info(f"Email sent successfully to {to_email}. Message ID: {response.message_id}")
             return True
         except ApiException as e:
             # Log the error but never expose technical details
-            logger.error(f"Failed to send welcome email to {email}: {type(e).__name__}")
+            logger.error(f"Failed to send email to {to_email}: {type(e).__name__}")
             return False
         except Exception as e:
             # Catch-all for unexpected errors
-            logger.error(f"Unexpected error sending welcome email to {email}: {type(e).__name__}")
+            logger.error(f"Unexpected error sending email to {to_email}: {type(e).__name__}")
             return False
 
 
