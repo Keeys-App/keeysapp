@@ -34,6 +34,7 @@ class UserType:
     username: str
     is_active: bool
     is_superuser: bool
+    onboarding_completed: bool
 
 
 @strawberry.type
@@ -126,7 +127,8 @@ class AuthMutation:
                     email=user.email,
                     username=user.username,
                     is_active=user.is_active,
-                    is_superuser=user.is_superuser
+                    is_superuser=user.is_superuser,
+                    onboarding_completed=user.onboarding_completed
                 )
             )
         except (UserAlreadyExistsError, AuthenticationError, ValidationError):
@@ -176,7 +178,8 @@ class AuthMutation:
                     email=user.email,
                     username=user.username,
                     is_active=user.is_active,
-                    is_superuser=user.is_superuser
+                    is_superuser=user.is_superuser,
+                    onboarding_completed=user.onboarding_completed
                 )
             )
         except (AuthenticationError, UserAlreadyExistsError):
@@ -241,7 +244,8 @@ class AuthQuery:
                     email=user.email,
                     username=user.username,
                     is_active=user.is_active,
-                    is_superuser=user.is_superuser
+                    is_superuser=user.is_superuser,
+                    onboarding_completed=user.onboarding_completed
                 )
             finally:
                 db.close()
@@ -249,5 +253,78 @@ class AuthQuery:
             # Log error but return None (don't expose errors in queries)
             logger.error(f"Error in me query: {type(e).__name__}: {str(e)}")
             return None
+
+
+@strawberry.type
+class OnboardingMutation:
+    """
+    GraphQL mutations for onboarding management.
+    """
+
+    @strawberry.mutation
+    def complete_onboarding(self, info: Info) -> UserType:
+        """
+        Mark user's onboarding as completed.
+        
+        Args:
+            info: GraphQL info object with authenticated user
+            
+        Returns:
+            Updated user with onboarding_completed = True
+            
+        Raises:
+            AuthenticationError: If user is not authenticated
+            DatabaseError: If database operation fails
+        """
+        try:
+            # Get token from context
+            request = info.context.get("request")
+            if not request:
+                raise AuthenticationError()
+            
+            auth_header = request.headers.get("Authorization")
+            if not auth_header or not auth_header.startswith("Bearer "):
+                raise AuthenticationError()
+            
+            token = auth_header.replace("Bearer ", "")
+            payload = decode_access_token(token)
+            
+            if not payload:
+                raise AuthenticationError()
+            
+            public_id = payload.get("sub")
+            if not public_id:
+                raise AuthenticationError()
+            
+            db: Session = next(get_db())
+            try:
+                # Find user by public_id (UUID)
+                user = UserService.get_user_by_public_id(db, public_id)
+                if not user:
+                    raise AuthenticationError()
+                
+                # Update onboarding status
+                user.onboarding_completed = True
+                db.commit()
+                db.refresh(user)
+                
+                logger.info(f"User {user.email} completed onboarding")
+                
+                return UserType(
+                    id=str(user.public_id),
+                    email=user.email,
+                    username=user.username,
+                    is_active=user.is_active,
+                    is_superuser=user.is_superuser,
+                    onboarding_completed=user.onboarding_completed
+                )
+            finally:
+                db.close()
+        except AuthenticationError:
+            raise
+        except (IntegrityError, OperationalError) as e:
+            handle_database_exception(e, "complete onboarding")
+        except Exception as e:
+            handle_database_exception(e, "complete onboarding")
 
 

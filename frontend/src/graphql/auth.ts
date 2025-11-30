@@ -11,6 +11,7 @@ export const REGISTER_MUTATION = gql`
         username
         isActive
         isSuperuser
+        onboardingCompleted
       }
     }
   }
@@ -27,6 +28,7 @@ export const LOGIN_MUTATION = gql`
         username
         isActive
         isSuperuser
+        onboardingCompleted
       }
     }
   }
@@ -40,6 +42,20 @@ export const ME_QUERY = gql`
       username
       isActive
       isSuperuser
+      onboardingCompleted
+    }
+  }
+`;
+
+export const COMPLETE_ONBOARDING_MUTATION = gql`
+  mutation CompleteOnboarding {
+    completeOnboarding {
+      id
+      email
+      username
+      isActive
+      isSuperuser
+      onboardingCompleted
     }
   }
 `;

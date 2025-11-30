@@ -69,6 +69,7 @@ export const LoginForm: FC<LoginFormProps> = ({
               username: data.login.user.username,
               isActive: data.login.user.isActive,
               isSuperuser: data.login.user.isSuperuser,
+              onboardingCompleted: data.login.user.onboardingCompleted || false,
             });
 
             if (onSuccess) {

@@ -1,6 +1,6 @@
 import strawberry
 from typing import Optional, List
-from app.schemas.auth import AuthQuery, AuthMutation, UserType
+from app.schemas.auth import AuthQuery, AuthMutation, OnboardingMutation, UserType
 from app.schemas.project import ProjectQuery, ProjectMutation, ProjectType
 from app.schemas.team import TeamQuery, TeamMutation, TeamType
 from app.schemas.project_access import ProjectAccessMutation
@@ -51,6 +51,7 @@ class Mutation:
     # Include auth mutations
     register = strawberry.field(resolver=AuthMutation.register)
     login = strawberry.field(resolver=AuthMutation.login)
+    complete_onboarding = strawberry.field(resolver=OnboardingMutation.complete_onboarding)
     
     # Include team mutations
     create_team = strawberry.field(resolver=TeamMutation.create_team)

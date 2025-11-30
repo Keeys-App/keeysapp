@@ -48,15 +48,46 @@ export function getUserFriendlyErrorMessage(
       // Check for known safe messages that we can show to users
       const message = firstError.message;
       if (message) {
-        // Only show messages that are explicitly user-friendly
-        if (
-          message.includes('already exists') ||
-          message.includes('not found') ||
-          message.includes('required') ||
-          message.includes('invalid')
-        ) {
-          // Sanitize the message - remove technical details
-          return message.replace(/Variable.*?;/, '').trim();
+        // List of safe user-facing error patterns
+        const safeErrorPatterns = [
+          'already exists',
+          'already registered',
+          'already taken',
+          'not found',
+          'required',
+          'invalid',
+          'too short',
+          'too long',
+          'must be',
+          'cannot be',
+          'does not match',
+          'incorrect',
+          'failed',
+          'Authentication required',
+          'Permission denied',
+        ];
+        
+        // Check if the message contains any safe error pattern
+        const isSafeMessage = safeErrorPatterns.some(pattern => 
+          message.toLowerCase().includes(pattern.toLowerCase())
+        );
+        
+        if (isSafeMessage) {
+          // Sanitize the message - remove technical details like variable paths
+          let cleanMessage = message
+            .replace(/Variable.*?;/, '')
+            .replace(/\$\w+/, '')
+            .replace(/input\.\w+:?/, '')
+            .trim();
+          
+          // Ensure first letter is capitalized and message ends with period
+          if (cleanMessage) {
+            cleanMessage = cleanMessage.charAt(0).toUpperCase() + cleanMessage.slice(1);
+            if (!cleanMessage.endsWith('.') && !cleanMessage.endsWith('!') && !cleanMessage.endsWith('?')) {
+              cleanMessage += '.';
+            }
+            return cleanMessage;
+          }
         }
       }
     }

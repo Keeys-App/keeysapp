@@ -211,7 +211,8 @@ def build_project_type(project, current_user_id: int, stats: Optional[dict] = No
         email=project.owner.email,
         username=project.owner.username,
         is_active=project.owner.is_active,
-        is_superuser=project.owner.is_superuser
+        is_superuser=project.owner.is_superuser,
+        onboarding_completed=project.owner.onboarding_completed
     )
     
     # Build team
@@ -235,7 +236,8 @@ def build_project_type(project, current_user_id: int, stats: Optional[dict] = No
                 email=access.user.email,
                 username=access.user.username,
                 is_active=access.user.is_active,
-                is_superuser=access.user.is_superuser
+                is_superuser=access.user.is_superuser,
+                onboarding_completed=access.user.onboarding_completed
             ),
             role=access.role,
             created_at=access.created_at

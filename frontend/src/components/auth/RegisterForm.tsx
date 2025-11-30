@@ -87,6 +87,7 @@ export const RegisterForm: FC<RegisterFormProps> = ({
               username: data.register.user.username,
               isActive: data.register.user.isActive,
               isSuperuser: data.register.user.isSuperuser,
+              onboardingCompleted: data.register.user.onboardingCompleted || false,
             });
 
             if (onSuccess) {

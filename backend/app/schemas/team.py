@@ -177,7 +177,8 @@ def build_team_type(team, current_user_id: int) -> TeamType:
         email=team.owner.email,
         username=team.owner.username,
         is_active=team.owner.is_active,
-        is_superuser=team.owner.is_superuser
+        is_superuser=team.owner.is_superuser,
+        onboarding_completed=team.owner.onboarding_completed
     )
     
     # Build members
@@ -189,7 +190,8 @@ def build_team_type(team, current_user_id: int) -> TeamType:
                 email=member.user.email,
                 username=member.user.username,
                 is_active=member.user.is_active,
-                is_superuser=member.user.is_superuser
+                is_superuser=member.user.is_superuser,
+                onboarding_completed=member.user.onboarding_completed
             ),
             role=member.role,
             created_at=member.created_at
@@ -209,7 +211,8 @@ def build_team_type(team, current_user_id: int) -> TeamType:
                     email=invitation.invited_by.email,
                     username=invitation.invited_by.username,
                     is_active=invitation.invited_by.is_active,
-                    is_superuser=invitation.invited_by.is_superuser
+                    is_superuser=invitation.invited_by.is_superuser,
+                    onboarding_completed=invitation.invited_by.onboarding_completed
                 )
             
             invitations.append(TeamInvitationType(

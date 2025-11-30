@@ -320,7 +320,8 @@ def build_activity_log_type(log) -> ActivityLogType:
             email=log.user.email,
             username=log.user.username,
             is_active=log.user.is_active,
-            is_superuser=log.user.is_superuser
+            is_superuser=log.user.is_superuser,
+            onboarding_completed=log.user.onboarding_completed
         )
     
     # Build affected user info if available
@@ -331,7 +332,8 @@ def build_activity_log_type(log) -> ActivityLogType:
             email=log.affected_user.email,
             username=log.affected_user.username,
             is_active=log.affected_user.is_active,
-            is_superuser=log.affected_user.is_superuser
+            is_superuser=log.affected_user.is_superuser,
+            onboarding_completed=log.affected_user.onboarding_completed
         )
     
     return ActivityLogType(

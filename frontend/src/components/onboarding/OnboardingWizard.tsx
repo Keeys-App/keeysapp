@@ -1,4 +1,5 @@
 import { type FC } from 'react';
+import { useMutation } from '@apollo/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useOnboardingStore, useTeamStore } from '@/stores';
 import { CreateTeamStep } from './CreateTeamStep';
@@ -6,6 +7,7 @@ import { InviteMembersStep } from './InviteMembersStep';
 import { CreateProjectStep } from './CreateProjectStep';
 import { CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { COMPLETE_ONBOARDING_MUTATION } from '@/graphql/auth';
 
 export const OnboardingWizard: FC = () => {
   const {
@@ -17,6 +19,7 @@ export const OnboardingWizard: FC = () => {
   } = useOnboardingStore();
 
   const { setSelectedTeamId } = useTeamStore();
+  const [completeOnboardingMutation] = useMutation(COMPLETE_ONBOARDING_MUTATION);
 
   const steps = [
     { number: 1, title: 'Create Team', description: 'Set up your team workspace' },
@@ -35,9 +38,18 @@ export const OnboardingWizard: FC = () => {
     setCurrentStep(3);
   };
 
-  const handleProjectCreated = () => {
-    setOnboardingComplete(true);
-    // Navigation is handled in CreateProjectStep
+  const handleProjectCreated = async () => {
+    try {
+      // Mark onboarding as complete in backend
+      await completeOnboardingMutation();
+      // Update local state
+      setOnboardingComplete(true);
+      // Navigation is handled in CreateProjectStep
+    } catch (error) {
+      console.error('Failed to complete onboarding:', error);
+      // Still mark as complete locally if backend fails
+      setOnboardingComplete(true);
+    }
   };
 
   return (

@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode, FC } from 'react';
 import { apolloClient } from '../lib/apollo';
+import { useOnboardingStore } from '@/stores';
 
 interface User {
   id: string;  // UUID for security (prevents enumeration attacks)
@@ -8,6 +9,7 @@ interface User {
   username: string;
   isActive: boolean;
   isSuperuser: boolean;
+  onboardingCompleted: boolean;
 }
 
 interface AuthContextType {
@@ -29,6 +31,7 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { setOnboardingComplete } = useOnboardingStore();
 
   // Load token and user from localStorage on mount
   useEffect(() => {
@@ -37,8 +40,13 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
 
     if (storedToken && storedUser) {
       try {
+        const parsedUser = JSON.parse(storedUser);
         setToken(storedToken);
-        setUser(JSON.parse(storedUser));
+        setUser(parsedUser);
+        // Sync onboarding status from backend user data
+        if (parsedUser.onboardingCompleted) {
+          setOnboardingComplete(true);
+        }
       } catch (error) {
         console.error('Error parsing stored user data:', error);
         // Clear corrupted data
@@ -48,13 +56,17 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     }
 
     setIsLoading(false);
-  }, []);
+  }, [setOnboardingComplete]);
 
   const login = (newToken: string, newUser: User) => {
     setToken(newToken);
     setUser(newUser);
     localStorage.setItem('authToken', newToken);
     localStorage.setItem('authUser', JSON.stringify(newUser));
+    // Sync onboarding status from backend
+    if (newUser.onboardingCompleted) {
+      setOnboardingComplete(true);
+    }
   };
 
   const logout = async () => {
