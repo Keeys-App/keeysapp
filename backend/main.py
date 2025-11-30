@@ -77,7 +77,7 @@ app.include_router(project_router)
 
 @app.get("/")
 async def root():
-    return {"message": "Hi there! This is Locales API. Visit https://locales.app for more information."}
+    return {"message": "Hi there! This is Locales API. Visit https://keeys.app to FastAPI + GraphQL Boilerplate! for more information."}
 
 
 @app.get("/health")
