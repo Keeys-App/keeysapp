@@ -8,6 +8,7 @@ export const PATHS = {
   HOME: '/',
   DASHBOARD: '/',
   ONBOARDING: '/onboarding',
+  INVITE: '/invite/:code',
   TEAMS: '/teams',
   TEAM: '/team/:id',
   TEAM_LOGS: '/team/:id/logs',

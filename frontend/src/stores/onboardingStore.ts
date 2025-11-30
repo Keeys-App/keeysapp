@@ -7,12 +7,14 @@ interface OnboardingState {
   createdTeamId: string | null;
   invitedMembers: string[];
   createdProjectId: string | null;
+  returnUrl: string | null;
   
   setOnboardingComplete: (complete: boolean) => void;
   setCurrentStep: (step: number) => void;
   setCreatedTeamId: (teamId: string | null) => void;
   addInvitedMember: (email: string) => void;
   setCreatedProjectId: (projectId: string | null) => void;
+  setReturnUrl: (url: string | null) => void;
   resetOnboarding: () => void;
 }
 
@@ -24,6 +26,7 @@ export const useOnboardingStore = create<OnboardingState>()(
       createdTeamId: null,
       invitedMembers: [],
       createdProjectId: null,
+      returnUrl: null,
 
       setOnboardingComplete: (complete) => {
         set({ isOnboardingComplete: complete });
@@ -47,6 +50,10 @@ export const useOnboardingStore = create<OnboardingState>()(
         set({ createdProjectId: projectId });
       },
 
+      setReturnUrl: (url) => {
+        set({ returnUrl: url });
+      },
+
       resetOnboarding: () => {
         set({
           isOnboardingComplete: false,
@@ -54,6 +61,7 @@ export const useOnboardingStore = create<OnboardingState>()(
           createdTeamId: null,
           invitedMembers: [],
           createdProjectId: null,
+          returnUrl: null,
         });
       },
     }),

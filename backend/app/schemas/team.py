@@ -2,13 +2,15 @@ import strawberry
 from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
 from strawberry.types import Info
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy.exc import IntegrityError, OperationalError
 import logging
 
 from app.database import get_db
 from app.services.team_service import TeamService
 from app.services.user_service import UserService
+from app.models.team import Team, TeamMember
+from app.models.team_invitation import TeamInvitation
 from app.core.exceptions import (
     UnauthorizedError,
     handle_database_exception
@@ -41,6 +43,35 @@ class TeamInvitationType:
     role: str
     status: str  # PENDING, ACCEPTED, DECLINED
     invited_by: Optional[UserType]
+    created_at: datetime
+
+
+@strawberry.type
+class InviteInfoType:
+    """
+    Public information about an invitation (no auth required).
+    """
+    id: str  # UUID
+    team_name: str
+    team_description: Optional[str]
+    inviter_name: str
+    inviter_email: str
+    role: str
+    status: str
+    invited_email: str
+    created_at: datetime
+
+
+@strawberry.type
+class PendingInviteType:
+    """
+    Pending invitation for the current user.
+    """
+    id: str  # UUID
+    team_name: str
+    team_description: Optional[str]
+    inviter_name: str
+    role: str
     created_at: datetime
 
 
@@ -324,6 +355,100 @@ class TeamQuery:
             return None
 
     @strawberry.field
+    def invite_info(self, info: Info, code: str) -> Optional[InviteInfoType]:
+        """
+        Get public information about an invitation.
+        This query does NOT require authentication.
+        
+        Args:
+            info: GraphQL info object
+            code: Invitation UUID code
+            
+        Returns:
+            InviteInfoType or None if not found
+        """
+        db: Session = next(get_db())
+        try:
+            invitation = TeamService.get_invitation_by_public_id(db, code)
+            if not invitation:
+                return None
+            
+            inviter_name = "Unknown"
+            inviter_email = ""
+            if invitation.invited_by:
+                inviter_name = invitation.invited_by.username
+                inviter_email = invitation.invited_by.email
+            
+            return InviteInfoType(
+                id=str(invitation.public_id),
+                team_name=invitation.team.name,
+                team_description=invitation.team.description,
+                inviter_name=inviter_name,
+                inviter_email=inviter_email,
+                role=invitation.role,
+                status=invitation.status.value,
+                invited_email=invitation.invited_email,
+                created_at=invitation.created_at
+            )
+        except Exception as e:
+            logger.error(f"Error in invite_info query: {type(e).__name__}: {str(e)}")
+            return None
+        finally:
+            db.close()
+
+    @strawberry.field
+    def my_pending_invites(self, info: Info) -> List[PendingInviteType]:
+        """
+        Get all pending invitations for the current user.
+        
+        Args:
+            info: GraphQL info object
+            
+        Returns:
+            List of pending invitations
+            
+        Raises:
+            UnauthorizedError: If user is not authenticated
+        """
+        try:
+            current_user_id = get_current_user_id(info)
+            if not current_user_id:
+                raise UnauthorizedError("Authentication required")
+            
+            db: Session = next(get_db())
+            try:
+                # Get current user email
+                user = UserService.get_user_by_id(db, current_user_id)
+                if not user:
+                    return []
+                
+                invitations = TeamService.get_pending_invitations_for_email(db, user.email)
+                
+                result = []
+                for inv in invitations:
+                    inviter_name = "Unknown"
+                    if inv.invited_by:
+                        inviter_name = inv.invited_by.username
+                    
+                    result.append(PendingInviteType(
+                        id=str(inv.public_id),
+                        team_name=inv.team.name,
+                        team_description=inv.team.description,
+                        inviter_name=inviter_name,
+                        role=inv.role,
+                        created_at=inv.created_at
+                    ))
+                
+                return result
+            finally:
+                db.close()
+        except UnauthorizedError:
+            raise
+        except Exception as e:
+            logger.error(f"Error in my_pending_invites query: {type(e).__name__}: {str(e)}")
+            return []
+
+    @strawberry.field
     def team_activity(self, info: Info, team_id: str, limit: Optional[int] = 100) -> List['ActivityLogType']:
         """
         Get all activity logs for all projects in a team.
@@ -546,6 +671,7 @@ class TeamMutation:
     def add_team_member(self, input: AddTeamMemberInput, info: Info) -> Optional[TeamType]:
         """
         Add a member to a team by email address.
+        Creates an invitation that must be accepted by the user.
         
         Args:
             input: Add member input
@@ -557,6 +683,8 @@ class TeamMutation:
         Raises:
             UnauthorizedError: If user is not authenticated
         """
+        from app.services.email_service import send_team_invitation_email_background
+        
         current_user_id = get_current_user_id(info)
         if not current_user_id:
             raise UnauthorizedError("User must be authenticated to add team members")
@@ -564,8 +692,13 @@ class TeamMutation:
         db: Session = next(get_db())
         
         try:
-            # Add member (may return dummy for security if user not found)
-            TeamService.add_team_member_by_email(
+            # Get current user for inviter name
+            current_user = UserService.get_user_by_id(db, current_user_id)
+            if not current_user:
+                raise UnauthorizedError("User not found")
+            
+            # Create invitation
+            invitation = TeamService.add_team_member_by_email(
                 db=db,
                 team_public_id=input.team_id,
                 user_email=input.user_email,
@@ -573,8 +706,17 @@ class TeamMutation:
                 added_by_user_id=current_user_id
             )
             
-            # Always return updated team (even if user wasn't added)
-            # This prevents enumeration attacks
+            # Send invitation email if invitation was created
+            if invitation:
+                send_team_invitation_email_background(
+                    email=invitation.invited_email,
+                    team_name=invitation.team.name,
+                    inviter_name=current_user.username,
+                    invite_code=str(invitation.public_id),
+                    role=invitation.role
+                )
+            
+            # Always return updated team
             team = TeamService.get_team_by_public_id(db, input.team_id)
             if not team:
                 return None
@@ -681,6 +823,150 @@ class TeamMutation:
             handle_database_exception(e, "updating team member role")
         except Exception as e:
             handle_database_exception(e, "updating team member role")
+        finally:
+            db.close()
+
+    @strawberry.mutation
+    def accept_invite(self, code: str, info: Info) -> Optional[TeamType]:
+        """
+        Accept a team invitation.
+        
+        Args:
+            code: Invitation UUID code
+            info: GraphQL info object
+            
+        Returns:
+            Team that user joined or None
+            
+        Raises:
+            UnauthorizedError: If user is not authenticated
+        """
+        current_user_id = get_current_user_id(info)
+        if not current_user_id:
+            raise UnauthorizedError("Authentication required to accept invitations")
+        
+        db: Session = next(get_db())
+        
+        try:
+            member = TeamService.accept_invitation(
+                db=db,
+                invitation_public_id=code,
+                user_id=current_user_id
+            )
+            
+            if not member:
+                return None
+            
+            # Get the team
+            team = db.query(Team).options(
+                joinedload(Team.owner),
+                selectinload(Team.members).joinedload(TeamMember.user),
+                selectinload(Team.invitations).joinedload(TeamInvitation.invited_by)
+            ).filter(Team.id == member.team_id).first()
+            
+            if not team:
+                return None
+            
+            return build_team_type(team, current_user_id)
+        except (UnauthorizedError):
+            raise
+        except (IntegrityError, OperationalError) as e:
+            handle_database_exception(e, "accepting invitation")
+        except Exception as e:
+            handle_database_exception(e, "accepting invitation")
+        finally:
+            db.close()
+
+    @strawberry.mutation
+    def decline_invite(self, code: str, info: Info) -> bool:
+        """
+        Decline a team invitation.
+        
+        Args:
+            code: Invitation UUID code
+            info: GraphQL info object
+            
+        Returns:
+            True if declined successfully
+            
+        Raises:
+            UnauthorizedError: If user is not authenticated
+        """
+        current_user_id = get_current_user_id(info)
+        if not current_user_id:
+            raise UnauthorizedError("Authentication required to decline invitations")
+        
+        db: Session = next(get_db())
+        
+        try:
+            return TeamService.decline_invitation(
+                db=db,
+                invitation_public_id=code,
+                user_id=current_user_id
+            )
+        except (UnauthorizedError):
+            raise
+        except (IntegrityError, OperationalError) as e:
+            handle_database_exception(e, "declining invitation")
+        except Exception as e:
+            handle_database_exception(e, "declining invitation")
+        finally:
+            db.close()
+
+    @strawberry.mutation
+    def resend_invite(self, invitation_id: str, info: Info) -> bool:
+        """
+        Resend a team invitation email.
+        
+        Args:
+            invitation_id: Invitation UUID
+            info: GraphQL info object
+            
+        Returns:
+            True if resent successfully
+            
+        Raises:
+            UnauthorizedError: If user is not authenticated or not authorized
+        """
+        from app.services.email_service import send_team_invitation_email_background
+        
+        current_user_id = get_current_user_id(info)
+        if not current_user_id:
+            raise UnauthorizedError("Authentication required to resend invitations")
+        
+        db: Session = next(get_db())
+        
+        try:
+            # Get current user for inviter name
+            current_user = UserService.get_user_by_id(db, current_user_id)
+            if not current_user:
+                raise UnauthorizedError("User not found")
+            
+            invitation = TeamService.resend_invitation(
+                db=db,
+                invitation_public_id=invitation_id,
+                user_id=current_user_id
+            )
+            
+            if not invitation:
+                return False
+            
+            # Send the email
+            send_team_invitation_email_background(
+                email=invitation.invited_email,
+                team_name=invitation.team.name,
+                inviter_name=current_user.username,
+                invite_code=str(invitation.public_id),
+                role=invitation.role
+            )
+            
+            return True
+        except (UnauthorizedError):
+            raise
+        except (IntegrityError, OperationalError) as e:
+            handle_database_exception(e, "resending invitation")
+        except Exception as e:
+            handle_database_exception(e, "resending invitation")
         finally:
             db.close()
 

@@ -218,3 +218,103 @@ export interface UpdateTeamMemberRoleResponse {
   updateTeamMemberRole: Team | null;
 }
 
+// === Invite Queries and Mutations ===
+
+// Query to get public invite info (no auth required)
+export const INVITE_INFO_QUERY = gql`
+  query InviteInfo($code: String!) {
+    inviteInfo(code: $code) {
+      id
+      teamName
+      teamDescription
+      inviterName
+      inviterEmail
+      role
+      status
+      invitedEmail
+      createdAt
+    }
+  }
+`;
+
+// Query to get current user's pending invites
+export const MY_PENDING_INVITES_QUERY = gql`
+  query MyPendingInvites {
+    myPendingInvites {
+      id
+      teamName
+      teamDescription
+      inviterName
+      role
+      createdAt
+    }
+  }
+`;
+
+// Mutation to accept an invite
+export const ACCEPT_INVITE_MUTATION = gql`
+  ${TEAM_FRAGMENT}
+  mutation AcceptInvite($code: String!) {
+    acceptInvite(code: $code) {
+      ...TeamFields
+    }
+  }
+`;
+
+// Mutation to decline an invite
+export const DECLINE_INVITE_MUTATION = gql`
+  mutation DeclineInvite($code: String!) {
+    declineInvite(code: $code)
+  }
+`;
+
+// Mutation to resend an invite
+export const RESEND_INVITE_MUTATION = gql`
+  mutation ResendInvite($invitationId: String!) {
+    resendInvite(invitationId: $invitationId)
+  }
+`;
+
+// TypeScript types for invites
+
+export interface InviteInfo {
+  id: string;
+  teamName: string;
+  teamDescription?: string;
+  inviterName: string;
+  inviterEmail: string;
+  role: string;
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED';
+  invitedEmail: string;
+  createdAt: string;
+}
+
+export interface PendingInvite {
+  id: string;
+  teamName: string;
+  teamDescription?: string;
+  inviterName: string;
+  role: string;
+  createdAt: string;
+}
+
+export interface InviteInfoResponse {
+  inviteInfo: InviteInfo | null;
+}
+
+export interface MyPendingInvitesResponse {
+  myPendingInvites: PendingInvite[];
+}
+
+export interface AcceptInviteResponse {
+  acceptInvite: Team | null;
+}
+
+export interface DeclineInviteResponse {
+  declineInvite: boolean;
+}
+
+export interface ResendInviteResponse {
+  resendInvite: boolean;
+}
+

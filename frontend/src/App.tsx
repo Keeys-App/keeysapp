@@ -15,6 +15,7 @@ import { CreateProjectPage } from '@/pages/CreateProjectPage';
 import { EditProjectPage } from '@/pages/EditProjectPage';
 import { ExportPage } from '@/pages/ExportPage';
 import { ImportPage } from '@/pages/ImportPage';
+import { InvitePage } from '@/pages/InvitePage';
 import { PATHS } from '@/constants/paths';
 import { Toaster } from '@/components/ui/sonner';
 
@@ -26,6 +27,9 @@ function App() {
           <Routes>
           <Route element={<AuthLayout />}>
             <Route path={PATHS.AUTH} element={<AuthPage />} />
+          </Route>
+          <Route element={<AuthLayout />}>
+            <Route path={PATHS.INVITE} element={<InvitePage />} />
           </Route>
           <Route
             path={PATHS.ONBOARDING}

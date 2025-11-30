@@ -92,6 +92,56 @@ class EmailService:
             text_content=template.text_content,
             html_content=template.html_content
         )
+
+    def send_team_invitation_email(
+        self,
+        email: str,
+        team_name: str,
+        inviter_name: str,
+        invite_code: str,
+        role: str
+    ) -> bool:
+        """
+        Send team invitation email.
+        
+        Args:
+            email: Recipient's email address
+            team_name: Name of the team
+            inviter_name: Name of the person who sent the invitation
+            invite_code: Invitation code (UUID)
+            role: Role being offered
+            
+        Returns:
+            True if email was sent successfully, False otherwise
+        """
+        if not self.is_configured:
+            logger.warning(f"Email service not configured. Skipping invitation email to {email}")
+            return False
+        
+        # Build invite URL
+        invite_url = f"{settings.app_url}/invite/{invite_code}"
+        
+        # Render template with variables
+        template_service = EmailTemplateService.get_instance()
+        template = template_service.render("team_invitation", {
+            "team_name": team_name,
+            "inviter_name": inviter_name,
+            "invite_url": invite_url,
+            "role": role,
+            "app_name": settings.brevo_sender_name,
+        })
+        
+        if not template:
+            logger.error(f"Failed to render team invitation email template for {email}")
+            return False
+        
+        return self._send_email(
+            to_email=email,
+            to_name=email,  # We may not know their name yet
+            subject=template.subject,
+            text_content=template.text_content,
+            html_content=template.html_content
+        )
     
     def _send_email(
         self,
@@ -183,4 +233,39 @@ def send_welcome_email_background(email: str, username: str) -> None:
     thread = threading.Thread(target=_send, daemon=True)
     thread.start()
     logger.info(f"Welcome email background thread started for {email}")
+
+
+def send_team_invitation_email_background(
+    email: str,
+    team_name: str,
+    inviter_name: str,
+    invite_code: str,
+    role: str
+) -> None:
+    """
+    Send team invitation email in a background thread (fire and forget).
+    
+    Args:
+        email: Recipient's email address
+        team_name: Name of the team
+        inviter_name: Name of the person who sent the invitation
+        invite_code: Invitation code (UUID)
+        role: Role being offered
+    """
+    def _send():
+        try:
+            EmailService.get_instance().send_team_invitation_email(
+                email=email,
+                team_name=team_name,
+                inviter_name=inviter_name,
+                invite_code=invite_code,
+                role=role
+            )
+        except Exception as e:
+            # Log but never crash - this is background task
+            logger.error(f"Background invitation email send failed for {email}: {type(e).__name__}")
+    
+    thread = threading.Thread(target=_send, daemon=True)
+    thread.start()
+    logger.info(f"Team invitation email background thread started for {email}")
 

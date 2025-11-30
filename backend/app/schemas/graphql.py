@@ -2,7 +2,7 @@ import strawberry
 from typing import Optional, List
 from app.schemas.auth import AuthQuery, AuthMutation, OnboardingMutation, UserType
 from app.schemas.project import ProjectQuery, ProjectMutation, ProjectType
-from app.schemas.team import TeamQuery, TeamMutation, TeamType
+from app.schemas.team import TeamQuery, TeamMutation, TeamType, InviteInfoType, PendingInviteType
 from app.schemas.project_access import ProjectAccessMutation
 from app.schemas.key import KeyQuery, KeyMutation, KeyType, KeysConnection, ActivityLogType
 from app.schemas.ai import AIMutation
@@ -28,6 +28,8 @@ class Query:
     teams: List[TeamType] = strawberry.field(resolver=TeamQuery.teams)
     team: Optional[TeamType] = strawberry.field(resolver=TeamQuery.team)
     team_activity: List[ActivityLogType] = strawberry.field(resolver=TeamQuery.team_activity)
+    invite_info: Optional[InviteInfoType] = strawberry.field(resolver=TeamQuery.invite_info)
+    my_pending_invites: List[PendingInviteType] = strawberry.field(resolver=TeamQuery.my_pending_invites)
     
     # Include project queries
     projects: List[ProjectType] = strawberry.field(resolver=ProjectQuery.projects)
@@ -61,6 +63,9 @@ class Mutation:
     add_team_member = strawberry.field(resolver=TeamMutation.add_team_member)
     remove_team_member = strawberry.field(resolver=TeamMutation.remove_team_member)
     update_team_member_role = strawberry.field(resolver=TeamMutation.update_team_member_role)
+    accept_invite = strawberry.field(resolver=TeamMutation.accept_invite)
+    decline_invite = strawberry.field(resolver=TeamMutation.decline_invite)
+    resend_invite = strawberry.field(resolver=TeamMutation.resend_invite)
     
     # Include project mutations
     create_project = strawberry.field(resolver=ProjectMutation.create_project)

@@ -78,6 +78,8 @@ class AuthMutation:
         """
         Register a new user.
         
+        If user has pending team invitations, onboarding is skipped.
+        
         Args:
             input: Registration input data
             info: GraphQL info object
@@ -90,6 +92,9 @@ class AuthMutation:
             UserAlreadyExistsError: If email or username already exists
             DatabaseError: If database operation fails
         """
+        from app.services.team_service import TeamService
+        from app.models.team_invitation import TeamInvitation, InvitationStatus
+        
         db: Session = next(get_db())
         
         try:
@@ -109,13 +114,28 @@ class AuthMutation:
             if existing_username:
                 raise UserAlreadyExistsError(field="username")
             
-            # Create user
+            # Check if there are pending invitations for this email
+            pending_invites = TeamService.get_pending_invitations_for_email(db, input.email)
+            has_pending_invites = len(pending_invites) > 0
+            
+            # Create user - skip onboarding if user has pending invites
             user = UserService.create_user(
                 db=db,
                 email=input.email,
                 username=input.username,
                 password=input.password
             )
+            
+            # If user has pending invites, mark onboarding as completed
+            # (they will accept invites instead of creating a new team)
+            if has_pending_invites:
+                user.onboarding_completed = True
+                # Link pending invitations to this user
+                for invite in pending_invites:
+                    invite.invited_user_id = user.id
+                db.commit()
+                db.refresh(user)
+                logger.info(f"User {user.email} registered with {len(pending_invites)} pending invitations, onboarding skipped")
             
             # Create access token using public_id (UUID) for security
             access_token = create_access_token(data={"sub": str(user.public_id)})

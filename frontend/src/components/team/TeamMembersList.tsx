@@ -1,6 +1,6 @@
 import { useState, type FC } from 'react';
 import { useMutation } from '@apollo/client';
-import { MoreHorizontal, Trash2, Shield, Mail } from 'lucide-react';
+import { MoreHorizontal, Trash2, Shield, Mail, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Table,
@@ -38,6 +38,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import {
   REMOVE_TEAM_MEMBER,
   UPDATE_TEAM_MEMBER_ROLE,
+  RESEND_INVITE_MUTATION,
   GET_TEAM,
 } from '@/graphql/teams';
 import type { Team, TeamMember, RemoveTeamMemberInput, UpdateTeamMemberRoleInput } from '@/graphql/teams';
@@ -75,6 +76,25 @@ export const TeamMembersList: FC<TeamMembersListProps> = ({ team }) => {
   const [updateMemberRole] = useMutation(UPDATE_TEAM_MEMBER_ROLE, {
     refetchQueries: [{ query: GET_TEAM, variables: { id: team.id } }],
   });
+
+  const [resendInvite] = useMutation(RESEND_INVITE_MUTATION);
+
+  const handleResendInvite = async (invitationId: string) => {
+    await withSaving(
+      async () => {
+        const { data } = await resendInvite({
+          variables: { invitationId },
+        });
+
+        if (data?.resendInvite) {
+          toast('Invitation resent successfully');
+        } else {
+          toast('Failed to resend invitation');
+        }
+      },
+      'Resending invitation...'
+    );
+  };
 
   const handleRemoveMember = async () => {
     if (!memberToRemove) {
@@ -207,17 +227,34 @@ export const TeamMembersList: FC<TeamMembersListProps> = ({ team }) => {
                   </TableCell>
                   <TableCell>
                     {team.canManage ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={isSaving}
-                        onClick={() => {
-                          // TODO: Cancel invitation
-                          toast('Canceling invitations will be implemented soon');
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" disabled={isSaving}>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => handleResendInvite(inv.id)}
+                          >
+                            <Send className="mr-2 h-4 w-4" />
+                            Resend Invite
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => {
+                              // TODO: Cancel invitation
+                              toast('Canceling invitations will be implemented soon');
+                            }}
+                            className="text-destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Cancel Invite
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     ) : null}
                   </TableCell>
                 </TableRow>

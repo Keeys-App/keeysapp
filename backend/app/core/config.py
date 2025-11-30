@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     brevo_sender_email: str = "noreply@example.com"
     brevo_sender_name: str = "Locales App"
     
+    # Application URL (for email links)
+    app_url: str = "http://localhost:3000"
+    
     class Config:
         env_file = ".env"
         case_sensitive = False

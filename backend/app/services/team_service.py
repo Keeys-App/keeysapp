@@ -285,148 +285,290 @@ class TeamService:
         user_email: str,
         role: str,
         added_by_user_id: int
-    ) -> bool:
+    ) -> Optional[TeamInvitation]:
         """
-        Add or invite a member to a team by email address.
-        - If user exists and not a member → add to team immediately
-        - If user exists and already a member → update role
-        - If user doesn't exist → create invitation (for future registration)
-        
-        SECURITY: Always returns True to prevent enumeration attacks.
+        Create an invitation to join a team by email address.
+        Both existing and new users receive invitations that must be accepted.
         
         Args:
             db: Database session
             team_public_id: Public UUID of the team
-            user_email: Email of the user to add/invite
+            user_email: Email of the user to invite
             role: Role for the new member (admin, editor, viewer, translator, reviewer)
-            added_by_user_id: User ID who is adding the member
+            added_by_user_id: User ID who is sending the invitation
             
         Returns:
-            Always True (for security - prevents enumeration)
+            TeamInvitation if created/updated, None if failed (for security - don't reveal details)
         """
         # Get team
         team = TeamService.get_team_by_public_id(db, team_public_id)
         if not team:
-            return True  # Don't reveal team doesn't exist
+            return None
         
         # Check permission
         if not TeamService.can_user_manage_team(db, team.id, added_by_user_id):
-            return True  # Don't reveal lack of permission
+            return None
         
         email = user_email.lower().strip()
         
-        # Get user by email
+        # Check if user exists and is already a member
         user = db.query(User).filter(User.email == email).first()
-        
         if user:
-            # User exists - add them directly as team member
             existing_member = db.query(TeamMember).filter(
                 TeamMember.team_id == team.id,
                 TeamMember.user_id == user.id
             ).first()
-            
             if existing_member:
-                # Already a member - update role
-                old_role = existing_member.role
-                existing_member.role = role
-                
-                # Log role change if different
-                if old_role != role:
-                    log = ActivityLog(
-                        team_id=team.id,
-                        user_id=added_by_user_id,
-                        affected_user_id=user.id,
-                        action=ActionType.MEMBER_ROLE_CHANGE,
-                        field_name="role",
-                        old_value=old_role,
-                        new_value=role
-                    )
-                    db.add(log)
-                
-                db.commit()
-                logger.info(f"Updated role for existing team member: {email}")
-            else:
-                # Add as new member
-                member = TeamMember(
-                    team_id=team.id,
-                    user_id=user.id,
-                    role=role
-                )
-                db.add(member)
-                db.flush()
-                
-                # Log member addition
-                log = ActivityLog(
-                    team_id=team.id,
-                    user_id=added_by_user_id,
-                    affected_user_id=user.id,
-                    action=ActionType.MEMBER_ADD,
-                    field_name="role",
-                    new_value=role
-                )
-                db.add(log)
-                
-                db.commit()
-                logger.info(f"Added existing user to team: {email}")
-            
-            # Remove any pending invitations for this user
-            db.query(TeamInvitation).filter(
-                TeamInvitation.team_id == team.id,
-                TeamInvitation.invited_email == email,
-                TeamInvitation.status == InvitationStatus.PENDING
-            ).delete()
-            db.commit()
-        else:
-            # User doesn't exist - create invitation
-            existing_invitation = db.query(TeamInvitation).filter(
-                TeamInvitation.team_id == team.id,
-                TeamInvitation.invited_email == email
-            ).first()
-            
-            if existing_invitation:
-                # Update existing invitation
-                existing_invitation.role = role
-                existing_invitation.status = InvitationStatus.PENDING
-                existing_invitation.invited_by_user_id = added_by_user_id
-                
-                # Log invitation update
-                log = ActivityLog(
-                    team_id=team.id,
-                    user_id=added_by_user_id,
-                    action=ActionType.TEAM_INVITE,
-                    field_name="email",
-                    new_value=f"{email} ({role})"
-                )
-                db.add(log)
-                
-                db.commit()
-                logger.info(f"Updated invitation for: {email}")
-            else:
-                # Create new invitation
-                invitation = TeamInvitation(
-                    team_id=team.id,
-                    invited_email=email,
-                    role=role,
-                    status=InvitationStatus.PENDING,
-                    invited_by_user_id=added_by_user_id
-                )
-                db.add(invitation)
-                db.flush()
-                
-                # Log invitation
-                log = ActivityLog(
-                    team_id=team.id,
-                    user_id=added_by_user_id,
-                    action=ActionType.TEAM_INVITE,
-                    field_name="email",
-                    new_value=f"{email} ({role})"
-                )
-                db.add(log)
-                
-                db.commit()
-                logger.info(f"Created invitation for: {email}")
+                # Already a member - don't create invitation
+                logger.info(f"User {email} is already a member of team {team.name}")
+                return None
         
-        return True  # Always return True for security
+        # Check for existing pending invitation
+        existing_invitation = db.query(TeamInvitation).filter(
+            TeamInvitation.team_id == team.id,
+            TeamInvitation.invited_email == email,
+            TeamInvitation.status == InvitationStatus.PENDING
+        ).first()
+        
+        if existing_invitation:
+            # Update existing invitation
+            existing_invitation.role = role
+            existing_invitation.invited_by_user_id = added_by_user_id
+            if user:
+                existing_invitation.invited_user_id = user.id
+            
+            db.commit()
+            db.refresh(existing_invitation)
+            logger.info(f"Updated invitation for: {email}")
+            return existing_invitation
+        
+        # Create new invitation
+        invitation = TeamInvitation(
+            team_id=team.id,
+            invited_email=email,
+            role=role,
+            status=InvitationStatus.PENDING,
+            invited_by_user_id=added_by_user_id,
+            invited_user_id=user.id if user else None
+        )
+        db.add(invitation)
+        db.flush()
+        
+        # Log invitation
+        log = ActivityLog(
+            team_id=team.id,
+            user_id=added_by_user_id,
+            action=ActionType.TEAM_INVITE,
+            field_name="email",
+            new_value=f"{email} ({role})"
+        )
+        db.add(log)
+        
+        db.commit()
+        db.refresh(invitation)
+        logger.info(f"Created invitation for: {email}")
+        return invitation
+
+    @staticmethod
+    def get_invitation_by_public_id(db: Session, public_id: str) -> Optional[TeamInvitation]:
+        """
+        Get an invitation by its public UUID.
+        
+        Args:
+            db: Database session
+            public_id: Public UUID of the invitation
+            
+        Returns:
+            TeamInvitation or None
+        """
+        try:
+            uuid_obj = uuid_lib.UUID(public_id)
+            return db.query(TeamInvitation).options(
+                joinedload(TeamInvitation.team).joinedload(Team.owner),
+                joinedload(TeamInvitation.invited_by)
+            ).filter(TeamInvitation.public_id == uuid_obj).first()
+        except (ValueError, AttributeError):
+            return None
+
+    @staticmethod
+    def get_pending_invitations_for_email(db: Session, email: str) -> List[TeamInvitation]:
+        """
+        Get all pending invitations for a given email address.
+        
+        Args:
+            db: Database session
+            email: Email address to search for
+            
+        Returns:
+            List of pending TeamInvitation objects
+        """
+        return db.query(TeamInvitation).options(
+            joinedload(TeamInvitation.team).joinedload(Team.owner),
+            joinedload(TeamInvitation.invited_by)
+        ).filter(
+            TeamInvitation.invited_email == email.lower().strip(),
+            TeamInvitation.status == InvitationStatus.PENDING
+        ).all()
+
+    @staticmethod
+    def accept_invitation(
+        db: Session,
+        invitation_public_id: str,
+        user_id: int
+    ) -> Optional[TeamMember]:
+        """
+        Accept a team invitation. Creates a TeamMember and updates invitation status.
+        
+        Args:
+            db: Database session
+            invitation_public_id: Public UUID of the invitation
+            user_id: ID of the user accepting the invitation
+            
+        Returns:
+            Created TeamMember or None if failed
+        """
+        # Get invitation
+        invitation = TeamService.get_invitation_by_public_id(db, invitation_public_id)
+        if not invitation:
+            logger.warning(f"Invitation not found: {invitation_public_id}")
+            return None
+        
+        # Check if invitation is still pending
+        if invitation.status != InvitationStatus.PENDING:
+            logger.warning(f"Invitation {invitation_public_id} is not pending: {invitation.status}")
+            return None
+        
+        # Get user
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            logger.warning(f"User not found: {user_id}")
+            return None
+        
+        # Verify email matches (case insensitive)
+        if user.email.lower() != invitation.invited_email.lower():
+            logger.warning(f"Email mismatch: user {user.email} vs invitation {invitation.invited_email}")
+            return None
+        
+        # Check if already a member
+        existing_member = db.query(TeamMember).filter(
+            TeamMember.team_id == invitation.team_id,
+            TeamMember.user_id == user_id
+        ).first()
+        
+        if existing_member:
+            # Already a member - just update invitation status
+            invitation.status = InvitationStatus.ACCEPTED
+            invitation.invited_user_id = user_id
+            db.commit()
+            logger.info(f"User {user.email} was already a member, updated invitation status")
+            return existing_member
+        
+        # Create team member
+        member = TeamMember(
+            team_id=invitation.team_id,
+            user_id=user_id,
+            role=invitation.role
+        )
+        db.add(member)
+        
+        # Update invitation status
+        invitation.status = InvitationStatus.ACCEPTED
+        invitation.invited_user_id = user_id
+        
+        # Log member addition
+        log = ActivityLog(
+            team_id=invitation.team_id,
+            user_id=user_id,
+            action=ActionType.MEMBER_ADD,
+            field_name="role",
+            new_value=invitation.role
+        )
+        db.add(log)
+        
+        db.commit()
+        db.refresh(member)
+        logger.info(f"User {user.email} accepted invitation to team {invitation.team.name}")
+        return member
+
+    @staticmethod
+    def decline_invitation(
+        db: Session,
+        invitation_public_id: str,
+        user_id: int
+    ) -> bool:
+        """
+        Decline a team invitation.
+        
+        Args:
+            db: Database session
+            invitation_public_id: Public UUID of the invitation
+            user_id: ID of the user declining the invitation
+            
+        Returns:
+            True if declined, False otherwise
+        """
+        # Get invitation
+        invitation = TeamService.get_invitation_by_public_id(db, invitation_public_id)
+        if not invitation:
+            return False
+        
+        # Check if invitation is still pending
+        if invitation.status != InvitationStatus.PENDING:
+            return False
+        
+        # Get user
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return False
+        
+        # Verify email matches
+        if user.email.lower() != invitation.invited_email.lower():
+            return False
+        
+        # Update invitation status
+        invitation.status = InvitationStatus.DECLINED
+        invitation.invited_user_id = user_id
+        
+        db.commit()
+        logger.info(f"User {user.email} declined invitation to team {invitation.team.name}")
+        return True
+
+    @staticmethod
+    def resend_invitation(
+        db: Session,
+        invitation_public_id: str,
+        user_id: int
+    ) -> Optional[TeamInvitation]:
+        """
+        Resend a team invitation email.
+        Only team admins/owners can resend invitations.
+        
+        Args:
+            db: Database session
+            invitation_public_id: Public UUID of the invitation
+            user_id: ID of the user requesting resend
+            
+        Returns:
+            TeamInvitation if successful, None otherwise
+        """
+        # Get invitation
+        invitation = TeamService.get_invitation_by_public_id(db, invitation_public_id)
+        if not invitation:
+            logger.warning(f"Invitation not found: {invitation_public_id}")
+            return None
+        
+        # Check if invitation is still pending
+        if invitation.status != InvitationStatus.PENDING:
+            logger.warning(f"Cannot resend non-pending invitation: {invitation.status}")
+            return None
+        
+        # Check permission
+        if not TeamService.can_user_manage_team(db, invitation.team_id, user_id):
+            logger.warning(f"User {user_id} cannot manage team {invitation.team_id}")
+            return None
+        
+        logger.info(f"Resending invitation for {invitation.invited_email} to team {invitation.team.name}")
+        return invitation
 
     @staticmethod
     def add_team_member(
