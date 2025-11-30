@@ -30,6 +30,11 @@ class Settings(BaseSettings):
     openai_temperature: float = 1.0
     openai_timeout: int = 120
     
+    # Brevo (Email)
+    brevo_api_key: Optional[str] = None
+    brevo_sender_email: str = "noreply@example.com"
+    brevo_sender_name: str = "Locales App"
+    
     class Config:
         env_file = ".env"
         case_sensitive = False

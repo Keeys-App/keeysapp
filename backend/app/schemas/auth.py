@@ -8,6 +8,7 @@ import logging
 
 from app.database import get_db
 from app.services.user_service import UserService
+from app.services.email_service import send_welcome_email_background
 from app.core.security import create_access_token, decode_access_token
 from app.core.exceptions import (
     AuthenticationError,
@@ -118,6 +119,14 @@ class AuthMutation:
             
             # Create access token using public_id (UUID) for security
             access_token = create_access_token(data={"sub": str(user.public_id)})
+            
+            # Send welcome email in background thread (fire and forget)
+            # Email failure should not affect registration success
+            try:
+                send_welcome_email_background(user.email, user.username)
+            except Exception as e:
+                # Log but don't fail registration if email scheduling fails
+                logger.warning(f"Failed to schedule welcome email for {user.email}: {type(e).__name__}")
             
             return AuthPayload(
                 access_token=access_token,
