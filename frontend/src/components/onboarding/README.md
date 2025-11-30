@@ -131,13 +131,23 @@ State is persisted to localStorage as `onboarding-storage`.
 ## Routes
 
 - `/onboarding` - Onboarding wizard page (protected route, no layout)
+  - Cannot be bypassed - all other protected pages redirect here if onboarding incomplete
+  - Uses ProtectedRoute but not Layout (fullscreen wizard)
+  - Accessible only to authenticated users who haven't completed onboarding
 
 ## Protection
 
-The onboarding page is protected:
+The onboarding system ensures users complete the setup:
+
+**OnboardingPage protection:**
 - Requires authentication (via `ProtectedRoute`)
 - If `isOnboardingComplete` is true → redirects to dashboard
 - If not authenticated → redirects to `/auth`
+
+**Layout protection (all main pages):**
+- If `isOnboardingComplete` is false → redirects to `/onboarding`
+- Users cannot bypass onboarding by changing URL
+- All routes under Layout component are protected
 
 ## UI/UX
 
@@ -170,14 +180,19 @@ Manual testing checklist:
 - [ ] New user registration redirects to onboarding
 - [ ] Step 1: Create team with valid data
 - [ ] Step 1: Validation for empty team name
+- [ ] Step 1: Created team becomes selected team
 - [ ] Step 2: Add multiple members with different roles
 - [ ] Step 2: Prevent duplicate emails
 - [ ] Step 2: Skip to step 3
+- [ ] Step 3: English language pre-populated
 - [ ] Step 3: Create project with languages
 - [ ] Step 3: Validation for required fields
 - [ ] Complete wizard redirects to created project
 - [ ] `isOnboardingComplete` set to true after completion
 - [ ] Returning to `/onboarding` after completion redirects to dashboard
+- [ ] **Trying to navigate to `/`, `/teams`, or any other route during onboarding redirects back to `/onboarding`**
+- [ ] **Manually changing URL in browser during onboarding redirects to `/onboarding`**
+- [ ] After completing onboarding, can freely navigate between pages
 
 ## Future Enhancements
 

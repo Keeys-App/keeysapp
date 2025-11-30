@@ -1,5 +1,5 @@
-import { Fragment, useMemo, type FC } from 'react';
-import { Outlet, Link } from 'react-router-dom';
+import { Fragment, useMemo, useEffect, type FC } from 'react';
+import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { AppSidebar } from './AppSidebar';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
@@ -12,7 +12,7 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
 import { useBreadcrumbs } from '@/contexts';
-import { useLayoutStore, useTeamStore } from '@/stores';
+import { useLayoutStore, useTeamStore, useOnboardingStore } from '@/stores';
 import { Button } from '@/components/ui/button';
 import {
   Tooltip,
@@ -23,11 +23,21 @@ import {
 import { PanelRightClose, PanelRightOpen } from 'lucide-react';
 import { TeamSwitcher } from '@/components/team/TeamSwitcher';
 import { SavingIndicator } from './SavingIndicator';
+import { PATHS } from '@/constants/paths';
 
 export const Layout: FC = () => {
+  const navigate = useNavigate();
   const { breadcrumbs } = useBreadcrumbs();
   const { isPanelOpen, showPanelToggle, togglePanel } = useLayoutStore();
   const { selectedTeamId, setSelectedTeamId } = useTeamStore();
+  const { isOnboardingComplete } = useOnboardingStore();
+
+  // Redirect to onboarding if not completed
+  useEffect(() => {
+    if (!isOnboardingComplete) {
+      navigate(PATHS.ONBOARDING, { replace: true });
+    }
+  }, [isOnboardingComplete, navigate]);
 
   const getBreadcrumbs = useMemo(() => {
     return () => {
