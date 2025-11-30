@@ -10,6 +10,7 @@ import type { ExportOptions } from "./utils/exportFormats";
 import {
   generateExport,
   getExportFilename,
+  getMimeType,
 } from "./utils/exportFormats";
 import { getUserFriendlyErrorMessage } from "@/lib/utils";
 import { useAllProjectKeys } from "@/hooks/useAllProjectKeys";
@@ -47,7 +48,8 @@ export const ExportContent: FC<ExportContentProps> = ({ project }) => {
   }, [project.name, options.language, options.format]);
 
   const handleDownload = () => {
-    const blob = new Blob([exportCode], { type: "application/json" });
+    const mimeType = getMimeType(options.format);
+    const blob = new Blob([exportCode], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -103,7 +105,7 @@ export const ExportContent: FC<ExportContentProps> = ({ project }) => {
           />
         </div>
         <div className="lg:col-span-2">
-          <ExportPreview code={exportCode} filename={filename} />
+          <ExportPreview code={exportCode} filename={filename} format={options.format} />
         </div>
       </div>
     </div>

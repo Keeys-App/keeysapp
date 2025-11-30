@@ -209,5 +209,41 @@ Import operations use database transactions to ensure data consistency. If any p
 - Support partial imports (e.g., only keys, only translations)
 - Add export filters (e.g., specific languages only)
 - Validate translations before import
-- Support other formats (CSV, XLSX, etc.)
+- Support more formats (CSV, XLSX, Android XML, etc.)
+
+## Supported Translation Formats
+
+In addition to the full project JSON export/import, the system supports exporting and importing translations in various formats:
+
+### i18n (JSON)
+Simple key-value JSON format commonly used in i18n libraries:
+
+```json
+{
+  "welcome": "Welcome!",
+  "hello": "Hello"
+}
+```
+
+### iOS Strings (.strings)
+Apple's localization format used in iOS/macOS applications:
+
+```strings
+/* Welcome message */
+"welcome" = "Welcome!";
+
+/* Greeting */
+"hello" = "Hello";
+```
+
+**Features:**
+- Supports comments (single-line `//` and block `/* */`)
+- Proper escaping for special characters (`"`, `\`, `\n`, `\t`)
+- Key descriptions are exported as comments
+- Compatible with Xcode and Apple's localization tools
+
+**Import features:**
+- Auto-detection of format from file content
+- Handles escaped characters properly
+- Supports multiline values with `\n`
 

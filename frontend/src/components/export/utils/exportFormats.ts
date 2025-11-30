@@ -1,6 +1,6 @@
 import type { TranslationKey } from "@/types/translationKey";
 
-export type ExportFormat = "i18n";
+export type ExportFormat = "i18n" | "ios-strings";
 
 export interface ExportOptions {
   format: ExportFormat;
@@ -41,6 +41,67 @@ export function generateI18nFormat(
 }
 
 /**
+ * Escape value for iOS Strings format
+ * Escapes: " -> \", \ -> \\, newline -> \n, tab -> \t
+ */
+function escapeIosStringsValue(value: string): string {
+  return value
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, '\\n')
+    .replace(/\t/g, '\\t');
+}
+
+/**
+ * Generate iOS Strings format (.strings files)
+ * @example "key.name" = "Translation value";
+ * 
+ * Format used by iOS/macOS apps for localization.
+ * Each line contains: "key" = "value";
+ */
+export function generateIosStringsFormat(
+  keys: TranslationKey[],
+  language: string,
+  options: { sortKeys: boolean }
+): string {
+  const translations: Array<{ key: string; value: string; description?: string }> = [];
+
+  keys.forEach((keyData) => {
+    const translation = keyData.translations.find((t) => t.language === language);
+    if (translation) {
+      translations.push({
+        key: keyData.key,
+        value: translation.value,
+        description: keyData.description,
+      });
+    }
+  });
+
+  // Sort keys alphabetically if requested
+  if (options.sortKeys) {
+    translations.sort((a, b) => a.key.localeCompare(b.key));
+  }
+
+  const lines: string[] = [];
+  
+  for (const item of translations) {
+    // Add description as comment if available
+    if (item.description) {
+      lines.push(`/* ${item.description} */`);
+    }
+    
+    const escapedKey = escapeIosStringsValue(item.key);
+    const escapedValue = escapeIosStringsValue(item.value);
+    lines.push(`"${escapedKey}" = "${escapedValue}";`);
+    
+    // Add empty line after each entry for readability
+    lines.push('');
+  }
+
+  return lines.join('\n').trim();
+}
+
+/**
  * Generate export based on format
  */
 export function generateExport(
@@ -51,6 +112,10 @@ export function generateExport(
     case "i18n":
       return generateI18nFormat(keys, options.language, {
         indent: options.indent,
+        sortKeys: options.sortKeys,
+      });
+    case "ios-strings":
+      return generateIosStringsFormat(keys, options.language, {
         sortKeys: options.sortKeys,
       });
     default:
@@ -65,8 +130,24 @@ export function getFileExtension(format: ExportFormat): string {
   switch (format) {
     case "i18n":
       return "json";
+    case "ios-strings":
+      return "strings";
     default:
       return "txt";
+  }
+}
+
+/**
+ * Get MIME type for export format
+ */
+export function getMimeType(format: ExportFormat): string {
+  switch (format) {
+    case "i18n":
+      return "application/json";
+    case "ios-strings":
+      return "text/plain;charset=utf-8";
+    default:
+      return "text/plain";
   }
 }
 

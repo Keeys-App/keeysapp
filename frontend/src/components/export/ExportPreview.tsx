@@ -9,13 +9,30 @@ import {
   CodeBlockItem,
 } from "@/components/ui/shadcn-io/code-block";
 import type { BundledLanguage } from "@/components/ui/shadcn-io/code-block";
+import type { ExportFormat } from "./utils/exportFormats";
 
 interface ExportPreviewProps {
   code: string;
   filename: string;
+  format?: ExportFormat;
 }
 
-export const ExportPreview: FC<ExportPreviewProps> = ({ code, filename }) => {
+/**
+ * Get syntax highlighting language for export format
+ */
+function getLanguageForFormat(format?: ExportFormat): BundledLanguage {
+  switch (format) {
+    case "ios-strings":
+      return "swift"; // Swift syntax works well for .strings files (comments and strings)
+    case "i18n":
+    default:
+      return "json";
+  }
+}
+
+export const ExportPreview: FC<ExportPreviewProps> = ({ code, filename, format }) => {
+  const language = getLanguageForFormat(format);
+  
   return (
     <Card className="flex-1">
       <CardHeader>
@@ -23,14 +40,15 @@ export const ExportPreview: FC<ExportPreviewProps> = ({ code, filename }) => {
       </CardHeader>
       <CardContent>
         <CodeBlock
+          key={`${format}-${language}`}
           data={[
             {
-              language: "json",
+              language,
               filename,
               code,
             },
           ]}
-          defaultValue="json"
+          defaultValue={language}
         >
           <CodeBlockHeader>
             <div className="flex-1 text-sm font-medium text-muted-foreground">

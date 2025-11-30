@@ -78,6 +78,7 @@ export const ImportSettings: FC<ImportSettingsProps> = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="i18n">i18n (JSON)</SelectItem>
+              <SelectItem value="ios-strings">iOS Strings (.strings)</SelectItem>
             </SelectContent>
           </Select>
         </div>

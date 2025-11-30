@@ -35,7 +35,7 @@ Code preview component using shadcn/ui CodeBlock to display the generated export
 ```tsx
 import { ExportPreview } from '@/components/export';
 
-<ExportPreview code={exportCode} filename={filename} />
+<ExportPreview code={exportCode} filename={filename} format={options.format} />
 ```
 
 ## Utilities
@@ -45,8 +45,10 @@ import { ExportPreview } from '@/components/export';
 Utility functions for generating various export formats:
 
 - **generateI18nFormat** - Generate i18n format (simple key-value JSON)
+- **generateIosStringsFormat** - Generate iOS Strings format (.strings files)
 - **generateExport** - Main function to generate export based on format
 - **getFileExtension** - Get file extension for export format
+- **getMimeType** - Get MIME type for export format
 - **getExportFilename** - Generate filename for export
 
 ## Supported Formats
@@ -62,11 +64,28 @@ Simple key-value JSON format commonly used in i18n libraries:
 }
 ```
 
+### iOS Strings (.strings)
+
+Apple's localization format used in iOS/macOS applications:
+
+```strings
+/* Welcome message */
+"welcome" = "Welcome!";
+
+/* Greeting */
+"hello" = "Hello";
+```
+
+**Features:**
+- Comments from key descriptions are automatically included
+- Proper escaping for special characters (`"`, `\`, `\n`, `\t`)
+- Compatible with Xcode and Apple's localization tools
+
 ## Features
 
 - 📝 **Live Preview** - See export result in real-time with syntax highlighting
-- ⚙️ **Configurable** - Choose language, indent size, and sorting options
+- ⚙️ **Configurable** - Choose language, indent size (for JSON), and sorting options
 - 💾 **Download** - Export to file with one click
 - 🎨 **Beautiful UI** - Built with shadcn/ui components
-- 🔄 **Format Support** - Currently supports i18n format, more coming soon
+- 🔄 **Format Support** - Supports i18n (JSON) and iOS Strings formats
 

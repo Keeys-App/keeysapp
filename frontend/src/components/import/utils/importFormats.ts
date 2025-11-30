@@ -1,4 +1,4 @@
-export type ImportFormat = "i18n";
+export type ImportFormat = "i18n" | "ios-strings";
 
 export interface ParsedTranslation {
   key: string;
@@ -88,6 +88,110 @@ export function parseI18nFormat(content: string): ParseResult {
 }
 
 /**
+ * Unescape iOS Strings value
+ * Handles: \" -> ", \\ -> \, \n -> newline, \t -> tab
+ */
+function unescapeIosStringsValue(value: string): string {
+  return value
+    .replace(/\\"/g, '"')
+    .replace(/\\n/g, '\n')
+    .replace(/\\t/g, '\t')
+    .replace(/\\\\/g, '\\');
+}
+
+/**
+ * Parse iOS Strings format (.strings files)
+ * @example "key.name" = "Translation value";
+ * 
+ * Format:
+ * - Lines starting with // or /* are comments
+ * - Each translation line: "key" = "value";
+ * - Supports escaped quotes: \"
+ * - Supports multiline values with \n
+ */
+export function parseIosStringsFormat(content: string): ParseResult {
+  try {
+    const translations: ParsedTranslation[] = [];
+    const lines = content.split('\n');
+    
+    // Regex to match: "key" = "value";
+    // Handles escaped quotes inside key and value
+    const lineRegex = /^\s*"((?:[^"\\]|\\.)*)"\s*=\s*"((?:[^"\\]|\\.)*)"\s*;?\s*$/;
+    
+    let inBlockComment = false;
+    
+    for (let i = 0; i < lines.length; i++) {
+      let line = lines[i].trim();
+      
+      // Handle block comments /* ... */
+      if (inBlockComment) {
+        if (line.includes('*/')) {
+          inBlockComment = false;
+          // Get content after block comment end
+          line = line.substring(line.indexOf('*/') + 2).trim();
+          if (!line) {
+            continue;
+          }
+        } else {
+          continue;
+        }
+      }
+      
+      // Check for start of block comment
+      if (line.includes('/*')) {
+        // Check if it ends on the same line
+        if (line.includes('*/')) {
+          // Single line block comment - extract content after it
+          const afterComment = line.substring(line.indexOf('*/') + 2).trim();
+          if (!afterComment) {
+            continue;
+          }
+          line = afterComment;
+        } else {
+          inBlockComment = true;
+          continue;
+        }
+      }
+      
+      // Skip empty lines and single-line comments
+      if (!line || line.startsWith('//')) {
+        continue;
+      }
+      
+      // Try to match translation line
+      const match = line.match(lineRegex);
+      if (match) {
+        const key = unescapeIosStringsValue(match[1]);
+        const value = unescapeIosStringsValue(match[2]);
+        translations.push({ key, value });
+      }
+    }
+    
+    if (translations.length === 0) {
+      return {
+        success: false,
+        translations: [],
+        error: "No translations found. Expected format: \"key\" = \"value\";",
+      };
+    }
+    
+    return {
+      success: true,
+      translations,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      translations: [],
+      error:
+        error instanceof Error
+          ? `Failed to parse iOS Strings: ${error.message}`
+          : "Failed to parse iOS Strings",
+    };
+  }
+}
+
+/**
  * Parse import based on format
  */
 export function parseImport(
@@ -97,6 +201,8 @@ export function parseImport(
   switch (format) {
     case "i18n":
       return parseI18nFormat(content);
+    case "ios-strings":
+      return parseIosStringsFormat(content);
     default:
       return {
         success: false,
@@ -121,11 +227,35 @@ function isValidTranslationValue(value: unknown): boolean {
 }
 
 /**
+ * Check if content looks like iOS Strings format
+ */
+function looksLikeIosStrings(content: string): boolean {
+  const lines = content.split('\n');
+  const lineRegex = /^\s*"[^"]*"\s*=\s*"[^"]*"\s*;?\s*$/;
+  
+  let translationLines = 0;
+  for (const line of lines) {
+    const trimmed = line.trim();
+    // Skip empty lines and comments
+    if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('/*')) {
+      continue;
+    }
+    if (lineRegex.test(trimmed)) {
+      translationLines++;
+    }
+  }
+  
+  return translationLines > 0;
+}
+
+/**
  * Detect format from content
  */
 export function detectFormat(content: string): ImportFormat | null {
   try {
     const trimmed = content.trim();
+    
+    // Check for JSON format first
     if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
       const data = JSON.parse(trimmed);
       if (
@@ -136,8 +266,16 @@ export function detectFormat(content: string): ImportFormat | null {
         return "i18n";
       }
     }
+    
+    // Check for iOS Strings format
+    if (looksLikeIosStrings(trimmed)) {
+      return "ios-strings";
+    }
   } catch {
-    // Failed to detect format
+    // If JSON parse fails, try iOS Strings
+    if (looksLikeIosStrings(content.trim())) {
+      return "ios-strings";
+    }
   }
   return null;
 }

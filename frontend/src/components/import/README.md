@@ -97,6 +97,7 @@ import { ImportPreview } from '@/components/import';
 Utility functions for parsing various import formats:
 
 - **parseI18nFormat** - Parse i18n format (simple key-value JSON)
+- **parseIosStringsFormat** - Parse iOS Strings format (.strings files)
 - **parseImport** - Main function to parse import based on format
 - **detectFormat** - Auto-detect format from content
 
@@ -148,6 +149,40 @@ Simple key-value JSON format commonly used in i18n libraries:
   "goodbye": "Goodbye"
 }
 ```
+
+Also supports nested objects:
+
+```json
+{
+  "AUTH": {
+    "LOGIN": "Login",
+    "LOGOUT": "Logout"
+  }
+}
+```
+
+Keys are automatically flattened to dot-notation: `AUTH.LOGIN`, `AUTH.LOGOUT`.
+
+### iOS Strings (.strings)
+
+Apple's localization format used in iOS/macOS applications:
+
+```strings
+/* Welcome message */
+"welcome" = "Welcome!";
+
+/* Greeting */
+"hello" = "Hello";
+
+/* Farewell */
+"goodbye" = "Goodbye";
+```
+
+**Supported features:**
+- Single-line comments (`// comment`)
+- Block comments (`/* comment */`)
+- Escaped characters (`\"`, `\\`, `\n`, `\t`)
+- Optional semicolon at end of line
 
 ## Features
 

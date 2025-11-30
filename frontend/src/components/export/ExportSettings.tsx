@@ -71,27 +71,30 @@ export const ExportSettings: FC<ExportSettingsProps> = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="i18n">i18n (JSON)</SelectItem>
+              <SelectItem value="ios-strings">iOS Strings (.strings)</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        {/* Indent Size */}
-        <div className="space-y-2">
-          <Label htmlFor="indent">Indent Size</Label>
-          <Select
-            value={options.indent.toString()}
-            onValueChange={handleIndentChange}
-          >
-            <SelectTrigger id="indent">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="2">2 spaces</SelectItem>
-              <SelectItem value="4">4 spaces</SelectItem>
-              <SelectItem value="0">Minified</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        {/* Indent Size - only for JSON formats */}
+        {options.format === "i18n" ? (
+          <div className="space-y-2">
+            <Label htmlFor="indent">Indent Size</Label>
+            <Select
+              value={options.indent.toString()}
+              onValueChange={handleIndentChange}
+            >
+              <SelectTrigger id="indent">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="2">2 spaces</SelectItem>
+                <SelectItem value="4">4 spaces</SelectItem>
+                <SelectItem value="0">Minified</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        ) : null}
 
         {/* Sort Keys */}
         <div className="flex items-center justify-between">
