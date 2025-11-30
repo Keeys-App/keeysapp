@@ -16,6 +16,8 @@ import { EditProjectPage } from '@/pages/EditProjectPage';
 import { ExportPage } from '@/pages/ExportPage';
 import { ImportPage } from '@/pages/ImportPage';
 import { InvitePage } from '@/pages/InvitePage';
+import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage';
+import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
 import { PATHS } from '@/constants/paths';
 import { Toaster } from '@/components/ui/sonner';
 
@@ -27,6 +29,8 @@ function App() {
           <Routes>
           <Route element={<AuthLayout />}>
             <Route path={PATHS.AUTH} element={<AuthPage />} />
+            <Route path={PATHS.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
+            <Route path={PATHS.RESET_PASSWORD} element={<ResetPasswordPage />} />
           </Route>
           <Route element={<AuthLayout />}>
             <Route path={PATHS.INVITE} element={<InvitePage />} />

@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import type { FC, FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { useMutation } from '@apollo/client';
 import { LOGIN_MUTATION } from '@/graphql/auth';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserFriendlyErrorMessage } from '@/lib/utils';
 import { useSaving, useSavingStore } from '@/stores';
+import { PATHS } from '@/constants/paths';
 import {
   Card,
   CardContent,
@@ -79,8 +81,8 @@ export const LoginForm: FC<LoginFormProps> = ({
         },
         "Signing in..."
       );
-    } catch (err: any) {
-      const errorMessage = getUserFriendlyErrorMessage(err, 'Login failed. Please check your credentials and try again.');
+    } catch (err) {
+      const errorMessage = getUserFriendlyErrorMessage(err as Error, 'Login failed. Please check your credentials and try again.');
       setError(errorMessage);
     }
   };
@@ -121,7 +123,15 @@ export const LoginForm: FC<LoginFormProps> = ({
             </Field>
 
             <Field>
-              <FieldLabel htmlFor="password">Password</FieldLabel>
+              <div className="flex items-center justify-between">
+                <FieldLabel htmlFor="password">Password</FieldLabel>
+                <Link 
+                  to={PATHS.FORGOT_PASSWORD}
+                  className="text-sm text-primary hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <Input
                 id="password"
                 type="password"

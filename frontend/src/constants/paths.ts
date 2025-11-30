@@ -9,6 +9,8 @@ export const PATHS = {
   DASHBOARD: '/',
   ONBOARDING: '/onboarding',
   INVITE: '/invite/:code',
+  FORGOT_PASSWORD: '/forgot-password',
+  RESET_PASSWORD: '/reset-password/:token',
   TEAMS: '/teams',
   TEAM: '/team/:id',
   TEAM_LOGS: '/team/:id/logs',

@@ -7,6 +7,7 @@ from .project_access import ProjectAccess
 from .key import Key, Translation
 from .key_log import KeyLog, KeyActionType  # Legacy - will be removed
 from .activity_log import ActivityLog, ActionType
+from .password_reset_token import PasswordResetToken
 
 __all__ = [
     "Base", 
@@ -23,5 +24,6 @@ __all__ = [
     "KeyLog",  # Legacy
     "KeyActionType",  # Legacy
     "ActivityLog", 
-    "ActionType"
+    "ActionType",
+    "PasswordResetToken"
 ]

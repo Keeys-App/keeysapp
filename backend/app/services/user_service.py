@@ -1,7 +1,12 @@
 from typing import Optional
+import logging
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from uuid import UUID
 from app.models.user import User
+from app.models.password_reset_token import PasswordResetToken
+
+logger = logging.getLogger(__name__)
 
 
 class UserService:
@@ -118,4 +123,112 @@ class UserService:
             return None
         return user
 
+    @staticmethod
+    def create_password_reset_token(db: Session, user: User) -> PasswordResetToken:
+        """
+        Create a password reset token for a user.
+        Invalidates any existing unused tokens for the user.
+        
+        Args:
+            db: Database session
+            user: User object
+            
+        Returns:
+            PasswordResetToken object
+        """
+        # Invalidate existing unused tokens
+        db.query(PasswordResetToken).filter(
+            PasswordResetToken.user_id == user.id,
+            PasswordResetToken.used == False
+        ).update({"used": True})
+        
+        # Create new token
+        token = PasswordResetToken(
+            token=PasswordResetToken.generate_token(),
+            user_id=user.id,
+            expires_at=PasswordResetToken.create_expiration(hours=1)
+        )
+        db.add(token)
+        db.commit()
+        db.refresh(token)
+        
+        logger.info(f"Created password reset token for user {user.email}")
+        return token
+
+    @staticmethod
+    def get_password_reset_token(db: Session, token: str) -> Optional[PasswordResetToken]:
+        """
+        Get a password reset token by token string.
+        
+        Args:
+            db: Database session
+            token: Token string
+            
+        Returns:
+            PasswordResetToken object or None
+        """
+        return db.query(PasswordResetToken).filter(
+            PasswordResetToken.token == token
+        ).first()
+
+    @staticmethod
+    def reset_password(db: Session, token: str, new_password: str) -> bool:
+        """
+        Reset user password using a valid token.
+        
+        Args:
+            db: Database session
+            token: Password reset token string
+            new_password: New password to set
+            
+        Returns:
+            True if password was reset successfully, False otherwise
+        """
+        reset_token = UserService.get_password_reset_token(db, token)
+        
+        if not reset_token:
+            logger.warning(f"Password reset attempt with invalid token")
+            return False
+        
+        if not reset_token.is_valid:
+            logger.warning(f"Password reset attempt with expired/used token for user_id {reset_token.user_id}")
+            return False
+        
+        # Get the user
+        user = UserService.get_user_by_id(db, reset_token.user_id)
+        if not user:
+            logger.error(f"User not found for password reset token")
+            return False
+        
+        # Update password - use explicit update to ensure change is tracked
+        new_hash = User.get_password_hash(new_password)
+        db.query(User).filter(User.id == user.id).update(
+            {"hashed_password": new_hash}
+        )
+        
+        # Mark token as used
+        reset_token.used = True
+        
+        db.commit()
+        logger.info(f"Password reset successful for user {user.email}")
+        return True
+
+    @staticmethod
+    def cleanup_expired_tokens(db: Session) -> int:
+        """
+        Remove expired password reset tokens.
+        
+        Args:
+            db: Database session
+            
+        Returns:
+            Number of tokens removed
+        """
+        now = datetime.now(timezone.utc)
+        result = db.query(PasswordResetToken).filter(
+            PasswordResetToken.expires_at < now
+        ).delete()
+        db.commit()
+        logger.info(f"Cleaned up {result} expired password reset tokens")
+        return result
 

@@ -902,6 +902,53 @@ def migrate_add_onboarding_completed_if_needed():
         return False
 
 
+def migrate_create_password_reset_tokens_if_needed():
+    """
+    Create password_reset_tokens table if it doesn't exist.
+    Safe to run multiple times.
+    """
+    try:
+        inspector = inspect(engine)
+        existing_tables = inspector.get_table_names()
+        
+        if 'password_reset_tokens' in existing_tables:
+            logger.info("✅ Migration: password_reset_tokens table already exists, skipping")
+            return True
+        
+        logger.info("🔄 Migration: Creating password_reset_tokens table")
+        
+        with engine.connect() as connection:
+            connection.execute(text("""
+                CREATE TABLE password_reset_tokens (
+                    id SERIAL PRIMARY KEY,
+                    token VARCHAR(255) NOT NULL UNIQUE,
+                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+                    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+                    used BOOLEAN DEFAULT FALSE NOT NULL
+                )
+            """))
+            
+            # Create index on token for fast lookups
+            connection.execute(text("""
+                CREATE INDEX ix_password_reset_tokens_token ON password_reset_tokens(token)
+            """))
+            
+            # Create index on user_id for cleanup queries
+            connection.execute(text("""
+                CREATE INDEX ix_password_reset_tokens_user_id ON password_reset_tokens(user_id)
+            """))
+            
+            connection.commit()
+        
+        logger.info("✅ Migration: password_reset_tokens table created successfully")
+        return True
+        
+    except Exception as e:
+        logger.error(f"❌ Migration failed: {type(e).__name__}: {str(e)}")
+        return False
+
+
 def run_all_migrations():
     """
     Run all pending migrations.
@@ -925,6 +972,7 @@ def run_all_migrations():
         ("add_team_id_to_activity_logs", migrate_add_team_id_to_activity_logs_if_needed),
         ("set_default_project_status", migrate_set_default_project_status_if_needed),
         ("add_onboarding_completed", migrate_add_onboarding_completed_if_needed),
+        ("create_password_reset_tokens", migrate_create_password_reset_tokens_if_needed),
         # Add more migrations here as needed
     ]
     

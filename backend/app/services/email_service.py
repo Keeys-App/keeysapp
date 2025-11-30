@@ -142,6 +142,50 @@ class EmailService:
             text_content=template.text_content,
             html_content=template.html_content
         )
+
+    def send_password_reset_email(
+        self,
+        email: str,
+        username: str,
+        reset_token: str
+    ) -> bool:
+        """
+        Send password reset email with reset link.
+        
+        Args:
+            email: User's email address
+            username: User's username
+            reset_token: Password reset token
+            
+        Returns:
+            True if email was sent successfully, False otherwise
+        """
+        if not self.is_configured:
+            logger.warning(f"Email service not configured. Skipping password reset email to {email}")
+            return False
+        
+        # Build reset URL
+        reset_url = f"{settings.app_url}/reset-password/{reset_token}"
+        
+        # Render template with variables
+        template_service = EmailTemplateService.get_instance()
+        template = template_service.render("password_reset", {
+            "username": username,
+            "reset_url": reset_url,
+            "app_name": settings.brevo_sender_name,
+        })
+        
+        if not template:
+            logger.error(f"Failed to render password reset email template for {email}")
+            return False
+        
+        return self._send_email(
+            to_email=email,
+            to_name=username,
+            subject=template.subject,
+            text_content=template.text_content,
+            html_content=template.html_content
+        )
     
     def _send_email(
         self,
@@ -268,4 +312,33 @@ def send_team_invitation_email_background(
     thread = threading.Thread(target=_send, daemon=True)
     thread.start()
     logger.info(f"Team invitation email background thread started for {email}")
+
+
+def send_password_reset_email_background(
+    email: str,
+    username: str,
+    reset_token: str
+) -> None:
+    """
+    Send password reset email in a background thread (fire and forget).
+    
+    Args:
+        email: User's email address
+        username: User's username
+        reset_token: Password reset token
+    """
+    def _send():
+        try:
+            EmailService.get_instance().send_password_reset_email(
+                email=email,
+                username=username,
+                reset_token=reset_token
+            )
+        except Exception as e:
+            # Log but never crash - this is background task
+            logger.error(f"Background password reset email send failed for {email}: {type(e).__name__}")
+    
+    thread = threading.Thread(target=_send, daemon=True)
+    thread.start()
+    logger.info(f"Password reset email background thread started for {email}")
 

@@ -2,6 +2,8 @@ export { AuthPage } from './AuthPage';
 export { DashboardPage } from './DashboardPage';
 export { OnboardingPage } from './OnboardingPage';
 export { InvitePage } from './InvitePage';
+export { ForgotPasswordPage } from './ForgotPasswordPage';
+export { ResetPasswordPage } from './ResetPasswordPage';
 export { TeamsPage } from './TeamsPage';
 export { TeamPage } from './TeamPage';
 export { TeamLogsPage } from './TeamLogsPage';

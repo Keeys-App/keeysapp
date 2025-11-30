@@ -8,7 +8,7 @@ import logging
 
 from app.database import get_db
 from app.services.user_service import UserService
-from app.services.email_service import send_welcome_email_background
+from app.services.email_service import send_welcome_email_background, send_password_reset_email_background
 from app.core.security import create_access_token, decode_access_token
 from app.core.exceptions import (
     AuthenticationError,
@@ -65,6 +65,32 @@ class LoginInput:
     """
     email: str
     password: str
+
+
+@strawberry.input
+class RequestPasswordResetInput:
+    """
+    Input type for requesting password reset.
+    """
+    email: str
+
+
+@strawberry.input
+class ResetPasswordInput:
+    """
+    Input type for resetting password with token.
+    """
+    token: str
+    new_password: str
+
+
+@strawberry.type
+class PasswordResetResult:
+    """
+    Result type for password reset operations.
+    """
+    success: bool
+    message: str
 
 
 @strawberry.type
@@ -220,6 +246,124 @@ class AuthMutation:
         except Exception as e:
             # Catch-all for unexpected errors
             handle_database_exception(e, "user login")
+        finally:
+            db.close()
+
+    @strawberry.mutation
+    def request_password_reset(self, input: RequestPasswordResetInput, info: Info) -> PasswordResetResult:
+        """
+        Request a password reset email.
+        
+        Always returns success to prevent email enumeration attacks.
+        If email doesn't exist, we just don't send the email but return success anyway.
+        
+        Args:
+            input: Email address for password reset
+            info: GraphQL info object
+            
+        Returns:
+            PasswordResetResult with success status and message
+        """
+        db: Session = next(get_db())
+        
+        try:
+            # Find user by email
+            user = UserService.get_user_by_email(db, input.email)
+            
+            if user and user.is_active:
+                # Create reset token
+                reset_token = UserService.create_password_reset_token(db, user)
+                
+                # Send email in background
+                try:
+                    send_password_reset_email_background(
+                        email=user.email,
+                        username=user.username,
+                        reset_token=reset_token.token
+                    )
+                except Exception as e:
+                    # Log but don't fail the request
+                    logger.warning(f"Failed to schedule password reset email for {user.email}: {type(e).__name__}")
+            else:
+                # User doesn't exist or is inactive - log but don't reveal
+                logger.info(f"Password reset requested for non-existent or inactive email: {input.email}")
+            
+            # Always return success to prevent email enumeration
+            return PasswordResetResult(
+                success=True,
+                message="If an account with this email exists, a password reset link has been sent."
+            )
+        except (IntegrityError, OperationalError) as e:
+            # Database errors - never expose to users!
+            logger.error(f"Database error in password reset request: {type(e).__name__}")
+            return PasswordResetResult(
+                success=True,
+                message="If an account with this email exists, a password reset link has been sent."
+            )
+        except Exception as e:
+            # Catch-all - still return success to prevent enumeration
+            logger.error(f"Error in password reset request: {type(e).__name__}")
+            return PasswordResetResult(
+                success=True,
+                message="If an account with this email exists, a password reset link has been sent."
+            )
+        finally:
+            db.close()
+
+    @strawberry.mutation
+    def reset_password(self, input: ResetPasswordInput, info: Info) -> PasswordResetResult:
+        """
+        Reset password using a valid token.
+        
+        Args:
+            input: Token and new password
+            info: GraphQL info object
+            
+        Returns:
+            PasswordResetResult with success status and message
+        """
+        db: Session = next(get_db())
+        
+        try:
+            # Validate password
+            if len(input.new_password) < 8:
+                return PasswordResetResult(
+                    success=False,
+                    message="Password must be at least 8 characters long."
+                )
+            if len(input.new_password) > 72:
+                return PasswordResetResult(
+                    success=False,
+                    message="Password must be no more than 72 characters long."
+                )
+            
+            # Attempt to reset password
+            success = UserService.reset_password(db, input.token, input.new_password)
+            
+            if success:
+                return PasswordResetResult(
+                    success=True,
+                    message="Your password has been reset successfully. You can now sign in with your new password."
+                )
+            else:
+                return PasswordResetResult(
+                    success=False,
+                    message="This password reset link is invalid or has expired. Please request a new one."
+                )
+        except (IntegrityError, OperationalError) as e:
+            # Database errors - user-friendly message
+            logger.error(f"Database error in password reset: {type(e).__name__}")
+            return PasswordResetResult(
+                success=False,
+                message="Unable to reset password. Please try again."
+            )
+        except Exception as e:
+            # Catch-all for unexpected errors
+            logger.error(f"Error in password reset: {type(e).__name__}")
+            return PasswordResetResult(
+                success=False,
+                message="Unable to reset password. Please try again."
+            )
         finally:
             db.close()
 
