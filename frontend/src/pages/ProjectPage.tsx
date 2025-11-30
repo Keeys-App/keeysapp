@@ -37,6 +37,7 @@ export const ProjectPage: FC = () => {
   const { data, loading, error } = useQuery<GetProjectData>(GET_PROJECT, {
     variables: { id },
     skip: !id || !isAuthenticated || authLoading,
+    fetchPolicy: 'cache-and-network', // Always fetch fresh data, show cached while loading
   });
 
   const project = data?.project;
