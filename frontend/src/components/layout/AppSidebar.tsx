@@ -1,9 +1,18 @@
-import type { FC } from 'react';
-import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { LayoutDashboard, Settings, Sun, Moon, LogOut, Languages, FolderOpen, Users } from 'lucide-react';
-import { useTheme } from '@/contexts/ThemeContext';
-import { useAuth } from '@/contexts/AuthContext';
-import { PATHS } from '@/constants/paths';
+import type { FC } from "react";
+import { useLocation, useNavigate, Link } from "react-router-dom";
+import {
+  LayoutDashboard,
+  Settings,
+  Sun,
+  Moon,
+  LogOut,
+  Languages,
+  FolderOpen,
+  Users,
+} from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { PATHS } from "@/constants/paths";
 import {
   Sidebar,
   SidebarContent,
@@ -14,7 +23,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from '@/components/ui/sidebar';
+} from "@/components/ui/sidebar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,8 +32,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export const AppSidebar: FC = () => {
   const { theme, toggleTheme } = useTheme();
@@ -34,26 +43,26 @@ export const AppSidebar: FC = () => {
 
   const navItems = [
     {
-      title: 'Dashboard',
+      title: "Dashboard",
       url: PATHS.DASHBOARD,
       icon: LayoutDashboard,
       isActive: location.pathname === PATHS.DASHBOARD,
     },
     {
-      title: 'Teams',
+      title: "Teams",
       url: PATHS.TEAMS,
       icon: Users,
-      isActive: location.pathname.startsWith('/team'),
+      isActive: location.pathname.startsWith("/team"),
     },
     {
-      title: 'Projects',
+      title: "Projects",
       url: PATHS.DASHBOARD,
       icon: FolderOpen,
-      isActive: location.pathname.startsWith('/project'),
+      isActive: location.pathname.startsWith("/project"),
     },
     {
-      title: 'Settings',
-      url: '#',
+      title: "Settings",
+      url: "#",
       icon: Settings,
       isActive: false,
     },
@@ -96,11 +105,12 @@ export const AppSidebar: FC = () => {
                         hidden: false,
                       }}
                       onClick={() => {
-                        if (item.url !== '#') {
+                        if (item.url !== "#") {
                           navigate(item.url);
                         }
                       }}
                       isActive={item.isActive}
+                      className="cursor-pointer"
                     >
                       <item.icon />
                       <span>{item.title}</span>
@@ -120,37 +130,50 @@ export const AppSidebar: FC = () => {
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton
                   size="lg"
-                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                  className="cursor-pointer data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
                   <Avatar className="h-8 w-8 rounded-lg">
                     <AvatarFallback className="rounded-lg">
-                      {user?.username.charAt(0).toUpperCase() || 'U'}
+                      {user?.username.charAt(0).toUpperCase() || "U"}
                     </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-medium">{user?.username}</span>
-                    <span className="truncate text-xs">{user?.email || 'user@example.com'}</span>
+                    <span className="truncate font-medium">
+                      {user?.username}
+                    </span>
+                    <span className="truncate text-xs">
+                      {user?.email || "user@example.com"}
+                    </span>
                   </div>
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56 rounded-lg" side="right" align="end" sideOffset={4}>
+              <DropdownMenuContent
+                className="w-56 rounded-lg"
+                side="right"
+                align="end"
+                sideOffset={4}
+              >
                 <DropdownMenuLabel className="p-0 font-normal">
                   <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                     <Avatar className="h-8 w-8 rounded-lg">
                       <AvatarFallback className="rounded-lg">
-                        {user?.username.charAt(0).toUpperCase() || 'U'}
+                        {user?.username.charAt(0).toUpperCase() || "U"}
                       </AvatarFallback>
                     </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-medium">{user?.username}</span>
-                      <span className="truncate text-xs">{user?.email || 'user@example.com'}</span>
+                      <span className="truncate font-medium">
+                        {user?.username}
+                      </span>
+                      <span className="truncate text-xs">
+                        {user?.email || "user@example.com"}
+                      </span>
                     </div>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
                   <DropdownMenuItem onClick={toggleTheme}>
-                    {theme === 'light' ? (
+                    {theme === "light" ? (
                       <>
                         <Moon className="mr-2 h-4 w-4" />
                         Dark Mode
@@ -176,4 +199,3 @@ export const AppSidebar: FC = () => {
     </Sidebar>
   );
 };
-
