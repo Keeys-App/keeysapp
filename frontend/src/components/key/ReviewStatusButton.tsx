@@ -190,7 +190,7 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
 
       if (result.data?.deleteTranslationReview) {
         handleOpenChange(false);
-        toast("Review reset");
+        toast("Review revoked");
       }
     }, "Revoking...");
   };
@@ -210,7 +210,7 @@ export const ReviewStatusButton: FC<ReviewStatusButtonProps> = ({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-64 p-3"
+        className="w-64 p-3 data-[state=closed]:zoom-out-100"
         align="start"
         onClick={(e) => {
           e.stopPropagation();
