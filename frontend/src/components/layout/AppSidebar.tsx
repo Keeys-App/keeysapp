@@ -185,7 +185,7 @@ export const AppSidebar: FC = () => {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
-                  <DropdownMenuItem onClick={toggleTheme}>
+                  <DropdownMenuItem className="cursor-pointer" onClick={toggleTheme}>
                     {theme === "light" ? (
                       <>
                         <Moon className="mr-2 h-4 w-4" />
@@ -200,7 +200,7 @@ export const AppSidebar: FC = () => {
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>
+                <DropdownMenuItem className="cursor-pointer" onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Log out
                 </DropdownMenuItem>
