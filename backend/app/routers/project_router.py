@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Header, Form
 from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 import json
 import logging
 from urllib.parse import quote
 
-from app.database import get_db
+from app.database import async_get_db
 from app.services.project_service import ProjectService
 from app.services.team_service import TeamService
 from app.services.user_service import UserService
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
 
-def get_current_user_id(token: str, db: Session) -> Optional[int]:
+async def get_current_user_id(token: str, db: AsyncSession) -> Optional[int]:
     """
     Helper function to get current user ID from Bearer token.
     
@@ -42,7 +42,7 @@ def get_current_user_id(token: str, db: Session) -> Optional[int]:
         if not public_id:
             return None
         
-        user = UserService.get_user_by_public_id(db, public_id)
+        user = await UserService.get_user_by_public_id(db, public_id)
         if not user:
             return None
         
@@ -55,7 +55,7 @@ def get_current_user_id(token: str, db: Session) -> Optional[int]:
 @router.get("/{project_id}/export")
 async def export_project(
     project_id: str,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(async_get_db),
     authorization: Optional[str] = Header(None)
 ):
     """
@@ -71,12 +71,12 @@ async def export_project(
     """
     try:
         # Get current user
-        user_id = get_current_user_id(authorization or "", db)
+        user_id = await get_current_user_id(authorization or "", db)
         if not user_id:
             raise HTTPException(status_code=401, detail="Authentication required")
         
         # Export project data
-        project_data = ProjectService.export_project_data(db, project_id, user_id)
+        project_data = await ProjectService.export_project_data(db, project_id, user_id)
         
         if not project_data:
             raise HTTPException(status_code=404, detail="Project not found or access denied")
@@ -107,7 +107,7 @@ async def export_project(
 async def import_project(
     file: UploadFile = File(...),
     team_id: str = Form(...),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(async_get_db),
     authorization: Optional[str] = Header(None)
 ):
     """
@@ -126,7 +126,7 @@ async def import_project(
         logger.info("Starting project import")
         
         # Get current user
-        user_id = get_current_user_id(authorization or "", db)
+        user_id = await get_current_user_id(authorization or "", db)
         if not user_id:
             logger.warning("Import failed: No authentication")
             raise HTTPException(status_code=401, detail="Authentication required")
@@ -135,13 +135,13 @@ async def import_project(
         
         # Validate and get team
         try:
-            team = TeamService.get_team_by_public_id(db, team_id)
+            team = await TeamService.get_team_by_public_id(db, team_id)
             if not team:
                 logger.warning(f"Import failed: Team not found - {team_id}")
                 raise HTTPException(status_code=404, detail="Team not found")
             
             # Check if user has access to team
-            if not TeamService.check_user_team_access(db, team.id, user_id):
+            if not await TeamService.check_user_team_access(db, team.id, user_id):
                 logger.warning(f"Import failed: User {user_id} has no access to team {team_id}")
                 raise HTTPException(status_code=403, detail="Access denied")
         except (ValueError, AttributeError):
@@ -174,7 +174,7 @@ async def import_project(
         logger.info(f"Importing project: {project_data.get('name')} into team {team.name}")
         
         # Import project
-        project = ProjectService.import_project_data(db, user_id, team.id, project_data)
+        project = await ProjectService.import_project_data(db, user_id, team.id, project_data)
         
         if not project:
             logger.error("Import failed: ProjectService returned None")

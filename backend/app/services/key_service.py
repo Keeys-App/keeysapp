@@ -1,5 +1,7 @@
 from typing import Optional, List, Dict, Tuple
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, update, delete, or_, func
+from sqlalchemy.orm import joinedload
 import uuid as uuid_lib
 import logging
 
@@ -19,8 +21,8 @@ class KeyService:
     """
 
     @staticmethod
-    def _create_log(
-        db: Session,
+    async def _create_log(
+        db: AsyncSession,
         key_id: int,
         user_id: Optional[int],
         action: ActionType,
@@ -46,7 +48,8 @@ class KeyService:
         """
         # Get project_id from key if not provided
         if project_id is None and key_id is not None:
-            key = db.query(Key).filter(Key.id == key_id).first()
+            result = await db.execute(select(Key).where(Key.id == key_id))
+            key = result.scalar_one_or_none()
             if key:
                 project_id = key.project_id
         
@@ -63,8 +66,8 @@ class KeyService:
         db.add(log_entry)
 
     @staticmethod
-    def create_key(
-        db: Session,
+    async def create_key(
+        db: AsyncSession,
         project_public_id: str,
         key: str,
         description: Optional[str] = None,
@@ -88,19 +91,22 @@ class KeyService:
             Created key or None if failed
         """
         # Get project
-        project = ProjectService.get_project_by_public_id(db, project_public_id)
+        project = await ProjectService.get_project_by_public_id(db, project_public_id)
         if not project:
             return None
         
         # Check if user has edit permission
-        if user_id and not ProjectService.can_user_edit_project(db, project.id, user_id):
+        if user_id and not await ProjectService.can_user_edit_project(db, project.id, user_id):
             return None
         
         # Check if key already exists in project
-        existing_key = db.query(Key).filter(
-            Key.project_id == project.id,
-            Key.key == key
-        ).first()
+        result = await db.execute(
+            select(Key).where(
+                Key.project_id == project.id,
+                Key.key == key
+            )
+        )
+        existing_key = result.scalar_one_or_none()
         
         if existing_key:
             logger.warning(
@@ -118,10 +124,10 @@ class KeyService:
             project_id=project.id
         )
         db.add(new_key)
-        db.flush()  # Flush to get the ID
+        await db.flush()  # Flush to get the ID
         
         # Log key creation
-        KeyService._create_log(
+        await KeyService._create_log(
             db=db,
             key_id=new_key.id,
             user_id=user_id,
@@ -133,7 +139,7 @@ class KeyService:
         
         # Update project's available_tags
         if tags:
-            KeyService._update_project_available_tags(db, project, tags)
+            await KeyService._update_project_available_tags(db, project, tags)
         
         # Create translations if provided
         if translations:
@@ -146,7 +152,7 @@ class KeyService:
                 db.add(translation)
                 
                 # Log translation creation
-                KeyService._create_log(
+                await KeyService._create_log(
                     db=db,
                     key_id=new_key.id,
                     user_id=user_id,
@@ -157,13 +163,18 @@ class KeyService:
                     project_id=project.id
                 )
         
-        db.commit()
-        db.refresh(new_key)
-        return new_key
+        await db.commit()
+        # Reload full object with translations to avoid detached state issues
+        result = await db.execute(
+            select(Key)
+            .options(joinedload(Key.translations))
+            .where(Key.id == new_key.id)
+        )
+        return result.unique().scalar_one()
 
     @staticmethod
     async def autopilot_translate(
-        db: Session,
+        db: AsyncSession,
         key: Key,
         source_text: str,
         source_language: str,
@@ -209,10 +220,13 @@ class KeyService:
                 continue
                 
             # Check if translation already exists
-            existing = db.query(Translation).filter(
-                Translation.key_id == key.id,
-                Translation.language == lang_code
-            ).first()
+            result = await db.execute(
+                select(Translation).where(
+                    Translation.key_id == key.id,
+                    Translation.language == lang_code
+                )
+            )
+            existing = result.scalar_one_or_none()
             
             if existing:
                 logger.debug(f"Translation already exists for {lang_code}, skipping")
@@ -245,7 +259,7 @@ class KeyService:
                 db.add(translation)
                 
                 # Log translation creation as AI-generated
-                KeyService._create_log(
+                await KeyService._create_log(
                     db=db,
                     key_id=key.id,
                     user_id=user_id,
@@ -266,13 +280,12 @@ class KeyService:
                 error_count += 1
         
         if success_count > 0:
-            db.commit()
-            db.refresh(key)
+            await db.commit()
         
         return (success_count, error_count, errors)
 
     @staticmethod
-    def get_key_by_public_id(db: Session, public_id: str, eager_load_translations: bool = True) -> Optional[Key]:
+    async def get_key_by_public_id(db: AsyncSession, public_id: str, eager_load_translations: bool = True) -> Optional[Key]:
         """
         Get a key by its public UUID.
         
@@ -286,15 +299,16 @@ class KeyService:
         """
         try:
             uuid_obj = uuid_lib.UUID(public_id)
-            query = db.query(Key)
+            query = select(Key).where(Key.public_id == uuid_obj)
             if eager_load_translations:
                 query = query.options(joinedload(Key.translations))
-            return query.filter(Key.public_id == uuid_obj).first()
+            result = await db.execute(query)
+            return result.unique().scalar_one_or_none()
         except (ValueError, AttributeError):
             return None
 
     @staticmethod
-    def get_project_keys(db: Session, project_public_id: str, user_id: int) -> Optional[List[Key]]:
+    async def get_project_keys(db: AsyncSession, project_public_id: str, user_id: int) -> Optional[List[Key]]:
         """
         Get all keys for a project.
         
@@ -307,24 +321,28 @@ class KeyService:
             List of keys or None if no access
         """
         # Get project
-        project = ProjectService.get_project_by_public_id(db, project_public_id)
+        project = await ProjectService.get_project_by_public_id(db, project_public_id)
         if not project:
             return None
         
         # Check access
-        if not ProjectService.check_project_access(db, project.id, user_id):
+        if not await ProjectService.check_project_access(db, project.id, user_id):
             return None
         
         # Get all keys for the project with eager loading of translations
         # This prevents N+1 query problem by loading translations in a single query
-        keys = db.query(Key).options(
-            joinedload(Key.translations)
-        ).filter(Key.project_id == project.id).order_by(Key.key).all()
-        return keys
+        result = await db.execute(
+            select(Key)
+            .options(joinedload(Key.translations))
+            .where(Key.project_id == project.id)
+            .order_by(Key.key)
+        )
+        keys = result.scalars().unique().all()
+        return list(keys)
 
     @staticmethod
-    def get_project_keys_paginated(
-        db: Session, 
+    async def get_project_keys_paginated(
+        db: AsyncSession, 
         project_public_id: str, 
         user_id: int,
         offset: int = 0,
@@ -346,12 +364,12 @@ class KeyService:
             Dict with 'keys' list, 'total_count' int, or None if no access
         """
         # Get project
-        project = ProjectService.get_project_by_public_id(db, project_public_id)
+        project = await ProjectService.get_project_by_public_id(db, project_public_id)
         if not project:
             return None
         
         # Check access
-        if not ProjectService.check_project_access(db, project.id, user_id):
+        if not await ProjectService.check_project_access(db, project.id, user_id):
             return None
         
         # Apply search filter if provided
@@ -359,7 +377,6 @@ class KeyService:
             search_term = f"%{search.strip()}%"
             # Search in key name, description, and translation values
             from app.models.key import Translation
-            from sqlalchemy import or_
             
             # Build search filter conditions
             search_filter = or_(
@@ -368,44 +385,66 @@ class KeyService:
             )
             
             # For translation search, we need a subquery to find keys with matching translations
-            translation_key_ids = db.query(Translation.key_id.distinct()).filter(
-                Translation.value.ilike(search_term)
-            ).subquery()
+            subq_result = await db.execute(
+                select(Translation.key_id.distinct()).where(
+                    Translation.value.ilike(search_term)
+                )
+            )
+            translation_key_ids = [row[0] for row in subq_result.all()]
             
             # Combine filters: match by key/description OR by translation
-            base_filter = (
-                (Key.project_id == project.id) &
-                (search_filter | Key.id.in_(translation_key_ids))
-            )
+            if translation_key_ids:
+                base_filter = (
+                    (Key.project_id == project.id) &
+                    (search_filter | Key.id.in_(translation_key_ids))
+                )
+            else:
+                base_filter = (
+                    (Key.project_id == project.id) & search_filter
+                )
             
             # Get total count of matching keys
-            total_count = db.query(Key).filter(base_filter).count()
+            count_result = await db.execute(
+                select(func.count(Key.id)).where(base_filter)
+            )
+            total_count = count_result.scalar() or 0
             
             # Get paginated keys with eager loading of translations
-            keys = db.query(Key).options(
-                joinedload(Key.translations)
-            ).filter(
-                base_filter
-            ).order_by(Key.key).offset(offset).limit(limit).all()
+            result = await db.execute(
+                select(Key)
+                .options(joinedload(Key.translations))
+                .where(base_filter)
+                .order_by(Key.key)
+                .offset(offset)
+                .limit(limit)
+            )
+            keys = result.scalars().unique().all()
         else:
             # No search - use simple query
             # Get total count
-            total_count = db.query(Key).filter(Key.project_id == project.id).count()
+            count_result = await db.execute(
+                select(func.count(Key.id)).where(Key.project_id == project.id)
+            )
+            total_count = count_result.scalar() or 0
             
             # Get paginated keys with eager loading of translations
-            keys = db.query(Key).options(
-                joinedload(Key.translations)
-            ).filter(
-                Key.project_id == project.id
-            ).order_by(Key.key).offset(offset).limit(limit).all()
+            result = await db.execute(
+                select(Key)
+                .options(joinedload(Key.translations))
+                .where(Key.project_id == project.id)
+                .order_by(Key.key)
+                .offset(offset)
+                .limit(limit)
+            )
+            keys = result.scalars().unique().all()
         
         return {
-            'keys': keys,
+            'keys': list(keys),
             'total_count': total_count
         }
 
     @staticmethod
-    def check_key_exists(db: Session, project_public_id: str, key: str, user_id: int) -> Optional[bool]:
+    async def check_key_exists(db: AsyncSession, project_public_id: str, key: str, user_id: int) -> Optional[bool]:
         """
         Check if a key already exists in a project.
         
@@ -419,25 +458,28 @@ class KeyService:
             True if key exists, False if not, None if no access
         """
         # Get project
-        project = ProjectService.get_project_by_public_id(db, project_public_id)
+        project = await ProjectService.get_project_by_public_id(db, project_public_id)
         if not project:
             return None
         
         # Check access
-        if not ProjectService.check_project_access(db, project.id, user_id):
+        if not await ProjectService.check_project_access(db, project.id, user_id):
             return None
         
         # Check if key exists
-        existing_key = db.query(Key).filter(
-            Key.project_id == project.id,
-            Key.key == key
-        ).first()
+        result = await db.execute(
+            select(Key).where(
+                Key.project_id == project.id,
+                Key.key == key
+            )
+        )
+        existing_key = result.scalar_one_or_none()
         
         return existing_key is not None
 
     @staticmethod
-    def update_key(
-        db: Session,
+    async def update_key(
+        db: AsyncSession,
         public_id: str,
         key: Optional[str] = None,
         description: Optional[str] = None,
@@ -459,22 +501,25 @@ class KeyService:
             Updated key or None if failed
         """
         # Get key
-        key_obj = KeyService.get_key_by_public_id(db, public_id)
+        key_obj = await KeyService.get_key_by_public_id(db, public_id)
         if not key_obj:
             return None
         
         # Check permission
-        if user_id and not ProjectService.can_user_edit_project(db, key_obj.project_id, user_id):
+        if user_id and not await ProjectService.can_user_edit_project(db, key_obj.project_id, user_id):
             return None
         
         # Update fields
         if key is not None:
             # Check uniqueness
-            existing = db.query(Key).filter(
-                Key.project_id == key_obj.project_id,
-                Key.key == key,
-                Key.id != key_obj.id
-            ).first()
+            result = await db.execute(
+                select(Key).where(
+                    Key.project_id == key_obj.project_id,
+                    Key.key == key,
+                    Key.id != key_obj.id
+                )
+            )
+            existing = result.scalar_one_or_none()
             
             if existing:
                 logger.warning(
@@ -487,7 +532,7 @@ class KeyService:
             # Log key name change
             old_key = key_obj.key
             key_obj.key = key
-            KeyService._create_log(
+            await KeyService._create_log(
                 db=db,
                 key_id=key_obj.id,
                 user_id=user_id,
@@ -501,7 +546,7 @@ class KeyService:
             # Log description change
             old_description = key_obj.description
             key_obj.description = description
-            KeyService._create_log(
+            await KeyService._create_log(
                 db=db,
                 key_id=key_obj.id,
                 user_id=user_id,
@@ -515,16 +560,22 @@ class KeyService:
             # Update tags but don't log (metadata)
             key_obj.tags = tags
             # Update project's available_tags
-            project = db.query(Project).filter(Project.id == key_obj.project_id).first()
+            result = await db.execute(select(Project).where(Project.id == key_obj.project_id))
+            project = result.scalar_one_or_none()
             if project:
-                KeyService._update_project_available_tags(db, project, tags)
+                await KeyService._update_project_available_tags(db, project, tags)
         
-        db.commit()
-        db.refresh(key_obj)
-        return key_obj
+        await db.commit()
+        # Reload full object with translations to avoid detached state issues
+        result = await db.execute(
+            select(Key)
+            .options(joinedload(Key.translations))
+            .where(Key.id == key_obj.id)
+        )
+        return result.unique().scalar_one()
 
     @staticmethod
-    def delete_key(db: Session, public_id: str, user_id: int) -> bool:
+    async def delete_key(db: AsyncSession, public_id: str, user_id: int) -> bool:
         """
         Delete a translation key and all its translations.
         
@@ -537,16 +588,16 @@ class KeyService:
             True if deleted, False otherwise
         """
         # Get key
-        key_obj = KeyService.get_key_by_public_id(db, public_id)
+        key_obj = await KeyService.get_key_by_public_id(db, public_id)
         if not key_obj:
             return False
         
         # Check permission
-        if not ProjectService.can_user_edit_project(db, key_obj.project_id, user_id):
+        if not await ProjectService.can_user_edit_project(db, key_obj.project_id, user_id):
             return False
         
         # Log key deletion
-        KeyService._create_log(
+        await KeyService._create_log(
             db=db,
             key_id=key_obj.id,
             user_id=user_id,
@@ -556,12 +607,12 @@ class KeyService:
         )
         
         db.delete(key_obj)
-        db.commit()
+        await db.commit()
         return True
 
     @staticmethod
-    def set_translation(
-        db: Session,
+    async def set_translation(
+        db: AsyncSession,
         key_public_id: str,
         language: str,
         value: str,
@@ -584,19 +635,22 @@ class KeyService:
             Created/updated translation or None if deleted/failed
         """
         # Get key
-        key_obj = KeyService.get_key_by_public_id(db, key_public_id)
+        key_obj = await KeyService.get_key_by_public_id(db, key_public_id)
         if not key_obj:
             return None
         
         # Check permission
-        if not ProjectService.can_user_edit_project(db, key_obj.project_id, user_id):
+        if not await ProjectService.can_user_edit_project(db, key_obj.project_id, user_id):
             return None
         
         # Check if translation already exists
-        translation = db.query(Translation).filter(
-            Translation.key_id == key_obj.id,
-            Translation.language == language
-        ).first()
+        result = await db.execute(
+            select(Translation).where(
+                Translation.key_id == key_obj.id,
+                Translation.language == language
+            )
+        )
+        translation = result.scalar_one_or_none()
         
         # Normalize None to empty string
         if value is None:
@@ -606,7 +660,7 @@ class KeyService:
         if not value.strip():
             if translation:
                 # Log translation deletion
-                KeyService._create_log(
+                await KeyService._create_log(
                     db=db,
                     key_id=key_obj.id,
                     user_id=user_id,
@@ -616,7 +670,7 @@ class KeyService:
                     old_value=translation.value
                 )
                 db.delete(translation)
-                db.commit()
+                await db.commit()
             return None
         
         # Determine action type based on AI generation
@@ -628,7 +682,7 @@ class KeyService:
             translation.value = value
             
             # Log translation update
-            KeyService._create_log(
+            await KeyService._create_log(
                 db=db,
                 key_id=key_obj.id,
                 user_id=user_id,
@@ -648,7 +702,7 @@ class KeyService:
             db.add(translation)
             
             # Log translation creation
-            KeyService._create_log(
+            await KeyService._create_log(
                 db=db,
                 key_id=key_obj.id,
                 user_id=user_id,
@@ -662,13 +716,13 @@ class KeyService:
         if translation.review_status in [ReviewStatus.APPROVED, ReviewStatus.REJECTED]:
             translation.review_status = ReviewStatus.PENDING
         
-        db.commit()
-        db.refresh(translation)
+        await db.commit()
+        await db.refresh(translation)
         return translation
 
     @staticmethod
-    def delete_translation(
-        db: Session,
+    async def delete_translation(
+        db: AsyncSession,
         key_public_id: str,
         language: str,
         user_id: int
@@ -686,25 +740,28 @@ class KeyService:
             True if deleted, False otherwise
         """
         # Get key
-        key_obj = KeyService.get_key_by_public_id(db, key_public_id)
+        key_obj = await KeyService.get_key_by_public_id(db, key_public_id)
         if not key_obj:
             return False
         
         # Check permission
-        if not ProjectService.can_user_edit_project(db, key_obj.project_id, user_id):
+        if not await ProjectService.can_user_edit_project(db, key_obj.project_id, user_id):
             return False
         
         # Find translation
-        translation = db.query(Translation).filter(
-            Translation.key_id == key_obj.id,
-            Translation.language == language
-        ).first()
+        result = await db.execute(
+            select(Translation).where(
+                Translation.key_id == key_obj.id,
+                Translation.language == language
+            )
+        )
+        translation = result.scalar_one_or_none()
         
         if not translation:
             return False
         
         # Log translation deletion
-        KeyService._create_log(
+        await KeyService._create_log(
             db=db,
             key_id=key_obj.id,
             user_id=user_id,
@@ -715,12 +772,12 @@ class KeyService:
         )
         
         db.delete(translation)
-        db.commit()
+        await db.commit()
         return True
 
     @staticmethod
-    def batch_import_translations(
-        db: Session,
+    async def batch_import_translations(
+        db: AsyncSession,
         project_public_id: str,
         language: str,
         translations: List,
@@ -744,7 +801,7 @@ class KeyService:
         from app.services.project_service import ProjectService
         
         # Get project
-        project = ProjectService.get_project_by_public_id(db, project_public_id)
+        project = await ProjectService.get_project_by_public_id(db, project_public_id)
         if not project:
             return {
                 'success_count': 0,
@@ -755,7 +812,7 @@ class KeyService:
             }
         
         # Check permission
-        if user_id and not ProjectService.can_user_edit_project(db, project.id, user_id):
+        if user_id and not await ProjectService.can_user_edit_project(db, project.id, user_id):
             return {
                 'success_count': 0,
                 'error_count': len(translations),
@@ -772,11 +829,12 @@ class KeyService:
         
         try:
             # Get all existing keys for the project with eager loading
-            existing_keys = db.query(Key).options(
-                joinedload(Key.translations)
-            ).filter(
-                Key.project_id == project.id
-            ).all()
+            result = await db.execute(
+                select(Key)
+                .options(joinedload(Key.translations))
+                .where(Key.project_id == project.id)
+            )
+            existing_keys = result.scalars().unique().all()
             existing_keys_dict = {k.key: k for k in existing_keys}
             
             # Process each translation
@@ -791,17 +849,20 @@ class KeyService:
                         key_obj = existing_keys_dict[key_str]
                         
                         # Check if translation exists
-                        translation = db.query(Translation).filter(
-                            Translation.key_id == key_obj.id,
-                            Translation.language == language
-                        ).first()
+                        result = await db.execute(
+                            select(Translation).where(
+                                Translation.key_id == key_obj.id,
+                                Translation.language == language
+                            )
+                        )
+                        translation = result.scalar_one_or_none()
                         
                         if translation:
                             old_value = translation.value
                             translation.value = value
                             
                             # Log translation import
-                            KeyService._create_log(
+                            await KeyService._create_log(
                                 db=db,
                                 key_id=key_obj.id,
                                 user_id=user_id,
@@ -821,7 +882,7 @@ class KeyService:
                             db.add(translation)
                             
                             # Log translation import
-                            KeyService._create_log(
+                            await KeyService._create_log(
                                 db=db,
                                 key_id=key_obj.id,
                                 user_id=user_id,
@@ -840,10 +901,10 @@ class KeyService:
                             project_id=project.id
                         )
                         db.add(new_key)
-                        db.flush()  # Get the ID
+                        await db.flush()  # Get the ID
                         
                         # Log key creation
-                        KeyService._create_log(
+                        await KeyService._create_log(
                             db=db,
                             key_id=new_key.id,
                             user_id=user_id,
@@ -862,7 +923,7 @@ class KeyService:
                         db.add(translation)
                         
                         # Log translation import
-                        KeyService._create_log(
+                        await KeyService._create_log(
                             db=db,
                             key_id=new_key.id,
                             user_id=user_id,
@@ -884,10 +945,10 @@ class KeyService:
                     errors.append(f"Error processing key '{trans_input.key}': {str(e)}")
             
             # Commit all changes
-            db.commit()
+            await db.commit()
             
         except Exception as e:
-            db.rollback()
+            await db.rollback()
             return {
                 'success_count': 0,
                 'error_count': len(translations),
@@ -905,8 +966,8 @@ class KeyService:
         }
 
     @staticmethod
-    def approve_translation(
-        db: Session,
+    async def approve_translation(
+        db: AsyncSession,
         key_public_id: str,
         language: str,
         user_id: int,
@@ -925,16 +986,22 @@ class KeyService:
         Returns:
             Updated key or None if not found
         """
-        key = db.query(Key).filter(Key.public_id == uuid_lib.UUID(key_public_id)).first()
+        result = await db.execute(
+            select(Key).where(Key.public_id == uuid_lib.UUID(key_public_id))
+        )
+        key = result.scalar_one_or_none()
         
         if not key:
             return None
         
         # Find translation
-        translation = db.query(Translation).filter(
-            Translation.key_id == key.id,
-            Translation.language == language
-        ).first()
+        result = await db.execute(
+            select(Translation).where(
+                Translation.key_id == key.id,
+                Translation.language == language
+            )
+        )
+        translation = result.scalar_one_or_none()
         
         if not translation:
             return None
@@ -947,7 +1014,7 @@ class KeyService:
         translation.review_status = ReviewStatus.APPROVED
         
         # Create log entry with language
-        KeyService._create_log(
+        await KeyService._create_log(
             db=db,
             key_id=key.id,
             user_id=user_id,
@@ -958,14 +1025,18 @@ class KeyService:
             new_value=comment  # Store comment in new_value field
         )
         
-        db.commit()
-        db.refresh(key)
-        
-        return key
+        await db.commit()
+        # Reload full object with translations
+        result = await db.execute(
+            select(Key)
+            .options(joinedload(Key.translations))
+            .where(Key.id == key.id)
+        )
+        return result.unique().scalar_one()
 
     @staticmethod
-    def reject_translation(
-        db: Session,
+    async def reject_translation(
+        db: AsyncSession,
         key_public_id: str,
         language: str,
         user_id: int,
@@ -984,16 +1055,22 @@ class KeyService:
         Returns:
             Updated key or None if not found
         """
-        key = db.query(Key).filter(Key.public_id == uuid_lib.UUID(key_public_id)).first()
+        result = await db.execute(
+            select(Key).where(Key.public_id == uuid_lib.UUID(key_public_id))
+        )
+        key = result.scalar_one_or_none()
         
         if not key:
             return None
         
         # Find translation
-        translation = db.query(Translation).filter(
-            Translation.key_id == key.id,
-            Translation.language == language
-        ).first()
+        result = await db.execute(
+            select(Translation).where(
+                Translation.key_id == key.id,
+                Translation.language == language
+            )
+        )
+        translation = result.scalar_one_or_none()
         
         if not translation:
             return None
@@ -1006,7 +1083,7 @@ class KeyService:
         translation.review_status = ReviewStatus.REJECTED
         
         # Create log entry with language
-        KeyService._create_log(
+        await KeyService._create_log(
             db=db,
             key_id=key.id,
             user_id=user_id,
@@ -1017,14 +1094,18 @@ class KeyService:
             new_value=comment  # Store comment in new_value field
         )
         
-        db.commit()
-        db.refresh(key)
-        
-        return key
+        await db.commit()
+        # Reload full object with translations
+        result = await db.execute(
+            select(Key)
+            .options(joinedload(Key.translations))
+            .where(Key.id == key.id)
+        )
+        return result.unique().scalar_one()
 
     @staticmethod
-    def delete_translation_review(
-        db: Session,
+    async def delete_translation_review(
+        db: AsyncSession,
         key_public_id: str,
         language: str,
         user_id: int
@@ -1041,16 +1122,22 @@ class KeyService:
         Returns:
             Updated key or None if not found
         """
-        key = db.query(Key).filter(Key.public_id == uuid_lib.UUID(key_public_id)).first()
+        result = await db.execute(
+            select(Key).where(Key.public_id == uuid_lib.UUID(key_public_id))
+        )
+        key = result.scalar_one_or_none()
         
         if not key:
             return None
         
         # Find translation
-        translation = db.query(Translation).filter(
-            Translation.key_id == key.id,
-            Translation.language == language
-        ).first()
+        result = await db.execute(
+            select(Translation).where(
+                Translation.key_id == key.id,
+                Translation.language == language
+            )
+        )
+        translation = result.scalar_one_or_none()
         
         if not translation:
             return None
@@ -1059,7 +1146,7 @@ class KeyService:
         translation.review_status = ReviewStatus.PENDING
         
         # Create log entry with language
-        KeyService._create_log(
+        await KeyService._create_log(
             db=db,
             key_id=key.id,
             user_id=user_id,
@@ -1070,13 +1157,17 @@ class KeyService:
             new_value=None  # No comment for delete action
         )
         
-        db.commit()
-        db.refresh(key)
-        
-        return key
+        await db.commit()
+        # Reload full object with translations
+        result = await db.execute(
+            select(Key)
+            .options(joinedload(Key.translations))
+            .where(Key.id == key.id)
+        )
+        return result.unique().scalar_one()
 
     @staticmethod
-    def _update_project_available_tags(db: Session, project: Project, new_tags: List[str]) -> None:
+    async def _update_project_available_tags(db: AsyncSession, project: Project, new_tags: List[str]) -> None:
         """
         Update project's available_tags to include new tags.
         
@@ -1098,5 +1189,5 @@ class KeyService:
         
         if updated:
             project.available_tags = sorted(list(current_tags))
-            db.commit()
+            await db.commit()
 

@@ -2,11 +2,12 @@ import strawberry
 from typing import Optional, List
 from datetime import datetime
 from strawberry.types import Info
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, OperationalError
 import logging
 
-from app.database import get_db
+from app.database import AsyncSessionLocal
 from app.services.project_service import ProjectService
 from app.services.user_service import UserService
 from app.core.security import decode_access_token
@@ -136,7 +137,7 @@ class AddProjectMemberInput:
     role: str  # admin, editor, viewer
 
 
-def get_current_user_id(info: Info) -> Optional[int]:
+async def get_current_user_id(info: Info) -> Optional[int]:
     """
     Helper function to get current user ID from request context.
     
@@ -173,21 +174,18 @@ def get_current_user_id(info: Info) -> Optional[int]:
             logger.warning("No 'sub' field in token payload")
             return None
         
-        db: Session = next(get_db())
-        try:
-            user = UserService.get_user_by_public_id(db, public_id)
+        async with AsyncSessionLocal() as db:
+            user = await UserService.get_user_by_public_id(db, public_id)
             if not user:
                 logger.warning(f"User not found for public_id")
                 return None
             return user.id
-        finally:
-            db.close()
     except Exception as e:
         logger.error(f"Error getting current user: {type(e).__name__}: {str(e)}")
         return None
 
 
-def build_project_type(project, current_user_id: int, stats: Optional[dict] = None, db: Optional[Session] = None) -> Optional[ProjectType]:
+async def build_project_type(project, current_user_id: int, stats: Optional[dict] = None, db: Optional[AsyncSession] = None) -> Optional[ProjectType]:
     """
     Build ProjectType from Project model.
     
@@ -280,7 +278,7 @@ def build_project_type(project, current_user_id: int, stats: Optional[dict] = No
     language_progress = []
     if db:
         from app.services.project_service import ProjectService
-        lang_progress_data = ProjectService.get_language_progress(db, project.id)
+        lang_progress_data = await ProjectService.get_language_progress(db, project.id)
         
         # Build language progress list, ensuring all configured languages are included
         for lang in project.languages:
@@ -329,7 +327,7 @@ class ProjectQuery:
     """
 
     @strawberry.field
-    def projects(self, info: Info) -> List[ProjectType]:
+    async def projects(self, info: Info) -> List[ProjectType]:
         """
         Get all projects for current user (owned or member).
         
@@ -345,27 +343,24 @@ class ProjectQuery:
         from app.core.exceptions import UnauthorizedError
         
         try:
-            current_user_id = get_current_user_id(info)
+            current_user_id = await get_current_user_id(info)
             if not current_user_id:
                 raise UnauthorizedError("Authentication required to access projects")
             
-            db: Session = next(get_db())
-            try:
-                projects = ProjectService.get_user_projects(db, current_user_id)
+            async with AsyncSessionLocal() as db:
+                projects = await ProjectService.get_user_projects(db, current_user_id)
                 
                 # Get statistics for all projects in one SQL query
                 project_ids = [p.id for p in projects]
-                stats = ProjectService.get_projects_stats(db, project_ids) if project_ids else {}
+                stats = await ProjectService.get_projects_stats(db, project_ids) if project_ids else {}
                 
                 # Build project types and filter out None values (projects with missing relations)
                 result = []
                 for project in projects:
-                    project_type = build_project_type(project, current_user_id, stats.get(project.id), db)
+                    project_type = await build_project_type(project, current_user_id, stats.get(project.id), db)
                     if project_type:
                         result.append(project_type)
                 return result
-            finally:
-                db.close()
         except UnauthorizedError:
             # Re-raise authentication errors
             raise
@@ -374,7 +369,7 @@ class ProjectQuery:
             return []
 
     @strawberry.field
-    def project(self, info: Info, id: str) -> Optional[ProjectType]:
+    async def project(self, info: Info, id: str) -> Optional[ProjectType]:
         """
         Get a specific project by ID.
         
@@ -389,26 +384,23 @@ class ProjectQuery:
             UnauthorizedError: If user is not authenticated
         """
         try:
-            current_user_id = get_current_user_id(info)
+            current_user_id = await get_current_user_id(info)
             if not current_user_id:
                 return None
             
-            db: Session = next(get_db())
-            try:
-                project = ProjectService.get_project_by_public_id(db, id)
+            async with AsyncSessionLocal() as db:
+                project = await ProjectService.get_project_by_public_id(db, id)
                 if not project:
                     return None
                 
                 # Check access
-                if not ProjectService.check_project_access(db, project.id, current_user_id):
+                if not await ProjectService.check_project_access(db, project.id, current_user_id):
                     return None
                 
                 # Get statistics for this project
-                stats = ProjectService.get_projects_stats(db, [project.id])
+                stats = await ProjectService.get_projects_stats(db, [project.id])
                 
-                return build_project_type(project, current_user_id, stats.get(project.id), db)
-            finally:
-                db.close()
+                return await build_project_type(project, current_user_id, stats.get(project.id), db)
         except Exception as e:
             logger.error(f"Error in project query: {type(e).__name__}: {str(e)}")
             return None
@@ -421,7 +413,7 @@ class ProjectMutation:
     """
 
     @strawberry.mutation
-    def create_project(self, input: CreateProjectInput, info: Info) -> ProjectType:
+    async def create_project(self, input: CreateProjectInput, info: Info) -> ProjectType:
         """
         Create a new project in a team.
         
@@ -438,48 +430,45 @@ class ProjectMutation:
         """
         from app.services.team_service import TeamService
         
-        current_user_id = get_current_user_id(info)
+        current_user_id = await get_current_user_id(info)
         if not current_user_id:
             raise UnauthorizedError("User must be authenticated to create projects")
         
-        db: Session = next(get_db())
-        
-        try:
-            # Get team by public_id
-            team = TeamService.get_team_by_public_id(db, input.team_id)
-            if not team:
-                raise UnauthorizedError("Team not found")
-            
-            # Verify user has access to team
-            if not TeamService.check_user_team_access(db, team.id, current_user_id):
-                raise UnauthorizedError("User does not have access to this team")
-            
-            project = ProjectService.create_project(
-                db=db,
-                owner_id=current_user_id,
-                team_id=team.id,
-                name=input.name,
-                description=input.description,
-                languages=input.languages or [],
-                default_language=input.default_language,
-                color=input.color or "#6366f1",
-                status=input.status or "active"
-            )
-            
-            # New project has no keys/translations yet
-            stats = {'keys_count': 0, 'translations_count': 0}
-            return build_project_type(project, current_user_id, stats, db)
-        except (UnauthorizedError, AuthenticationError):
-            raise
-        except (IntegrityError, OperationalError) as e:
-            handle_database_exception(e, "project creation")
-        except Exception as e:
-            handle_database_exception(e, "project creation")
-        finally:
-            db.close()
+        async with AsyncSessionLocal() as db:
+            try:
+                # Get team by public_id
+                team = await TeamService.get_team_by_public_id(db, input.team_id)
+                if not team:
+                    raise UnauthorizedError("Team not found")
+                
+                # Verify user has access to team
+                if not await TeamService.check_user_team_access(db, team.id, current_user_id):
+                    raise UnauthorizedError("User does not have access to this team")
+                
+                project = await ProjectService.create_project(
+                    db=db,
+                    owner_id=current_user_id,
+                    team_id=team.id,
+                    name=input.name,
+                    description=input.description,
+                    languages=input.languages or [],
+                    default_language=input.default_language,
+                    color=input.color or "#6366f1",
+                    status=input.status or "active"
+                )
+                
+                # New project has no keys/translations yet
+                stats = {'keys_count': 0, 'translations_count': 0}
+                return await build_project_type(project, current_user_id, stats, db)
+            except (UnauthorizedError, AuthenticationError):
+                raise
+            except (IntegrityError, OperationalError) as e:
+                handle_database_exception(e, "project creation")
+            except Exception as e:
+                handle_database_exception(e, "project creation")
 
     @strawberry.mutation
-    def update_project(self, input: UpdateProjectInput, info: Info) -> Optional[ProjectType]:
+    async def update_project(self, input: UpdateProjectInput, info: Info) -> Optional[ProjectType]:
         """
         Update an existing project.
         
@@ -494,42 +483,39 @@ class ProjectMutation:
             UnauthorizedError: If user is not authenticated
             DatabaseError: If database operation fails
         """
-        current_user_id = get_current_user_id(info)
+        current_user_id = await get_current_user_id(info)
         if not current_user_id:
             raise UnauthorizedError("User must be authenticated to update projects")
         
-        db: Session = next(get_db())
-        
-        try:
-            project = ProjectService.update_project(
-                db=db,
-                public_id=input.id,
-                user_id=current_user_id,
-                name=input.name,
-                description=input.description,
-                languages=input.languages,
-                default_language=input.default_language,
-                color=input.color,
-                status=input.status
-            )
-            
-            if not project:
-                return None
-            
-            # Get statistics for the updated project
-            stats = ProjectService.get_projects_stats(db, [project.id])
-            return build_project_type(project, current_user_id, stats.get(project.id), db)
-        except (UnauthorizedError, AuthenticationError):
-            raise
-        except (IntegrityError, OperationalError) as e:
-            handle_database_exception(e, "project update")
-        except Exception as e:
-            handle_database_exception(e, "project update")
-        finally:
-            db.close()
+        async with AsyncSessionLocal() as db:
+            try:
+                project = await ProjectService.update_project(
+                    db=db,
+                    public_id=input.id,
+                    user_id=current_user_id,
+                    name=input.name,
+                    description=input.description,
+                    languages=input.languages,
+                    default_language=input.default_language,
+                    color=input.color,
+                    status=input.status
+                )
+                
+                if not project:
+                    return None
+                
+                # Get statistics for the updated project
+                stats = await ProjectService.get_projects_stats(db, [project.id])
+                return await build_project_type(project, current_user_id, stats.get(project.id), db)
+            except (UnauthorizedError, AuthenticationError):
+                raise
+            except (IntegrityError, OperationalError) as e:
+                handle_database_exception(e, "project update")
+            except Exception as e:
+                handle_database_exception(e, "project update")
 
     @strawberry.mutation
-    def delete_project(self, id: str, info: Info) -> bool:
+    async def delete_project(self, id: str, info: Info) -> bool:
         """
         Delete a project.
         
@@ -544,25 +530,22 @@ class ProjectMutation:
             UnauthorizedError: If user is not authenticated
             DatabaseError: If database operation fails
         """
-        current_user_id = get_current_user_id(info)
+        current_user_id = await get_current_user_id(info)
         if not current_user_id:
             raise UnauthorizedError("User must be authenticated to delete projects")
         
-        db: Session = next(get_db())
-        
-        try:
-            return ProjectService.delete_project(db, id, current_user_id)
-        except (UnauthorizedError, AuthenticationError):
-            raise
-        except (IntegrityError, OperationalError) as e:
-            handle_database_exception(e, "project deletion")
-        except Exception as e:
-            handle_database_exception(e, "project deletion")
-        finally:
-            db.close()
+        async with AsyncSessionLocal() as db:
+            try:
+                return await ProjectService.delete_project(db, id, current_user_id)
+            except (UnauthorizedError, AuthenticationError):
+                raise
+            except (IntegrityError, OperationalError) as e:
+                handle_database_exception(e, "project deletion")
+            except Exception as e:
+                handle_database_exception(e, "project deletion")
 
     @strawberry.mutation
-    def add_project_member(self, input: AddProjectMemberInput, info: Info) -> Optional[ProjectType]:
+    async def add_project_member(self, input: AddProjectMemberInput, info: Info) -> Optional[ProjectType]:
         """
         Add a member to a project.
         
@@ -577,45 +560,47 @@ class ProjectMutation:
             UnauthorizedError: If user is not authenticated
             DatabaseError: If database operation fails
         """
-        current_user_id = get_current_user_id(info)
+        current_user_id = await get_current_user_id(info)
         if not current_user_id:
             raise UnauthorizedError("User must be authenticated to add project members")
         
-        db: Session = next(get_db())
-        
-        try:
-            member = ProjectService.add_project_member(
-                db=db,
-                project_public_id=input.project_id,
-                user_public_id=input.user_id,
-                role=input.role,
-                added_by_user_id=current_user_id
-            )
-            
-            if not member:
-                return None
-            
-            # Get updated project with eager loading
-            from app.models.project import Project as ProjectModel, ProjectMember
-            from sqlalchemy.orm import joinedload, selectinload
-            
-            project = db.query(ProjectModel).options(
-                joinedload(ProjectModel.owner),
-                selectinload(ProjectModel.members).joinedload(ProjectMember.user)
-            ).filter_by(id=member.project_id).first()
-            
-            if not project:
-                return None
-            
-            # Get statistics for the project
-            stats = ProjectService.get_projects_stats(db, [project.id])
-            return build_project_type(project, current_user_id, stats.get(project.id), db)
-        except (UnauthorizedError, AuthenticationError):
-            raise
-        except (IntegrityError, OperationalError) as e:
-            handle_database_exception(e, "adding project member")
-        except Exception as e:
-            handle_database_exception(e, "adding project member")
-        finally:
-            db.close()
+        async with AsyncSessionLocal() as db:
+            try:
+                member = await ProjectService.add_project_member(
+                    db=db,
+                    project_public_id=input.project_id,
+                    user_public_id=input.user_id,
+                    role=input.role,
+                    added_by_user_id=current_user_id
+                )
+                
+                if not member:
+                    return None
+                
+                # Get updated project with eager loading
+                from app.models.project import Project as ProjectModel, ProjectMember
+                from sqlalchemy.orm import joinedload, selectinload
+                
+                result = await db.execute(
+                    select(ProjectModel)
+                    .options(
+                        joinedload(ProjectModel.owner),
+                        selectinload(ProjectModel.members).joinedload(ProjectMember.user)
+                    )
+                    .where(ProjectModel.id == member.project_id)
+                )
+                project = result.scalar_one_or_none()
+                
+                if not project:
+                    return None
+                
+                # Get statistics for the project
+                stats = await ProjectService.get_projects_stats(db, [project.id])
+                return await build_project_type(project, current_user_id, stats.get(project.id), db)
+            except (UnauthorizedError, AuthenticationError):
+                raise
+            except (IntegrityError, OperationalError) as e:
+                handle_database_exception(e, "adding project member")
+            except Exception as e:
+                handle_database_exception(e, "adding project member")
 

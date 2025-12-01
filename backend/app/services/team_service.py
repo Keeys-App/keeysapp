@@ -1,5 +1,7 @@
 from typing import Optional, List
-from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, update, delete
+from sqlalchemy.orm import joinedload, selectinload
 import uuid as uuid_lib
 import logging
 
@@ -17,8 +19,8 @@ class TeamService:
     """
 
     @staticmethod
-    def create_team(
-        db: Session,
+    async def create_team(
+        db: AsyncSession,
         owner_id: int,
         name: str,
         description: Optional[str] = None
@@ -41,7 +43,7 @@ class TeamService:
             owner_id=owner_id
         )
         db.add(team)
-        db.flush()
+        await db.flush()
         
         # Log team creation
         log = ActivityLog(
@@ -53,12 +55,22 @@ class TeamService:
         )
         db.add(log)
         
-        db.commit()
-        db.refresh(team)
-        return team
+        await db.commit()
+        
+        # Reload with relationships to avoid lazy loading in async context
+        result = await db.execute(
+            select(Team)
+            .options(
+                joinedload(Team.owner),
+                selectinload(Team.members).joinedload(TeamMember.user),
+                selectinload(Team.invitations).joinedload(TeamInvitation.invited_by)
+            )
+            .where(Team.id == team.id)
+        )
+        return result.unique().scalar_one()
 
     @staticmethod
-    def get_team_by_public_id(db: Session, public_id: str) -> Optional[Team]:
+    async def get_team_by_public_id(db: AsyncSession, public_id: str) -> Optional[Team]:
         """
         Get a team by its public UUID.
         Uses eager loading to prevent N+1 query problems.
@@ -72,16 +84,21 @@ class TeamService:
         """
         try:
             uuid_obj = uuid_lib.UUID(public_id)
-            return db.query(Team).options(
-                joinedload(Team.owner),
-                selectinload(Team.members).joinedload(TeamMember.user),
-                selectinload(Team.invitations).joinedload(TeamInvitation.invited_by)
-            ).filter(Team.public_id == uuid_obj).first()
+            result = await db.execute(
+                select(Team)
+                .options(
+                    joinedload(Team.owner),
+                    selectinload(Team.members).joinedload(TeamMember.user),
+                    selectinload(Team.invitations).joinedload(TeamInvitation.invited_by)
+                )
+                .where(Team.public_id == uuid_obj)
+            )
+            return result.unique().scalar_one_or_none()
         except (ValueError, AttributeError):
             return None
 
     @staticmethod
-    def get_user_teams(db: Session, user_id: int) -> List[Team]:
+    async def get_user_teams(db: AsyncSession, user_id: int) -> List[Team]:
         """
         Get all teams where user is owner or member.
         Uses eager loading to prevent N+1 query problems.
@@ -100,24 +117,25 @@ class TeamService:
         ]
         
         # Get teams where user is owner
-        owned_teams = db.query(Team).options(
-            *eager_options
-        ).filter(
-            Team.owner_id == user_id
-        ).all()
+        result = await db.execute(
+            select(Team)
+            .options(*eager_options)
+            .where(Team.owner_id == user_id)
+        )
+        owned_teams = result.scalars().unique().all()
         owned_team_ids = {t.id for t in owned_teams}
         
         # Get teams where user is member
-        member_teams = db.query(Team).options(
-            *eager_options
-        ).join(
-            TeamMember, Team.id == TeamMember.team_id
-        ).filter(
-            TeamMember.user_id == user_id
-        ).all()
+        result = await db.execute(
+            select(Team)
+            .options(*eager_options)
+            .join(TeamMember, Team.id == TeamMember.team_id)
+            .where(TeamMember.user_id == user_id)
+        )
+        member_teams = result.scalars().unique().all()
         
         # Combine and deduplicate
-        all_teams = owned_teams.copy()
+        all_teams = list(owned_teams)
         for team in member_teams:
             if team.id not in owned_team_ids:
                 all_teams.append(team)
@@ -125,8 +143,8 @@ class TeamService:
         return all_teams
 
     @staticmethod
-    def update_team(
-        db: Session,
+    async def update_team(
+        db: AsyncSession,
         public_id: str,
         user_id: int,
         name: Optional[str] = None,
@@ -145,12 +163,12 @@ class TeamService:
         Returns:
             Updated team or None if not found or no permission
         """
-        team = TeamService.get_team_by_public_id(db, public_id)
+        team = await TeamService.get_team_by_public_id(db, public_id)
         if not team:
             return None
         
         # Check if user has permission to update
-        if not TeamService.can_user_manage_team(db, team.id, user_id):
+        if not await TeamService.can_user_manage_team(db, team.id, user_id):
             return None
         
         # Update fields if provided and log changes
@@ -180,12 +198,22 @@ class TeamService:
             )
             db.add(log)
         
-        db.commit()
-        db.refresh(team)
-        return team
+        await db.commit()
+        
+        # Reload with relationships
+        result = await db.execute(
+            select(Team)
+            .options(
+                joinedload(Team.owner),
+                selectinload(Team.members).joinedload(TeamMember.user),
+                selectinload(Team.invitations).joinedload(TeamInvitation.invited_by)
+            )
+            .where(Team.id == team.id)
+        )
+        return result.unique().scalar_one()
 
     @staticmethod
-    def delete_team(db: Session, public_id: str, user_id: int) -> bool:
+    async def delete_team(db: AsyncSession, public_id: str, user_id: int) -> bool:
         """
         Delete a team. Only owner can delete.
         
@@ -197,7 +225,7 @@ class TeamService:
         Returns:
             True if deleted, False otherwise
         """
-        team = TeamService.get_team_by_public_id(db, public_id)
+        team = await TeamService.get_team_by_public_id(db, public_id)
         if not team:
             return False
         
@@ -205,9 +233,9 @@ class TeamService:
         if team.owner_id != user_id:
             return False
         
-        # Log team deletion before deleting
+        # Log team deletion before deleting - use team name but no FK reference
         log = ActivityLog(
-            team_id=team.id,
+            team_id=None,  # Don't reference team being deleted
             user_id=user_id,
             action=ActionType.TEAM_DELETE,
             field_name="name",
@@ -215,12 +243,13 @@ class TeamService:
         )
         db.add(log)
         
-        db.delete(team)
-        db.commit()
+        # Delete using execute to avoid issues with detached objects
+        await db.execute(delete(Team).where(Team.id == team.id))
+        await db.commit()
         return True
 
     @staticmethod
-    def check_user_team_access(db: Session, team_id: int, user_id: int) -> bool:
+    async def check_user_team_access(db: AsyncSession, team_id: int, user_id: int) -> bool:
         """
         Check if user has access to a team (owner or member).
         
@@ -232,7 +261,8 @@ class TeamService:
         Returns:
             True if user has access, False otherwise
         """
-        team = db.query(Team).filter(Team.id == team_id).first()
+        result = await db.execute(select(Team).where(Team.id == team_id))
+        team = result.scalar_one_or_none()
         if not team:
             return False
         
@@ -241,15 +271,18 @@ class TeamService:
             return True
         
         # Check if member
-        member = db.query(TeamMember).filter(
-            TeamMember.team_id == team_id,
-            TeamMember.user_id == user_id
-        ).first()
+        result = await db.execute(
+            select(TeamMember).where(
+                TeamMember.team_id == team_id,
+                TeamMember.user_id == user_id
+            )
+        )
+        member = result.scalar_one_or_none()
         
         return member is not None
 
     @staticmethod
-    def can_user_manage_team(db: Session, team_id: int, user_id: int) -> bool:
+    async def can_user_manage_team(db: AsyncSession, team_id: int, user_id: int) -> bool:
         """
         Check if user can manage a team (owner or admin member).
         
@@ -261,7 +294,8 @@ class TeamService:
         Returns:
             True if user can manage, False otherwise
         """
-        team = db.query(Team).filter(Team.id == team_id).first()
+        result = await db.execute(select(Team).where(Team.id == team_id))
+        team = result.scalar_one_or_none()
         if not team:
             return False
         
@@ -270,17 +304,20 @@ class TeamService:
             return True
         
         # Check if admin member
-        member = db.query(TeamMember).filter(
-            TeamMember.team_id == team_id,
-            TeamMember.user_id == user_id,
-            TeamMember.role == "admin"
-        ).first()
+        result = await db.execute(
+            select(TeamMember).where(
+                TeamMember.team_id == team_id,
+                TeamMember.user_id == user_id,
+                TeamMember.role == "admin"
+            )
+        )
+        member = result.scalar_one_or_none()
         
         return member is not None
 
     @staticmethod
-    def add_team_member_by_email(
-        db: Session,
+    async def add_team_member_by_email(
+        db: AsyncSession,
         team_public_id: str,
         user_email: str,
         role: str,
@@ -301,34 +338,41 @@ class TeamService:
             TeamInvitation if created/updated, None if failed (for security - don't reveal details)
         """
         # Get team
-        team = TeamService.get_team_by_public_id(db, team_public_id)
+        team = await TeamService.get_team_by_public_id(db, team_public_id)
         if not team:
             return None
         
         # Check permission
-        if not TeamService.can_user_manage_team(db, team.id, added_by_user_id):
+        if not await TeamService.can_user_manage_team(db, team.id, added_by_user_id):
             return None
         
         email = user_email.lower().strip()
         
         # Check if user exists and is already a member
-        user = db.query(User).filter(User.email == email).first()
+        result = await db.execute(select(User).where(User.email == email))
+        user = result.scalar_one_or_none()
         if user:
-            existing_member = db.query(TeamMember).filter(
-                TeamMember.team_id == team.id,
-                TeamMember.user_id == user.id
-            ).first()
+            result = await db.execute(
+                select(TeamMember).where(
+                    TeamMember.team_id == team.id,
+                    TeamMember.user_id == user.id
+                )
+            )
+            existing_member = result.scalar_one_or_none()
             if existing_member:
                 # Already a member - don't create invitation
                 logger.info(f"User {email} is already a member of team {team.name}")
                 return None
         
         # Check for existing pending invitation
-        existing_invitation = db.query(TeamInvitation).filter(
-            TeamInvitation.team_id == team.id,
-            TeamInvitation.invited_email == email,
-            TeamInvitation.status == InvitationStatus.PENDING
-        ).first()
+        result = await db.execute(
+            select(TeamInvitation).where(
+                TeamInvitation.team_id == team.id,
+                TeamInvitation.invited_email == email,
+                TeamInvitation.status == InvitationStatus.PENDING
+            )
+        )
+        existing_invitation = result.scalar_one_or_none()
         
         if existing_invitation:
             # Update existing invitation
@@ -337,8 +381,8 @@ class TeamService:
             if user:
                 existing_invitation.invited_user_id = user.id
             
-            db.commit()
-            db.refresh(existing_invitation)
+            await db.commit()
+            await db.refresh(existing_invitation, ['team'])
             logger.info(f"Updated invitation for: {email}")
             return existing_invitation
         
@@ -352,7 +396,7 @@ class TeamService:
             invited_user_id=user.id if user else None
         )
         db.add(invitation)
-        db.flush()
+        await db.flush()
         
         # Log invitation
         log = ActivityLog(
@@ -364,13 +408,13 @@ class TeamService:
         )
         db.add(log)
         
-        db.commit()
-        db.refresh(invitation)
+        await db.commit()
+        await db.refresh(invitation, ['team'])
         logger.info(f"Created invitation for: {email}")
         return invitation
 
     @staticmethod
-    def get_invitation_by_public_id(db: Session, public_id: str) -> Optional[TeamInvitation]:
+    async def get_invitation_by_public_id(db: AsyncSession, public_id: str) -> Optional[TeamInvitation]:
         """
         Get an invitation by its public UUID.
         
@@ -383,15 +427,20 @@ class TeamService:
         """
         try:
             uuid_obj = uuid_lib.UUID(public_id)
-            return db.query(TeamInvitation).options(
-                joinedload(TeamInvitation.team).joinedload(Team.owner),
-                joinedload(TeamInvitation.invited_by)
-            ).filter(TeamInvitation.public_id == uuid_obj).first()
+            result = await db.execute(
+                select(TeamInvitation)
+                .options(
+                    joinedload(TeamInvitation.team).joinedload(Team.owner),
+                    joinedload(TeamInvitation.invited_by)
+                )
+                .where(TeamInvitation.public_id == uuid_obj)
+            )
+            return result.unique().scalar_one_or_none()
         except (ValueError, AttributeError):
             return None
 
     @staticmethod
-    def get_pending_invitations_for_email(db: Session, email: str) -> List[TeamInvitation]:
+    async def get_pending_invitations_for_email(db: AsyncSession, email: str) -> List[TeamInvitation]:
         """
         Get all pending invitations for a given email address.
         
@@ -402,17 +451,22 @@ class TeamService:
         Returns:
             List of pending TeamInvitation objects
         """
-        return db.query(TeamInvitation).options(
-            joinedload(TeamInvitation.team).joinedload(Team.owner),
-            joinedload(TeamInvitation.invited_by)
-        ).filter(
-            TeamInvitation.invited_email == email.lower().strip(),
-            TeamInvitation.status == InvitationStatus.PENDING
-        ).all()
+        result = await db.execute(
+            select(TeamInvitation)
+            .options(
+                joinedload(TeamInvitation.team).joinedload(Team.owner),
+                joinedload(TeamInvitation.invited_by)
+            )
+            .where(
+                TeamInvitation.invited_email == email.lower().strip(),
+                TeamInvitation.status == InvitationStatus.PENDING
+            )
+        )
+        return result.scalars().unique().all()
 
     @staticmethod
-    def accept_invitation(
-        db: Session,
+    async def accept_invitation(
+        db: AsyncSession,
         invitation_public_id: str,
         user_id: int
     ) -> Optional[TeamMember]:
@@ -428,7 +482,7 @@ class TeamService:
             Created TeamMember or None if failed
         """
         # Get invitation
-        invitation = TeamService.get_invitation_by_public_id(db, invitation_public_id)
+        invitation = await TeamService.get_invitation_by_public_id(db, invitation_public_id)
         if not invitation:
             logger.warning(f"Invitation not found: {invitation_public_id}")
             return None
@@ -439,7 +493,8 @@ class TeamService:
             return None
         
         # Get user
-        user = db.query(User).filter(User.id == user_id).first()
+        result = await db.execute(select(User).where(User.id == user_id))
+        user = result.scalar_one_or_none()
         if not user:
             logger.warning(f"User not found: {user_id}")
             return None
@@ -450,16 +505,19 @@ class TeamService:
             return None
         
         # Check if already a member
-        existing_member = db.query(TeamMember).filter(
-            TeamMember.team_id == invitation.team_id,
-            TeamMember.user_id == user_id
-        ).first()
+        result = await db.execute(
+            select(TeamMember).where(
+                TeamMember.team_id == invitation.team_id,
+                TeamMember.user_id == user_id
+            )
+        )
+        existing_member = result.scalar_one_or_none()
         
         if existing_member:
             # Already a member - just update invitation status
             invitation.status = InvitationStatus.ACCEPTED
             invitation.invited_user_id = user_id
-            db.commit()
+            await db.commit()
             logger.info(f"User {user.email} was already a member, updated invitation status")
             return existing_member
         
@@ -485,14 +543,14 @@ class TeamService:
         )
         db.add(log)
         
-        db.commit()
-        db.refresh(member)
+        await db.commit()
+        await db.refresh(member)
         logger.info(f"User {user.email} accepted invitation to team {invitation.team.name}")
         return member
 
     @staticmethod
-    def decline_invitation(
-        db: Session,
+    async def decline_invitation(
+        db: AsyncSession,
         invitation_public_id: str,
         user_id: int
     ) -> bool:
@@ -508,7 +566,7 @@ class TeamService:
             True if declined, False otherwise
         """
         # Get invitation
-        invitation = TeamService.get_invitation_by_public_id(db, invitation_public_id)
+        invitation = await TeamService.get_invitation_by_public_id(db, invitation_public_id)
         if not invitation:
             return False
         
@@ -517,7 +575,8 @@ class TeamService:
             return False
         
         # Get user
-        user = db.query(User).filter(User.id == user_id).first()
+        result = await db.execute(select(User).where(User.id == user_id))
+        user = result.scalar_one_or_none()
         if not user:
             return False
         
@@ -529,13 +588,13 @@ class TeamService:
         invitation.status = InvitationStatus.DECLINED
         invitation.invited_user_id = user_id
         
-        db.commit()
+        await db.commit()
         logger.info(f"User {user.email} declined invitation to team {invitation.team.name}")
         return True
 
     @staticmethod
-    def resend_invitation(
-        db: Session,
+    async def resend_invitation(
+        db: AsyncSession,
         invitation_public_id: str,
         user_id: int
     ) -> Optional[TeamInvitation]:
@@ -552,7 +611,7 @@ class TeamService:
             TeamInvitation if successful, None otherwise
         """
         # Get invitation
-        invitation = TeamService.get_invitation_by_public_id(db, invitation_public_id)
+        invitation = await TeamService.get_invitation_by_public_id(db, invitation_public_id)
         if not invitation:
             logger.warning(f"Invitation not found: {invitation_public_id}")
             return None
@@ -563,7 +622,7 @@ class TeamService:
             return None
         
         # Check permission
-        if not TeamService.can_user_manage_team(db, invitation.team_id, user_id):
+        if not await TeamService.can_user_manage_team(db, invitation.team_id, user_id):
             logger.warning(f"User {user_id} cannot manage team {invitation.team_id}")
             return None
         
@@ -571,8 +630,8 @@ class TeamService:
         return invitation
 
     @staticmethod
-    def add_team_member(
-        db: Session,
+    async def add_team_member(
+        db: AsyncSession,
         team_public_id: str,
         user_public_id: str,
         role: str,
@@ -592,28 +651,32 @@ class TeamService:
             Created TeamMember or None if failed
         """
         # Get team
-        team = TeamService.get_team_by_public_id(db, team_public_id)
+        team = await TeamService.get_team_by_public_id(db, team_public_id)
         if not team:
             return None
         
         # Check permission
-        if not TeamService.can_user_manage_team(db, team.id, added_by_user_id):
+        if not await TeamService.can_user_manage_team(db, team.id, added_by_user_id):
             return None
         
         # Get user to add
         try:
             uuid_obj = uuid_lib.UUID(user_public_id)
-            user = db.query(User).filter(User.public_id == uuid_obj).first()
+            result = await db.execute(select(User).where(User.public_id == uuid_obj))
+            user = result.scalar_one_or_none()
             if not user:
                 return None
         except (ValueError, AttributeError):
             return None
         
         # Check if already a member
-        existing_member = db.query(TeamMember).filter(
-            TeamMember.team_id == team.id,
-            TeamMember.user_id == user.id
-        ).first()
+        result = await db.execute(
+            select(TeamMember).where(
+                TeamMember.team_id == team.id,
+                TeamMember.user_id == user.id
+            )
+        )
+        existing_member = result.scalar_one_or_none()
         
         if existing_member:
             # Update role if already exists
@@ -633,8 +696,8 @@ class TeamService:
                 )
                 db.add(log)
             
-            db.commit()
-            db.refresh(existing_member)
+            await db.commit()
+            await db.refresh(existing_member)
             return existing_member
         
         # Create new member
@@ -644,7 +707,7 @@ class TeamService:
             role=role
         )
         db.add(member)
-        db.flush()
+        await db.flush()
         
         # Log member addition
         log = ActivityLog(
@@ -657,13 +720,13 @@ class TeamService:
         )
         db.add(log)
         
-        db.commit()
-        db.refresh(member)
+        await db.commit()
+        await db.refresh(member)
         return member
 
     @staticmethod
-    def remove_team_member(
-        db: Session,
+    async def remove_team_member(
+        db: AsyncSession,
         team_public_id: str,
         user_public_id: str,
         removed_by_user_id: int
@@ -681,18 +744,19 @@ class TeamService:
             True if removed, False otherwise
         """
         # Get team
-        team = TeamService.get_team_by_public_id(db, team_public_id)
+        team = await TeamService.get_team_by_public_id(db, team_public_id)
         if not team:
             return False
         
         # Check permission
-        if not TeamService.can_user_manage_team(db, team.id, removed_by_user_id):
+        if not await TeamService.can_user_manage_team(db, team.id, removed_by_user_id):
             return False
         
         # Get user to remove
         try:
             uuid_obj = uuid_lib.UUID(user_public_id)
-            user = db.query(User).filter(User.public_id == uuid_obj).first()
+            result = await db.execute(select(User).where(User.public_id == uuid_obj))
+            user = result.scalar_one_or_none()
             if not user:
                 return False
         except (ValueError, AttributeError):
@@ -703,10 +767,13 @@ class TeamService:
             return False
         
         # Find and remove member
-        member = db.query(TeamMember).filter(
-            TeamMember.team_id == team.id,
-            TeamMember.user_id == user.id
-        ).first()
+        result = await db.execute(
+            select(TeamMember).where(
+                TeamMember.team_id == team.id,
+                TeamMember.user_id == user.id
+            )
+        )
+        member = result.scalar_one_or_none()
         
         if not member:
             return False
@@ -723,12 +790,12 @@ class TeamService:
         db.add(log)
         
         db.delete(member)
-        db.commit()
+        await db.commit()
         return True
 
     @staticmethod
-    def update_team_member_role(
-        db: Session,
+    async def update_team_member_role(
+        db: AsyncSession,
         team_public_id: str,
         user_public_id: str,
         role: str,
@@ -748,18 +815,19 @@ class TeamService:
             Updated TeamMember or None if failed
         """
         # Get team
-        team = TeamService.get_team_by_public_id(db, team_public_id)
+        team = await TeamService.get_team_by_public_id(db, team_public_id)
         if not team:
             return None
         
         # Check permission
-        if not TeamService.can_user_manage_team(db, team.id, updated_by_user_id):
+        if not await TeamService.can_user_manage_team(db, team.id, updated_by_user_id):
             return None
         
         # Get user
         try:
             uuid_obj = uuid_lib.UUID(user_public_id)
-            user = db.query(User).filter(User.public_id == uuid_obj).first()
+            result = await db.execute(select(User).where(User.public_id == uuid_obj))
+            user = result.scalar_one_or_none()
             if not user:
                 return None
         except (ValueError, AttributeError):
@@ -770,10 +838,13 @@ class TeamService:
             return None
         
         # Find and update member
-        member = db.query(TeamMember).filter(
-            TeamMember.team_id == team.id,
-            TeamMember.user_id == user.id
-        ).first()
+        result = await db.execute(
+            select(TeamMember).where(
+                TeamMember.team_id == team.id,
+                TeamMember.user_id == user.id
+            )
+        )
+        member = result.scalar_one_or_none()
         
         if not member:
             return None
@@ -794,7 +865,6 @@ class TeamService:
             )
             db.add(log)
         
-        db.commit()
-        db.refresh(member)
+        await db.commit()
+        await db.refresh(member)
         return member
-

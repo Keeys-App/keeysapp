@@ -2,11 +2,11 @@ import strawberry
 from typing import Optional, List
 from datetime import datetime
 from strawberry.types import Info
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError, OperationalError
 import logging
 
-from app.database import get_db
+from app.database import AsyncSessionLocal
 from app.services.project_access_service import ProjectAccessService
 from app.services.project_service import ProjectService
 from app.core.exceptions import (
@@ -58,7 +58,7 @@ class UpdateProjectAccessRoleInput:
     role: str  # admin, editor, viewer, translator, reviewer
 
 
-def get_current_user_id(info: Info) -> Optional[int]:
+async def get_current_user_id(info: Info) -> Optional[int]:
     """
     Helper function to get current user ID from request context.
     
@@ -98,15 +98,12 @@ def get_current_user_id(info: Info) -> Optional[int]:
             logger.warning("No 'sub' field in token payload")
             return None
         
-        db: Session = next(get_db())
-        try:
-            user = UserService.get_user_by_public_id(db, public_id)
+        async with AsyncSessionLocal() as db:
+            user = await UserService.get_user_by_public_id(db, public_id)
             if not user:
                 logger.warning(f"User not found for public_id")
                 return None
             return user.id
-        finally:
-            db.close()
     except Exception as e:
         logger.error(f"Error getting current user: {type(e).__name__}: {str(e)}")
         return None
@@ -119,7 +116,7 @@ class ProjectAccessMutation:
     """
 
     @strawberry.mutation
-    def grant_project_access(self, input: GrantProjectAccessInput, info: Info) -> bool:
+    async def grant_project_access(self, input: GrantProjectAccessInput, info: Info) -> bool:
         """
         Grant a user access to a project.
         
@@ -135,44 +132,41 @@ class ProjectAccessMutation:
         """
         from app.services.user_service import UserService
         
-        current_user_id = get_current_user_id(info)
+        current_user_id = await get_current_user_id(info)
         if not current_user_id:
             raise UnauthorizedError("User must be authenticated to grant project access")
         
-        db: Session = next(get_db())
-        
-        try:
-            # Get project by public_id
-            project = ProjectService.get_project_by_public_id(db, input.project_id)
-            if not project:
-                return False
-            
-            # Get user by public_id
-            user = UserService.get_user_by_public_id(db, input.user_id)
-            if not user:
-                return False
-            
-            # Grant access
-            access = ProjectAccessService.grant_project_access(
-                db=db,
-                project_id=project.id,
-                user_id=user.id,
-                role=input.role,
-                granted_by_user_id=current_user_id
-            )
-            
-            return access is not None
-        except (UnauthorizedError):
-            raise
-        except (IntegrityError, OperationalError) as e:
-            handle_database_exception(e, "granting project access")
-        except Exception as e:
-            handle_database_exception(e, "granting project access")
-        finally:
-            db.close()
+        async with AsyncSessionLocal() as db:
+            try:
+                # Get project by public_id
+                project = await ProjectService.get_project_by_public_id(db, input.project_id)
+                if not project:
+                    return False
+                
+                # Get user by public_id
+                user = await UserService.get_user_by_public_id(db, input.user_id)
+                if not user:
+                    return False
+                
+                # Grant access
+                access = await ProjectAccessService.grant_project_access(
+                    db=db,
+                    project_id=project.id,
+                    user_id=user.id,
+                    role=input.role,
+                    granted_by_user_id=current_user_id
+                )
+                
+                return access is not None
+            except (UnauthorizedError):
+                raise
+            except (IntegrityError, OperationalError) as e:
+                handle_database_exception(e, "granting project access")
+            except Exception as e:
+                handle_database_exception(e, "granting project access")
 
     @strawberry.mutation
-    def revoke_project_access(self, input: RevokeProjectAccessInput, info: Info) -> bool:
+    async def revoke_project_access(self, input: RevokeProjectAccessInput, info: Info) -> bool:
         """
         Revoke a user's access to a project.
         
@@ -188,41 +182,38 @@ class ProjectAccessMutation:
         """
         from app.services.user_service import UserService
         
-        current_user_id = get_current_user_id(info)
+        current_user_id = await get_current_user_id(info)
         if not current_user_id:
             raise UnauthorizedError("User must be authenticated to revoke project access")
         
-        db: Session = next(get_db())
-        
-        try:
-            # Get project by public_id
-            project = ProjectService.get_project_by_public_id(db, input.project_id)
-            if not project:
-                return False
-            
-            # Get user by public_id
-            user = UserService.get_user_by_public_id(db, input.user_id)
-            if not user:
-                return False
-            
-            # Revoke access
-            return ProjectAccessService.revoke_project_access(
-                db=db,
-                project_id=project.id,
-                user_id=user.id,
-                revoked_by_user_id=current_user_id
-            )
-        except (UnauthorizedError):
-            raise
-        except (IntegrityError, OperationalError) as e:
-            handle_database_exception(e, "revoking project access")
-        except Exception as e:
-            handle_database_exception(e, "revoking project access")
-        finally:
-            db.close()
+        async with AsyncSessionLocal() as db:
+            try:
+                # Get project by public_id
+                project = await ProjectService.get_project_by_public_id(db, input.project_id)
+                if not project:
+                    return False
+                
+                # Get user by public_id
+                user = await UserService.get_user_by_public_id(db, input.user_id)
+                if not user:
+                    return False
+                
+                # Revoke access
+                return await ProjectAccessService.revoke_project_access(
+                    db=db,
+                    project_id=project.id,
+                    user_id=user.id,
+                    revoked_by_user_id=current_user_id
+                )
+            except (UnauthorizedError):
+                raise
+            except (IntegrityError, OperationalError) as e:
+                handle_database_exception(e, "revoking project access")
+            except Exception as e:
+                handle_database_exception(e, "revoking project access")
 
     @strawberry.mutation
-    def update_project_access_role(self, input: UpdateProjectAccessRoleInput, info: Info) -> bool:
+    async def update_project_access_role(self, input: UpdateProjectAccessRoleInput, info: Info) -> bool:
         """
         Update a user's role in a project.
         
@@ -238,39 +229,35 @@ class ProjectAccessMutation:
         """
         from app.services.user_service import UserService
         
-        current_user_id = get_current_user_id(info)
+        current_user_id = await get_current_user_id(info)
         if not current_user_id:
             raise UnauthorizedError("User must be authenticated to update project access")
         
-        db: Session = next(get_db())
-        
-        try:
-            # Get project by public_id
-            project = ProjectService.get_project_by_public_id(db, input.project_id)
-            if not project:
-                return False
-            
-            # Get user by public_id
-            user = UserService.get_user_by_public_id(db, input.user_id)
-            if not user:
-                return False
-            
-            # Update role
-            access = ProjectAccessService.update_project_access_role(
-                db=db,
-                project_id=project.id,
-                user_id=user.id,
-                role=input.role,
-                updated_by_user_id=current_user_id
-            )
-            
-            return access is not None
-        except (UnauthorizedError):
-            raise
-        except (IntegrityError, OperationalError) as e:
-            handle_database_exception(e, "updating project access role")
-        except Exception as e:
-            handle_database_exception(e, "updating project access role")
-        finally:
-            db.close()
-
+        async with AsyncSessionLocal() as db:
+            try:
+                # Get project by public_id
+                project = await ProjectService.get_project_by_public_id(db, input.project_id)
+                if not project:
+                    return False
+                
+                # Get user by public_id
+                user = await UserService.get_user_by_public_id(db, input.user_id)
+                if not user:
+                    return False
+                
+                # Update role
+                access = await ProjectAccessService.update_project_access_role(
+                    db=db,
+                    project_id=project.id,
+                    user_id=user.id,
+                    role=input.role,
+                    updated_by_user_id=current_user_id
+                )
+                
+                return access is not None
+            except (UnauthorizedError):
+                raise
+            except (IntegrityError, OperationalError) as e:
+                handle_database_exception(e, "updating project access role")
+            except Exception as e:
+                handle_database_exception(e, "updating project access role")

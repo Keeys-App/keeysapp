@@ -2,12 +2,14 @@ import strawberry
 from typing import Optional, List
 from datetime import datetime
 from strawberry.types import Info
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import IntegrityError, OperationalError
 import logging
 import enum
 
-from app.database import get_db
+from app.database import AsyncSessionLocal
 from app.services.key_service import KeyService
 from app.core.exceptions import (
     AuthenticationError,
@@ -400,7 +402,7 @@ class KeyQuery:
     """
 
     @strawberry.field
-    def project_keys(
+    async def project_keys(
         self, 
         info: Info, 
         project_id: str,
@@ -425,7 +427,7 @@ class KeyQuery:
             UnauthorizedError: If user is not authenticated
         """
         try:
-            current_user_id = get_current_user_id(info)
+            current_user_id = await get_current_user_id(info)
             if not current_user_id:
                 raise UnauthorizedError("Authentication required to access keys")
             
@@ -438,9 +440,8 @@ class KeyQuery:
             if limit > 200:
                 limit = 200
             
-            db: Session = next(get_db())
-            try:
-                result = KeyService.get_project_keys_paginated(
+            async with AsyncSessionLocal() as db:
+                result = await KeyService.get_project_keys_paginated(
                     db, 
                     project_id, 
                     current_user_id,
@@ -461,8 +462,6 @@ class KeyQuery:
                     total_count=total_count,
                     has_more=has_more
                 )
-            finally:
-                db.close()
         except UnauthorizedError:
             raise
         except Exception as e:
@@ -473,7 +472,7 @@ class KeyQuery:
             raise DatabaseError(internal_message=f"Error loading keys: {type(e).__name__}: {str(e)}")
 
     @strawberry.field
-    def key(self, info: Info, id: str) -> Optional[KeyType]:
+    async def key(self, info: Info, id: str) -> Optional[KeyType]:
         """
         Get a specific key by ID.
         
@@ -485,30 +484,27 @@ class KeyQuery:
             Key or None
         """
         try:
-            current_user_id = get_current_user_id(info)
+            current_user_id = await get_current_user_id(info)
             if not current_user_id:
                 return None
             
-            db: Session = next(get_db())
-            try:
-                key = KeyService.get_key_by_public_id(db, id)
+            async with AsyncSessionLocal() as db:
+                key = await KeyService.get_key_by_public_id(db, id)
                 if not key:
                     return None
                 
                 # Check access through project
                 from app.services.project_service import ProjectService
-                if not ProjectService.check_project_access(db, key.project_id, current_user_id):
+                if not await ProjectService.check_project_access(db, key.project_id, current_user_id):
                     return None
                 
                 return build_key_type(key)
-            finally:
-                db.close()
         except Exception as e:
             logger.error(f"Error in key query: {type(e).__name__}: {str(e)}")
             return None
 
     @strawberry.field
-    def check_key_exists(self, info: Info, project_id: str, key: str) -> bool:
+    async def check_key_exists(self, info: Info, project_id: str, key: str) -> bool:
         """
         Check if a key already exists in a project.
         
@@ -524,19 +520,16 @@ class KeyQuery:
             UnauthorizedError: If user is not authenticated
         """
         try:
-            current_user_id = get_current_user_id(info)
+            current_user_id = await get_current_user_id(info)
             if not current_user_id:
                 raise UnauthorizedError("Authentication required to check keys")
             
-            db: Session = next(get_db())
-            try:
-                exists = KeyService.check_key_exists(db, project_id, key, current_user_id)
+            async with AsyncSessionLocal() as db:
+                exists = await KeyService.check_key_exists(db, project_id, key, current_user_id)
                 if exists is None:
                     return False
                 
                 return exists
-            finally:
-                db.close()
         except UnauthorizedError:
             raise
         except Exception as e:
@@ -544,7 +537,7 @@ class KeyQuery:
             return False
 
     @strawberry.field
-    def key_logs(self, info: Info, key_id: str, limit: Optional[int] = 50) -> List[KeyLogType]:
+    async def key_logs(self, info: Info, key_id: str, limit: Optional[int] = 50) -> List[KeyLogType]:
         """
         Get audit logs for a specific key.
         
@@ -560,34 +553,38 @@ class KeyQuery:
             UnauthorizedError: If user is not authenticated or doesn't have access
         """
         try:
-            current_user_id = get_current_user_id(info)
+            current_user_id = await get_current_user_id(info)
             if not current_user_id:
                 raise UnauthorizedError("Authentication required to view logs")
             
-            db: Session = next(get_db())
-            try:
+            async with AsyncSessionLocal() as db:
                 # Get key to check access
-                key = KeyService.get_key_by_public_id(db, key_id, eager_load_translations=False)
+                key = await KeyService.get_key_by_public_id(db, key_id, eager_load_translations=False)
                 if not key:
                     return []
                 
                 # Check access through project
                 from app.services.project_service import ProjectService
-                if not ProjectService.check_project_access(db, key.project_id, current_user_id):
+                if not await ProjectService.check_project_access(db, key.project_id, current_user_id):
                     raise UnauthorizedError("You don't have access to this key")
                 
-                # Get logs with eager loading of user
+                # Get logs with eager loading of user and project
                 from app.models.activity_log import ActivityLog
-                logs = db.query(ActivityLog).options(
-                    joinedload(ActivityLog.user),
-                    joinedload(ActivityLog.affected_user)
-                ).filter(
-                    ActivityLog.key_id == key.id
-                ).order_by(ActivityLog.created_at.desc(), ActivityLog.id.desc()).limit(limit or 50).all()
+                from app.models.project import Project as ProjectModel
+                result = await db.execute(
+                    select(ActivityLog)
+                    .options(
+                        joinedload(ActivityLog.user),
+                        joinedload(ActivityLog.affected_user),
+                        joinedload(ActivityLog.project)
+                    )
+                    .where(ActivityLog.key_id == key.id)
+                    .order_by(ActivityLog.created_at.desc(), ActivityLog.id.desc())
+                    .limit(limit or 50)
+                )
+                logs = result.scalars().unique().all()
                 
                 return [build_activity_log_type(log) for log in logs]
-            finally:
-                db.close()
         except UnauthorizedError:
             raise
         except Exception as e:
@@ -595,7 +592,7 @@ class KeyQuery:
             return []
 
     @strawberry.field
-    def project_activity(self, info: Info, project_id: str, limit: Optional[int] = 100) -> List[ActivityLogType]:
+    async def project_activity(self, info: Info, project_id: str, limit: Optional[int] = 100) -> List[ActivityLogType]:
         """
         Get all activity logs for a project (including key and translation changes).
         
@@ -611,34 +608,36 @@ class KeyQuery:
             UnauthorizedError: If user is not authenticated or doesn't have access
         """
         try:
-            current_user_id = get_current_user_id(info)
+            current_user_id = await get_current_user_id(info)
             if not current_user_id:
                 raise UnauthorizedError("Authentication required to view activity")
             
-            db: Session = next(get_db())
-            try:
+            async with AsyncSessionLocal() as db:
                 # Get project to check access
                 from app.services.project_service import ProjectService
-                project = ProjectService.get_project_by_public_id(db, project_id)
+                project = await ProjectService.get_project_by_public_id(db, project_id)
                 if not project:
                     return []
                 
                 # Check access
-                if not ProjectService.check_project_access(db, project.id, current_user_id):
+                if not await ProjectService.check_project_access(db, project.id, current_user_id):
                     raise UnauthorizedError("You don't have access to this project")
                 
                 # Get all logs for this project with eager loading
                 from app.models.activity_log import ActivityLog
-                logs = db.query(ActivityLog).options(
-                    joinedload(ActivityLog.user),
-                    joinedload(ActivityLog.affected_user)
-                ).filter(
-                    ActivityLog.project_id == project.id
-                ).order_by(ActivityLog.created_at.desc(), ActivityLog.id.desc()).limit(limit or 100).all()
+                result = await db.execute(
+                    select(ActivityLog)
+                    .options(
+                        joinedload(ActivityLog.user),
+                        joinedload(ActivityLog.affected_user)
+                    )
+                    .where(ActivityLog.project_id == project.id)
+                    .order_by(ActivityLog.created_at.desc(), ActivityLog.id.desc())
+                    .limit(limit or 100)
+                )
+                logs = result.scalars().all()
                 
                 return [build_activity_log_type(log) for log in logs]
-            finally:
-                db.close()
         except UnauthorizedError:
             raise
         except Exception as e:
@@ -668,72 +667,78 @@ class KeyMutation:
             UnauthorizedError: If user is not authenticated
             DatabaseError: If database operation fails
         """
-        current_user_id = get_current_user_id(info)
+        current_user_id = await get_current_user_id(info)
         if not current_user_id:
             raise UnauthorizedError("User must be authenticated to create keys")
         
-        db: Session = next(get_db())
-        
-        try:
-            # Create the key first
-            key = KeyService.create_key(
-                db=db,
-                project_public_id=input.project_id,
-                key=input.key,
-                description=input.description,
-                tags=input.tags,
-                translations=input.translations,
-                user_id=current_user_id
-            )
-            
-            if not key:
-                return None
-            
-            # Run autopilot translation if enabled and default translation provided
-            autopilot_enabled = input.autopilot if input.autopilot is not None else False
-            
-            if autopilot_enabled and input.translations:
-                # Get project for autopilot
-                from app.services.project_service import ProjectService
-                project = ProjectService.get_project_by_public_id(db, input.project_id)
+        async with AsyncSessionLocal() as db:
+            try:
+                # Create the key first
+                key = await KeyService.create_key(
+                    db=db,
+                    project_public_id=input.project_id,
+                    key=input.key,
+                    description=input.description,
+                    tags=input.tags,
+                    translations=input.translations,
+                    user_id=current_user_id
+                )
                 
-                if project and project.default_language:
-                    default_lang = project.default_language
-                    default_value = input.translations.get(default_lang)
+                if not key:
+                    return None
+                
+                # Run autopilot translation if enabled and default translation provided
+                autopilot_enabled = input.autopilot if input.autopilot is not None else False
+                
+                if autopilot_enabled and input.translations:
+                    # Get project for autopilot
+                    from app.services.project_service import ProjectService
+                    project = await ProjectService.get_project_by_public_id(db, input.project_id)
                     
-                    if default_value:
-                        # Run autopilot translation
-                        success, errors, error_msgs = await KeyService.autopilot_translate(
-                            db=db,
-                            key=key,
-                            source_text=default_value,
-                            source_language=default_lang,
-                            project=project,
-                            user_id=current_user_id,
-                            context=input.description
-                        )
+                    if project and project.default_language:
+                        default_lang = project.default_language
+                        default_value = input.translations.get(default_lang)
                         
-                        if errors > 0:
-                            logger.warning(
-                                f"Autopilot translation had {errors} errors for key {key.key}: "
-                                f"{error_msgs}"
+                        if default_value:
+                            # Run autopilot translation
+                            success, errors, error_msgs = await KeyService.autopilot_translate(
+                                db=db,
+                                key=key,
+                                source_text=default_value,
+                                source_language=default_lang,
+                                project=project,
+                                user_id=current_user_id,
+                                context=input.description
                             )
-                        
-                        # Refresh key to include new translations
-                        db.refresh(key)
-            
-            return build_key_type(key)
-        except (UnauthorizedError, AuthenticationError):
-            raise
-        except (IntegrityError, OperationalError) as e:
-            handle_database_exception(e, "key creation")
-        except Exception as e:
-            handle_database_exception(e, "key creation")
-        finally:
-            db.close()
+                            
+                            if errors > 0:
+                                logger.warning(
+                                    f"Autopilot translation had {errors} errors for key {key.key}: "
+                                    f"{error_msgs}"
+                                )
+                            
+                            # Reload key with translations after autopilot
+                            from sqlalchemy import select
+                            from sqlalchemy.orm import joinedload
+                            from app.models.key import Key as KeyModel
+                            result = await db.execute(
+                                select(KeyModel)
+                                .options(joinedload(KeyModel.translations))
+                                .where(KeyModel.id == key.id)
+                                .execution_options(populate_existing=True)
+                            )
+                            key = result.unique().scalar_one()
+                
+                return build_key_type(key)
+            except (UnauthorizedError, AuthenticationError):
+                raise
+            except (IntegrityError, OperationalError) as e:
+                handle_database_exception(e, "key creation")
+            except Exception as e:
+                handle_database_exception(e, "key creation")
 
     @strawberry.mutation
-    def update_key(self, input: UpdateKeyInput, info: Info) -> Optional[KeyType]:
+    async def update_key(self, input: UpdateKeyInput, info: Info) -> Optional[KeyType]:
         """
         Update an existing key.
         
@@ -748,37 +753,34 @@ class KeyMutation:
             UnauthorizedError: If user is not authenticated
             DatabaseError: If database operation fails
         """
-        current_user_id = get_current_user_id(info)
+        current_user_id = await get_current_user_id(info)
         if not current_user_id:
             raise UnauthorizedError("User must be authenticated to update keys")
         
-        db: Session = next(get_db())
-        
-        try:
-            key = KeyService.update_key(
-                db=db,
-                public_id=input.id,
-                key=input.key,
-                description=input.description,
-                tags=input.tags,
-                user_id=current_user_id
-            )
-            
-            if not key:
-                return None
-            
-            return build_key_type(key)
-        except (UnauthorizedError, AuthenticationError):
-            raise
-        except (IntegrityError, OperationalError) as e:
-            handle_database_exception(e, "key update")
-        except Exception as e:
-            handle_database_exception(e, "key update")
-        finally:
-            db.close()
+        async with AsyncSessionLocal() as db:
+            try:
+                key = await KeyService.update_key(
+                    db=db,
+                    public_id=input.id,
+                    key=input.key,
+                    description=input.description,
+                    tags=input.tags,
+                    user_id=current_user_id
+                )
+                
+                if not key:
+                    return None
+                
+                return build_key_type(key)
+            except (UnauthorizedError, AuthenticationError):
+                raise
+            except (IntegrityError, OperationalError) as e:
+                handle_database_exception(e, "key update")
+            except Exception as e:
+                handle_database_exception(e, "key update")
 
     @strawberry.mutation
-    def delete_key(self, id: str, info: Info) -> bool:
+    async def delete_key(self, id: str, info: Info) -> bool:
         """
         Delete a key.
         
@@ -793,25 +795,22 @@ class KeyMutation:
             UnauthorizedError: If user is not authenticated
             DatabaseError: If database operation fails
         """
-        current_user_id = get_current_user_id(info)
+        current_user_id = await get_current_user_id(info)
         if not current_user_id:
             raise UnauthorizedError("User must be authenticated to delete keys")
         
-        db: Session = next(get_db())
-        
-        try:
-            return KeyService.delete_key(db, id, current_user_id)
-        except (UnauthorizedError, AuthenticationError):
-            raise
-        except (IntegrityError, OperationalError) as e:
-            handle_database_exception(e, "key deletion")
-        except Exception as e:
-            handle_database_exception(e, "key deletion")
-        finally:
-            db.close()
+        async with AsyncSessionLocal() as db:
+            try:
+                return await KeyService.delete_key(db, id, current_user_id)
+            except (UnauthorizedError, AuthenticationError):
+                raise
+            except (IntegrityError, OperationalError) as e:
+                handle_database_exception(e, "key deletion")
+            except Exception as e:
+                handle_database_exception(e, "key deletion")
 
     @strawberry.mutation
-    def set_translation(self, input: SetTranslationInput, info: Info) -> Optional[TranslationType]:
+    async def set_translation(self, input: SetTranslationInput, info: Info) -> Optional[TranslationType]:
         """
         Set or update a translation.
         
@@ -826,43 +825,40 @@ class KeyMutation:
             UnauthorizedError: If user is not authenticated
             DatabaseError: If database operation fails
         """
-        current_user_id = get_current_user_id(info)
+        current_user_id = await get_current_user_id(info)
         if not current_user_id:
             raise UnauthorizedError("User must be authenticated to set translations")
         
-        db: Session = next(get_db())
-        
-        try:
-            translation = KeyService.set_translation(
-                db=db,
-                key_public_id=input.key_id,
-                language=input.language,
-                value=input.value,
-                user_id=current_user_id,
-                is_ai_generated=input.is_ai_generated or False
-            )
-            
-            if not translation:
-                return None
-            
-            return TranslationType(
-                language=translation.language,
-                value=translation.value,
-                review_status=ReviewStatusEnum(translation.review_status.value),
-                created_at=translation.created_at,
-                updated_at=translation.updated_at
-            )
-        except (UnauthorizedError, AuthenticationError):
-            raise
-        except (IntegrityError, OperationalError) as e:
-            handle_database_exception(e, "translation update")
-        except Exception as e:
-            handle_database_exception(e, "translation update")
-        finally:
-            db.close()
+        async with AsyncSessionLocal() as db:
+            try:
+                translation = await KeyService.set_translation(
+                    db=db,
+                    key_public_id=input.key_id,
+                    language=input.language,
+                    value=input.value,
+                    user_id=current_user_id,
+                    is_ai_generated=input.is_ai_generated or False
+                )
+                
+                if not translation:
+                    return None
+                
+                return TranslationType(
+                    language=translation.language,
+                    value=translation.value,
+                    review_status=ReviewStatusEnum(translation.review_status.value),
+                    created_at=translation.created_at,
+                    updated_at=translation.updated_at
+                )
+            except (UnauthorizedError, AuthenticationError):
+                raise
+            except (IntegrityError, OperationalError) as e:
+                handle_database_exception(e, "translation update")
+            except Exception as e:
+                handle_database_exception(e, "translation update")
 
     @strawberry.mutation
-    def delete_translation(self, input: DeleteTranslationInput, info: Info) -> bool:
+    async def delete_translation(self, input: DeleteTranslationInput, info: Info) -> bool:
         """
         Delete a translation.
         
@@ -877,30 +873,27 @@ class KeyMutation:
             UnauthorizedError: If user is not authenticated
             DatabaseError: If database operation fails
         """
-        current_user_id = get_current_user_id(info)
+        current_user_id = await get_current_user_id(info)
         if not current_user_id:
             raise UnauthorizedError("User must be authenticated to delete translations")
         
-        db: Session = next(get_db())
-        
-        try:
-            return KeyService.delete_translation(
-                db=db,
-                key_public_id=input.key_id,
-                language=input.language,
-                user_id=current_user_id
-            )
-        except (UnauthorizedError, AuthenticationError):
-            raise
-        except (IntegrityError, OperationalError) as e:
-            handle_database_exception(e, "translation deletion")
-        except Exception as e:
-            handle_database_exception(e, "translation deletion")
-        finally:
-            db.close()
+        async with AsyncSessionLocal() as db:
+            try:
+                return await KeyService.delete_translation(
+                    db=db,
+                    key_public_id=input.key_id,
+                    language=input.language,
+                    user_id=current_user_id
+                )
+            except (UnauthorizedError, AuthenticationError):
+                raise
+            except (IntegrityError, OperationalError) as e:
+                handle_database_exception(e, "translation deletion")
+            except Exception as e:
+                handle_database_exception(e, "translation deletion")
 
     @strawberry.mutation
-    def batch_import_translations(self, input: BatchImportInput, info: Info) -> BatchImportResult:
+    async def batch_import_translations(self, input: BatchImportInput, info: Info) -> BatchImportResult:
         """
         Batch import translations for a specific language.
         
@@ -914,45 +907,42 @@ class KeyMutation:
         Raises:
             UnauthorizedError: If user is not authenticated
         """
-        current_user_id = get_current_user_id(info)
+        current_user_id = await get_current_user_id(info)
         if not current_user_id:
             raise UnauthorizedError("User must be authenticated to import translations")
         
-        db: Session = next(get_db())
-        
-        try:
-            result = KeyService.batch_import_translations(
-                db=db,
-                project_public_id=input.project_id,
-                language=input.language,
-                translations=input.translations,
-                strategy=input.strategy,
-                user_id=current_user_id
-            )
-            
-            return BatchImportResult(
-                success_count=result['success_count'],
-                error_count=result['error_count'],
-                created_keys=result['created_keys'],
-                updated_keys=result['updated_keys'],
-                errors=result['errors']
-            )
-        except (UnauthorizedError, AuthenticationError):
-            raise
-        except Exception as e:
-            logger.error(f"Error in batch import: {type(e).__name__}: {str(e)}")
-            return BatchImportResult(
-                success_count=0,
-                error_count=len(input.translations),
-                created_keys=0,
-                updated_keys=0,
-                errors=[str(e)]
-            )
-        finally:
-            db.close()
+        async with AsyncSessionLocal() as db:
+            try:
+                result = await KeyService.batch_import_translations(
+                    db=db,
+                    project_public_id=input.project_id,
+                    language=input.language,
+                    translations=input.translations,
+                    strategy=input.strategy,
+                    user_id=current_user_id
+                )
+                
+                return BatchImportResult(
+                    success_count=result['success_count'],
+                    error_count=result['error_count'],
+                    created_keys=result['created_keys'],
+                    updated_keys=result['updated_keys'],
+                    errors=result['errors']
+                )
+            except (UnauthorizedError, AuthenticationError):
+                raise
+            except Exception as e:
+                logger.error(f"Error in batch import: {type(e).__name__}: {str(e)}")
+                return BatchImportResult(
+                    success_count=0,
+                    error_count=len(input.translations),
+                    created_keys=0,
+                    updated_keys=0,
+                    errors=[str(e)]
+                )
 
     @strawberry.mutation
-    def approve_translation(self, input: ApproveTranslationInput, info: Info) -> Optional[KeyType]:
+    async def approve_translation(self, input: ApproveTranslationInput, info: Info) -> Optional[KeyType]:
         """
         Approve a translation.
         
@@ -967,34 +957,31 @@ class KeyMutation:
             UnauthorizedError: If user is not authenticated
             DatabaseError: If database operation fails
         """
-        current_user_id = get_current_user_id(info)
+        current_user_id = await get_current_user_id(info)
         if not current_user_id:
             raise UnauthorizedError("User must be authenticated to approve translations")
         
-        db: Session = next(get_db())
-        
-        try:
-            key = KeyService.approve_translation(
-                db=db,
-                key_public_id=input.key_id,
-                language=input.language,
-                user_id=current_user_id,
-                comment=input.comment
-            )
-            
-            if not key:
-                return None
-            
-            return build_key_type(key)
-        except (UnauthorizedError, AuthenticationError):
-            raise
-        except Exception as e:
-            handle_database_exception(e, "translation approval")
-        finally:
-            db.close()
+        async with AsyncSessionLocal() as db:
+            try:
+                key = await KeyService.approve_translation(
+                    db=db,
+                    key_public_id=input.key_id,
+                    language=input.language,
+                    user_id=current_user_id,
+                    comment=input.comment
+                )
+                
+                if not key:
+                    return None
+                
+                return build_key_type(key)
+            except (UnauthorizedError, AuthenticationError):
+                raise
+            except Exception as e:
+                handle_database_exception(e, "translation approval")
 
     @strawberry.mutation
-    def reject_translation(self, input: RejectTranslationInput, info: Info) -> Optional[KeyType]:
+    async def reject_translation(self, input: RejectTranslationInput, info: Info) -> Optional[KeyType]:
         """
         Reject a translation.
         
@@ -1009,34 +996,31 @@ class KeyMutation:
             UnauthorizedError: If user is not authenticated
             DatabaseError: If database operation fails
         """
-        current_user_id = get_current_user_id(info)
+        current_user_id = await get_current_user_id(info)
         if not current_user_id:
             raise UnauthorizedError("User must be authenticated to reject translations")
         
-        db: Session = next(get_db())
-        
-        try:
-            key = KeyService.reject_translation(
-                db=db,
-                key_public_id=input.key_id,
-                language=input.language,
-                user_id=current_user_id,
-                comment=input.comment
-            )
-            
-            if not key:
-                return None
-            
-            return build_key_type(key)
-        except (UnauthorizedError, AuthenticationError):
-            raise
-        except Exception as e:
-            handle_database_exception(e, "translation rejection")
-        finally:
-            db.close()
+        async with AsyncSessionLocal() as db:
+            try:
+                key = await KeyService.reject_translation(
+                    db=db,
+                    key_public_id=input.key_id,
+                    language=input.language,
+                    user_id=current_user_id,
+                    comment=input.comment
+                )
+                
+                if not key:
+                    return None
+                
+                return build_key_type(key)
+            except (UnauthorizedError, AuthenticationError):
+                raise
+            except Exception as e:
+                handle_database_exception(e, "translation rejection")
 
     @strawberry.mutation
-    def delete_translation_review(self, key_id: str, language: str, info: Info) -> Optional[KeyType]:
+    async def delete_translation_review(self, key_id: str, language: str, info: Info) -> Optional[KeyType]:
         """
         Delete review status and reset translation to pending.
         
@@ -1052,28 +1036,25 @@ class KeyMutation:
             UnauthorizedError: If user is not authenticated
             DatabaseError: If database operation fails
         """
-        current_user_id = get_current_user_id(info)
+        current_user_id = await get_current_user_id(info)
         if not current_user_id:
             raise UnauthorizedError("User must be authenticated to delete reviews")
         
-        db: Session = next(get_db())
-        
-        try:
-            key = KeyService.delete_translation_review(
-                db=db,
-                key_public_id=key_id,
-                language=language,
-                user_id=current_user_id
-            )
-            
-            if not key:
-                return None
-            
-            return build_key_type(key)
-        except (UnauthorizedError, AuthenticationError):
-            raise
-        except Exception as e:
-            handle_database_exception(e, "review deletion")
-        finally:
-            db.close()
+        async with AsyncSessionLocal() as db:
+            try:
+                key = await KeyService.delete_translation_review(
+                    db=db,
+                    key_public_id=key_id,
+                    language=language,
+                    user_id=current_user_id
+                )
+                
+                if not key:
+                    return None
+                
+                return build_key_type(key)
+            except (UnauthorizedError, AuthenticationError):
+                raise
+            except Exception as e:
+                handle_database_exception(e, "review deletion")
 

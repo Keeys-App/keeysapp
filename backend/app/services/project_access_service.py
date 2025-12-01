@@ -1,5 +1,7 @@
 from typing import Optional, List, Dict
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from sqlalchemy.orm import joinedload
 import logging
 
 from app.models.project_access import ProjectAccess
@@ -17,8 +19,8 @@ class ProjectAccessService:
     """
 
     @staticmethod
-    def grant_project_access(
-        db: Session,
+    async def grant_project_access(
+        db: AsyncSession,
         project_id: int,
         user_id: int,
         role: str,
@@ -38,35 +40,43 @@ class ProjectAccessService:
             Created ProjectAccess or None if failed
         """
         # Check if project exists
-        project = db.query(Project).filter(Project.id == project_id).first()
+        result = await db.execute(select(Project).where(Project.id == project_id))
+        project = result.scalar_one_or_none()
         if not project:
             return None
         
         # Check if granting user has admin access or is owner
-        if not ProjectAccessService._can_manage_project_access(db, project_id, granted_by_user_id):
+        if not await ProjectAccessService._can_manage_project_access(db, project_id, granted_by_user_id):
             return None
         
         # Check if user is in the team
-        user = db.query(User).filter(User.id == user_id).first()
+        result = await db.execute(select(User).where(User.id == user_id))
+        user = result.scalar_one_or_none()
         if not user:
             return None
         
         # Verify user is in team (owner or member)
         is_owner = project.owner_id == user_id
-        is_member = db.query(TeamMember).filter(
-            TeamMember.team_id == project.team_id,
-            TeamMember.user_id == user_id
-        ).first() is not None
+        result = await db.execute(
+            select(TeamMember).where(
+                TeamMember.team_id == project.team_id,
+                TeamMember.user_id == user_id
+            )
+        )
+        is_member = result.scalar_one_or_none() is not None
         
         if not is_owner and not is_member:
             logger.warning(f"User {user_id} is not in team {project.team_id}")
             return None
         
         # Check if access already exists
-        existing_access = db.query(ProjectAccess).filter(
-            ProjectAccess.project_id == project_id,
-            ProjectAccess.user_id == user_id
-        ).first()
+        result = await db.execute(
+            select(ProjectAccess).where(
+                ProjectAccess.project_id == project_id,
+                ProjectAccess.user_id == user_id
+            )
+        )
+        existing_access = result.scalar_one_or_none()
         
         if existing_access:
             # Update role if already exists
@@ -87,8 +97,8 @@ class ProjectAccessService:
                 )
                 db.add(log)
             
-            db.commit()
-            db.refresh(existing_access)
+            await db.commit()
+            await db.refresh(existing_access)
             return existing_access
         
         # Create new access
@@ -99,7 +109,7 @@ class ProjectAccessService:
             granted_by_user_id=granted_by_user_id
         )
         db.add(access)
-        db.flush()
+        await db.flush()
         
         # Log member addition
         log = ActivityLog(
@@ -112,13 +122,13 @@ class ProjectAccessService:
         )
         db.add(log)
         
-        db.commit()
-        db.refresh(access)
+        await db.commit()
+        await db.refresh(access)
         return access
 
     @staticmethod
-    def revoke_project_access(
-        db: Session,
+    async def revoke_project_access(
+        db: AsyncSession,
         project_id: int,
         user_id: int,
         revoked_by_user_id: int
@@ -136,12 +146,13 @@ class ProjectAccessService:
             True if revoked, False otherwise
         """
         # Check if project exists
-        project = db.query(Project).filter(Project.id == project_id).first()
+        result = await db.execute(select(Project).where(Project.id == project_id))
+        project = result.scalar_one_or_none()
         if not project:
             return False
         
         # Check if revoking user has admin access or is owner
-        if not ProjectAccessService._can_manage_project_access(db, project_id, revoked_by_user_id):
+        if not await ProjectAccessService._can_manage_project_access(db, project_id, revoked_by_user_id):
             return False
         
         # Cannot revoke owner's access
@@ -149,10 +160,13 @@ class ProjectAccessService:
             return False
         
         # Find and remove access
-        access = db.query(ProjectAccess).filter(
-            ProjectAccess.project_id == project_id,
-            ProjectAccess.user_id == user_id
-        ).first()
+        result = await db.execute(
+            select(ProjectAccess).where(
+                ProjectAccess.project_id == project_id,
+                ProjectAccess.user_id == user_id
+            )
+        )
+        access = result.scalar_one_or_none()
         
         if not access:
             return False
@@ -169,12 +183,12 @@ class ProjectAccessService:
         db.add(log)
         
         db.delete(access)
-        db.commit()
+        await db.commit()
         return True
 
     @staticmethod
-    def update_project_access_role(
-        db: Session,
+    async def update_project_access_role(
+        db: AsyncSession,
         project_id: int,
         user_id: int,
         role: str,
@@ -194,12 +208,13 @@ class ProjectAccessService:
             Updated ProjectAccess or None if failed
         """
         # Check if project exists
-        project = db.query(Project).filter(Project.id == project_id).first()
+        result = await db.execute(select(Project).where(Project.id == project_id))
+        project = result.scalar_one_or_none()
         if not project:
             return None
         
         # Check if updating user has admin access or is owner
-        if not ProjectAccessService._can_manage_project_access(db, project_id, updated_by_user_id):
+        if not await ProjectAccessService._can_manage_project_access(db, project_id, updated_by_user_id):
             return None
         
         # Cannot change owner's role (owner doesn't need ProjectAccess)
@@ -207,10 +222,13 @@ class ProjectAccessService:
             return None
         
         # Find and update access
-        access = db.query(ProjectAccess).filter(
-            ProjectAccess.project_id == project_id,
-            ProjectAccess.user_id == user_id
-        ).first()
+        result = await db.execute(
+            select(ProjectAccess).where(
+                ProjectAccess.project_id == project_id,
+                ProjectAccess.user_id == user_id
+            )
+        )
+        access = result.scalar_one_or_none()
         
         if not access:
             return None
@@ -232,12 +250,12 @@ class ProjectAccessService:
             )
             db.add(log)
         
-        db.commit()
-        db.refresh(access)
+        await db.commit()
+        await db.refresh(access)
         return access
 
     @staticmethod
-    def get_project_members(db: Session, project_id: int) -> List[ProjectAccess]:
+    async def get_project_members(db: AsyncSession, project_id: int) -> List[ProjectAccess]:
         """
         Get all users with access to a project.
         
@@ -248,15 +266,18 @@ class ProjectAccessService:
         Returns:
             List of ProjectAccess objects with eager loaded users
         """
-        return db.query(ProjectAccess).options(
-            joinedload(ProjectAccess.user),
-            joinedload(ProjectAccess.granted_by)
-        ).filter(
-            ProjectAccess.project_id == project_id
-        ).all()
+        result = await db.execute(
+            select(ProjectAccess)
+            .options(
+                joinedload(ProjectAccess.user),
+                joinedload(ProjectAccess.granted_by)
+            )
+            .where(ProjectAccess.project_id == project_id)
+        )
+        return result.scalars().all()
 
     @staticmethod
-    def check_project_access(db: Session, project_id: int, user_id: int) -> bool:
+    async def check_project_access(db: AsyncSession, project_id: int, user_id: int) -> bool:
         """
         Check if user has access to a project.
         Owner always has access, others need ProjectAccess entry.
@@ -269,7 +290,8 @@ class ProjectAccessService:
         Returns:
             True if user has access, False otherwise
         """
-        project = db.query(Project).filter(Project.id == project_id).first()
+        result = await db.execute(select(Project).where(Project.id == project_id))
+        project = result.scalar_one_or_none()
         if not project:
             return False
         
@@ -278,15 +300,18 @@ class ProjectAccessService:
             return True
         
         # Check ProjectAccess
-        access = db.query(ProjectAccess).filter(
-            ProjectAccess.project_id == project_id,
-            ProjectAccess.user_id == user_id
-        ).first()
+        result = await db.execute(
+            select(ProjectAccess).where(
+                ProjectAccess.project_id == project_id,
+                ProjectAccess.user_id == user_id
+            )
+        )
+        access = result.scalar_one_or_none()
         
         return access is not None
 
     @staticmethod
-    def get_user_role_in_project(db: Session, project_id: int, user_id: int) -> Optional[str]:
+    async def get_user_role_in_project(db: AsyncSession, project_id: int, user_id: int) -> Optional[str]:
         """
         Get user's role in a project.
         
@@ -298,7 +323,8 @@ class ProjectAccessService:
         Returns:
             Role string or None if no access
         """
-        project = db.query(Project).filter(Project.id == project_id).first()
+        result = await db.execute(select(Project).where(Project.id == project_id))
+        project = result.scalar_one_or_none()
         if not project:
             return None
         
@@ -307,16 +333,19 @@ class ProjectAccessService:
             return "admin"
         
         # Check ProjectAccess
-        access = db.query(ProjectAccess).filter(
-            ProjectAccess.project_id == project_id,
-            ProjectAccess.user_id == user_id
-        ).first()
+        result = await db.execute(
+            select(ProjectAccess).where(
+                ProjectAccess.project_id == project_id,
+                ProjectAccess.user_id == user_id
+            )
+        )
+        access = result.scalar_one_or_none()
         
         return access.role if access else None
 
     @staticmethod
-    def get_team_members_with_access(
-        db: Session,
+    async def get_team_members_with_access(
+        db: AsyncSession,
         project_id: int
     ) -> Dict[int, Optional[str]]:
         """
@@ -330,39 +359,42 @@ class ProjectAccessService:
         Returns:
             Dict mapping user_id to role (or None)
         """
-        project = db.query(Project).filter(Project.id == project_id).first()
+        result = await db.execute(select(Project).where(Project.id == project_id))
+        project = result.scalar_one_or_none()
         if not project:
             return {}
         
         # Get all team members
-        team_members = db.query(TeamMember).filter(
-            TeamMember.team_id == project.team_id
-        ).all()
+        result = await db.execute(
+            select(TeamMember).where(TeamMember.team_id == project.team_id)
+        )
+        team_members = result.scalars().all()
         
         # Get all project access entries
-        project_accesses = db.query(ProjectAccess).filter(
-            ProjectAccess.project_id == project_id
-        ).all()
+        result = await db.execute(
+            select(ProjectAccess).where(ProjectAccess.project_id == project_id)
+        )
+        project_accesses = result.scalars().all()
         
         # Build result dict
-        result = {}
+        result_dict = {}
         
         # Add owner with admin role
-        result[project.owner_id] = "admin"
+        result_dict[project.owner_id] = "admin"
         
         # Add all team members
         for member in team_members:
-            if member.user_id not in result:
-                result[member.user_id] = None
+            if member.user_id not in result_dict:
+                result_dict[member.user_id] = None
         
         # Update with project access
         for access in project_accesses:
-            result[access.user_id] = access.role
+            result_dict[access.user_id] = access.role
         
-        return result
+        return result_dict
 
     @staticmethod
-    def _can_manage_project_access(db: Session, project_id: int, user_id: int) -> bool:
+    async def _can_manage_project_access(db: AsyncSession, project_id: int, user_id: int) -> bool:
         """
         Check if user can manage project access (owner or admin role).
         
@@ -374,7 +406,8 @@ class ProjectAccessService:
         Returns:
             True if user can manage, False otherwise
         """
-        project = db.query(Project).filter(Project.id == project_id).first()
+        result = await db.execute(select(Project).where(Project.id == project_id))
+        project = result.scalar_one_or_none()
         if not project:
             return False
         
@@ -383,11 +416,13 @@ class ProjectAccessService:
             return True
         
         # Check if user has admin role
-        access = db.query(ProjectAccess).filter(
-            ProjectAccess.project_id == project_id,
-            ProjectAccess.user_id == user_id,
-            ProjectAccess.role == "admin"
-        ).first()
+        result = await db.execute(
+            select(ProjectAccess).where(
+                ProjectAccess.project_id == project_id,
+                ProjectAccess.user_id == user_id,
+                ProjectAccess.role == "admin"
+            )
+        )
+        access = result.scalar_one_or_none()
         
         return access is not None
-

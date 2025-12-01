@@ -319,7 +319,7 @@ class TestInviteInfoQuery:
                 inviteInfo(code: $code) {
                     teamName
                     inviterName
-                    email
+                    invitedEmail
                 }
             }
         """

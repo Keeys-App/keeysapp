@@ -1,7 +1,8 @@
 from typing import Optional
 import logging
 from datetime import datetime, timezone
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, update, delete
 from uuid import UUID
 from app.models.user import User
 from app.models.password_reset_token import PasswordResetToken
@@ -15,7 +16,7 @@ class UserService:
     """
 
     @staticmethod
-    def get_user_by_email(db: Session, email: str) -> Optional[User]:
+    async def get_user_by_email(db: AsyncSession, email: str) -> Optional[User]:
         """
         Get user by email.
         
@@ -26,10 +27,11 @@ class UserService:
         Returns:
             User object or None
         """
-        return db.query(User).filter(User.email == email).first()
+        result = await db.execute(select(User).where(User.email == email))
+        return result.scalar_one_or_none()
 
     @staticmethod
-    def get_user_by_username(db: Session, username: str) -> Optional[User]:
+    async def get_user_by_username(db: AsyncSession, username: str) -> Optional[User]:
         """
         Get user by username.
         
@@ -40,10 +42,11 @@ class UserService:
         Returns:
             User object or None
         """
-        return db.query(User).filter(User.username == username).first()
+        result = await db.execute(select(User).where(User.username == username))
+        return result.scalar_one_or_none()
 
     @staticmethod
-    def get_user_by_id(db: Session, user_id: int) -> Optional[User]:
+    async def get_user_by_id(db: AsyncSession, user_id: int) -> Optional[User]:
         """
         Get user by internal ID.
         For internal use only. Use get_user_by_public_id for public API.
@@ -55,10 +58,11 @@ class UserService:
         Returns:
             User object or None
         """
-        return db.query(User).filter(User.id == user_id).first()
+        result = await db.execute(select(User).where(User.id == user_id))
+        return result.scalar_one_or_none()
 
     @staticmethod
-    def get_user_by_public_id(db: Session, public_id: str) -> Optional[User]:
+    async def get_user_by_public_id(db: AsyncSession, public_id: str) -> Optional[User]:
         """
         Get user by public UUID.
         Use this method for public-facing APIs to prevent enumeration attacks.
@@ -72,12 +76,13 @@ class UserService:
         """
         try:
             uuid_obj = UUID(public_id)
-            return db.query(User).filter(User.public_id == uuid_obj).first()
+            result = await db.execute(select(User).where(User.public_id == uuid_obj))
+            return result.scalar_one_or_none()
         except (ValueError, AttributeError):
             return None
 
     @staticmethod
-    def create_user(db: Session, email: str, username: str, password: str) -> User:
+    async def create_user(db: AsyncSession, email: str, username: str, password: str) -> User:
         """
         Create a new user.
         
@@ -97,12 +102,12 @@ class UserService:
             hashed_password=hashed_password
         )
         db.add(db_user)
-        db.commit()
-        db.refresh(db_user)
+        await db.commit()
+        await db.refresh(db_user)
         return db_user
 
     @staticmethod
-    def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
+    async def authenticate_user(db: AsyncSession, email: str, password: str) -> Optional[User]:
         """
         Authenticate a user.
         
@@ -114,7 +119,7 @@ class UserService:
         Returns:
             User object if authentication successful, None otherwise
         """
-        user = UserService.get_user_by_email(db, email)
+        user = await UserService.get_user_by_email(db, email)
         if not user:
             return None
         if not user.verify_password(password):
@@ -124,7 +129,7 @@ class UserService:
         return user
 
     @staticmethod
-    def create_password_reset_token(db: Session, user: User) -> PasswordResetToken:
+    async def create_password_reset_token(db: AsyncSession, user: User) -> PasswordResetToken:
         """
         Create a password reset token for a user.
         Invalidates any existing unused tokens for the user.
@@ -137,10 +142,14 @@ class UserService:
             PasswordResetToken object
         """
         # Invalidate existing unused tokens
-        db.query(PasswordResetToken).filter(
-            PasswordResetToken.user_id == user.id,
-            PasswordResetToken.used == False
-        ).update({"used": True})
+        await db.execute(
+            update(PasswordResetToken)
+            .where(
+                PasswordResetToken.user_id == user.id,
+                PasswordResetToken.used == False
+            )
+            .values(used=True)
+        )
         
         # Create new token
         token = PasswordResetToken(
@@ -149,14 +158,14 @@ class UserService:
             expires_at=PasswordResetToken.create_expiration(hours=1)
         )
         db.add(token)
-        db.commit()
-        db.refresh(token)
+        await db.commit()
+        await db.refresh(token)
         
         logger.info(f"Created password reset token for user {user.email}")
         return token
 
     @staticmethod
-    def get_password_reset_token(db: Session, token: str) -> Optional[PasswordResetToken]:
+    async def get_password_reset_token(db: AsyncSession, token: str) -> Optional[PasswordResetToken]:
         """
         Get a password reset token by token string.
         
@@ -167,12 +176,13 @@ class UserService:
         Returns:
             PasswordResetToken object or None
         """
-        return db.query(PasswordResetToken).filter(
-            PasswordResetToken.token == token
-        ).first()
+        result = await db.execute(
+            select(PasswordResetToken).where(PasswordResetToken.token == token)
+        )
+        return result.scalar_one_or_none()
 
     @staticmethod
-    def reset_password(db: Session, token: str, new_password: str) -> bool:
+    async def reset_password(db: AsyncSession, token: str, new_password: str) -> bool:
         """
         Reset user password using a valid token.
         
@@ -184,7 +194,7 @@ class UserService:
         Returns:
             True if password was reset successfully, False otherwise
         """
-        reset_token = UserService.get_password_reset_token(db, token)
+        reset_token = await UserService.get_password_reset_token(db, token)
         
         if not reset_token:
             logger.warning(f"Password reset attempt with invalid token")
@@ -195,26 +205,28 @@ class UserService:
             return False
         
         # Get the user
-        user = UserService.get_user_by_id(db, reset_token.user_id)
+        user = await UserService.get_user_by_id(db, reset_token.user_id)
         if not user:
             logger.error(f"User not found for password reset token")
             return False
         
         # Update password - use explicit update to ensure change is tracked
         new_hash = User.get_password_hash(new_password)
-        db.query(User).filter(User.id == user.id).update(
-            {"hashed_password": new_hash}
+        await db.execute(
+            update(User)
+            .where(User.id == user.id)
+            .values(hashed_password=new_hash)
         )
         
         # Mark token as used
         reset_token.used = True
         
-        db.commit()
+        await db.commit()
         logger.info(f"Password reset successful for user {user.email}")
         return True
 
     @staticmethod
-    def cleanup_expired_tokens(db: Session) -> int:
+    async def cleanup_expired_tokens(db: AsyncSession) -> int:
         """
         Remove expired password reset tokens.
         
@@ -225,16 +237,17 @@ class UserService:
             Number of tokens removed
         """
         now = datetime.now(timezone.utc)
-        result = db.query(PasswordResetToken).filter(
-            PasswordResetToken.expires_at < now
-        ).delete()
-        db.commit()
-        logger.info(f"Cleaned up {result} expired password reset tokens")
-        return result
+        result = await db.execute(
+            delete(PasswordResetToken).where(PasswordResetToken.expires_at < now)
+        )
+        await db.commit()
+        count = result.rowcount
+        logger.info(f"Cleaned up {count} expired password reset tokens")
+        return count
 
     @staticmethod
-    def update_profile(
-        db: Session,
+    async def update_profile(
+        db: AsyncSession,
         user: User,
         username: Optional[str] = None,
         email: Optional[str] = None
@@ -256,14 +269,14 @@ class UserService:
         if email is not None:
             user.email = email
         
-        db.commit()
-        db.refresh(user)
+        await db.commit()
+        await db.refresh(user)
         logger.info(f"Profile updated for user {user.email}")
         return user
 
     @staticmethod
-    def change_password(
-        db: Session,
+    async def change_password(
+        db: AsyncSession,
         user: User,
         current_password: str,
         new_password: str
@@ -284,10 +297,12 @@ class UserService:
             return False
         
         new_hash = User.get_password_hash(new_password)
-        db.query(User).filter(User.id == user.id).update(
-            {"hashed_password": new_hash}
+        await db.execute(
+            update(User)
+            .where(User.id == user.id)
+            .values(hashed_password=new_hash)
         )
-        db.commit()
+        await db.commit()
         logger.info(f"Password changed for user {user.email}")
         return True
 

@@ -80,7 +80,7 @@ class AIMutation:
         """
         try:
             # Check authentication
-            user_id = get_current_user_id(info)
+            user_id = await get_current_user_id(info)
             if not user_id:
                 return TranslationResult(
                     text="",
@@ -132,7 +132,7 @@ class AIMutation:
         """
         try:
             # Check authentication
-            user_id = get_current_user_id(info)
+            user_id = await get_current_user_id(info)
             if not user_id:
                 return TranslationResult(
                     text="",
@@ -183,7 +183,7 @@ class AIMutation:
         """
         try:
             # Check authentication
-            user_id = get_current_user_id(info)
+            user_id = await get_current_user_id(info)
             if not user_id:
                 return TranslationResult(
                     text="",
@@ -234,7 +234,7 @@ class AIMutation:
         """
         try:
             # Check authentication
-            user_id = get_current_user_id(info)
+            user_id = await get_current_user_id(info)
             if not user_id:
                 return VariantsResult(
                     variants=[],

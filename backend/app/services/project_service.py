@@ -1,6 +1,7 @@
 from typing import Optional, List
-from sqlalchemy.orm import Session, joinedload, selectinload
-from sqlalchemy import func
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, update, delete, func
+from sqlalchemy.orm import joinedload, selectinload
 import uuid as uuid_lib
 import logging
 import json
@@ -21,8 +22,8 @@ class ProjectService:
     """
 
     @staticmethod
-    def _create_log(
-        db: Session,
+    async def _create_log(
+        db: AsyncSession,
         project_id: int,
         user_id: int,
         action: ActionType,
@@ -48,7 +49,8 @@ class ProjectService:
             extra_data: Additional data as JSON
         """
         # Get team_id from project
-        project = db.query(Project).filter(Project.id == project_id).first()
+        result = await db.execute(select(Project).where(Project.id == project_id))
+        project = result.scalar_one_or_none()
         team_id = project.team_id if project else None
         
         log = ActivityLog(
@@ -65,8 +67,8 @@ class ProjectService:
         db.add(log)
 
     @staticmethod
-    def create_project(
-        db: Session,
+    async def create_project(
+        db: AsyncSession,
         owner_id: int,
         team_id: int,
         name: str,
@@ -121,10 +123,10 @@ class ProjectService:
             team_id=team_id
         )
         db.add(project)
-        db.flush()
+        await db.flush()
         
         # Log project creation
-        ProjectService._create_log(
+        await ProjectService._create_log(
             db=db,
             project_id=project.id,
             user_id=owner_id,
@@ -133,12 +135,22 @@ class ProjectService:
             new_value=name
         )
         
-        db.commit()
-        db.refresh(project)
-        return project
+        await db.commit()
+        
+        # Reload with relationships
+        result = await db.execute(
+            select(Project)
+            .options(
+                joinedload(Project.owner),
+                joinedload(Project.team),
+                selectinload(Project.access_members).joinedload(ProjectAccess.user)
+            )
+            .where(Project.id == project.id)
+        )
+        return result.unique().scalar_one()
 
     @staticmethod
-    def get_project_by_public_id(db: Session, public_id: str) -> Optional[Project]:
+    async def get_project_by_public_id(db: AsyncSession, public_id: str) -> Optional[Project]:
         """
         Get a project by its public UUID.
         Uses eager loading to prevent N+1 query problems.
@@ -154,16 +166,21 @@ class ProjectService:
         try:
             uuid_obj = uuid_lib.UUID(public_id)
             # Eager load related data except keys/translations (they're heavy and calculated via SQL)
-            return db.query(Project).options(
-                joinedload(Project.owner),
-                joinedload(Project.team),
-                selectinload(Project.access_members).joinedload(ProjectAccess.user)
-            ).filter(Project.public_id == uuid_obj).first()
+            result = await db.execute(
+                select(Project)
+                .options(
+                    joinedload(Project.owner),
+                    joinedload(Project.team),
+                    selectinload(Project.access_members).joinedload(ProjectAccess.user)
+                )
+                .where(Project.public_id == uuid_obj)
+            )
+            return result.unique().scalar_one_or_none()
         except (ValueError, AttributeError):
             return None
 
     @staticmethod
-    def get_projects_stats(db: Session, project_ids: List[int]) -> dict:
+    async def get_projects_stats(db: AsyncSession, project_ids: List[int]) -> dict:
         """
         Get translation statistics for multiple projects efficiently using SQL.
         Returns a dictionary mapping project_id to (keys_count, translated_count).
@@ -179,49 +196,52 @@ class ProjectService:
             return {}
         
         # Get keys count for each project
-        keys_stats = db.query(
-            Key.project_id,
-            func.count(Key.id).label('keys_count')
-        ).filter(
-            Key.project_id.in_(project_ids)
-        ).group_by(
-            Key.project_id
-        ).all()
+        result = await db.execute(
+            select(
+                Key.project_id,
+                func.count(Key.id).label('keys_count')
+            )
+            .where(Key.project_id.in_(project_ids))
+            .group_by(Key.project_id)
+        )
+        keys_stats = result.all()
         
         # Get translations count for each project
         # Count only non-empty translations (excluding whitespace-only)
-        translations_stats = db.query(
-            Key.project_id,
-            func.count(Translation.id).label('translations_count')
-        ).join(
-            Translation, Key.id == Translation.key_id
-        ).filter(
-            Key.project_id.in_(project_ids),
-            Translation.value.isnot(None),
-            Translation.value != '',
-            func.trim(Translation.value) != ''
-        ).group_by(
-            Key.project_id
-        ).all()
+        result = await db.execute(
+            select(
+                Key.project_id,
+                func.count(Translation.id).label('translations_count')
+            )
+            .join(Translation, Key.id == Translation.key_id)
+            .where(
+                Key.project_id.in_(project_ids),
+                Translation.value.isnot(None),
+                Translation.value != '',
+                func.trim(Translation.value) != ''
+            )
+            .group_by(Key.project_id)
+        )
+        translations_stats = result.all()
         
         # Build result dictionary
-        result = {}
+        result_dict = {}
         
         # Add keys counts
         for project_id, keys_count in keys_stats:
-            result[project_id] = {'keys_count': keys_count, 'translations_count': 0}
+            result_dict[project_id] = {'keys_count': keys_count, 'translations_count': 0}
         
         # Add translations counts
         for project_id, translations_count in translations_stats:
-            if project_id in result:
-                result[project_id]['translations_count'] = translations_count
+            if project_id in result_dict:
+                result_dict[project_id]['translations_count'] = translations_count
             else:
-                result[project_id] = {'keys_count': 0, 'translations_count': translations_count}
+                result_dict[project_id] = {'keys_count': 0, 'translations_count': translations_count}
         
-        return result
+        return result_dict
 
     @staticmethod
-    def get_language_progress(db: Session, project_id: int) -> dict:
+    async def get_language_progress(db: AsyncSession, project_id: int) -> dict:
         """
         Get translation progress for each language in the project.
         
@@ -233,30 +253,33 @@ class ProjectService:
             Dict mapping language code to progress percentage and counts
         """
         # Get total keys count
-        keys_count = db.query(func.count(Key.id)).filter(
-            Key.project_id == project_id
-        ).scalar() or 0
+        result = await db.execute(
+            select(func.count(Key.id)).where(Key.project_id == project_id)
+        )
+        keys_count = result.scalar() or 0
         
         if keys_count == 0:
             return {}
         
         # Get translations count per language
-        language_stats = db.query(
-            Translation.language,
-            func.count(Translation.id).label('translations_count')
-        ).join(
-            Key, Translation.key_id == Key.id
-        ).filter(
-            Key.project_id == project_id,
-            Translation.value.isnot(None),
-            Translation.value != '',
-            func.trim(Translation.value) != ''
-        ).group_by(
-            Translation.language
-        ).all()
+        result = await db.execute(
+            select(
+                Translation.language,
+                func.count(Translation.id).label('translations_count')
+            )
+            .join(Key, Translation.key_id == Key.id)
+            .where(
+                Key.project_id == project_id,
+                Translation.value.isnot(None),
+                Translation.value != '',
+                func.trim(Translation.value) != ''
+            )
+            .group_by(Translation.language)
+        )
+        language_stats = result.all()
         
         # Build result dictionary with progress percentage
-        result = {}
+        result_dict = {}
         for language, translations_count in language_stats:
             if keys_count > 0:
                 # Calculate percentage
@@ -269,16 +292,16 @@ class ProjectService:
             else:
                 progress = 0
             
-            result[language] = {
+            result_dict[language] = {
                 'progress': progress,
                 'completed': translations_count,
                 'total': keys_count
             }
         
-        return result
+        return result_dict
 
     @staticmethod
-    def get_user_projects(db: Session, user_id: int) -> List[Project]:
+    async def get_user_projects(db: AsyncSession, user_id: int) -> List[Project]:
         """
         Get all projects where user is owner or has access through ProjectAccess.
         Uses eager loading to prevent N+1 query problems.
@@ -299,24 +322,25 @@ class ProjectService:
         ]
         
         # Get projects where user is owner
-        owned_projects = db.query(Project).options(
-            *eager_options
-        ).filter(
-            Project.owner_id == user_id
-        ).all()
+        result = await db.execute(
+            select(Project)
+            .options(*eager_options)
+            .where(Project.owner_id == user_id)
+        )
+        owned_projects = result.scalars().unique().all()
         owned_project_ids = {p.id for p in owned_projects}
         
         # Get projects where user has access
-        access_projects = db.query(Project).options(
-            *eager_options
-        ).join(
-            ProjectAccess, Project.id == ProjectAccess.project_id
-        ).filter(
-            ProjectAccess.user_id == user_id
-        ).all()
+        result = await db.execute(
+            select(Project)
+            .options(*eager_options)
+            .join(ProjectAccess, Project.id == ProjectAccess.project_id)
+            .where(ProjectAccess.user_id == user_id)
+        )
+        access_projects = result.scalars().unique().all()
         
         # Combine and deduplicate
-        all_projects = owned_projects.copy()
+        all_projects = list(owned_projects)
         for project in access_projects:
             if project.id not in owned_project_ids:
                 all_projects.append(project)
@@ -324,8 +348,8 @@ class ProjectService:
         return all_projects
 
     @staticmethod
-    def update_project(
-        db: Session,
+    async def update_project(
+        db: AsyncSession,
         public_id: str,
         user_id: int,
         name: Optional[str] = None,
@@ -352,19 +376,19 @@ class ProjectService:
         Returns:
             Updated project or None if not found or no permission
         """
-        project = ProjectService.get_project_by_public_id(db, public_id)
+        project = await ProjectService.get_project_by_public_id(db, public_id)
         if not project:
             return None
         
         # Check if user has permission to update
-        if not ProjectService.can_user_edit_project(db, project.id, user_id):
+        if not await ProjectService.can_user_edit_project(db, project.id, user_id):
             return None
         
         # Update fields if provided and log changes
         if name is not None and name != project.name:
             old_name = project.name
             project.name = name
-            ProjectService._create_log(
+            await ProjectService._create_log(
                 db=db,
                 project_id=project.id,
                 user_id=user_id,
@@ -377,7 +401,7 @@ class ProjectService:
         if description is not None and description != project.description:
             old_description = project.description
             project.description = description
-            ProjectService._create_log(
+            await ProjectService._create_log(
                 db=db,
                 project_id=project.id,
                 user_id=user_id,
@@ -411,7 +435,7 @@ class ProjectService:
                 old_langs_str = ', '.join([lang.get('code', '') for lang in old_languages]) if old_languages else ''
                 new_langs_str = ', '.join([lang.get('code', '') for lang in languages_data])
                 
-                ProjectService._create_log(
+                await ProjectService._create_log(
                     db=db,
                     project_id=project.id,
                     user_id=user_id,
@@ -428,7 +452,7 @@ class ProjectService:
         if default_language is not None and default_language != project.default_language:
             old_default_language = project.default_language
             project.default_language = default_language
-            ProjectService._create_log(
+            await ProjectService._create_log(
                 db=db,
                 project_id=project.id,
                 user_id=user_id,
@@ -441,7 +465,7 @@ class ProjectService:
         if color is not None and color != project.color:
             old_color = project.color
             project.color = color
-            ProjectService._create_log(
+            await ProjectService._create_log(
                 db=db,
                 project_id=project.id,
                 user_id=user_id,
@@ -454,7 +478,7 @@ class ProjectService:
         if status is not None and status != project.status:
             old_status = project.status
             project.status = status
-            ProjectService._create_log(
+            await ProjectService._create_log(
                 db=db,
                 project_id=project.id,
                 user_id=user_id,
@@ -464,12 +488,22 @@ class ProjectService:
                 new_value=status
             )
         
-        db.commit()
-        db.refresh(project)
-        return project
+        await db.commit()
+        
+        # Reload with relationships
+        result = await db.execute(
+            select(Project)
+            .options(
+                joinedload(Project.owner),
+                joinedload(Project.team),
+                selectinload(Project.access_members).joinedload(ProjectAccess.user)
+            )
+            .where(Project.id == project.id)
+        )
+        return result.unique().scalar_one()
 
     @staticmethod
-    def delete_project(db: Session, public_id: str, user_id: int) -> bool:
+    async def delete_project(db: AsyncSession, public_id: str, user_id: int) -> bool:
         """
         Delete a project. Only owner can delete.
         
@@ -481,7 +515,7 @@ class ProjectService:
         Returns:
             True if deleted, False otherwise
         """
-        project = ProjectService.get_project_by_public_id(db, public_id)
+        project = await ProjectService.get_project_by_public_id(db, public_id)
         if not project:
             return False
         
@@ -489,22 +523,29 @@ class ProjectService:
         if project.owner_id != user_id:
             return False
         
-        # Log project deletion before deleting
-        ProjectService._create_log(
-            db=db,
-            project_id=project.id,
+        # Get team_id before deletion for logging
+        team_id = project.team_id
+        project_name = project.name
+        project_id_to_delete = project.id
+        
+        # Delete project first (cascade will handle related records)
+        await db.execute(delete(Project).where(Project.id == project_id_to_delete))
+        
+        # Log project deletion after delete - don't reference deleted project
+        log = ActivityLog(
+            team_id=team_id,
+            project_id=None,  # Don't reference deleted project
             user_id=user_id,
             action=ActionType.PROJECT_DELETE,
             field_name="name",
-            old_value=project.name
+            old_value=project_name
         )
-        
-        db.delete(project)
-        db.commit()
+        db.add(log)
+        await db.commit()
         return True
 
     @staticmethod
-    def check_project_access(db: Session, project_id: int, user_id: int) -> bool:
+    async def check_project_access(db: AsyncSession, project_id: int, user_id: int) -> bool:
         """
         Check if user has access to a project (owner or has ProjectAccess).
         
@@ -516,7 +557,8 @@ class ProjectService:
         Returns:
             True if user has access, False otherwise
         """
-        project = db.query(Project).filter(Project.id == project_id).first()
+        result = await db.execute(select(Project).where(Project.id == project_id))
+        project = result.scalar_one_or_none()
         if not project:
             return False
         
@@ -525,15 +567,18 @@ class ProjectService:
             return True
         
         # Check if has project access
-        access = db.query(ProjectAccess).filter(
-            ProjectAccess.project_id == project_id,
-            ProjectAccess.user_id == user_id
-        ).first()
+        result = await db.execute(
+            select(ProjectAccess).where(
+                ProjectAccess.project_id == project_id,
+                ProjectAccess.user_id == user_id
+            )
+        )
+        access = result.scalar_one_or_none()
         
         return access is not None
 
     @staticmethod
-    def can_user_edit_project(db: Session, project_id: int, user_id: int) -> bool:
+    async def can_user_edit_project(db: AsyncSession, project_id: int, user_id: int) -> bool:
         """
         Check if user can edit a project (owner or admin access).
         
@@ -545,7 +590,8 @@ class ProjectService:
         Returns:
             True if user can edit, False otherwise
         """
-        project = db.query(Project).filter(Project.id == project_id).first()
+        result = await db.execute(select(Project).where(Project.id == project_id))
+        project = result.scalar_one_or_none()
         if not project:
             return False
         
@@ -554,17 +600,20 @@ class ProjectService:
             return True
         
         # Check if has admin access
-        access = db.query(ProjectAccess).filter(
-            ProjectAccess.project_id == project_id,
-            ProjectAccess.user_id == user_id,
-            ProjectAccess.role == "admin"
-        ).first()
+        result = await db.execute(
+            select(ProjectAccess).where(
+                ProjectAccess.project_id == project_id,
+                ProjectAccess.user_id == user_id,
+                ProjectAccess.role == "admin"
+            )
+        )
+        access = result.scalar_one_or_none()
         
         return access is not None
 
     @staticmethod
-    def add_project_member(
-        db: Session,
+    async def add_project_member(
+        db: AsyncSession,
         project_public_id: str,
         user_public_id: str,
         role: str,
@@ -584,34 +633,38 @@ class ProjectService:
             Created ProjectMember or None if failed
         """
         # Get project
-        project = ProjectService.get_project_by_public_id(db, project_public_id)
+        project = await ProjectService.get_project_by_public_id(db, project_public_id)
         if not project:
             return None
         
         # Check permission
-        if not ProjectService.can_user_edit_project(db, project.id, added_by_user_id):
+        if not await ProjectService.can_user_edit_project(db, project.id, added_by_user_id):
             return None
         
         # Get user to add
         try:
             uuid_obj = uuid_lib.UUID(user_public_id)
-            user = db.query(User).filter(User.public_id == uuid_obj).first()
+            result = await db.execute(select(User).where(User.public_id == uuid_obj))
+            user = result.scalar_one_or_none()
             if not user:
                 return None
         except (ValueError, AttributeError):
             return None
         
         # Check if already a member
-        existing_member = db.query(ProjectMember).filter(
-            ProjectMember.project_id == project.id,
-            ProjectMember.user_id == user.id
-        ).first()
+        result = await db.execute(
+            select(ProjectMember).where(
+                ProjectMember.project_id == project.id,
+                ProjectMember.user_id == user.id
+            )
+        )
+        existing_member = result.scalar_one_or_none()
         
         if existing_member:
             # Update role if already exists
             existing_member.role = role
-            db.commit()
-            db.refresh(existing_member)
+            await db.commit()
+            await db.refresh(existing_member)
             return existing_member
         
         # Create new member
@@ -621,13 +674,13 @@ class ProjectService:
             role=role
         )
         db.add(member)
-        db.commit()
-        db.refresh(member)
+        await db.commit()
+        await db.refresh(member)
         return member
 
     @staticmethod
-    def remove_project_member(
-        db: Session,
+    async def remove_project_member(
+        db: AsyncSession,
         project_public_id: str,
         user_public_id: str,
         removed_by_user_id: int
@@ -645,18 +698,19 @@ class ProjectService:
             True if removed, False otherwise
         """
         # Get project
-        project = ProjectService.get_project_by_public_id(db, project_public_id)
+        project = await ProjectService.get_project_by_public_id(db, project_public_id)
         if not project:
             return False
         
         # Check permission
-        if not ProjectService.can_user_edit_project(db, project.id, removed_by_user_id):
+        if not await ProjectService.can_user_edit_project(db, project.id, removed_by_user_id):
             return False
         
         # Get user to remove
         try:
             uuid_obj = uuid_lib.UUID(user_public_id)
-            user = db.query(User).filter(User.public_id == uuid_obj).first()
+            result = await db.execute(select(User).where(User.public_id == uuid_obj))
+            user = result.scalar_one_or_none()
             if not user:
                 return False
         except (ValueError, AttributeError):
@@ -667,21 +721,24 @@ class ProjectService:
             return False
         
         # Find and remove project access
-        access = db.query(ProjectAccess).filter(
-            ProjectAccess.project_id == project.id,
-            ProjectAccess.user_id == user.id
-        ).first()
+        result = await db.execute(
+            select(ProjectAccess).where(
+                ProjectAccess.project_id == project.id,
+                ProjectAccess.user_id == user.id
+            )
+        )
+        access = result.scalar_one_or_none()
         
         if not access:
             return False
         
         db.delete(access)
-        db.commit()
+        await db.commit()
         return True
 
     @staticmethod
-    def transfer_project(
-        db: Session,
+    async def transfer_project(
+        db: AsyncSession,
         project_public_id: str,
         new_team_id: int,
         user_id: int
@@ -699,7 +756,7 @@ class ProjectService:
         Returns:
             Updated project or None if failed
         """
-        project = ProjectService.get_project_by_public_id(db, project_public_id)
+        project = await ProjectService.get_project_by_public_id(db, project_public_id)
         if not project:
             return None
         
@@ -708,27 +765,30 @@ class ProjectService:
             return None
         
         # Verify new team exists and user has access to it
-        team = db.query(Team).filter(Team.id == new_team_id).first()
+        result = await db.execute(select(Team).where(Team.id == new_team_id))
+        team = result.scalar_one_or_none()
         if not team:
             return None
         
         # Verify user is owner or member of new team
         from app.services.team_service import TeamService
-        if not TeamService.check_user_team_access(db, new_team_id, user_id):
+        if not await TeamService.check_user_team_access(db, new_team_id, user_id):
             return None
         
         # Remove all existing project access entries
-        db.query(ProjectAccess).filter(ProjectAccess.project_id == project.id).delete()
+        await db.execute(
+            delete(ProjectAccess).where(ProjectAccess.project_id == project.id)
+        )
         
         # Update project team
         project.team_id = new_team_id
-        db.commit()
-        db.refresh(project)
+        await db.commit()
+        await db.refresh(project)
         
         return project
 
     @staticmethod
-    def export_project_data(db: Session, project_public_id: str, user_id: int) -> Optional[dict]:
+    async def export_project_data(db: AsyncSession, project_public_id: str, user_id: int) -> Optional[dict]:
         """
         Export project data in i18n format for backup or sharing.
         
@@ -741,26 +801,27 @@ class ProjectService:
             Dict with project data or None if no access
         """
         # Get project
-        project = ProjectService.get_project_by_public_id(db, project_public_id)
+        project = await ProjectService.get_project_by_public_id(db, project_public_id)
         if not project:
             return None
         
         # Check access
-        if not ProjectService.check_project_access(db, project.id, user_id):
+        if not await ProjectService.check_project_access(db, project.id, user_id):
             return None
         
         # Log export action
-        ProjectService._create_log(
+        await ProjectService._create_log(
             db=db,
             project_id=project.id,
             user_id=user_id,
             action=ActionType.PROJECT_EXPORT,
             field_name="export"
         )
-        db.commit()
+        await db.commit()
         
         # Get all keys with translations
-        keys = db.query(Key).filter(Key.project_id == project.id).all()
+        result = await db.execute(select(Key).where(Key.project_id == project.id))
+        keys = result.scalars().all()
         
         # Build keys array with descriptions and tags
         keys_list = []
@@ -780,10 +841,13 @@ class ProjectService:
             # Collect translations for this language
             translations = {}
             for key in keys:
-                translation = db.query(Translation).filter(
-                    Translation.key_id == key.id,
-                    Translation.language == code
-                ).first()
+                result = await db.execute(
+                    select(Translation).where(
+                        Translation.key_id == key.id,
+                        Translation.language == code
+                    )
+                )
+                translation = result.scalar_one_or_none()
                 
                 if translation and translation.value:
                     translations[key.key] = translation.value
@@ -808,8 +872,8 @@ class ProjectService:
         }
 
     @staticmethod
-    def import_project_data(
-        db: Session,
+    async def import_project_data(
+        db: AsyncSession,
         owner_id: int,
         team_id: int,
         project_data: dict
@@ -845,7 +909,7 @@ class ProjectService:
             logger.info(f"Creating project with languages: {config.get('languages', [])}")
             
             # Create project
-            project = ProjectService.create_project(
+            project = await ProjectService.create_project(
                 db=db,
                 owner_id=owner_id,
                 team_id=team_id,
@@ -866,7 +930,7 @@ class ProjectService:
             
             # Log project import (ActivityLog already imported at top of file)
             # Note: ActivityLog is already imported at module level
-            ProjectService._create_log(
+            await ProjectService._create_log(
                 db=db,
                 project_id=project.id,
                 user_id=owner_id,
@@ -897,7 +961,7 @@ class ProjectService:
                     project_id=project.id
                 )
                 db.add(new_key)
-                db.flush()
+                await db.flush()
                 created_keys[key_str] = new_key
                 
                 # Log key import
@@ -933,10 +997,13 @@ class ProjectService:
                     
                     if not key_obj:
                         # If key not in keys array, create it without description
-                        key_obj = db.query(Key).filter(
-                            Key.project_id == project.id,
-                            Key.key == key_str
-                        ).first()
+                        result = await db.execute(
+                            select(Key).where(
+                                Key.project_id == project.id,
+                                Key.key == key_str
+                            )
+                        )
+                        key_obj = result.scalar_one_or_none()
                         
                         if not key_obj:
                             key_obj = Key(
@@ -944,7 +1011,7 @@ class ProjectService:
                                 project_id=project.id
                             )
                             db.add(key_obj)
-                            db.flush()
+                            await db.flush()
                             created_keys[key_str] = key_obj
                             
                             # Log key import
@@ -981,14 +1048,13 @@ class ProjectService:
                     translations_count += 1
             
             logger.info(f"Created {translations_count} translations, committing to database")
-            db.commit()
-            db.refresh(project)
+            await db.commit()
+            await db.refresh(project)
             logger.info(f"Import completed successfully for project: {project.public_id}")
             return project
             
         except Exception as e:
             logger.error(f"Import failed with error: {type(e).__name__}: {str(e)}")
             logger.exception("Full traceback:")
-            db.rollback()
+            await db.rollback()
             raise e
-

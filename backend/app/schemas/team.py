@@ -2,11 +2,13 @@ import strawberry
 from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
 from strawberry.types import Info
-from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.exc import IntegrityError, OperationalError
 import logging
 
-from app.database import get_db
+from app.database import AsyncSessionLocal
 from app.services.team_service import TeamService
 from app.services.user_service import UserService
 from app.models.team import Team, TeamMember
@@ -141,7 +143,7 @@ class RemoveTeamMemberInput:
     user_id: str  # UUID
 
 
-def get_current_user_id(info: Info) -> Optional[int]:
+async def get_current_user_id(info: Info) -> Optional[int]:
     """
     Helper function to get current user ID from request context.
     
@@ -180,15 +182,12 @@ def get_current_user_id(info: Info) -> Optional[int]:
             logger.warning("No 'sub' field in token payload")
             return None
         
-        db: Session = next(get_db())
-        try:
-            user = UserService.get_user_by_public_id(db, public_id)
+        async with AsyncSessionLocal() as db:
+            user = await UserService.get_user_by_public_id(db, public_id)
             if not user:
                 logger.warning(f"User not found for public_id")
                 return None
             return user.id
-        finally:
-            db.close()
     except Exception as e:
         logger.error(f"Error getting current user: {type(e).__name__}: {str(e)}")
         return None
@@ -287,7 +286,7 @@ class TeamQuery:
     """
 
     @strawberry.field
-    def teams(self, info: Info) -> List[TeamType]:
+    async def teams(self, info: Info) -> List[TeamType]:
         """
         Get all teams for current user (owned or member).
         
@@ -301,16 +300,13 @@ class TeamQuery:
             UnauthorizedError: If user is not authenticated
         """
         try:
-            current_user_id = get_current_user_id(info)
+            current_user_id = await get_current_user_id(info)
             if not current_user_id:
                 raise UnauthorizedError("Authentication required to access teams")
             
-            db: Session = next(get_db())
-            try:
-                teams = TeamService.get_user_teams(db, current_user_id)
+            async with AsyncSessionLocal() as db:
+                teams = await TeamService.get_user_teams(db, current_user_id)
                 return [build_team_type(team, current_user_id) for team in teams]
-            finally:
-                db.close()
         except UnauthorizedError:
             raise
         except Exception as e:
@@ -318,7 +314,7 @@ class TeamQuery:
             return []
 
     @strawberry.field
-    def team(self, info: Info, id: str) -> Optional[TeamType]:
+    async def team(self, info: Info, id: str) -> Optional[TeamType]:
         """
         Get a specific team by ID.
         
@@ -333,29 +329,26 @@ class TeamQuery:
             UnauthorizedError: If user is not authenticated
         """
         try:
-            current_user_id = get_current_user_id(info)
+            current_user_id = await get_current_user_id(info)
             if not current_user_id:
                 return None
             
-            db: Session = next(get_db())
-            try:
-                team = TeamService.get_team_by_public_id(db, id)
+            async with AsyncSessionLocal() as db:
+                team = await TeamService.get_team_by_public_id(db, id)
                 if not team:
                     return None
                 
                 # Check access
-                if not TeamService.check_user_team_access(db, team.id, current_user_id):
+                if not await TeamService.check_user_team_access(db, team.id, current_user_id):
                     return None
                 
                 return build_team_type(team, current_user_id)
-            finally:
-                db.close()
         except Exception as e:
             logger.error(f"Error in team query: {type(e).__name__}: {str(e)}")
             return None
 
     @strawberry.field
-    def invite_info(self, info: Info, code: str) -> Optional[InviteInfoType]:
+    async def invite_info(self, info: Info, code: str) -> Optional[InviteInfoType]:
         """
         Get public information about an invitation.
         This query does NOT require authentication.
@@ -367,37 +360,35 @@ class TeamQuery:
         Returns:
             InviteInfoType or None if not found
         """
-        db: Session = next(get_db())
-        try:
-            invitation = TeamService.get_invitation_by_public_id(db, code)
-            if not invitation:
+        async with AsyncSessionLocal() as db:
+            try:
+                invitation = await TeamService.get_invitation_by_public_id(db, code)
+                if not invitation:
+                    return None
+                
+                inviter_name = "Unknown"
+                inviter_email = ""
+                if invitation.invited_by:
+                    inviter_name = invitation.invited_by.username
+                    inviter_email = invitation.invited_by.email
+                
+                return InviteInfoType(
+                    id=str(invitation.public_id),
+                    team_name=invitation.team.name,
+                    team_description=invitation.team.description,
+                    inviter_name=inviter_name,
+                    inviter_email=inviter_email,
+                    role=invitation.role,
+                    status=invitation.status.value,
+                    invited_email=invitation.invited_email,
+                    created_at=invitation.created_at
+                )
+            except Exception as e:
+                logger.error(f"Error in invite_info query: {type(e).__name__}: {str(e)}")
                 return None
-            
-            inviter_name = "Unknown"
-            inviter_email = ""
-            if invitation.invited_by:
-                inviter_name = invitation.invited_by.username
-                inviter_email = invitation.invited_by.email
-            
-            return InviteInfoType(
-                id=str(invitation.public_id),
-                team_name=invitation.team.name,
-                team_description=invitation.team.description,
-                inviter_name=inviter_name,
-                inviter_email=inviter_email,
-                role=invitation.role,
-                status=invitation.status.value,
-                invited_email=invitation.invited_email,
-                created_at=invitation.created_at
-            )
-        except Exception as e:
-            logger.error(f"Error in invite_info query: {type(e).__name__}: {str(e)}")
-            return None
-        finally:
-            db.close()
 
     @strawberry.field
-    def my_pending_invites(self, info: Info) -> List[PendingInviteType]:
+    async def my_pending_invites(self, info: Info) -> List[PendingInviteType]:
         """
         Get all pending invitations for the current user.
         
@@ -411,18 +402,17 @@ class TeamQuery:
             UnauthorizedError: If user is not authenticated
         """
         try:
-            current_user_id = get_current_user_id(info)
+            current_user_id = await get_current_user_id(info)
             if not current_user_id:
                 raise UnauthorizedError("Authentication required")
             
-            db: Session = next(get_db())
-            try:
+            async with AsyncSessionLocal() as db:
                 # Get current user email
-                user = UserService.get_user_by_id(db, current_user_id)
+                user = await UserService.get_user_by_id(db, current_user_id)
                 if not user:
                     return []
                 
-                invitations = TeamService.get_pending_invitations_for_email(db, user.email)
+                invitations = await TeamService.get_pending_invitations_for_email(db, user.email)
                 
                 result = []
                 for inv in invitations:
@@ -440,8 +430,6 @@ class TeamQuery:
                     ))
                 
                 return result
-            finally:
-                db.close()
         except UnauthorizedError:
             raise
         except Exception as e:
@@ -449,7 +437,7 @@ class TeamQuery:
             return []
 
     @strawberry.field
-    def team_activity(self, info: Info, team_id: str, limit: Optional[int] = 100) -> List['ActivityLogType']:
+    async def team_activity(self, info: Info, team_id: str, limit: Optional[int] = 100) -> List['ActivityLogType']:
         """
         Get all activity logs for all projects in a team.
         
@@ -470,23 +458,23 @@ class TeamQuery:
         from app.models.project import Project
         
         try:
-            current_user_id = get_current_user_id(info)
+            current_user_id = await get_current_user_id(info)
             if not current_user_id:
                 raise UnauthorizedError("Authentication required to view activity")
             
-            db: Session = next(get_db())
-            try:
+            async with AsyncSessionLocal() as db:
                 # Get team to check access
-                team = TeamService.get_team_by_public_id(db, team_id)
+                team = await TeamService.get_team_by_public_id(db, team_id)
                 if not team:
                     return []
                 
                 # Check access
-                if not TeamService.check_user_team_access(db, team.id, current_user_id):
+                if not await TeamService.check_user_team_access(db, team.id, current_user_id):
                     raise UnauthorizedError("You don't have access to this team")
                 
                 # Get all project IDs in this team
-                projects = db.query(Project).filter(Project.team_id == team.id).all()
+                result = await db.execute(select(Project).where(Project.team_id == team.id))
+                projects = result.scalars().all()
                 project_ids = [p.id for p in projects]
                 logger.info(f"team_activity: team_id={team.id}, project_ids={project_ids}")
                 
@@ -523,23 +511,28 @@ class TeamQuery:
                 if project_ids:
                     filter_conditions.append(ActivityLog.project_id.in_(project_ids))
                 
-                logs = db.query(ActivityLog).options(
-                    joinedload(ActivityLog.user),
-                    joinedload(ActivityLog.affected_user),
-                    joinedload(ActivityLog.project),
-                    joinedload(ActivityLog.team)
-                ).filter(
-                    or_(*filter_conditions),
-                    ActivityLog.action.in_(team_and_project_actions)
-                ).order_by(ActivityLog.created_at.desc(), ActivityLog.id.desc()).limit(limit or 100).all()
+                result = await db.execute(
+                    select(ActivityLog)
+                    .options(
+                        joinedload(ActivityLog.user),
+                        joinedload(ActivityLog.affected_user),
+                        joinedload(ActivityLog.project),
+                        joinedload(ActivityLog.team)
+                    )
+                    .where(
+                        or_(*filter_conditions),
+                        ActivityLog.action.in_(team_and_project_actions)
+                    )
+                    .order_by(ActivityLog.created_at.desc(), ActivityLog.id.desc())
+                    .limit(limit or 100)
+                )
+                logs = result.scalars().all()
                 
                 logger.info(f"team_activity: found {len(logs)} logs")
-                for log in logs[:3]:
+                for log in list(logs)[:3]:
                     logger.info(f"  Log: id={log.id}, action={log.action}, team_id={log.team_id}, project_id={log.project_id}")
                 
                 return [build_activity_log_type(log) for log in logs]
-            finally:
-                db.close()
         except UnauthorizedError:
             raise
         except Exception as e:
@@ -554,7 +547,7 @@ class TeamMutation:
     """
 
     @strawberry.mutation
-    def create_team(self, input: CreateTeamInput, info: Info) -> TeamType:
+    async def create_team(self, input: CreateTeamInput, info: Info) -> TeamType:
         """
         Create a new team.
         
@@ -568,32 +561,29 @@ class TeamMutation:
         Raises:
             UnauthorizedError: If user is not authenticated
         """
-        current_user_id = get_current_user_id(info)
+        current_user_id = await get_current_user_id(info)
         if not current_user_id:
             raise UnauthorizedError("User must be authenticated to create teams")
         
-        db: Session = next(get_db())
-        
-        try:
-            team = TeamService.create_team(
-                db=db,
-                owner_id=current_user_id,
-                name=input.name,
-                description=input.description
-            )
-            
-            return build_team_type(team, current_user_id)
-        except (UnauthorizedError):
-            raise
-        except (IntegrityError, OperationalError) as e:
-            handle_database_exception(e, "team creation")
-        except Exception as e:
-            handle_database_exception(e, "team creation")
-        finally:
-            db.close()
+        async with AsyncSessionLocal() as db:
+            try:
+                team = await TeamService.create_team(
+                    db=db,
+                    owner_id=current_user_id,
+                    name=input.name,
+                    description=input.description
+                )
+                
+                return build_team_type(team, current_user_id)
+            except (UnauthorizedError):
+                raise
+            except (IntegrityError, OperationalError) as e:
+                handle_database_exception(e, "team creation")
+            except Exception as e:
+                handle_database_exception(e, "team creation")
 
     @strawberry.mutation
-    def update_team(self, input: UpdateTeamInput, info: Info) -> Optional[TeamType]:
+    async def update_team(self, input: UpdateTeamInput, info: Info) -> Optional[TeamType]:
         """
         Update an existing team.
         
@@ -607,36 +597,33 @@ class TeamMutation:
         Raises:
             UnauthorizedError: If user is not authenticated
         """
-        current_user_id = get_current_user_id(info)
+        current_user_id = await get_current_user_id(info)
         if not current_user_id:
             raise UnauthorizedError("User must be authenticated to update teams")
         
-        db: Session = next(get_db())
-        
-        try:
-            team = TeamService.update_team(
-                db=db,
-                public_id=input.id,
-                user_id=current_user_id,
-                name=input.name,
-                description=input.description
-            )
-            
-            if not team:
-                return None
-            
-            return build_team_type(team, current_user_id)
-        except (UnauthorizedError):
-            raise
-        except (IntegrityError, OperationalError) as e:
-            handle_database_exception(e, "team update")
-        except Exception as e:
-            handle_database_exception(e, "team update")
-        finally:
-            db.close()
+        async with AsyncSessionLocal() as db:
+            try:
+                team = await TeamService.update_team(
+                    db=db,
+                    public_id=input.id,
+                    user_id=current_user_id,
+                    name=input.name,
+                    description=input.description
+                )
+                
+                if not team:
+                    return None
+                
+                return build_team_type(team, current_user_id)
+            except (UnauthorizedError):
+                raise
+            except (IntegrityError, OperationalError) as e:
+                handle_database_exception(e, "team update")
+            except Exception as e:
+                handle_database_exception(e, "team update")
 
     @strawberry.mutation
-    def delete_team(self, id: str, info: Info) -> bool:
+    async def delete_team(self, id: str, info: Info) -> bool:
         """
         Delete a team.
         
@@ -650,25 +637,22 @@ class TeamMutation:
         Raises:
             UnauthorizedError: If user is not authenticated
         """
-        current_user_id = get_current_user_id(info)
+        current_user_id = await get_current_user_id(info)
         if not current_user_id:
             raise UnauthorizedError("User must be authenticated to delete teams")
         
-        db: Session = next(get_db())
-        
-        try:
-            return TeamService.delete_team(db, id, current_user_id)
-        except (UnauthorizedError):
-            raise
-        except (IntegrityError, OperationalError) as e:
-            handle_database_exception(e, "team deletion")
-        except Exception as e:
-            handle_database_exception(e, "team deletion")
-        finally:
-            db.close()
+        async with AsyncSessionLocal() as db:
+            try:
+                return await TeamService.delete_team(db, id, current_user_id)
+            except (UnauthorizedError):
+                raise
+            except (IntegrityError, OperationalError) as e:
+                handle_database_exception(e, "team deletion")
+            except Exception as e:
+                handle_database_exception(e, "team deletion")
 
     @strawberry.mutation
-    def add_team_member(self, input: AddTeamMemberInput, info: Info) -> Optional[TeamType]:
+    async def add_team_member(self, input: AddTeamMemberInput, info: Info) -> Optional[TeamType]:
         """
         Add a member to a team by email address.
         Creates an invitation that must be accepted by the user.
@@ -685,54 +669,51 @@ class TeamMutation:
         """
         from app.services.email_service import send_team_invitation_email_background
         
-        current_user_id = get_current_user_id(info)
+        current_user_id = await get_current_user_id(info)
         if not current_user_id:
             raise UnauthorizedError("User must be authenticated to add team members")
         
-        db: Session = next(get_db())
-        
-        try:
-            # Get current user for inviter name
-            current_user = UserService.get_user_by_id(db, current_user_id)
-            if not current_user:
-                raise UnauthorizedError("User not found")
-            
-            # Create invitation
-            invitation = TeamService.add_team_member_by_email(
-                db=db,
-                team_public_id=input.team_id,
-                user_email=input.user_email,
-                role=input.role,
-                added_by_user_id=current_user_id
-            )
-            
-            # Send invitation email if invitation was created
-            if invitation:
-                send_team_invitation_email_background(
-                    email=invitation.invited_email,
-                    team_name=invitation.team.name,
-                    inviter_name=current_user.username,
-                    invite_code=str(invitation.public_id),
-                    role=invitation.role
+        async with AsyncSessionLocal() as db:
+            try:
+                # Get current user for inviter name
+                current_user = await UserService.get_user_by_id(db, current_user_id)
+                if not current_user:
+                    raise UnauthorizedError("User not found")
+                
+                # Create invitation
+                invitation = await TeamService.add_team_member_by_email(
+                    db=db,
+                    team_public_id=input.team_id,
+                    user_email=input.user_email,
+                    role=input.role,
+                    added_by_user_id=current_user_id
                 )
-            
-            # Always return updated team
-            team = TeamService.get_team_by_public_id(db, input.team_id)
-            if not team:
-                return None
-            
-            return build_team_type(team, current_user_id)
-        except (UnauthorizedError):
-            raise
-        except (IntegrityError, OperationalError) as e:
-            handle_database_exception(e, "adding team member")
-        except Exception as e:
-            handle_database_exception(e, "adding team member")
-        finally:
-            db.close()
+                
+                # Send invitation email if invitation was created
+                if invitation:
+                    send_team_invitation_email_background(
+                        email=invitation.invited_email,
+                        team_name=invitation.team.name,
+                        inviter_name=current_user.username,
+                        invite_code=str(invitation.public_id),
+                        role=invitation.role
+                    )
+                
+                # Always return updated team
+                team = await TeamService.get_team_by_public_id(db, input.team_id)
+                if not team:
+                    return None
+                
+                return build_team_type(team, current_user_id)
+            except (UnauthorizedError):
+                raise
+            except (IntegrityError, OperationalError) as e:
+                handle_database_exception(e, "adding team member")
+            except Exception as e:
+                handle_database_exception(e, "adding team member")
 
     @strawberry.mutation
-    def remove_team_member(self, input: RemoveTeamMemberInput, info: Info) -> Optional[TeamType]:
+    async def remove_team_member(self, input: RemoveTeamMemberInput, info: Info) -> Optional[TeamType]:
         """
         Remove a member from a team.
         
@@ -746,40 +727,37 @@ class TeamMutation:
         Raises:
             UnauthorizedError: If user is not authenticated
         """
-        current_user_id = get_current_user_id(info)
+        current_user_id = await get_current_user_id(info)
         if not current_user_id:
             raise UnauthorizedError("User must be authenticated to remove team members")
         
-        db: Session = next(get_db())
-        
-        try:
-            success = TeamService.remove_team_member(
-                db=db,
-                team_public_id=input.team_id,
-                user_public_id=input.user_id,
-                removed_by_user_id=current_user_id
-            )
-            
-            if not success:
-                return None
-            
-            # Get updated team
-            team = TeamService.get_team_by_public_id(db, input.team_id)
-            if not team:
-                return None
-            
-            return build_team_type(team, current_user_id)
-        except (UnauthorizedError):
-            raise
-        except (IntegrityError, OperationalError) as e:
-            handle_database_exception(e, "removing team member")
-        except Exception as e:
-            handle_database_exception(e, "removing team member")
-        finally:
-            db.close()
+        async with AsyncSessionLocal() as db:
+            try:
+                success = await TeamService.remove_team_member(
+                    db=db,
+                    team_public_id=input.team_id,
+                    user_public_id=input.user_id,
+                    removed_by_user_id=current_user_id
+                )
+                
+                if not success:
+                    return None
+                
+                # Get updated team
+                team = await TeamService.get_team_by_public_id(db, input.team_id)
+                if not team:
+                    return None
+                
+                return build_team_type(team, current_user_id)
+            except (UnauthorizedError):
+                raise
+            except (IntegrityError, OperationalError) as e:
+                handle_database_exception(e, "removing team member")
+            except Exception as e:
+                handle_database_exception(e, "removing team member")
 
     @strawberry.mutation
-    def update_team_member_role(self, input: UpdateTeamMemberRoleInput, info: Info) -> Optional[TeamType]:
+    async def update_team_member_role(self, input: UpdateTeamMemberRoleInput, info: Info) -> Optional[TeamType]:
         """
         Update a team member's role.
         
@@ -793,41 +771,38 @@ class TeamMutation:
         Raises:
             UnauthorizedError: If user is not authenticated
         """
-        current_user_id = get_current_user_id(info)
+        current_user_id = await get_current_user_id(info)
         if not current_user_id:
             raise UnauthorizedError("User must be authenticated to update team member roles")
         
-        db: Session = next(get_db())
-        
-        try:
-            member = TeamService.update_team_member_role(
-                db=db,
-                team_public_id=input.team_id,
-                user_public_id=input.user_id,
-                role=input.role,
-                updated_by_user_id=current_user_id
-            )
-            
-            if not member:
-                return None
-            
-            # Get updated team
-            team = TeamService.get_team_by_public_id(db, input.team_id)
-            if not team:
-                return None
-            
-            return build_team_type(team, current_user_id)
-        except (UnauthorizedError):
-            raise
-        except (IntegrityError, OperationalError) as e:
-            handle_database_exception(e, "updating team member role")
-        except Exception as e:
-            handle_database_exception(e, "updating team member role")
-        finally:
-            db.close()
+        async with AsyncSessionLocal() as db:
+            try:
+                member = await TeamService.update_team_member_role(
+                    db=db,
+                    team_public_id=input.team_id,
+                    user_public_id=input.user_id,
+                    role=input.role,
+                    updated_by_user_id=current_user_id
+                )
+                
+                if not member:
+                    return None
+                
+                # Get updated team
+                team = await TeamService.get_team_by_public_id(db, input.team_id)
+                if not team:
+                    return None
+                
+                return build_team_type(team, current_user_id)
+            except (UnauthorizedError):
+                raise
+            except (IntegrityError, OperationalError) as e:
+                handle_database_exception(e, "updating team member role")
+            except Exception as e:
+                handle_database_exception(e, "updating team member role")
 
     @strawberry.mutation
-    def accept_invite(self, code: str, info: Info) -> Optional[TeamType]:
+    async def accept_invite(self, code: str, info: Info) -> Optional[TeamType]:
         """
         Accept a team invitation.
         
@@ -841,44 +816,46 @@ class TeamMutation:
         Raises:
             UnauthorizedError: If user is not authenticated
         """
-        current_user_id = get_current_user_id(info)
+        current_user_id = await get_current_user_id(info)
         if not current_user_id:
             raise UnauthorizedError("Authentication required to accept invitations")
         
-        db: Session = next(get_db())
-        
-        try:
-            member = TeamService.accept_invitation(
-                db=db,
-                invitation_public_id=code,
-                user_id=current_user_id
-            )
-            
-            if not member:
-                return None
-            
-            # Get the team
-            team = db.query(Team).options(
-                joinedload(Team.owner),
-                selectinload(Team.members).joinedload(TeamMember.user),
-                selectinload(Team.invitations).joinedload(TeamInvitation.invited_by)
-            ).filter(Team.id == member.team_id).first()
-            
-            if not team:
-                return None
-            
-            return build_team_type(team, current_user_id)
-        except (UnauthorizedError):
-            raise
-        except (IntegrityError, OperationalError) as e:
-            handle_database_exception(e, "accepting invitation")
-        except Exception as e:
-            handle_database_exception(e, "accepting invitation")
-        finally:
-            db.close()
+        async with AsyncSessionLocal() as db:
+            try:
+                member = await TeamService.accept_invitation(
+                    db=db,
+                    invitation_public_id=code,
+                    user_id=current_user_id
+                )
+                
+                if not member:
+                    return None
+                
+                # Get the team
+                result = await db.execute(
+                    select(Team)
+                    .options(
+                        joinedload(Team.owner),
+                        selectinload(Team.members).joinedload(TeamMember.user),
+                        selectinload(Team.invitations).joinedload(TeamInvitation.invited_by)
+                    )
+                    .where(Team.id == member.team_id)
+                )
+                team = result.scalar_one_or_none()
+                
+                if not team:
+                    return None
+                
+                return build_team_type(team, current_user_id)
+            except (UnauthorizedError):
+                raise
+            except (IntegrityError, OperationalError) as e:
+                handle_database_exception(e, "accepting invitation")
+            except Exception as e:
+                handle_database_exception(e, "accepting invitation")
 
     @strawberry.mutation
-    def decline_invite(self, code: str, info: Info) -> bool:
+    async def decline_invite(self, code: str, info: Info) -> bool:
         """
         Decline a team invitation.
         
@@ -892,29 +869,26 @@ class TeamMutation:
         Raises:
             UnauthorizedError: If user is not authenticated
         """
-        current_user_id = get_current_user_id(info)
+        current_user_id = await get_current_user_id(info)
         if not current_user_id:
             raise UnauthorizedError("Authentication required to decline invitations")
         
-        db: Session = next(get_db())
-        
-        try:
-            return TeamService.decline_invitation(
-                db=db,
-                invitation_public_id=code,
-                user_id=current_user_id
-            )
-        except (UnauthorizedError):
-            raise
-        except (IntegrityError, OperationalError) as e:
-            handle_database_exception(e, "declining invitation")
-        except Exception as e:
-            handle_database_exception(e, "declining invitation")
-        finally:
-            db.close()
+        async with AsyncSessionLocal() as db:
+            try:
+                return await TeamService.decline_invitation(
+                    db=db,
+                    invitation_public_id=code,
+                    user_id=current_user_id
+                )
+            except (UnauthorizedError):
+                raise
+            except (IntegrityError, OperationalError) as e:
+                handle_database_exception(e, "declining invitation")
+            except Exception as e:
+                handle_database_exception(e, "declining invitation")
 
     @strawberry.mutation
-    def resend_invite(self, invitation_id: str, info: Info) -> bool:
+    async def resend_invite(self, invitation_id: str, info: Info) -> bool:
         """
         Resend a team invitation email.
         
@@ -930,43 +904,40 @@ class TeamMutation:
         """
         from app.services.email_service import send_team_invitation_email_background
         
-        current_user_id = get_current_user_id(info)
+        current_user_id = await get_current_user_id(info)
         if not current_user_id:
             raise UnauthorizedError("Authentication required to resend invitations")
         
-        db: Session = next(get_db())
-        
-        try:
-            # Get current user for inviter name
-            current_user = UserService.get_user_by_id(db, current_user_id)
-            if not current_user:
-                raise UnauthorizedError("User not found")
-            
-            invitation = TeamService.resend_invitation(
-                db=db,
-                invitation_public_id=invitation_id,
-                user_id=current_user_id
-            )
-            
-            if not invitation:
-                return False
-            
-            # Send the email
-            send_team_invitation_email_background(
-                email=invitation.invited_email,
-                team_name=invitation.team.name,
-                inviter_name=current_user.username,
-                invite_code=str(invitation.public_id),
-                role=invitation.role
-            )
-            
-            return True
-        except (UnauthorizedError):
-            raise
-        except (IntegrityError, OperationalError) as e:
-            handle_database_exception(e, "resending invitation")
-        except Exception as e:
-            handle_database_exception(e, "resending invitation")
-        finally:
-            db.close()
+        async with AsyncSessionLocal() as db:
+            try:
+                # Get current user for inviter name
+                current_user = await UserService.get_user_by_id(db, current_user_id)
+                if not current_user:
+                    raise UnauthorizedError("User not found")
+                
+                invitation = await TeamService.resend_invitation(
+                    db=db,
+                    invitation_public_id=invitation_id,
+                    user_id=current_user_id
+                )
+                
+                if not invitation:
+                    return False
+                
+                # Send the email
+                send_team_invitation_email_background(
+                    email=invitation.invited_email,
+                    team_name=invitation.team.name,
+                    inviter_name=current_user.username,
+                    invite_code=str(invitation.public_id),
+                    role=invitation.role
+                )
+                
+                return True
+            except (UnauthorizedError):
+                raise
+            except (IntegrityError, OperationalError) as e:
+                handle_database_exception(e, "resending invitation")
+            except Exception as e:
+                handle_database_exception(e, "resending invitation")
 

@@ -6,7 +6,7 @@ import os
 import logging
 from strawberry.fastapi import GraphQLRouter
 
-from app.database import engine
+from app.database import async_engine, engine
 from app.models.base import Base
 from app.schemas.graphql import schema
 from app.routers.project_router import router as project_router
@@ -26,10 +26,12 @@ async def lifespan(app: FastAPI):
     print("🚀 Starting application...")
     
     print("📦 Creating database tables...")
-    Base.metadata.create_all(bind=engine)
+    # Use async engine for table creation
+    async with async_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     print("✅ Database tables ready")
     
-    # Run migrations automatically
+    # Run migrations automatically (migrations still use sync for simplicity)
     print("🔄 Running migrations...")
     from migrations.auto_migrate import run_all_migrations
     run_all_migrations()
@@ -40,7 +42,8 @@ async def lifespan(app: FastAPI):
     yield
     # Shutdown
     print("👋 Shutting down application...")
-    pass
+    await async_engine.dispose()
+    print("✅ Async engine disposed")
 
 
 app = FastAPI(
