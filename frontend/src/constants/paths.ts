@@ -11,6 +11,7 @@ export const PATHS = {
   INVITE: '/invite/:code',
   FORGOT_PASSWORD: '/forgot-password',
   RESET_PASSWORD: '/reset-password/:token',
+  PROFILE: '/profile',
   TEAMS: '/teams',
   TEAM: '/team/:id',
   TEAM_LOGS: '/team/:id/logs',

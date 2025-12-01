@@ -4,6 +4,7 @@ export { OnboardingPage } from './OnboardingPage';
 export { InvitePage } from './InvitePage';
 export { ForgotPasswordPage } from './ForgotPasswordPage';
 export { ResetPasswordPage } from './ResetPasswordPage';
+export { ProfilePage } from './ProfilePage';
 export { TeamsPage } from './TeamsPage';
 export { TeamPage } from './TeamPage';
 export { TeamLogsPage } from './TeamLogsPage';

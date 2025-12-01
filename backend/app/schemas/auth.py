@@ -84,6 +84,34 @@ class ResetPasswordInput:
     new_password: str
 
 
+@strawberry.input
+class UpdateProfileInput:
+    """
+    Input type for updating user profile.
+    """
+    username: Optional[str] = None
+    email: Optional[str] = None
+
+
+@strawberry.input
+class ChangePasswordInput:
+    """
+    Input type for changing password.
+    """
+    current_password: str
+    new_password: str
+
+
+@strawberry.type
+class ProfileUpdateResult:
+    """
+    Result type for profile update operations.
+    """
+    success: bool
+    message: str
+    user: Optional[UserType] = None
+
+
 @strawberry.type
 class PasswordResetResult:
     """
@@ -426,6 +454,216 @@ class AuthQuery:
             # Log error but return None (don't expose errors in queries)
             logger.error(f"Error in me query: {type(e).__name__}: {str(e)}")
             return None
+
+
+@strawberry.type
+class ProfileMutation:
+    """
+    GraphQL mutations for profile management.
+    """
+
+    @strawberry.mutation
+    def update_profile(self, input: UpdateProfileInput, info: Info) -> ProfileUpdateResult:
+        """
+        Update user profile (username and/or email).
+        
+        Args:
+            input: Profile update data
+            info: GraphQL info object
+            
+        Returns:
+            ProfileUpdateResult with success status and updated user
+            
+        Raises:
+            AuthenticationError: If user is not authenticated
+        """
+        try:
+            # Get token from context
+            request = info.context.get("request")
+            if not request:
+                raise AuthenticationError()
+            
+            auth_header = request.headers.get("Authorization")
+            if not auth_header or not auth_header.startswith("Bearer "):
+                raise AuthenticationError()
+            
+            token = auth_header.replace("Bearer ", "")
+            payload = decode_access_token(token)
+            
+            if not payload:
+                raise AuthenticationError()
+            
+            public_id = payload.get("sub")
+            if not public_id:
+                raise AuthenticationError()
+            
+            db: Session = next(get_db())
+            try:
+                # Find user by public_id (UUID)
+                user = UserService.get_user_by_public_id(db, public_id)
+                if not user:
+                    raise AuthenticationError()
+                
+                # Check if new email is already taken
+                if input.email and input.email != user.email:
+                    existing = UserService.get_user_by_email(db, input.email)
+                    if existing:
+                        return ProfileUpdateResult(
+                            success=False,
+                            message="This email is already in use.",
+                            user=None
+                        )
+                
+                # Check if new username is already taken
+                if input.username and input.username != user.username:
+                    existing = UserService.get_user_by_username(db, input.username)
+                    if existing:
+                        return ProfileUpdateResult(
+                            success=False,
+                            message="This username is already taken.",
+                            user=None
+                        )
+                
+                # Update profile
+                updated_user = UserService.update_profile(
+                    db=db,
+                    user=user,
+                    username=input.username,
+                    email=input.email
+                )
+                
+                return ProfileUpdateResult(
+                    success=True,
+                    message="Profile updated successfully.",
+                    user=UserType(
+                        id=str(updated_user.public_id),
+                        email=updated_user.email,
+                        username=updated_user.username,
+                        is_active=updated_user.is_active,
+                        is_superuser=updated_user.is_superuser,
+                        onboarding_completed=updated_user.onboarding_completed
+                    )
+                )
+            finally:
+                db.close()
+        except AuthenticationError:
+            raise
+        except (IntegrityError, OperationalError) as e:
+            logger.error(f"Database error in profile update: {type(e).__name__}")
+            return ProfileUpdateResult(
+                success=False,
+                message="Unable to update profile. Please try again.",
+                user=None
+            )
+        except Exception as e:
+            logger.error(f"Error in profile update: {type(e).__name__}")
+            return ProfileUpdateResult(
+                success=False,
+                message="Unable to update profile. Please try again.",
+                user=None
+            )
+
+    @strawberry.mutation
+    def change_password(self, input: ChangePasswordInput, info: Info) -> ProfileUpdateResult:
+        """
+        Change user password.
+        
+        Args:
+            input: Current and new password
+            info: GraphQL info object
+            
+        Returns:
+            ProfileUpdateResult with success status
+            
+        Raises:
+            AuthenticationError: If user is not authenticated
+        """
+        try:
+            # Get token from context
+            request = info.context.get("request")
+            if not request:
+                raise AuthenticationError()
+            
+            auth_header = request.headers.get("Authorization")
+            if not auth_header or not auth_header.startswith("Bearer "):
+                raise AuthenticationError()
+            
+            token = auth_header.replace("Bearer ", "")
+            payload = decode_access_token(token)
+            
+            if not payload:
+                raise AuthenticationError()
+            
+            public_id = payload.get("sub")
+            if not public_id:
+                raise AuthenticationError()
+            
+            # Validate new password
+            if len(input.new_password) < 8:
+                return ProfileUpdateResult(
+                    success=False,
+                    message="Password must be at least 8 characters long.",
+                    user=None
+                )
+            if len(input.new_password) > 72:
+                return ProfileUpdateResult(
+                    success=False,
+                    message="Password must be no more than 72 characters long.",
+                    user=None
+                )
+            
+            db: Session = next(get_db())
+            try:
+                # Find user by public_id (UUID)
+                user = UserService.get_user_by_public_id(db, public_id)
+                if not user:
+                    raise AuthenticationError()
+                
+                # Change password
+                success = UserService.change_password(
+                    db=db,
+                    user=user,
+                    current_password=input.current_password,
+                    new_password=input.new_password
+                )
+                
+                if success:
+                    return ProfileUpdateResult(
+                        success=True,
+                        message="Password changed successfully.",
+                        user=UserType(
+                            id=str(user.public_id),
+                            email=user.email,
+                            username=user.username,
+                            is_active=user.is_active,
+                            is_superuser=user.is_superuser,
+                            onboarding_completed=user.onboarding_completed
+                        )
+                    )
+                else:
+                    return ProfileUpdateResult(
+                        success=False,
+                        message="Current password is incorrect.",
+                        user=None
+                    )
+            finally:
+                db.close()
+        except AuthenticationError:
+            raise
+        except (IntegrityError, OperationalError) as e:
+            logger.error(f"Database error in password change: {type(e).__name__}")
+            return ProfileUpdateResult(
+                success=False,
+                message="Unable to change password. Please try again.",
+                user=None
+            )
+        except Exception as e:
+            logger.error(f"Error in password change: {type(e).__name__}")
+            return ProfileUpdateResult(
+                success=False,
+                message="Unable to change password. Please try again.",
+                user=None
+            )
 
 
 @strawberry.type

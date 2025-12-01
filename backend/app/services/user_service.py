@@ -232,3 +232,62 @@ class UserService:
         logger.info(f"Cleaned up {result} expired password reset tokens")
         return result
 
+    @staticmethod
+    def update_profile(
+        db: Session,
+        user: User,
+        username: Optional[str] = None,
+        email: Optional[str] = None
+    ) -> User:
+        """
+        Update user profile.
+        
+        Args:
+            db: Database session
+            user: User to update
+            username: New username (optional)
+            email: New email (optional)
+            
+        Returns:
+            Updated user object
+        """
+        if username is not None:
+            user.username = username
+        if email is not None:
+            user.email = email
+        
+        db.commit()
+        db.refresh(user)
+        logger.info(f"Profile updated for user {user.email}")
+        return user
+
+    @staticmethod
+    def change_password(
+        db: Session,
+        user: User,
+        current_password: str,
+        new_password: str
+    ) -> bool:
+        """
+        Change user password after verifying current password.
+        
+        Args:
+            db: Database session
+            user: User to update
+            current_password: Current password for verification
+            new_password: New password to set
+            
+        Returns:
+            True if password was changed successfully, False otherwise
+        """
+        if not user.verify_password(current_password):
+            return False
+        
+        new_hash = User.get_password_hash(new_password)
+        db.query(User).filter(User.id == user.id).update(
+            {"hashed_password": new_hash}
+        )
+        db.commit()
+        logger.info(f"Password changed for user {user.email}")
+        return True
+

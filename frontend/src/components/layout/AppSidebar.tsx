@@ -10,6 +10,7 @@ import {
   FolderOpen,
   Users,
   History,
+  User,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -185,6 +186,15 @@ export const AppSidebar: FC = () => {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={() => {
+                      return navigate(PATHS.PROFILE);
+                    }}
+                  >
+                    <User className="mr-2 h-4 w-4" />
+                    Profile
+                  </DropdownMenuItem>
                   <DropdownMenuItem className="cursor-pointer" onClick={toggleTheme}>
                     {theme === "light" ? (
                       <>

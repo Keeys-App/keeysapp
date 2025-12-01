@@ -1,6 +1,16 @@
 import strawberry
 from typing import Optional, List
-from app.schemas.auth import AuthQuery, AuthMutation, OnboardingMutation, UserType, PasswordResetResult
+from app.schemas.auth import (
+    AuthQuery,
+    AuthMutation,
+    OnboardingMutation,
+    ProfileMutation,
+    UserType,
+    PasswordResetResult,
+    ProfileUpdateResult,
+    UpdateProfileInput,
+    ChangePasswordInput,
+)
 from app.schemas.project import ProjectQuery, ProjectMutation, ProjectType
 from app.schemas.team import TeamQuery, TeamMutation, TeamType, InviteInfoType, PendingInviteType
 from app.schemas.project_access import ProjectAccessMutation
@@ -58,6 +68,10 @@ class Mutation:
     request_password_reset: PasswordResetResult = strawberry.field(resolver=AuthMutation.request_password_reset)
     reset_password: PasswordResetResult = strawberry.field(resolver=AuthMutation.reset_password)
     
+    # Include profile mutations
+    update_profile: ProfileUpdateResult = strawberry.field(resolver=ProfileMutation.update_profile)
+    change_password: ProfileUpdateResult = strawberry.field(resolver=ProfileMutation.change_password)
+    
     # Include team mutations
     create_team = strawberry.field(resolver=TeamMutation.create_team)
     update_team = strawberry.field(resolver=TeamMutation.update_team)
@@ -100,4 +114,8 @@ class Mutation:
     ai_suggest_variants = strawberry.field(resolver=AIMutation.ai_suggest_variants)
 
 
-schema = strawberry.Schema(query=Query, mutation=Mutation)
+schema = strawberry.Schema(
+    query=Query,
+    mutation=Mutation,
+    types=[UpdateProfileInput, ChangePasswordInput, ProfileUpdateResult],
+)

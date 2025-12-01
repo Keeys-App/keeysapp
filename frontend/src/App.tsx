@@ -18,6 +18,7 @@ import { ImportPage } from '@/pages/ImportPage';
 import { InvitePage } from '@/pages/InvitePage';
 import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage';
 import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
+import { ProfilePage } from '@/pages/ProfilePage';
 import { PATHS } from '@/constants/paths';
 import { Toaster } from '@/components/ui/sonner';
 
@@ -51,6 +52,7 @@ function App() {
             }
           >
             <Route path={PATHS.DASHBOARD} element={<DashboardPage />} />
+            <Route path={PATHS.PROFILE} element={<ProfilePage />} />
             <Route path={PATHS.TEAMS} element={<TeamsPage />} />
             <Route path={PATHS.TEAM} element={<TeamPage />} />
             <Route path={PATHS.TEAM_LOGS} element={<TeamLogsPage />} />
