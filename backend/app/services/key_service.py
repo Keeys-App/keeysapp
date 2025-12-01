@@ -1,4 +1,4 @@
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Tuple
 from sqlalchemy.orm import Session, joinedload
 import uuid as uuid_lib
 import logging
@@ -7,6 +7,8 @@ from app.models.key import Key, Translation, ReviewStatus
 from app.models.activity_log import ActivityLog, ActionType
 from app.models.project import Project
 from app.services.project_service import ProjectService
+from app.services.ai_service import ai_service
+from app.constants.languages import get_language_name
 
 logger = logging.getLogger(__name__)
 
@@ -158,6 +160,116 @@ class KeyService:
         db.commit()
         db.refresh(new_key)
         return new_key
+
+    @staticmethod
+    async def autopilot_translate(
+        db: Session,
+        key: Key,
+        source_text: str,
+        source_language: str,
+        project: Project,
+        user_id: Optional[int] = None,
+        context: Optional[str] = None
+    ) -> Tuple[int, int, List[str]]:
+        """
+        Automatically translate text to all project languages using AI.
+        
+        Args:
+            db: Database session
+            key: Key object to add translations to
+            source_text: Text to translate (from default language)
+            source_language: Source language code
+            project: Project object with language configuration
+            user_id: User ID for logging
+            context: Optional context for translation (e.g., key description)
+            
+        Returns:
+            Tuple of (success_count, error_count, error_messages)
+        """
+        success_count = 0
+        error_count = 0
+        errors: List[str] = []
+        
+        # Get project languages (excluding source language)
+        project_languages = project.languages or []
+        target_languages = [
+            lang for lang in project_languages 
+            if lang.get('code') != source_language
+        ]
+        
+        if not target_languages:
+            logger.info(f"No target languages for autopilot translation (key_id={key.id})")
+            return (0, 0, [])
+        
+        source_language_name = get_language_name(source_language)
+        
+        for lang_config in target_languages:
+            lang_code = lang_config.get('code')
+            if not lang_code:
+                continue
+                
+            # Check if translation already exists
+            existing = db.query(Translation).filter(
+                Translation.key_id == key.id,
+                Translation.language == lang_code
+            ).first()
+            
+            if existing:
+                logger.debug(f"Translation already exists for {lang_code}, skipping")
+                continue
+            
+            target_language_name = get_language_name(lang_code)
+            
+            try:
+                # Perform AI translation
+                translated_text, reason = await ai_service.translate(
+                    text=source_text,
+                    target_language=target_language_name,
+                    source_language=source_language_name,
+                    context=context
+                )
+                
+                if reason or not translated_text:
+                    error_msg = f"Failed to translate to {lang_code}: {reason or 'Empty result'}"
+                    logger.warning(error_msg)
+                    errors.append(error_msg)
+                    error_count += 1
+                    continue
+                
+                # Create translation
+                translation = Translation(
+                    key_id=key.id,
+                    language=lang_code,
+                    value=translated_text
+                )
+                db.add(translation)
+                
+                # Log translation creation as AI-generated
+                KeyService._create_log(
+                    db=db,
+                    key_id=key.id,
+                    user_id=user_id,
+                    action=ActionType.TRANSLATION_AI_UPDATE,
+                    field_name="translation",
+                    language=lang_code,
+                    new_value=translated_text,
+                    project_id=project.id
+                )
+                
+                success_count += 1
+                logger.info(f"Autopilot translated to {lang_code} for key_id={key.id}")
+                
+            except Exception as e:
+                error_msg = f"Error translating to {lang_code}: {str(e)}"
+                logger.error(error_msg)
+                errors.append(error_msg)
+                error_count += 1
+        
+        if success_count > 0:
+            db.commit()
+            db.refresh(key)
+        
+        return (success_count, error_count, errors)
 
     @staticmethod
     def get_key_by_public_id(db: Session, public_id: str, eager_load_translations: bool = True) -> Optional[Key]:

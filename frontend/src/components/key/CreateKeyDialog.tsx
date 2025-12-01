@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, type FC } from "react";
 import { useMutation, useLazyQuery, gql } from "@apollo/client";
 import { toast } from "sonner";
-import { Info } from "lucide-react";
+import { Info, Sparkles } from "lucide-react";
 import { CREATE_KEY, GET_PROJECT_KEYS, CHECK_KEY_EXISTS } from "@/graphql/keys";
 import { getUserFriendlyErrorMessage } from "@/lib/utils";
 import { useSaving, useSavingStore } from "@/stores";
+import type { LanguageWithLocale } from "@/types/project";
 import {
   Dialog,
   DialogContent,
@@ -38,6 +39,7 @@ interface CreateKeyDialogProps {
   projectId: string;
   defaultLanguage?: string | null;
   availableTags?: string[];
+  projectLanguages?: LanguageWithLocale[];
 }
 
 export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
@@ -46,14 +48,19 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
   projectId,
   defaultLanguage,
   availableTags = [],
+  projectLanguages = [],
 }) => {
   const [key, setKey] = useState("");
   const [description, setDescription] = useState("");
   const [defaultValue, setDefaultValue] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [addAnother, setAddAnother] = useState(false);
+  const [autopilot, setAutopilot] = useState(false);
   const [isDuplicate, setIsDuplicate] = useState(false);
   const [lastCheckedKey, setLastCheckedKey] = useState<string>("");
+  
+  // Check if autopilot should be shown (more than 1 language in project)
+  const showAutopilot = projectLanguages.length > 1 && !!defaultLanguage;
   
   // Track the last processed mutation result to avoid duplicate toasts
   const lastProcessedDataRef = useRef<any>(null);
@@ -238,6 +245,9 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
       ? { [defaultLanguage]: defaultValue.trim() }
       : undefined;
 
+    // Determine if autopilot should run (only if there's a default value and autopilot is enabled)
+    const shouldRunAutopilot = !!(autopilot && translations && showAutopilot);
+    
     await withSaving(
       async () => {
         await createKey({
@@ -248,11 +258,12 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
               description: description.trim() || undefined,
               tags: tags.length > 0 ? tags : undefined,
               translations,
+              autopilot: shouldRunAutopilot,
             },
           },
         });
       },
-      "Creating key..."
+      shouldRunAutopilot ? "Creating key and translating..." : "Creating key..."
     );
   };
 
@@ -266,7 +277,7 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <Tabs defaultValue="key" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="key">Key</TabsTrigger>
@@ -340,36 +351,73 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
             </TabsContent>
           </Tabs>
 
-          <DialogFooter className="flex-row items-center justify-between sm:justify-between">
-            {/* Add Another Key */}
-            <div className="flex items-center gap-2 mr-auto">
-              <Checkbox
-                id="add-another"
-                checked={addAnother}
-                onCheckedChange={(checked) => {
-                  return setAddAnother(checked === true);
-                }}
-                disabled={isSaving}
-              />
-              <label
-                htmlFor="add-another"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-              >
-                Add another key
-              </label>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Keep the dialog open to add multiple keys in a row</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+          <DialogFooter className="flex-col gap-3 sm:flex-col">
+            {/* Options row */}
+            <div className="flex items-center justify-between w-full gap-4">
+              {/* Autopilot checkbox */}
+              {showAutopilot ? (
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="autopilot"
+                    checked={autopilot}
+                    onCheckedChange={(checked) => {
+                      return setAutopilot(checked === true);
+                    }}
+                    disabled={isSaving || !defaultValue.trim()}
+                  />
+                  <label
+                    htmlFor="autopilot"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Sparkles className="h-3.5 w-3.5 text-primary" />
+                    Autopilot
+                  </label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p>Automatically translate to all project languages using AI when default value is provided</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+              ) : (
+                <div />
+              )}
+
+              {/* Add Another Key */}
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="add-another"
+                  checked={addAnother}
+                  onCheckedChange={(checked) => {
+                    return setAddAnother(checked === true);
+                  }}
+                  disabled={isSaving}
+                />
+                <label
+                  htmlFor="add-another"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                >
+                  Add another key
+                </label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Keep the dialog open to add multiple keys in a row</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
             </div>
 
-            <div className="flex gap-2">
+            {/* Buttons row */}
+            <div className="flex gap-2 mt-2 justify-end w-full">
               <Button
                 type="button"
                 variant="outline"

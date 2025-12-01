@@ -189,6 +189,7 @@ export const ProjectKeysPage: FC = () => {
         projectId={project.id}
         defaultLanguage={project.defaultLanguage}
         availableTags={project.availableTags || []}
+        projectLanguages={projectLanguages}
       />
     </div>
   );

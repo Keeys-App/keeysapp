@@ -178,6 +178,7 @@ class CreateKeyInput:
     description: Optional[str] = None
     tags: Optional[List[str]] = None
     translations: Optional[strawberry.scalars.JSON] = None  # Dict[str, str]
+    autopilot: Optional[bool] = False  # Auto-translate to all languages using AI
 
 
 @strawberry.input
@@ -652,9 +653,9 @@ class KeyMutation:
     """
 
     @strawberry.mutation
-    def create_key(self, input: CreateKeyInput, info: Info) -> Optional[KeyType]:
+    async def create_key(self, input: CreateKeyInput, info: Info) -> Optional[KeyType]:
         """
-        Create a new key.
+        Create a new key with optional AI autopilot translation.
         
         Args:
             input: Key creation input
@@ -674,6 +675,7 @@ class KeyMutation:
         db: Session = next(get_db())
         
         try:
+            # Create the key first
             key = KeyService.create_key(
                 db=db,
                 project_public_id=input.project_id,
@@ -686,6 +688,39 @@ class KeyMutation:
             
             if not key:
                 return None
+            
+            # Run autopilot translation if enabled and default translation provided
+            autopilot_enabled = input.autopilot if input.autopilot is not None else False
+            
+            if autopilot_enabled and input.translations:
+                # Get project for autopilot
+                from app.services.project_service import ProjectService
+                project = ProjectService.get_project_by_public_id(db, input.project_id)
+                
+                if project and project.default_language:
+                    default_lang = project.default_language
+                    default_value = input.translations.get(default_lang)
+                    
+                    if default_value:
+                        # Run autopilot translation
+                        success, errors, error_msgs = await KeyService.autopilot_translate(
+                            db=db,
+                            key=key,
+                            source_text=default_value,
+                            source_language=default_lang,
+                            project=project,
+                            user_id=current_user_id,
+                            context=input.description
+                        )
+                        
+                        if errors > 0:
+                            logger.warning(
+                                f"Autopilot translation had {errors} errors for key {key.key}: "
+                                f"{error_msgs}"
+                            )
+                        
+                        # Refresh key to include new translations
+                        db.refresh(key)
             
             return build_key_type(key)
         except (UnauthorizedError, AuthenticationError):
