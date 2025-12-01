@@ -5,6 +5,9 @@ alwaysApply: true
 
 # Project Standards & Best Practices
 
+# Never start stop or restart SERVER. 
+It is running continuously and autorestars and starts by the user.
+
 ## UI
 
 - Always use Shadcn
@@ -336,3 +339,46 @@ navigate(PATHS.TEAM_EDIT.replace(':id', teamId));**Преимущества:**
 - Централизованное управление путями
 - Легко найти все использования маршрута
 - Предотвращение опечаток
+
+
+## Async SQLAlchemy
+
+**Проект полностью на асинхронном SQLAlchemy 2.0. Все запросы к БД ДОЛЖНЫ быть async.**
+
+### Ключевые правила:
+
+- Все сервисы: `async def method(db: AsyncSession, ...)` 
+- Все резолверы: `async def resolver(self, info: Info)`
+- Database dependency: `async with async_get_db() as db:`
+- get_current_user_id: ВСЕГДА `await get_current_user_id(info)`
+
+### Паттерны:
+
+**Query:**
+# SELECT
+result = await db.execute(select(User).where(User.email == email))
+user = result.scalar_one_or_none()  # или .scalars().all()
+
+# UPDATE
+await db.execute(update(User).where(User.id == id).values(email=new_email))
+
+# DELETE
+db.delete(entity)  # БЕЗ await
+
+# COMMIT/FLUSH/REFRESH
+await db.commit()
+await db.flush()
+await db.refresh(entity)
+
+# COUNT
+result = await db.execute(select(func.count(Key.id)).where(...))
+total = result.scalar() or 0**Imports:**
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, update, delete, func
+from app.database import async_get_db❌ НЕ используй: `Session`, `db.query()`, `get_db()`, `SessionLocal`, `next(get_db())`
+
+# Imports
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, update, delete, func
+from app.database import async_get_db
+❌ НЕ используй: Session, db.query(), get_db(), SessionLocal, next(get_db())
