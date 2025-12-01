@@ -5,10 +5,11 @@ import { useQuery } from '@apollo/client';
 import { Button } from '@/components/ui/button';
 import { TeamCard } from '@/components/team/TeamCard';
 import { EmptyTeams } from '@/components/team/EmptyTeams';
+import { PendingInvitationsList } from '@/components/team/PendingInvitationsList';
 import { Spinner } from '@/components/ui/spinner';
 import { useBreadcrumbs } from '@/contexts/BreadcrumbContext';
-import { GET_TEAMS } from '@/graphql/teams';
-import type { GetTeamsResponse } from '@/graphql/teams';
+import { GET_TEAMS, MY_PENDING_INVITES_QUERY } from '@/graphql/teams';
+import type { GetTeamsResponse, MyPendingInvitesResponse } from '@/graphql/teams';
 import { PATHS } from '@/constants/paths';
 
 export const TeamsPage: FC = () => {
@@ -19,12 +20,18 @@ export const TeamsPage: FC = () => {
     nextFetchPolicy: 'cache-first',
   });
 
+  const { data: pendingData, loading: pendingLoading } =
+    useQuery<MyPendingInvitesResponse>(MY_PENDING_INVITES_QUERY, {
+      fetchPolicy: 'cache-and-network',
+      nextFetchPolicy: 'cache-first',
+    });
+
   useEffect(() => {
     setBreadcrumbs([{ label: 'Teams' }]);
   }, [setBreadcrumbs]);
 
   // Only show spinner if loading AND no data from cache
-  if (loading && !data) {
+  if ((loading && !data) || (pendingLoading && !pendingData)) {
     return (
       <div className="flex h-full items-center justify-center">
         <Spinner className="h-8 w-8" />
@@ -41,9 +48,10 @@ export const TeamsPage: FC = () => {
   }
 
   const teams = data?.teams || [];
+  const pendingInvitations = pendingData?.myPendingInvites || [];
 
-  // Show empty state when no teams exist
-  if (teams.length === 0) {
+  // Show empty state only when no teams AND no pending invitations
+  if (teams.length === 0 && pendingInvitations.length === 0) {
     return (
       <EmptyTeams
         onCreateTeam={() => {
@@ -70,11 +78,17 @@ export const TeamsPage: FC = () => {
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {teams.map((team) => {
-          return <TeamCard key={team.id} team={team} />;
-        })}
-      </div>
+      {/* Pending invitations section */}
+      <PendingInvitationsList />
+
+      {/* Teams section */}
+      {teams.length > 0 ? (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {teams.map((team) => {
+            return <TeamCard key={team.id} team={team} />;
+          })}
+        </div>
+      ) : null}
     </div>
   );
 };

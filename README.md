@@ -17,7 +17,7 @@
 # macOS (Homebrew)
 brew services start postgresql@14
 
-# или если установлен Postgres.app
+# или если установлен Postgres.appas
 # просто запустите приложение Postgres.app
 ```
 
