@@ -400,7 +400,7 @@ export const KeyAi: FC<KeyAiProps> = ({
     // Insert text into the editor
     editorRef.insertText(text);
 
-    toast("Suggestion inserted into editor");
+    toast("Suggestion applied");
   };
 
   const handleEditContext = (widgetId: string) => {
