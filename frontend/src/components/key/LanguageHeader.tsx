@@ -28,10 +28,13 @@ export const LanguageHeader = memo(function LanguageHeader({
   const translationValue = translation?.value || "";
   const hasTranslation = translationValue.trim() !== "";
 
+  // Check if this is the default language
+  const isDefault = "default" in language && language.default === true;
+
   return (
     <div className="border-r -mr-px p-2 grid grid-rows-[auto_1fr] gap-1 relative">
       <div className="text-sm flex items-center gap-1.5">
-        <span>{language.name}</span>
+        <span className={cn(isDefault && "font-semibold")}>{language.name}</span>
       </div>
       <div className="flex items-end justify-between">
         <div className="text-muted-foreground text-xs">
