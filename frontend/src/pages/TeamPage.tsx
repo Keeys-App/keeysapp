@@ -106,7 +106,9 @@ export const TeamPage: FC = () => {
               <div>
                 <CardTitle>Team Members</CardTitle>
                 <CardDescription>
-                  Manage who has access to this team
+                  {team.canManage
+                    ? 'Manage who has access to this team'
+                    : 'View team members and their roles'}
                 </CardDescription>
               </div>
               {team.canManage ? (

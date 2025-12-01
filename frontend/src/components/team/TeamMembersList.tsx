@@ -163,7 +163,9 @@ export const TeamMembersList: FC<TeamMembersListProps> = ({ team }) => {
             <TableHead>User</TableHead>
             <TableHead>Role</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead className="w-[100px]">Actions</TableHead>
+            {team.canManage ? (
+              <TableHead className="w-[100px]">Actions</TableHead>
+            ) : null}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -197,7 +199,7 @@ export const TeamMembersList: FC<TeamMembersListProps> = ({ team }) => {
                       Active
                     </Badge>
                   </TableCell>
-                  <TableCell></TableCell>
+                  {team.canManage ? <TableCell></TableCell> : null}
                 </TableRow>
               );
             }
@@ -225,8 +227,8 @@ export const TeamMembersList: FC<TeamMembersListProps> = ({ team }) => {
                       Pending Invite
                     </Badge>
                   </TableCell>
-                  <TableCell>
-                    {team.canManage ? (
+                  {team.canManage ? (
+                    <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm" disabled={isSaving}>
@@ -255,8 +257,8 @@ export const TeamMembersList: FC<TeamMembersListProps> = ({ team }) => {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    ) : null}
-                  </TableCell>
+                    </TableCell>
+                  ) : null}
                 </TableRow>
               );
             }
@@ -289,8 +291,8 @@ export const TeamMembersList: FC<TeamMembersListProps> = ({ team }) => {
                     Active
                   </Badge>
                 </TableCell>
-                <TableCell>
-                  {team.canManage ? (
+                {team.canManage && !isCurrentUser ? (
+                  <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="sm" disabled={isSaving}>
@@ -332,8 +334,9 @@ export const TeamMembersList: FC<TeamMembersListProps> = ({ team }) => {
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  ) : null}
-                </TableCell>
+                  </TableCell>
+                ) : null}
+                {team.canManage && isCurrentUser ? <TableCell></TableCell> : null}
               </TableRow>
             );
           })}
