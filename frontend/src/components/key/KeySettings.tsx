@@ -108,7 +108,7 @@ export const KeySettings: FC<KeySettingsProps> = ({
         onCheckedChange={handlePluralChange}
         disabled={isSaving}
         title="Plural key"
-        description='Enable plural forms for this key (e.g., "1 item" vs "5 items")'
+        description='Enable plural forms for this key'
       />
 
       {/* Danger Zone */}
