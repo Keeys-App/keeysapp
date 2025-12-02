@@ -1,4 +1,4 @@
-import { type FC, useState, useEffect, useCallback } from "react";
+import { type FC, useState, useEffect, useCallback, useMemo } from "react";
 import { useMutation } from "@apollo/client";
 import { AutopilotCard, AutopilotActions } from "./AutopilotCard";
 import {
@@ -23,6 +23,27 @@ import { useSaving, useSavingStore } from "@/stores";
 import { useTranslationEditor } from "@/contexts";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
+
+type PluralForm = "zero" | "one" | "two" | "few" | "many" | "other";
+type PluralValue = Partial<Record<PluralForm, string>>;
+
+/**
+ * Parse plural value from JSON string to object
+ */
+const parsePluralValue = (value: string): PluralValue => {
+  if (!value) {
+    return {};
+  }
+  try {
+    const parsed = JSON.parse(value);
+    if (typeof parsed === "object" && parsed !== null) {
+      return parsed as PluralValue;
+    }
+    return {};
+  } catch {
+    return {};
+  }
+};
 
 type WidgetType = "suggestion" | "context" | "context-edit" | "variants";
 
@@ -87,7 +108,30 @@ export const KeyAi: FC<KeyAiProps> = ({
 }) => {
   const withSaving = useSaving();
   const { isSaving } = useSavingStore();
-  const { editorRef } = useTranslationEditor();
+  const { editorRef, editingPluralForm } = useTranslationEditor();
+  
+  // For plural keys, parse values to get form-specific text
+  const isPlural = currentKey?.isPlural ?? false;
+  
+  // Get the actual text to translate/work with
+  const { sourceText, currentText } = useMemo(() => {
+    if (!isPlural || !editingPluralForm) {
+      // Non-plural key - use values as-is
+      return {
+        sourceText: defaultLanguageValue || "",
+        currentText: currentLanguageValue || "",
+      };
+    }
+    
+    // Plural key - extract text for the specific form
+    const defaultPluralValue = parsePluralValue(defaultLanguageValue || "");
+    const currentPluralValue = parsePluralValue(currentLanguageValue || "");
+    
+    return {
+      sourceText: defaultPluralValue[editingPluralForm] || "",
+      currentText: currentPluralValue[editingPluralForm] || "",
+    };
+  }, [isPlural, editingPluralForm, defaultLanguageValue, currentLanguageValue]);
 
   // Unified state for all widgets
   const [widgets, setWidgets] = useState<Widget[]>([]);
@@ -134,10 +178,10 @@ export const KeyAi: FC<KeyAiProps> = ({
     );
   }, []);
 
-  // Clear widgets when language changes
+  // Clear widgets when language or plural form changes
   useEffect(() => {
     setWidgets([]);
-  }, [currentLanguage?.code, currentLanguageValue]);
+  }, [currentLanguage?.code, currentLanguageValue, editingPluralForm]);
 
   // Auto-populate context from key description when key changes
   useEffect(() => {
@@ -149,20 +193,39 @@ export const KeyAi: FC<KeyAiProps> = ({
   }, [currentKey?.id]);
 
   const handleTranslate = async () => {
-    if (!defaultLanguageValue || !currentLanguage || !defaultLanguage) {
+    if (!sourceText || !currentLanguage || !defaultLanguage) {
       return;
     }
 
     await withSaving(async () => {
       try {
         setIsGenerating(true);
+        
+        // Build context for plural forms
+        let translationContext = customContext || "";
+        
+        if (isPlural && editingPluralForm) {
+          const pluralContext = [
+            `PLURAL FORM TRANSLATION:`,
+            `You are translating the "${editingPluralForm}" plural form for ${currentLanguage.name}.`,
+            `The full original plural object is: ${defaultLanguageValue}`,
+            `You must translate ONLY the text for the "${editingPluralForm}" form.`,
+            `Return ONLY the translated text, NOT a JSON object.`,
+            `The "${editingPluralForm}" form in ${currentLanguage.name} is used for specific quantities - translate accordingly.`,
+          ].join("\n");
+          
+          translationContext = translationContext 
+            ? `${translationContext}\n\n${pluralContext}`
+            : pluralContext;
+        }
+        
         const result = await translateMutation({
           variables: {
             input: {
-              text: defaultLanguageValue,
+              text: sourceText,
               targetLanguage: currentLanguage.name,
               sourceLanguage: defaultLanguage.name,
-              context: customContext || undefined,
+              context: translationContext || undefined,
             },
           },
         });
@@ -199,19 +262,35 @@ export const KeyAi: FC<KeyAiProps> = ({
   };
 
   const handleRephrase = async () => {
-    if (!currentLanguageValue || !currentLanguage) {
+    if (!currentText || !currentLanguage) {
       return;
     }
 
     await withSaving(async () => {
       try {
         setIsGenerating(true);
+        
+        // Build context for plural forms
+        let rephraseContext = customContext || "";
+        
+        if (isPlural && editingPluralForm) {
+          const pluralContext = [
+            `PLURAL FORM REPHRASING:`,
+            `You are rephrasing the "${editingPluralForm}" plural form in ${currentLanguage.name}.`,
+            `Return ONLY the rephrased text, NOT a JSON object.`,
+          ].join("\n");
+          
+          rephraseContext = rephraseContext 
+            ? `${rephraseContext}\n\n${pluralContext}`
+            : pluralContext;
+        }
+        
         const result = await rephraseMutation({
           variables: {
             input: {
-              text: currentLanguageValue,
+              text: currentText,
               language: currentLanguage.name,
-              context: customContext || undefined,
+              context: rephraseContext || undefined,
             },
           },
         });
@@ -248,19 +327,35 @@ export const KeyAi: FC<KeyAiProps> = ({
   };
 
   const handleShorten = async () => {
-    if (!currentLanguageValue || !currentLanguage) {
+    if (!currentText || !currentLanguage) {
       return;
     }
 
     await withSaving(async () => {
       try {
         setIsGenerating(true);
+        
+        // Build context for plural forms
+        let shortenContext = customContext || "";
+        
+        if (isPlural && editingPluralForm) {
+          const pluralContext = [
+            `PLURAL FORM SHORTENING:`,
+            `You are shortening the "${editingPluralForm}" plural form in ${currentLanguage.name}.`,
+            `Return ONLY the shortened text, NOT a JSON object.`,
+          ].join("\n");
+          
+          shortenContext = shortenContext 
+            ? `${shortenContext}\n\n${pluralContext}`
+            : pluralContext;
+        }
+        
         const result = await shortenMutation({
           variables: {
             input: {
-              text: currentLanguageValue,
+              text: currentText,
               language: currentLanguage.name,
-              context: customContext || undefined,
+              context: shortenContext || undefined,
             },
           },
         });
@@ -297,19 +392,35 @@ export const KeyAi: FC<KeyAiProps> = ({
   };
 
   const handleSuggestVariants = async () => {
-    if (!currentLanguageValue || !currentLanguage) {
+    if (!currentText || !currentLanguage) {
       return;
     }
 
     await withSaving(async () => {
       try {
         setIsGenerating(true);
+        
+        // Build context for plural forms
+        let variantsContext = customContext || "";
+        
+        if (isPlural && editingPluralForm) {
+          const pluralContext = [
+            `PLURAL FORM VARIANTS:`,
+            `You are generating variants for the "${editingPluralForm}" plural form in ${currentLanguage.name}.`,
+            `Return ONLY text variants, NOT JSON objects.`,
+          ].join("\n");
+          
+          variantsContext = variantsContext 
+            ? `${variantsContext}\n\n${pluralContext}`
+            : pluralContext;
+        }
+        
         const result = await variantsMutation({
           variables: {
             input: {
-              text: currentLanguageValue,
+              text: currentText,
               language: currentLanguage.name,
-              context: customContext || undefined,
+              context: variantsContext || undefined,
               count: 3,
             },
           },
@@ -466,6 +577,9 @@ export const KeyAi: FC<KeyAiProps> = ({
 
   let card: React.ReactNode | null = null;
 
+  // For plural keys, require a specific form to be selected
+  const isPluralWithoutForm = isPlural && !editingPluralForm;
+  
   // If no language is being edited, show disabled state
   if (!currentLanguage) {
     card = (
@@ -475,7 +589,16 @@ export const KeyAi: FC<KeyAiProps> = ({
         description="Start editing any translation field to see suggestions."
       />
     );
-  } else if (currentLanguageValue) {
+  } else if (isPluralWithoutForm) {
+    // Plural key but no form selected
+    card = (
+      <AutopilotCard
+        isDisabled
+        title="Tip"
+        description="Click on a plural form to edit and get AI suggestions."
+      />
+    );
+  } else if (currentText) {
     // If translation exists, show enhancement actions
     const enhancementActions = [
       AutopilotActions.rephrase(handleRephrase),
@@ -487,38 +610,43 @@ export const KeyAi: FC<KeyAiProps> = ({
     // Add Translate button if not default language and default value exists
     if (
       currentLanguage?.code !== defaultLanguage?.code &&
-      defaultLanguageValue
+      sourceText
     ) {
       enhancementActions.unshift(AutopilotActions.translate(handleTranslate));
     }
 
-    const idDefaultLanguage = currentLanguage?.code === defaultLanguage?.code;
+    const isDefaultLanguage = currentLanguage?.code === defaultLanguage?.code;
 
     card = (
       <AutopilotCard
-        title="Suggestions"
+        title={isPlural && editingPluralForm ? `Suggestions (${editingPluralForm})` : "Suggestions"}
         isPending={isGenerating}
         description={
-          idDefaultLanguage ? (
+          isDefaultLanguage ? (
             <>
-              Improve or rewrite the <LanguageMark language={currentLanguage} /> text.
+              Improve or rewrite the <LanguageMark language={currentLanguage} /> text
+              {isPlural && editingPluralForm ? ` for "${editingPluralForm}" form` : ""}.
             </>
           ) : (
             <>
               Improve or rewrite the <LanguageMark language={currentLanguage} />{" "}
-              translation.
+              translation{isPlural && editingPluralForm ? ` for "${editingPluralForm}" form` : ""}.
             </>
           )
         }
         actions={enhancementActions}
       />
     );
-  } else if (!defaultLanguageValue) {
+  } else if (!sourceText) {
     // No default value to translate from
     card = (
       <AutopilotCard
         isDisabled
-        description="Add a translation in the default language first to enable suggestions."
+        description={
+          isPlural && editingPluralForm
+            ? `Add a translation for "${editingPluralForm}" form in the default language first.`
+            : "Add a translation in the default language first to enable suggestions."
+        }
       />
     );
   } else {
@@ -526,11 +654,13 @@ export const KeyAi: FC<KeyAiProps> = ({
     card = (
       <AutopilotCard
         isPending={isGenerating}
+        title={isPlural && editingPluralForm ? `Translate (${editingPluralForm})` : undefined}
         description={
           <>
             Create a{" "}
             <LanguageMark language={currentLanguage} />{" "}
-            translation using the default{" "}
+            translation{isPlural && editingPluralForm ? ` for "${editingPluralForm}" form` : ""}{" "}
+            using the default{" "}
             <LanguageMark language={defaultLanguage} />{" "}
             as the source.
           </>

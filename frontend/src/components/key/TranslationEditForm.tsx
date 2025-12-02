@@ -251,7 +251,7 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
             </Popover>
           ) : null}
 
-          <Badge variant="outline">{value.length}</Badge>
+          <Badge variant="outline" className="font-mono">{value.length}</Badge>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

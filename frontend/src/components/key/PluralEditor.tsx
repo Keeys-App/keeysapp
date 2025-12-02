@@ -5,6 +5,7 @@ import { Badge } from "../ui";
 import { TranslationTextEditor } from "./TranslationTextEditor";
 import { Button } from "@/components/ui/button";
 import { useSavingStore } from "@/stores";
+import { useTranslationEditor } from "@/contexts";
 
 type PluralForm = "zero" | "one" | "two" | "few" | "many" | "other";
 type PluralValue = Partial<Record<PluralForm, string>>;
@@ -174,7 +175,7 @@ const PluralFormEditor: FC<PluralFormEditorProps> = ({
             </Button>
           </div>
           <div className="flex gap-2 items-center">
-            <Badge variant="outline">{value.length}</Badge>
+            <Badge variant="outline" className="font-mono">{value.length}</Badge>
           </div>
         </div>
       </div>
@@ -228,8 +229,15 @@ export const PluralEditor: FC<PluralEditorProps> = ({
   onEditorReady,
 }) => {
   // Track which specific form is being edited
-  const [editingForm, setEditingForm] = useState<PluralForm | null>(null);
+  const [editingForm, setEditingFormState] = useState<PluralForm | null>(null);
   const onEditorReadyRef = useRef(onEditorReady);
+  const { setEditingPluralForm } = useTranslationEditor();
+
+  // Wrapper to sync local state with context
+  const setEditingForm = useCallback((form: PluralForm | null) => {
+    setEditingFormState(form);
+    setEditingPluralForm(form);
+  }, [setEditingPluralForm]);
 
   // Update ref when callback changes
   useEffect(() => {
@@ -241,7 +249,14 @@ export const PluralEditor: FC<PluralEditorProps> = ({
     if (!isEditing && editingForm !== null) {
       setEditingForm(null);
     }
-  }, [isEditing, editingForm]);
+  }, [isEditing, editingForm, setEditingForm]);
+  
+  // Clear plural form in context on unmount
+  useEffect(() => {
+    return () => {
+      setEditingPluralForm(null);
+    };
+  }, [setEditingPluralForm]);
 
   // Parse current value as plural object
   const pluralValue = useMemo(() => parsePluralValue(value), [value]);
