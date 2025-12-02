@@ -181,6 +181,7 @@ export const ProjectKeysPage: FC = () => {
             currentLanguageValue={currentTranslation?.value}
             defaultLanguage={defaultLanguage}
             defaultLanguageValue={defaultTranslation?.value}
+            projectLanguages={projectLanguages}
           />
         ) : null}
       </div>

@@ -131,7 +131,13 @@ class AIService:
 
             # Parse JSON response
             response_text = response.choices[0].message.content.strip()
-            response_data = json.loads(response_text)
+            logger.debug(f"AI translate response: {response_text[:500]}")
+            
+            try:
+                response_data = json.loads(response_text)
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse AI response as JSON. Response: {response_text[:300]}")
+                raise e
             
             if not response_data.get("success", False):
                 reason = response_data.get("reason", "Unable to process this text")
@@ -147,6 +153,8 @@ class AIService:
 
         except OpenAIError as e:
             logger.error(f"OpenAI API error: {str(e)}")
+            raise Exception("Translation failed. Please try again.")
+        except json.JSONDecodeError:
             raise Exception("Translation failed. Please try again.")
         except Exception as e:
             logger.error(f"Translation error: {type(e).__name__}: {str(e)}")

@@ -18,11 +18,13 @@ import {
   type AiShortenData,
   type AiSuggestVariantsData,
 } from "@/graphql/ai";
+import { SET_TRANSLATION, GET_KEY } from "@/graphql/keys";
 import { toast } from "sonner";
 import { useSaving, useSavingStore } from "@/stores";
 import { useTranslationEditor } from "@/contexts";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
+import { Sparkles } from "lucide-react";
 
 type PluralForm = "zero" | "one" | "two" | "few" | "many" | "other";
 type PluralValue = Partial<Record<PluralForm, string>>;
@@ -92,6 +94,8 @@ interface KeyAiProps {
   currentLanguageValue?: string;
   defaultLanguage?: Language | null;
   defaultLanguageValue?: string;
+  /** All project languages for autotranslate feature */
+  projectLanguages?: Language[];
 }
 
 /**
@@ -105,10 +109,12 @@ export const KeyAi: FC<KeyAiProps> = ({
   currentLanguageValue,
   defaultLanguage,
   defaultLanguageValue,
+  projectLanguages = [],
 }) => {
   const withSaving = useSaving();
   const { isSaving } = useSavingStore();
   const { editorRef, editingPluralForm } = useTranslationEditor();
+  const [isAutotranslating, setIsAutotranslating] = useState(false);
   
   // For plural keys, parse values to get form-specific text
   const isPlural = currentKey?.isPlural ?? false;
@@ -162,6 +168,156 @@ export const KeyAi: FC<KeyAiProps> = ({
   const [shortenMutation] = useMutation<AiShortenData>(AI_SHORTEN);
   const [variantsMutation] =
     useMutation<AiSuggestVariantsData>(AI_SUGGEST_VARIANTS);
+
+  // Calculate empty languages (languages without translations)
+  const emptyLanguages = useMemo(() => {
+    if (!currentKey || !defaultLanguage || !defaultLanguageValue) {
+      return [];
+    }
+    
+    const existingTranslations = new Set(
+      currentKey.translations
+        .filter((t) => t.value && t.value.trim() !== "")
+        .map((t) => t.language)
+    );
+    
+    return projectLanguages.filter(
+      (lang) => !lang.default && !existingTranslations.has(lang.code)
+    );
+  }, [currentKey, defaultLanguage, defaultLanguageValue, projectLanguages]);
+
+  // Mutation for saving translations
+  const [setTranslation] = useMutation(SET_TRANSLATION, {
+    refetchQueries: currentKey ? [{ query: GET_KEY, variables: { id: currentKey.id } }] : [],
+  });
+
+  // Autotranslate all empty languages
+  const handleAutotranslateAll = async () => {
+    if (!currentKey || !defaultLanguage || !defaultLanguageValue || emptyLanguages.length === 0) {
+      return;
+    }
+
+    setIsAutotranslating(true);
+    let successCount = 0;
+    let errorCount = 0;
+
+    try {
+      for (const lang of emptyLanguages) {
+        try {
+          let translatedValue: string;
+
+          if (isPlural) {
+            // For plural keys, translate each form separately
+            const sourcePluralValue = parsePluralValue(defaultLanguageValue);
+            const translatedPluralValue: PluralValue = {};
+
+            // Plural form explanations
+            const pluralFormExplanations: Record<PluralForm, string> = {
+              zero: "for count = 0",
+              one: "for count = 1 (singular)",
+              two: "for count = 2 (dual)",
+              few: "for count = 2-4 (e.g. '2 задачи' in Russian)",
+              many: "for count = 5-20 (e.g. '5 задач' in Russian)",
+              other: "for other counts (default form)",
+            };
+
+            // Translate each plural form for this language
+            for (const form of lang.pluralForms) {
+              try {
+                // Find best source text for this form
+                const sourceFormText = sourcePluralValue[form] 
+                  || sourcePluralValue.other 
+                  || sourcePluralValue.one 
+                  || Object.values(sourcePluralValue)[0] 
+                  || "";
+
+                if (!sourceFormText) {
+                  continue;
+                }
+
+                // Context with plural form explanation
+                const formContext = [
+                  `Translate for "${form}" plural form (${pluralFormExplanations[form]}).`,
+                  `Adapt the noun/verb endings for this specific plural form in ${lang.name}.`,
+                  `Keep all {variables} unchanged.`,
+                ].join(" ");
+
+                const result = await translateMutation({
+                  variables: {
+                    input: {
+                      text: sourceFormText,
+                      targetLanguage: lang.name,
+                      sourceLanguage: defaultLanguage.name,
+                      context: formContext,
+                    },
+                  },
+                });
+
+                if (result.data?.aiTranslate.success && result.data.aiTranslate.text) {
+                  translatedPluralValue[form] = result.data.aiTranslate.text;
+                }
+              } catch (formError) {
+                // Log but continue with other forms
+                console.error(`Failed to translate ${form} form for ${lang.name}:`, formError);
+              }
+            }
+
+            // Serialize plural value to JSON
+            const filtered = Object.fromEntries(
+              Object.entries(translatedPluralValue).filter(([, v]) => v !== "")
+            );
+            translatedValue = Object.keys(filtered).length > 0 ? JSON.stringify(filtered) : "";
+          } else {
+            // For regular keys, translate directly
+            const result = await translateMutation({
+              variables: {
+                input: {
+                  text: defaultLanguageValue,
+                  targetLanguage: lang.name,
+                  sourceLanguage: defaultLanguage.name,
+                  context: customContext || currentKey.description || undefined,
+                },
+              },
+            });
+
+            if (result.data?.aiTranslate.success && result.data.aiTranslate.text) {
+              translatedValue = result.data.aiTranslate.text;
+            } else {
+              errorCount++;
+              continue;
+            }
+          }
+
+          if (translatedValue) {
+            // Save the translation
+            await setTranslation({
+              variables: {
+                input: {
+                  keyId: currentKey.id,
+                  value: translatedValue,
+                  language: lang.code,
+                },
+              },
+            });
+            successCount++;
+          } else {
+            errorCount++;
+          }
+        } catch {
+          errorCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        toast(`Translated to ${successCount} language${successCount > 1 ? "s" : ""}`);
+      }
+      if (errorCount > 0) {
+        toast(`Failed to translate ${errorCount} language${errorCount > 1 ? "s" : ""}`);
+      }
+    } finally {
+      setIsAutotranslating(false);
+    }
+  };
 
   // Widget management functions
   const addWidget = useCallback((widget: Widget) => {
@@ -642,15 +798,38 @@ export const KeyAi: FC<KeyAiProps> = ({
   // For plural keys, require a specific form to be selected
   const isPluralWithoutForm = isPlural && !editingPluralForm;
   
-  // If no language is being edited, show disabled state
+  // If no language is being edited, show autotranslate option or tip
   if (!currentLanguage) {
-    card = (
-      <AutopilotCard
-        isDisabled
-        title="Tip"
-        description="Start editing any translation field to see suggestions."
-      />
-    );
+    if (emptyLanguages.length > 0 && defaultLanguageValue) {
+      // Show autotranslate button when there are empty languages
+      card = (
+        <AutopilotCard
+          isPending={isAutotranslating}
+          title="Autotranslate"
+          description={
+            <>
+              Translate to {emptyLanguages.length} empty language{emptyLanguages.length > 1 ? "s" : ""} using AI.
+            </>
+          }
+          actions={[
+            {
+              label: `Translate all (${emptyLanguages.length})`,
+              icon: Sparkles,
+              onClick: handleAutotranslateAll,
+              variant: "default",
+            },
+          ]}
+        />
+      );
+    } else {
+      card = (
+        <AutopilotCard
+          isDisabled
+          title="Tip"
+          description="Start editing any translation field to see suggestions."
+        />
+      );
+    }
   } else if (isPluralWithoutForm) {
     // Plural key but no form selected
     card = (
