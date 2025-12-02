@@ -25,10 +25,12 @@ interface KeyListProps {
     keyId: string;
     language: string;
   } | null;
-  onEditingTranslationChange?: (translation: {
-    keyId: string;
-    language: string;
-  } | null) => void;
+  onEditingTranslationChange?: (
+    translation: {
+      keyId: string;
+      language: string;
+    } | null
+  ) => void;
 }
 
 const PAGE_SIZE = 20;
@@ -52,20 +54,20 @@ export function KeyList({
   const previousTotalCountRef = useRef<number>(0);
 
   const { data, loading, error, fetchMore } = useQuery(GET_PROJECT_KEYS, {
-    variables: { 
+    variables: {
       projectId,
       offset: 0,
       limit: PAGE_SIZE,
-      search: search || undefined
+      search: search || undefined,
     },
     skip: !projectId,
-    fetchPolicy: 'cache-and-network',
-    nextFetchPolicy: 'cache-first',
+    fetchPolicy: "cache-and-network",
+    nextFetchPolicy: "cache-first",
     notifyOnNetworkStatusChange: false,
   });
 
   const parentRef = useRef<HTMLDivElement>(null);
-  
+
   // Extract keys from paginated response
   const initialKeys: TranslationKey[] = data?.projectKeys?.keys || [];
   const totalCount = data?.projectKeys?.totalCount || 0;
@@ -80,7 +82,7 @@ export function KeyList({
 
   // Detect if search query changed
   const searchChanged = previousSearchRef.current !== search;
-  
+
   // Update keys map with initial data and force re-render
   useEffect(() => {
     // If search changed and we got new data, clear the map and update previousSearchRef
@@ -88,20 +90,19 @@ export function KeyList({
       keysMapRef.current.clear();
       setLoadingRanges(new Set());
       previousSearchRef.current = search;
-      
+
       // Update map with new data
       initialKeys.forEach((key, index) => {
         keysMapRef.current.set(index, key);
       });
-      
+
       // Save current state as previous
-      const currentKeys = Array.from(
-        { length: totalCount },
-        (_, index) => keysMapRef.current.get(index)
+      const currentKeys = Array.from({ length: totalCount }, (_, index) =>
+        keysMapRef.current.get(index)
       );
       previousKeysRef.current = currentKeys;
       previousTotalCountRef.current = totalCount;
-      
+
       // Force re-render to show the loaded keys
       forceUpdate(() => ({}));
     } else if (!searchChanged && initialKeys.length > 0) {
@@ -109,15 +110,14 @@ export function KeyList({
       initialKeys.forEach((key, index) => {
         keysMapRef.current.set(index, key);
       });
-      
+
       // Save current state as previous
-      const currentKeys = Array.from(
-        { length: totalCount },
-        (_, index) => keysMapRef.current.get(index)
+      const currentKeys = Array.from({ length: totalCount }, (_, index) =>
+        keysMapRef.current.get(index)
       );
       previousKeysRef.current = currentKeys;
       previousTotalCountRef.current = totalCount;
-      
+
       // Force re-render to show the loaded keys
       forceUpdate(() => ({}));
     }
@@ -126,68 +126,71 @@ export function KeyList({
   // Convert map to array for rendering
   // Show previous results while loading new search
   const isSearching = searchChanged && loading;
-  const keys: (TranslationKey | undefined)[] = isSearching 
+  const keys: (TranslationKey | undefined)[] = isSearching
     ? previousKeysRef.current
-    : Array.from(
-        { length: totalCount },
-        (_, index) => keysMapRef.current.get(index)
+    : Array.from({ length: totalCount }, (_, index) =>
+        keysMapRef.current.get(index)
       );
-  const displayTotalCount = isSearching ? previousTotalCountRef.current : totalCount;
+  const displayTotalCount = isSearching
+    ? previousTotalCountRef.current
+    : totalCount;
 
   // Load specific range of keys
-  const loadKeysRange = useCallback(async (startIndex: number) => {
-    const pageOffset = Math.floor(startIndex / PAGE_SIZE) * PAGE_SIZE;
-    
-    // Don't load if already loading this range
-    if (loadingRanges.has(pageOffset)) {
-      return;
-    }
+  const loadKeysRange = useCallback(
+    async (startIndex: number) => {
+      const pageOffset = Math.floor(startIndex / PAGE_SIZE) * PAGE_SIZE;
 
-    // Don't load if all keys in this range are already loaded
-    const rangeLoaded = Array.from(
-      { length: PAGE_SIZE },
-      (_, i) => keysMapRef.current.has(pageOffset + i)
-    ).every(Boolean);
+      // Don't load if already loading this range
+      if (loadingRanges.has(pageOffset)) {
+        return;
+      }
 
-    if (rangeLoaded && pageOffset + PAGE_SIZE <= displayTotalCount) {
-      return;
-    }
+      // Don't load if all keys in this range are already loaded
+      const rangeLoaded = Array.from({ length: PAGE_SIZE }, (_, i) =>
+        keysMapRef.current.has(pageOffset + i)
+      ).every(Boolean);
 
-    setLoadingRanges((prev) => new Set(prev).add(pageOffset));
-    
-    try {
-      const result = await fetchMore({
-        variables: {
-          offset: pageOffset,
-          limit: PAGE_SIZE,
-          search: search || undefined,
-        },
-      });
+      if (rangeLoaded && pageOffset + PAGE_SIZE <= displayTotalCount) {
+        return;
+      }
 
-      // Update keys map with new data
-      const newKeys = result.data?.projectKeys?.keys || [];
-      newKeys.forEach((key, index) => {
-        keysMapRef.current.set(pageOffset + index, key);
-      });
+      setLoadingRanges((prev) => new Set(prev).add(pageOffset));
 
-      // Remove loading state and force re-render
-      setLoadingRanges((prev) => {
-        const next = new Set(prev);
-        next.delete(pageOffset);
-        return next;
-      });
-      
-      // Force re-render to show the loaded keys
-      forceUpdate(() => ({}));
-    } catch (err) {
-      console.error("Failed to load keys range:", err);
-      setLoadingRanges((prev) => {
-        const next = new Set(prev);
-        next.delete(pageOffset);
-        return next;
-      });
-    }
-  }, [fetchMore, displayTotalCount, loadingRanges, search]);
+      try {
+        const result = await fetchMore({
+          variables: {
+            offset: pageOffset,
+            limit: PAGE_SIZE,
+            search: search || undefined,
+          },
+        });
+
+        // Update keys map with new data
+        const newKeys = result.data?.projectKeys?.keys || [];
+        newKeys.forEach((key, index) => {
+          keysMapRef.current.set(pageOffset + index, key);
+        });
+
+        // Remove loading state and force re-render
+        setLoadingRanges((prev) => {
+          const next = new Set(prev);
+          next.delete(pageOffset);
+          return next;
+        });
+
+        // Force re-render to show the loaded keys
+        forceUpdate(() => ({}));
+      } catch (err) {
+        console.error("Failed to load keys range:", err);
+        setLoadingRanges((prev) => {
+          const next = new Set(prev);
+          next.delete(pageOffset);
+          return next;
+        });
+      }
+    },
+    [fetchMore, displayTotalCount, loadingRanges, search]
+  );
 
   // Calculate estimated size based on number of languages
   // Each language row is approximately 60px, plus some padding
@@ -210,14 +213,14 @@ export function KeyList({
 
   // Check if we need to load more when scrolling
   const virtualItems = virtualizer.getVirtualItems();
-  
+
   useEffect(() => {
     if (!virtualItems.length || loading || !displayTotalCount) {
       return;
     }
 
     // Check all visible items and load missing ranges
-    const visibleIndices = virtualItems.map(item => item.index);
+    const visibleIndices = virtualItems.map((item) => item.index);
     const minIndex = Math.min(...visibleIndices);
     const maxIndex = Math.max(...visibleIndices);
 
@@ -230,23 +233,32 @@ export function KeyList({
     // Also preload adjacent pages for smooth scrolling
     const preloadCount = PAGE_SIZE;
     const preloadBefore = Math.max(0, minIndex - preloadCount);
-    const preloadAfter = Math.min(displayTotalCount - 1, maxIndex + preloadCount);
+    const preloadAfter = Math.min(
+      displayTotalCount - 1,
+      maxIndex + preloadCount
+    );
 
     const allIndicesToCheck = [
-      ...Array.from({ length: minIndex - preloadBefore }, (_, i) => preloadBefore + i),
+      ...Array.from(
+        { length: minIndex - preloadBefore },
+        (_, i) => preloadBefore + i
+      ),
       ...indicesToCheck,
-      ...Array.from({ length: preloadAfter - maxIndex }, (_, i) => maxIndex + 1 + i),
+      ...Array.from(
+        { length: preloadAfter - maxIndex },
+        (_, i) => maxIndex + 1 + i
+      ),
     ];
 
     // Find unique page offsets that need to be loaded
     const pagesToLoad = new Set(
       allIndicesToCheck
-        .filter(index => !keysMapRef.current.has(index))
-        .map(index => Math.floor(index / PAGE_SIZE) * PAGE_SIZE)
+        .filter((index) => !keysMapRef.current.has(index))
+        .map((index) => Math.floor(index / PAGE_SIZE) * PAGE_SIZE)
     );
 
     // Load all missing pages
-    pagesToLoad.forEach(pageOffset => {
+    pagesToLoad.forEach((pageOffset) => {
       loadKeysRange(pageOffset);
     });
   }, [virtualItems, loading, displayTotalCount, loadKeysRange]);
@@ -266,7 +278,13 @@ export function KeyList({
 
   return (
     <div className="flex flex-col h-full">
-      <KeyControls projectId={projectId} onCreateKey={onCreateKey} totalCount={displayTotalCount} isSearching={loading} hasKeys={hasKeys} />
+      <KeyControls
+        projectId={projectId}
+        onCreateKey={onCreateKey}
+        totalCount={displayTotalCount}
+        isSearching={loading}
+        hasKeys={hasKeys}
+      />
       {isInitialLoading ? (
         <div className="flex-1 overflow-auto">
           <KeySkeleton languagesCount={projectLanguages.length || 5} />
@@ -301,7 +319,7 @@ export function KeyList({
             >
               {virtualizer.getVirtualItems().map((virtualItem) => {
                 const key = keys[virtualItem.index];
-                
+
                 // If key is not loaded yet, show skeleton
                 if (!key) {
                   return (
@@ -309,11 +327,13 @@ export function KeyList({
                       key={`skeleton-${virtualItem.index}`}
                       data-index={virtualItem.index}
                     >
-                      <KeySkeleton languagesCount={projectLanguages.length || 5} />
+                      <KeySkeleton
+                        languagesCount={projectLanguages.length || 5}
+                      />
                     </div>
                   );
                 }
-                
+
                 return (
                   <div
                     key={key.id}
@@ -344,7 +364,7 @@ export function KeyList({
               })}
             </div>
           </div>
-          
+
           {/* Custom scrollbar */}
           <CustomScrollbar
             scrollContainerRef={parentRef}

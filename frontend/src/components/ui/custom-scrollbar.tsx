@@ -261,7 +261,7 @@ export function CustomScrollbar({
       {/* Hover preview range box */}
       {hoverPreviewRange && !isDragging ? (
         <div
-          className="absolute left-[2px] right-[2px] border-1 box-border border-primary/60 bg-primary/10 rounded pointer-events-none"
+          className="absolute left-[2px] right-[2px] border-1 box-border overflow-hidden border-primary/60 bg-primary/10 rounded pointer-events-none"
           style={{
             top: `${hoverPreviewRange.top}px`,
             height: `${hoverPreviewRange.height}px`,
