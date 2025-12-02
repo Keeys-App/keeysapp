@@ -72,6 +72,7 @@ class KeyService:
         key: str,
         description: Optional[str] = None,
         tags: Optional[List[str]] = None,
+        is_plural: bool = False,
         translations: Optional[Dict[str, str]] = None,
         user_id: int = None
     ) -> Optional[Key]:
@@ -84,6 +85,7 @@ class KeyService:
             key: Translation key string (e.g., "button.submit")
             description: Optional description for translators
             tags: Optional list of tag strings
+            is_plural: Whether this key uses plural forms
             translations: Optional dict of {language: translation_value}
             user_id: User ID creating the key (for permission check)
             
@@ -121,6 +123,7 @@ class KeyService:
             key=key,
             description=description,
             tags=tags or [],
+            is_plural=is_plural or False,
             project_id=project.id
         )
         db.add(new_key)
@@ -484,6 +487,7 @@ class KeyService:
         key: Optional[str] = None,
         description: Optional[str] = None,
         tags: Optional[List[str]] = None,
+        is_plural: Optional[bool] = None,
         user_id: int = None
     ) -> Optional[Key]:
         """
@@ -495,6 +499,7 @@ class KeyService:
             key: New key string
             description: New description
             tags: New tags list
+            is_plural: Whether this key uses plural forms
             user_id: User ID updating the key
             
         Returns:
@@ -564,6 +569,10 @@ class KeyService:
             project = result.scalar_one_or_none()
             if project:
                 await KeyService._update_project_available_tags(db, project, tags)
+        
+        if is_plural is not None:
+            # Update is_plural but don't log (metadata)
+            key_obj.is_plural = is_plural
         
         await db.commit()
         # Reload full object with translations to avoid detached state issues

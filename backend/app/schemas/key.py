@@ -147,6 +147,7 @@ class KeyType:
     key: str
     description: Optional[str]
     tags: List[str]
+    is_plural: bool
     translations: List[TranslationType]
     created_at: datetime
     updated_at: Optional[datetime]
@@ -183,6 +184,7 @@ class CreateKeyInput:
     key: str
     description: Optional[str] = None
     tags: Optional[List[str]] = None
+    is_plural: Optional[bool] = False  # Whether this key uses plural forms
     translations: Optional[strawberry.scalars.JSON] = None  # Dict[str, str]
     autopilot: Optional[bool] = False  # Auto-translate to all languages using AI
 
@@ -196,6 +198,7 @@ class UpdateKeyInput:
     key: Optional[str] = None
     description: Optional[str] = None
     tags: Optional[List[str]] = None
+    is_plural: Optional[bool] = None  # Whether this key uses plural forms
 
 
 @strawberry.input
@@ -284,6 +287,7 @@ def build_key_type(key) -> KeyType:
         key=key.key,
         description=key.description,
         tags=key.tags or [],
+        is_plural=key.is_plural or False,
         translations=translations,
         created_at=key.created_at,
         updated_at=key.updated_at
@@ -688,6 +692,7 @@ class KeyMutation:
                     key=input.key,
                     description=input.description,
                     tags=input.tags,
+                    is_plural=input.is_plural or False,
                     translations=input.translations,
                     user_id=current_user_id
                 )
@@ -773,6 +778,7 @@ class KeyMutation:
                     key=input.key,
                     description=input.description,
                     tags=input.tags,
+                    is_plural=input.is_plural,
                     user_id=current_user_id
                 )
                 

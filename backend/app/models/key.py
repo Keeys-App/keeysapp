@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, UniqueConstraint, JSON, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, UniqueConstraint, JSON, Enum as SQLEnum, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import UUID
@@ -27,6 +27,7 @@ class Key(Base):
     key = Column(String(500), nullable=False)  # Translation key, e.g., "button.submit"
     description = Column(Text, nullable=True)  # Optional description for translators
     tags = Column(JSON, default=list, nullable=False)  # Array of tag strings
+    is_plural = Column(Boolean, default=False, nullable=False)  # Whether this key uses plural forms
     project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

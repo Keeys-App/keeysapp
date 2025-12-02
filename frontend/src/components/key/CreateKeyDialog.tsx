@@ -54,6 +54,7 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
   const [description, setDescription] = useState("");
   const [defaultValue, setDefaultValue] = useState("");
   const [tags, setTags] = useState<string[]>([]);
+  const [isPlural, setIsPlural] = useState(false);
   const [addAnother, setAddAnother] = useState(false);
   const [autopilot, setAutopilot] = useState(false);
   const [isDuplicate, setIsDuplicate] = useState(false);
@@ -125,6 +126,7 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
       setDescription("");
       setDefaultValue("");
       setTags([]);
+      setIsPlural(false);
       setIsDuplicate(false);
       setLastCheckedKey("");
       // Reset processed data ref when dialog closes
@@ -152,6 +154,7 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
                     key
                     description
                     tags
+                    isPlural
                     translations {
                       language
                       value
@@ -200,6 +203,7 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
       setDescription("");
       setDefaultValue("");
       setTags([]);
+      setIsPlural(false);
       setIsDuplicate(false);
       setLastCheckedKey(""); // Reset last checked key
 
@@ -257,6 +261,7 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
               key: key.trim(),
               description: description.trim() || undefined,
               tags: tags.length > 0 ? tags : undefined,
+              isPlural: isPlural || undefined,
               translations,
               autopilot: shouldRunAutopilot,
             },
@@ -348,6 +353,34 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
                   placeholder="Select or create tags..."
                 />
               </Field>
+
+              {/* Plural */}
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="is-plural"
+                  checked={isPlural}
+                  onCheckedChange={(checked) => {
+                    return setIsPlural(checked === true);
+                  }}
+                  disabled={isSaving}
+                />
+                <label
+                  htmlFor="is-plural"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                >
+                  Plural key
+                </label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>Enable plural forms for this key (e.g., "1 item" vs "5 items")</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
             </TabsContent>
           </Tabs>
 

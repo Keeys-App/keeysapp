@@ -13,6 +13,7 @@ export interface TranslationKey {
   key: string;
   description?: string;
   tags: string[];
+  isPlural?: boolean;
   translations: Translation[];
   createdAt: string;
   updatedAt?: string;
@@ -23,6 +24,7 @@ export interface CreateKeyInput {
   key: string;
   description?: string;
   tags?: string[];
+  isPlural?: boolean;
   translations?: Record<string, string>;
 }
 
@@ -31,6 +33,7 @@ export interface UpdateKeyInput {
   key?: string;
   description?: string;
   tags?: string[];
+  isPlural?: boolean;
 }
 
 export interface SetTranslationInput {

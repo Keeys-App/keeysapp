@@ -988,6 +988,34 @@ def migrate_create_password_reset_tokens_if_needed():
         return False
 
 
+def migrate_add_is_plural_to_keys_if_needed():
+    """
+    Add is_plural column to keys table if it doesn't exist.
+    Safe to run multiple times.
+    """
+    try:
+        # Check if column already exists
+        if check_column_exists('keys', 'is_plural'):
+            logger.info("✅ Migration: is_plural column already exists, skipping")
+            return True
+        
+        logger.info("🔄 Migration: Adding is_plural column to keys table")
+        
+        with engine.connect() as connection:
+            connection.execute(text("""
+                ALTER TABLE keys 
+                ADD COLUMN IF NOT EXISTS is_plural BOOLEAN NOT NULL DEFAULT FALSE
+            """))
+            connection.commit()
+            
+            logger.info("✅ Migration: is_plural column added successfully")
+            return True
+            
+    except Exception as e:
+        logger.error(f"❌ Migration failed: {type(e).__name__}: {str(e)}")
+        return False
+
+
 def run_all_migrations():
     """
     Run all pending migrations.
@@ -1013,6 +1041,7 @@ def run_all_migrations():
         ("add_onboarding_completed", migrate_add_onboarding_completed_if_needed),
         ("create_password_reset_tokens", migrate_create_password_reset_tokens_if_needed),
         ("add_keys_batch_import_action_type", migrate_add_keys_batch_import_action_type_if_needed),
+        ("add_is_plural_to_keys", migrate_add_is_plural_to_keys_if_needed),
         # Add more migrations here as needed
     ]
     

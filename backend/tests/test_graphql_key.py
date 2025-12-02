@@ -45,7 +45,7 @@ async def create_project(client, team_id: str) -> str:
     return result.data["createProject"]["id"]
 
 
-async def create_key(client, project_id: str, key_name: str = None) -> str:
+async def create_key(client, project_id: str, key_name: str = None, is_plural: bool = False) -> str:
     """Helper to create a key."""
     unique_id = uuid.uuid4().hex[:8]
     query = """
@@ -53,15 +53,17 @@ async def create_key(client, project_id: str, key_name: str = None) -> str:
             createKey(input: $input) { id }
         }
     """
-    result = await client.execute_async(query, {
-        "input": {
-            "projectId": project_id,
-            "key": key_name or f"test.key.{unique_id}",
-            "description": "Test key",
-            "tags": ["test"],
-            "translations": {"en": "Test value", "ru": "Тест"}
-        }
-    })
+    input_data = {
+        "projectId": project_id,
+        "key": key_name or f"test.key.{unique_id}",
+        "description": "Test key",
+        "tags": ["test"],
+        "translations": {"en": "Test value", "ru": "Тест"}
+    }
+    if is_plural:
+        input_data["isPlural"] = is_plural
+    
+    result = await client.execute_async(query, {"input": input_data})
     return result.data["createKey"]["id"]
 
 
@@ -144,6 +146,7 @@ class TestKeyQuery:
                     key
                     description
                     tags
+                    isPlural
                     translations {
                         language
                         value
@@ -157,6 +160,28 @@ class TestKeyQuery:
         
         assert result.errors is None
         assert result.data["key"]["id"] == key_id
+        assert result.data["key"]["isPlural"] is False
+
+    @pytest.mark.asyncio
+    async def test_key_by_id_with_plural(self, authenticated_graphql_client):
+        """Test fetching plural key by ID."""
+        team_id = await create_team(authenticated_graphql_client)
+        project_id = await create_project(authenticated_graphql_client, team_id)
+        key_id = await create_key(authenticated_graphql_client, project_id, is_plural=True)
+        
+        query = """
+            query Key($id: String!) {
+                key(id: $id) {
+                    id
+                    isPlural
+                }
+            }
+        """
+        
+        result = await authenticated_graphql_client.execute_async(query, {"id": key_id})
+        
+        assert result.errors is None
+        assert result.data["key"]["isPlural"] is True
 
 
 class TestCreateKeyMutation:
@@ -175,6 +200,7 @@ class TestCreateKeyMutation:
                     id
                     key
                     description
+                    isPlural
                     translations {
                         language
                         value
@@ -195,6 +221,37 @@ class TestCreateKeyMutation:
         
         assert result.errors is None
         assert result.data["createKey"]["key"] == f"button.submit.{unique_id}"
+        assert result.data["createKey"]["isPlural"] is False
+
+    @pytest.mark.asyncio
+    async def test_create_key_with_plural(self, authenticated_graphql_client):
+        """Test creating key with isPlural enabled."""
+        team_id = await create_team(authenticated_graphql_client)
+        project_id = await create_project(authenticated_graphql_client, team_id)
+        
+        unique_id = uuid.uuid4().hex[:8]
+        query = """
+            mutation CreateKey($input: CreateKeyInput!) {
+                createKey(input: $input) {
+                    id
+                    key
+                    isPlural
+                }
+            }
+        """
+        
+        result = await authenticated_graphql_client.execute_async(query, {
+            "input": {
+                "projectId": project_id,
+                "key": f"items.count.{unique_id}",
+                "description": "Item count with plural",
+                "isPlural": True,
+                "translations": {"en": "item", "ru": "элемент"}
+            }
+        })
+        
+        assert result.errors is None
+        assert result.data["createKey"]["isPlural"] is True
 
     @pytest.mark.asyncio
     async def test_create_key_with_autopilot(self, authenticated_graphql_client):
@@ -296,6 +353,44 @@ class TestUpdateKeyMutation:
         
         assert result.errors is None
         assert result.data["updateKey"]["description"] == "Updated description"
+
+    @pytest.mark.asyncio
+    async def test_update_key_is_plural(self, authenticated_graphql_client):
+        """Test updating key isPlural field."""
+        team_id = await create_team(authenticated_graphql_client)
+        project_id = await create_project(authenticated_graphql_client, team_id)
+        key_id = await create_key(authenticated_graphql_client, project_id)
+        
+        # First enable isPlural
+        query = """
+            mutation UpdateKey($input: UpdateKeyInput!) {
+                updateKey(input: $input) {
+                    id
+                    isPlural
+                }
+            }
+        """
+        
+        result = await authenticated_graphql_client.execute_async(query, {
+            "input": {
+                "id": key_id,
+                "isPlural": True
+            }
+        })
+        
+        assert result.errors is None
+        assert result.data["updateKey"]["isPlural"] is True
+        
+        # Then disable isPlural
+        result = await authenticated_graphql_client.execute_async(query, {
+            "input": {
+                "id": key_id,
+                "isPlural": False
+            }
+        })
+        
+        assert result.errors is None
+        assert result.data["updateKey"]["isPlural"] is False
 
 
 class TestDeleteKeyMutation:

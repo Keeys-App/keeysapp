@@ -8,6 +8,7 @@ export const GET_PROJECT_KEYS = gql`
         key
         description
         tags
+        isPlural
         translations {
           language
           value
@@ -31,6 +32,7 @@ export const GET_KEY = gql`
       key
       description
       tags
+      isPlural
       translations {
         language
         value
@@ -57,6 +59,7 @@ export const CREATE_KEY = gql`
       key
       description
       tags
+      isPlural
       translations {
         language
         value
@@ -77,6 +80,7 @@ export const UPDATE_KEY = gql`
       key
       description
       tags
+      isPlural
       translations {
         language
         value
@@ -154,6 +158,7 @@ export const APPROVE_TRANSLATION = gql`
       key
       description
       tags
+      isPlural
       translations {
         language
         value
@@ -174,6 +179,7 @@ export const REJECT_TRANSLATION = gql`
       key
       description
       tags
+      isPlural
       translations {
         language
         value
@@ -194,6 +200,7 @@ export const DELETE_TRANSLATION_REVIEW = gql`
       key
       description
       tags
+      isPlural
       translations {
         language
         value
