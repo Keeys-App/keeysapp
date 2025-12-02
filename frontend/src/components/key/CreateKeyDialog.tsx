@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, type FC } from "react";
 import { useMutation, useLazyQuery, gql } from "@apollo/client";
 import { toast } from "sonner";
-import { Info, Sparkles } from "lucide-react";
-import { CREATE_KEY, GET_PROJECT_KEYS, CHECK_KEY_EXISTS } from "@/graphql/keys";
+import { Sparkles } from "lucide-react";
+import { CREATE_KEY, CHECK_KEY_EXISTS } from "@/graphql/keys";
 import { getUserFriendlyErrorMessage } from "@/lib/utils";
 import { useSaving, useSavingStore } from "@/stores";
 import type { LanguageWithLocale } from "@/types/project";
@@ -19,19 +19,9 @@ import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TagsEditor } from "./TagsEditor";
+import { Label } from "@/components/ui/label";
 
 interface CreateKeyDialogProps {
   open: boolean;
@@ -59,20 +49,20 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
   const [autopilot, setAutopilot] = useState(false);
   const [isDuplicate, setIsDuplicate] = useState(false);
   const [lastCheckedKey, setLastCheckedKey] = useState<string>("");
-  
+
   // Check if autopilot should be shown (more than 1 language in project)
   const showAutopilot = projectLanguages.length > 1 && !!defaultLanguage;
-  
+
   // Track the last processed mutation result to avoid duplicate toasts
   const lastProcessedDataRef = useRef<any>(null);
 
   // Lazy query to check if key exists
-  const [checkKeyExists, { loading: checkingKey, data: checkKeyData, error: checkKeyError }] = useLazyQuery(
-    CHECK_KEY_EXISTS,
-    {
-      fetchPolicy: "no-cache", // Don't use cache at all
-    }
-  );
+  const [
+    checkKeyExists,
+    { loading: checkingKey, data: checkKeyData, error: checkKeyError },
+  ] = useLazyQuery(CHECK_KEY_EXISTS, {
+    fetchPolicy: "no-cache", // Don't use cache at all
+  });
 
   // Handle check key exists result
   useEffect(() => {
@@ -135,51 +125,52 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
   }, [open]);
 
   // Check if form is valid and ready to submit
-  const isFormValid =
-    key.trim() !== "" &&
-    !isDuplicate; // Ensure current key has been checked
+  const isFormValid = key.trim() !== "" && !isDuplicate; // Ensure current key has been checked
 
-  const [createKey, { data: createKeyData, error: createKeyError }] = useMutation(CREATE_KEY, {
-    update(cache, { data }) {
-      if (data?.createKey) {
-        // Add new key to the cache
-        cache.modify({
-          fields: {
-            projectKeys(existingData = { keys: [], totalCount: 0, hasMore: false }) {
-              const newKeyRef = cache.writeFragment({
-                data: data.createKey,
-                fragment: gql`
-                  fragment NewKey on TranslationKey {
-                    id
-                    key
-                    description
-                    tags
-                    isPlural
-                    translations {
-                      language
-                      value
-                      reviewStatus
+  const [createKey, { data: createKeyData, error: createKeyError }] =
+    useMutation(CREATE_KEY, {
+      update(cache, { data }) {
+        if (data?.createKey) {
+          // Add new key to the cache
+          cache.modify({
+            fields: {
+              projectKeys(
+                existingData = { keys: [], totalCount: 0, hasMore: false }
+              ) {
+                const newKeyRef = cache.writeFragment({
+                  data: data.createKey,
+                  fragment: gql`
+                    fragment NewKey on TranslationKey {
+                      id
+                      key
+                      description
+                      tags
+                      isPlural
+                      translations {
+                        language
+                        value
+                        reviewStatus
+                        createdAt
+                        updatedAt
+                      }
                       createdAt
                       updatedAt
                     }
-                    createdAt
-                    updatedAt
-                  }
-                `,
-              });
-              
-              return {
-                ...existingData,
-                keys: [newKeyRef, ...(existingData.keys || [])],
-                totalCount: (existingData.totalCount || 0) + 1,
-              };
+                  `,
+                });
+
+                return {
+                  ...existingData,
+                  keys: [newKeyRef, ...(existingData.keys || [])],
+                  totalCount: (existingData.totalCount || 0) + 1,
+                };
+              },
             },
-          },
-        });
-      }
-    },
-  });
-  
+          });
+        }
+      },
+    });
+
   const withSaving = useSaving();
   const { isSaving } = useSavingStore();
 
@@ -188,16 +179,16 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
     if (createKeyData && createKeyData !== lastProcessedDataRef.current) {
       // Mark this data as processed
       lastProcessedDataRef.current = createKeyData;
-      
+
       // If createKey is null, the creation failed (likely due to duplicate key)
       if (!createKeyData.createKey) {
         toast("Key already exists. Please choose a different name.");
         setIsDuplicate(true);
         return;
       }
-      
+
       const keyValue = key;
-      
+
       // Reset form
       setKey("");
       setDescription("");
@@ -221,7 +212,10 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
   // Handle create key error
   useEffect(() => {
     if (createKeyError) {
-      const message = getUserFriendlyErrorMessage(createKeyError, 'Failed to create key. Please try again.');
+      const message = getUserFriendlyErrorMessage(
+        createKeyError,
+        "Failed to create key. Please try again."
+      );
       toast(message);
     }
   }, [createKeyError]);
@@ -245,13 +239,14 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
     }
 
     // Build translations object if default value is provided
-    const translations = defaultLanguage && defaultValue.trim()
-      ? { [defaultLanguage]: defaultValue.trim() }
-      : undefined;
+    const translations =
+      defaultLanguage && defaultValue.trim()
+        ? { [defaultLanguage]: defaultValue.trim() }
+        : undefined;
 
     // Determine if autopilot should run (only if there's a default value and autopilot is enabled)
     const shouldRunAutopilot = !!(autopilot && translations && showAutopilot);
-    
+
     await withSaving(
       async () => {
         await createKey({
@@ -282,7 +277,7 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <Tabs defaultValue="key" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="key">Key</TabsTrigger>
@@ -304,7 +299,9 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
                   required
                 />
                 {isDuplicate ? (
-                  <FieldError>This key already exists in the project</FieldError>
+                  <FieldError>
+                    This key already exists in the project
+                  </FieldError>
                 ) : null}
               </Field>
 
@@ -327,7 +324,7 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
               ) : null}
 
               {/* Plural */}
-              <div className="flex items-center gap-2">
+              <Label className="hover:bg-accent/50 flex items-start gap-3 rounded-lg border p-3 cursor-pointer has-[[aria-checked=true]]:border-blue-600 has-[[aria-checked=true]]:bg-blue-50 dark:has-[[aria-checked=true]]:border-blue-900 dark:has-[[aria-checked=true]]:bg-blue-950">
                 <Checkbox
                   id="is-plural"
                   checked={isPlural}
@@ -335,24 +332,16 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
                     return setIsPlural(checked === true);
                   }}
                   disabled={isSaving}
+                  className="data-[state=checked]:border-blue-600 data-[state=checked]:bg-blue-600 data-[state=checked]:text-white dark:data-[state=checked]:border-blue-700 dark:data-[state=checked]:bg-blue-700"
                 />
-                <label
-                  htmlFor="is-plural"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                >
-                  Plural key
-                </label>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      <p>Enable plural forms for this key (e.g., "1 item" vs "5 items")</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
+                <div className="grid gap-1.5 font-normal">
+                  <p className="text-sm leading-none font-medium">Plural key</p>
+                  <p className="text-muted-foreground text-sm">
+                    Enable plural forms for this key (e.g., "1 item" vs "5
+                    items")
+                  </p>
+                </div>
+              </Label>
             </TabsContent>
 
             <TabsContent value="metadata" className="space-y-4">
@@ -369,7 +358,7 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
                   rows={5}
                 />
               </Field>
-              
+
               {/* Tags */}
               <Field>
                 <FieldLabel>Tags</FieldLabel>
@@ -384,42 +373,34 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
             </TabsContent>
           </Tabs>
 
-          <DialogFooter className="flex-col gap-3 sm:flex-col">
-            {/* Options row */}
-            <div className="flex items-center justify-between w-full gap-4">
-              {/* Autopilot checkbox */}
-              {showAutopilot ? (
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="autopilot"
-                    checked={autopilot}
-                    onCheckedChange={(checked) => {
-                      return setAutopilot(checked === true);
-                    }}
-                    disabled={isSaving || !defaultValue.trim()}
-                  />
-                  <label
-                    htmlFor="autopilot"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex items-center gap-1.5"
-                  >
+          <DialogFooter className="flex-col gap-4 sm:flex-col">
+            {/* Autopilot checkbox */}
+            {showAutopilot ? (
+              <Label className="hover:bg-accent/50 flex items-start gap-3 rounded-lg border p-3 cursor-pointer has-[[aria-checked=true]]:border-blue-600 has-[[aria-checked=true]]:bg-blue-50 dark:has-[[aria-checked=true]]:border-blue-900 dark:has-[[aria-checked=true]]:bg-blue-950">
+                <Checkbox
+                  id="autopilot"
+                  checked={autopilot}
+                  onCheckedChange={(checked) => {
+                    return setAutopilot(checked === true);
+                  }}
+                  disabled={isSaving || !defaultValue.trim()}
+                  className="data-[state=checked]:border-blue-600 data-[state=checked]:bg-blue-600 data-[state=checked]:text-white dark:data-[state=checked]:border-blue-700 dark:data-[state=checked]:bg-blue-700"
+                />
+                <div className="grid gap-1.5 font-normal">
+                  <p className="text-sm leading-none font-medium flex items-center gap-1.5">
                     <Sparkles className="h-3.5 w-3.5 text-primary" />
                     Autopilot
-                  </label>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        <p>Automatically translate to all project languages using AI when default value is provided</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  </p>
+                  <p className="text-muted-foreground text-sm">
+                    Automatically translate to all project languages using AI
+                    when default value is provided
+                  </p>
                 </div>
-              ) : (
-                <div />
-              )}
+              </Label>
+            ) : null}
 
+            {/* Buttons row */}
+            <div className="flex items-center justify-between w-full">
               {/* Add Another Key */}
               <div className="flex items-center gap-2">
                 <Checkbox
@@ -432,36 +413,27 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
                 />
                 <label
                   htmlFor="add-another"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                  className="text-sm font-medium leading-none cursor-pointer"
                 >
                   Add another key
                 </label>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Keep the dialog open to add multiple keys in a row</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
               </div>
-            </div>
 
-            {/* Buttons row */}
-            <div className="flex gap-2 mt-2 justify-end w-full">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isSaving}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={!isFormValid || isSaving}>
-                Create Key
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    return onOpenChange(false);
+                  }}
+                  disabled={isSaving}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={!isFormValid || isSaving}>
+                  Create Key
+                </Button>
+              </div>
             </div>
           </DialogFooter>
         </form>
