@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/popover";
 import { Ellipsis } from "lucide-react";
 import { TranslationTextEditor, type TranslationTextEditorRef } from "./TranslationTextEditor";
+import { cn } from "@/lib/utils";
 
 interface TranslationEditFormProps {
   value: string;
@@ -195,8 +196,9 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
     }
   };
 
+  // border-b only needed for plural forms (grid layout)
   const editorContent = (
-    <div className="border-b">
+    <div className={cn(label && "border-b")}>
       <TranslationTextEditor
         ref={editorRef}
         value={value}
