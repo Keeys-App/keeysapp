@@ -1,5 +1,5 @@
 import type { TranslationTextEditorRef } from "./TranslationTextEditor";
-import { Fragment, type FC, useMemo, useCallback, useRef, useEffect } from "react";
+import { Fragment, type FC, useMemo, useCallback, useRef, useEffect, useState } from "react";
 import type { Language, LanguageWithLocale } from "@/types/project";
 import { Badge } from "../ui";
 import { TranslationTextEditor } from "./TranslationTextEditor";
@@ -42,7 +42,7 @@ const PluralFormView: FC<PluralFormViewProps> = ({
   onEdit,
 }) => {
   return (
-    <Fragment>
+    <>
       <div className="capitalize text-muted-foreground border-b p-2 border-r flex items-start">
         <Badge className="capitalize">{form}</Badge>
       </div>
@@ -59,20 +59,21 @@ const PluralFormView: FC<PluralFormViewProps> = ({
           )}
         </div>
       </div>
-    </Fragment>
+    </>
   );
 };
 
 /**
- * Single plural form editor component
+ * Single plural form editor component with save/cancel buttons
  */
 interface PluralFormEditorProps {
   form: PluralForm;
   value: string;
   direction: "ltr" | "rtl";
   onChange: (value: string) => void;
-  onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => void;
-  autoFocus: boolean;
+  onSave: () => void;
+  onCancel: () => void;
+  hasChanges: boolean;
   onEditorReady?: (ref: TranslationTextEditorRef | null) => void;
 }
 
@@ -81,10 +82,12 @@ const PluralFormEditor: FC<PluralFormEditorProps> = ({
   value,
   direction,
   onChange,
-  onKeyDown,
-  autoFocus,
+  onSave,
+  onCancel,
+  hasChanges,
   onEditorReady,
 }) => {
+  const { isSaving } = useSavingStore();
   const editorRef = useRef<TranslationTextEditorRef | null>(null);
   const onEditorReadyRef = useRef(onEditorReady);
 
@@ -103,8 +106,41 @@ const PluralFormEditor: FC<PluralFormEditorProps> = ({
     }
   }, []);
 
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      // Esc - Cancel
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        onCancel();
+        return;
+      }
+
+      // Cmd+Enter (Mac) or Ctrl+Enter (Windows/Linux) - Save
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (hasChanges && !isSaving) {
+          onSave();
+        }
+        return;
+      }
+    },
+    [onCancel, onSave, hasChanges, isSaving]
+  );
+
+  const handleSaveClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onSave();
+  };
+
+  const handleCancelClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onCancel();
+  };
+
   return (
-    <Fragment>
+    <>
       <div className="capitalize text-muted-foreground border-b p-2 border-r flex items-start pt-2">
         <Badge className="capitalize">{form}</Badge>
       </div>
@@ -113,13 +149,36 @@ const PluralFormEditor: FC<PluralFormEditorProps> = ({
           ref={handleRef}
           value={value}
           onChange={onChange}
-          onKeyDown={onKeyDown}
+          onKeyDown={handleKeyDown}
           direction={direction}
           disabled={false}
-          autoFocus={autoFocus}
+          autoFocus
         />
+        <div className="flex gap-2 p-2 border-t">
+          <div className="flex-1 flex gap-2 items-center">
+            <Button
+              onClick={handleSaveClick}
+              disabled={isSaving || !hasChanges}
+              variant="default"
+              size="sm"
+            >
+              Save
+            </Button>
+            <Button
+              onClick={handleCancelClick}
+              disabled={isSaving}
+              variant="outline"
+              size="sm"
+            >
+              Cancel
+            </Button>
+          </div>
+          <div className="flex gap-2 items-center">
+            <Badge variant="outline">{value.length}</Badge>
+          </div>
+        </div>
       </div>
-    </Fragment>
+    </>
   );
 };
 
@@ -168,14 +227,21 @@ export const PluralEditor: FC<PluralEditorProps> = ({
   onEditingChange,
   onEditorReady,
 }) => {
-  const { isSaving } = useSavingStore();
+  // Track which specific form is being edited
+  const [editingForm, setEditingForm] = useState<PluralForm | null>(null);
   const onEditorReadyRef = useRef(onEditorReady);
-  const firstFormRef = useRef<TranslationTextEditorRef | null>(null);
 
   // Update ref when callback changes
   useEffect(() => {
     onEditorReadyRef.current = onEditorReady;
   }, [onEditorReady]);
+
+  // Sync editingForm with isEditing prop
+  useEffect(() => {
+    if (!isEditing && editingForm !== null) {
+      setEditingForm(null);
+    }
+  }, [isEditing, editingForm]);
 
   // Parse current value as plural object
   const pluralValue = useMemo(() => parsePluralValue(value), [value]);
@@ -192,124 +258,67 @@ export const PluralEditor: FC<PluralEditorProps> = ({
     [pluralValue, onChange]
   );
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLDivElement>) => {
-      // Esc - Cancel
-      if (e.key === "Escape") {
-        e.preventDefault();
-        e.stopPropagation();
-        onCancel();
-        return;
-      }
-
-      // Cmd+Enter (Mac) or Ctrl+Enter (Windows/Linux) - Save
-      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        e.stopPropagation();
-        if (hasChanges && !isSaving) {
-          onSave();
-        }
-        return;
-      }
+  const handleEditForm = useCallback(
+    (form: PluralForm) => {
+      setEditingForm(form);
+      onEditingChange(true);
     },
-    [onCancel, onSave, hasChanges, isSaving]
+    [onEditingChange]
   );
 
-  const handleSaveClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleSave = useCallback(() => {
     onSave();
-  };
+    setEditingForm(null);
+  }, [onSave]);
 
-  const handleCancelClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleCancel = useCallback(() => {
     onCancel();
-  };
+    setEditingForm(null);
+  }, [onCancel]);
 
-  const handleEdit = () => {
-    onEditingChange(true);
-  };
-
-  // Handle first form editor ready - notify parent
-  const handleFirstFormEditorReady = useCallback(
+  // Handle editor ready - notify parent
+  const handleEditorReady = useCallback(
     (ref: TranslationTextEditorRef | null) => {
-      if (firstFormRef.current !== ref) {
-        firstFormRef.current = ref;
-        if (onEditorReadyRef.current) {
-          onEditorReadyRef.current(ref);
-        }
+      if (onEditorReadyRef.current) {
+        onEditorReadyRef.current(ref);
       }
     },
     []
   );
 
-  // View mode - show all forms as read-only
-  if (!isEditing) {
-    return (
-      <div className="bg-background">
-        <div className="grid grid-cols-[auto_1fr] -mb-[1px]">
-          {language.pluralForms.map((form) => {
-            const formValue = pluralValue[form] || "";
+  return (
+    <div className="bg-background">
+      <div className="grid grid-cols-[auto_1fr] -mb-[1px]">
+        {language.pluralForms.map((form) => {
+          const formValue = pluralValue[form] || "";
+          const isFormEditing = editingForm === form;
+
+          if (isFormEditing) {
             return (
-              <PluralFormView
+              <PluralFormEditor
                 key={form}
                 form={form}
                 value={formValue}
                 direction={direction}
-                onEdit={handleEdit}
+                onChange={(v) => handleFormChange(form, v)}
+                onSave={handleSave}
+                onCancel={handleCancel}
+                hasChanges={hasChanges}
+                onEditorReady={handleEditorReady}
               />
             );
-          })}
-        </div>
-      </div>
-    );
-  }
-
-  // Edit mode - show all forms as editable
-  return (
-    <div className="bg-background">
-      <div className="grid grid-cols-[auto_1fr] -mb-[1px]">
-        {language.pluralForms.map((form, index) => {
-          const formValue = pluralValue[form] || "";
-          const isFirst = index === 0;
+          }
 
           return (
-            <PluralFormEditor
+            <PluralFormView
               key={form}
               form={form}
               value={formValue}
               direction={direction}
-              onChange={(v) => handleFormChange(form, v)}
-              onKeyDown={handleKeyDown}
-              autoFocus={isFirst}
-              onEditorReady={isFirst ? handleFirstFormEditorReady : undefined}
+              onEdit={() => handleEditForm(form)}
             />
           );
         })}
-      </div>
-      <div className="flex gap-2 p-2 border-t">
-        <div className="flex-1 flex gap-2 items-center">
-          <Button
-            onClick={handleSaveClick}
-            disabled={isSaving || !hasChanges}
-            variant="default"
-            size="sm"
-          >
-            Save
-          </Button>
-          <Button
-            onClick={handleCancelClick}
-            disabled={isSaving}
-            variant="outline"
-            size="sm"
-          >
-            Cancel
-          </Button>
-        </div>
-        <div className="flex gap-2 items-center">
-          <Badge variant="outline">
-            {Object.values(pluralValue).join("").length}
-          </Badge>
-        </div>
       </div>
     </div>
   );
