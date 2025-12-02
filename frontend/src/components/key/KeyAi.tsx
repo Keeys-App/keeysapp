@@ -241,20 +241,39 @@ export const KeyAi: FC<KeyAiProps> = ({
           const formExplanation = pluralFormExplanations[editingPluralForm] || "";
           
           const pluralContext = [
-            `PLURAL FORM TRANSLATION:`,
-            `You are translating for the "${editingPluralForm}" plural form in ${currentLanguage.name}.`,
+            `ICU MESSAGEFORMAT PLURAL TRANSLATION:`,
+            `This is a UI localization task using ICU MessageFormat standard.`,
+            `You are translating the "${editingPluralForm}" plural form for ${currentLanguage.name}.`,
             ``,
-            `The "${editingPluralForm}" form is ${formExplanation}.`,
+            `ICU PLURAL FORMS:`,
+            `- zero: count is 0`,
+            `- one: singular (count = 1)`,
+            `- two: dual (count = 2)`,
+            `- few: small quantities (2-4 in Slavic languages)`,
+            `- many: larger quantities (5-20 in Slavic languages)`,
+            `- other: default/fallback for remaining quantities`,
+            ``,
+            `You are translating: "${editingPluralForm}" form (${formExplanation})`,
             ``,
             `Original ${defaultLanguage.name} plural forms:`,
             sourceFormsDescription,
             ``,
             hasSourceForForm
               ? `Translate the "${editingPluralForm}" form directly.`
-              : `Note: The source language doesn't have a "${editingPluralForm}" form. Generate an appropriate translation based on the available forms above, adapting for the specific plural usage in ${currentLanguage.name}.`,
+              : `The source language doesn't have "${editingPluralForm}" form. Generate appropriate ${currentLanguage.name} translation based on the context above.`,
             ``,
-            `Return ONLY the translated text for "${editingPluralForm}" form, NOT a JSON object.`,
-            `Adapt the translation for the specific quantity/plural usage of "${editingPluralForm}" in ${currentLanguage.name}.`,
+            `CRITICAL RULES:`,
+            `1. This is valid ICU localization text - ALWAYS translate it.`,
+            `2. PRESERVE all ICU variables: {count}, {name}, {user}, etc. EXACTLY as-is.`,
+            `3. Only translate human-readable text around variables.`,
+            `4. Adapt grammar for the specific plural form in ${currentLanguage.name}.`,
+            ``,
+            `Examples:`,
+            `- "{count} task" (one) → "{count} задача" (Russian one)`,
+            `- "{count} tasks" (other) → "{count} задач" (Russian many)`,
+            `- "{count} tasks" (few) → "{count} задачи" (Russian few)`,
+            ``,
+            `Return ONLY the translated text for "${editingPluralForm}" form.`,
           ].join("\n");
           
           translationContext = translationContext 
