@@ -15,6 +15,7 @@ import type { TranslationKey } from "@/types/translationKey";
 import { TranslationEditForm } from "./TranslationEditForm";
 import { TranslationView } from "./TranslationView";
 import type { TranslationTextEditorRef } from "./TranslationTextEditor";
+import { PluralEditor } from "./PluralEditor";
 
 interface TranslationEditorProps {
   keyData: TranslationKey;
@@ -142,22 +143,20 @@ export const TranslationEditor = memo(
         },
       });
 
-    const [
-      approveTranslation,
-      { data: approveData, error: approveError },
-    ] = useMutation(APPROVE_TRANSLATION, {
-      refetchQueries: [
-        {
-          query: GET_KEY_LOGS,
-          variables: { keyId: keyData.id, limit: 50 },
-        },
-        {
-          query: GET_KEY,
-          variables: { id: keyData.id },
-        },
-      ],
-      awaitRefetchQueries: true,
-    });
+    const [approveTranslation, { data: approveData, error: approveError }] =
+      useMutation(APPROVE_TRANSLATION, {
+        refetchQueries: [
+          {
+            query: GET_KEY_LOGS,
+            variables: { keyId: keyData.id, limit: 50 },
+          },
+          {
+            query: GET_KEY,
+            variables: { id: keyData.id },
+          },
+        ],
+        awaitRefetchQueries: true,
+      });
 
     const withSaving = useSaving();
 
@@ -271,25 +270,31 @@ export const TranslationEditor = memo(
         className="space-y-2 text-sm break-all"
         onClick={(e) => e.stopPropagation()}
       >
-        {!isEditing ? (
-          <TranslationView
-            value={value}
-            direction={language.direction}
-            onEdit={handleEdit}
-          />
+        {keyData.isPlural ? (
+          <PluralEditor />
         ) : (
-          <TranslationEditForm
-            value={value}
-            direction={language.direction}
-            onChange={setValue}
-            onSave={handleSave}
-            onCancel={handleCancel}
-            hasChanges={hasChanges()}
-            defaultLanguageValue={defaultLanguageValue}
-            markReviewedOnSave={markReviewedOnSave}
-            onMarkReviewedOnSaveChange={setMarkReviewedOnSave}
-            onEditorReady={handleEditorReady}
-          />
+          <>
+            {!isEditing ? (
+              <TranslationView
+                value={value}
+                direction={language.direction}
+                onEdit={handleEdit}
+              />
+            ) : (
+              <TranslationEditForm
+                value={value}
+                direction={language.direction}
+                onChange={setValue}
+                onSave={handleSave}
+                onCancel={handleCancel}
+                hasChanges={hasChanges()}
+                defaultLanguageValue={defaultLanguageValue}
+                markReviewedOnSave={markReviewedOnSave}
+                onMarkReviewedOnSaveChange={setMarkReviewedOnSave}
+                onEditorReady={handleEditorReady}
+              />
+            )}
+          </>
         )}
       </div>
     );
