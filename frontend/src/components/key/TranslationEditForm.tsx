@@ -270,7 +270,7 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
                 onCheckedChange={handleMarkReviewedToggle}
                 onSelect={(e) => e.preventDefault()}
               >
-                Mark reviewed on save
+                Autoapprove on save
               </DropdownMenuCheckboxItem>
             </DropdownMenuContent>
           </DropdownMenu>
