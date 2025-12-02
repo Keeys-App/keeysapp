@@ -114,12 +114,14 @@ export const KeyAi: FC<KeyAiProps> = ({
   const isPlural = currentKey?.isPlural ?? false;
   
   // Get the actual text to translate/work with
-  const { sourceText, currentText } = useMemo(() => {
+  const { sourceText, currentText, fullSourcePluralValue, hasSourceForForm } = useMemo(() => {
     if (!isPlural || !editingPluralForm) {
       // Non-plural key - use values as-is
       return {
         sourceText: defaultLanguageValue || "",
         currentText: currentLanguageValue || "",
+        fullSourcePluralValue: null as PluralValue | null,
+        hasSourceForForm: true,
       };
     }
     
@@ -127,9 +129,25 @@ export const KeyAi: FC<KeyAiProps> = ({
     const defaultPluralValue = parsePluralValue(defaultLanguageValue || "");
     const currentPluralValue = parsePluralValue(currentLanguageValue || "");
     
+    // Check if the source has the specific form we're editing
+    const formText = defaultPluralValue[editingPluralForm];
+    
+    // If source doesn't have this form, use "other" or first available form as reference
+    // This is common when translating from English (one/other) to Russian (one/few/many/other)
+    let bestSourceText = formText || "";
+    if (!formText) {
+      // Try to find best fallback: other > one > first available
+      bestSourceText = defaultPluralValue.other 
+        || defaultPluralValue.one 
+        || Object.values(defaultPluralValue)[0] 
+        || "";
+    }
+    
     return {
-      sourceText: defaultPluralValue[editingPluralForm] || "",
+      sourceText: bestSourceText,
       currentText: currentPluralValue[editingPluralForm] || "",
+      fullSourcePluralValue: defaultPluralValue,
+      hasSourceForForm: !!formText,
     };
   }, [isPlural, editingPluralForm, defaultLanguageValue, currentLanguageValue]);
 
@@ -204,14 +222,39 @@ export const KeyAi: FC<KeyAiProps> = ({
         // Build context for plural forms
         let translationContext = customContext || "";
         
-        if (isPlural && editingPluralForm) {
+        if (isPlural && editingPluralForm && fullSourcePluralValue) {
+          // Build explanation of source plural forms
+          const sourceFormsDescription = Object.entries(fullSourcePluralValue)
+            .map(([form, text]) => `  - "${form}": "${text}"`)
+            .join("\n");
+          
+          // Explain plural form usage
+          const pluralFormExplanations: Record<PluralForm, string> = {
+            zero: "used when count is 0",
+            one: "used for singular (count = 1)",
+            two: "used for dual (count = 2)",
+            few: "used for small quantities (e.g., 2-4 in Russian)",
+            many: "used for larger quantities (e.g., 5-20 in Russian)",
+            other: "used as default/fallback for other quantities",
+          };
+          
+          const formExplanation = pluralFormExplanations[editingPluralForm] || "";
+          
           const pluralContext = [
             `PLURAL FORM TRANSLATION:`,
-            `You are translating the "${editingPluralForm}" plural form for ${currentLanguage.name}.`,
-            `The full original plural object is: ${defaultLanguageValue}`,
-            `You must translate ONLY the text for the "${editingPluralForm}" form.`,
-            `Return ONLY the translated text, NOT a JSON object.`,
-            `The "${editingPluralForm}" form in ${currentLanguage.name} is used for specific quantities - translate accordingly.`,
+            `You are translating for the "${editingPluralForm}" plural form in ${currentLanguage.name}.`,
+            ``,
+            `The "${editingPluralForm}" form is ${formExplanation}.`,
+            ``,
+            `Original ${defaultLanguage.name} plural forms:`,
+            sourceFormsDescription,
+            ``,
+            hasSourceForForm
+              ? `Translate the "${editingPluralForm}" form directly.`
+              : `Note: The source language doesn't have a "${editingPluralForm}" form. Generate an appropriate translation based on the available forms above, adapting for the specific plural usage in ${currentLanguage.name}.`,
+            ``,
+            `Return ONLY the translated text for "${editingPluralForm}" form, NOT a JSON object.`,
+            `Adapt the translation for the specific quantity/plural usage of "${editingPluralForm}" in ${currentLanguage.name}.`,
           ].join("\n");
           
           translationContext = translationContext 
@@ -644,22 +687,29 @@ export const KeyAi: FC<KeyAiProps> = ({
         isDisabled
         description={
           isPlural && editingPluralForm
-            ? `Add a translation for "${editingPluralForm}" form in the default language first.`
+            ? `Add at least one plural form in the default language first.`
             : "Add a translation in the default language first to enable suggestions."
         }
       />
     );
   } else {
     // Show translate action for empty translation
+    // For plural, show hint if we're using a different form as source
+    const showPluralInfo = isPlural && editingPluralForm;
+    const pluralHint = showPluralInfo && !hasSourceForForm
+      ? " (will generate based on available forms)"
+      : "";
+    
     card = (
       <AutopilotCard
         isPending={isGenerating}
-        title={isPlural && editingPluralForm ? `Translate (${editingPluralForm})` : undefined}
+        title={showPluralInfo ? `Translate (${editingPluralForm})` : undefined}
         description={
           <>
             Create a{" "}
             <LanguageMark language={currentLanguage} />{" "}
-            translation{isPlural && editingPluralForm ? ` for "${editingPluralForm}" form` : ""}{" "}
+            translation{showPluralInfo ? ` for "${editingPluralForm}" form` : ""}
+            {pluralHint}{" "}
             using the default{" "}
             <LanguageMark language={defaultLanguage} />{" "}
             as the source.
