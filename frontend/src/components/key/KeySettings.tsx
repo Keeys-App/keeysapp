@@ -106,7 +106,6 @@ export const KeySettings: FC<KeySettingsProps> = ({
         id="settings-is-plural"
         checked={isPlural}
         onCheckedChange={handlePluralChange}
-        disabled={isSaving}
         title="Plural key"
         description='Enable plural forms for this key'
       />
