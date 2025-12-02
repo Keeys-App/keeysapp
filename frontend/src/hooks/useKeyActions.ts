@@ -34,6 +34,19 @@ export function useKeyActions({
       },
     ],
     awaitRefetchQueries: true,
+    update(cache, { data }) {
+      if (data?.deleteKey) {
+        // Update keysCount in project cache
+        cache.modify({
+          id: cache.identify({ __typename: "ProjectType", id: projectId }),
+          fields: {
+            keysCount(existingCount = 0) {
+              return Math.max(0, existingCount - 1);
+            },
+          },
+        });
+      }
+    },
   });
 
   // Create key mutation (for duplication)
@@ -45,6 +58,19 @@ export function useKeyActions({
       },
     ],
     awaitRefetchQueries: true,
+    update(cache, { data }) {
+      if (data?.createKey) {
+        // Update keysCount in project cache
+        cache.modify({
+          id: cache.identify({ __typename: "ProjectType", id: projectId }),
+          fields: {
+            keysCount(existingCount = 0) {
+              return existingCount + 1;
+            },
+          },
+        });
+      }
+    },
   });
 
   // Handle delete success

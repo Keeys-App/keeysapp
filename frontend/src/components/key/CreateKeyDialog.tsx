@@ -174,6 +174,16 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
               },
             },
           });
+
+          // Also update keysCount in project cache
+          cache.modify({
+            id: cache.identify({ __typename: "ProjectType", id: projectId }),
+            fields: {
+              keysCount(existingCount = 0) {
+                return existingCount + 1;
+              },
+            },
+          });
         }
       },
     });
