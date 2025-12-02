@@ -40,7 +40,7 @@ export const Key = memo(
       if (!isSelected) {
         onEditingLanguageChange(null);
       }
-      
+
       // Then select the key
       if (onSelect) {
         onSelect(keyData);
@@ -56,13 +56,17 @@ export const Key = memo(
         onClick={handleCancelEditingAndSelect}
       >
         <div className="border-r -mr-px relative flex flex-col">
-          <KeyHeader 
-            keyName={keyData.key} 
+          <KeyHeader
+            keyName={keyData.key}
             isSelected={isSelected}
             keyData={keyData}
             projectId={projectId}
           />
-          <KeyFooter description={keyData.description} tags={keyData.tags} />
+          <KeyFooter
+            description={keyData.description}
+            tags={keyData.tags}
+            isPlural={keyData.isPlural}
+          />
         </div>
         <div className="flex flex-col">
           {projectLanguages.map((language) => (

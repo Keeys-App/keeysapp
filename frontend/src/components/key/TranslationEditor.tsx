@@ -271,7 +271,19 @@ export const TranslationEditor = memo(
         onClick={(e) => e.stopPropagation()}
       >
         {keyData.isPlural ? (
-          <PluralEditor />
+          <PluralEditor
+            language={language}
+            value={value}
+            direction={language.direction}
+            onChange={setValue}
+            onSave={handleSave}
+            onCancel={handleCancel}
+            hasChanges={hasChanges()}
+            defaultLanguageValue={defaultLanguageValue}
+            markReviewedOnSave={markReviewedOnSave}
+            onMarkReviewedOnSaveChange={setMarkReviewedOnSave}
+            onEditorReady={handleEditorReady}
+          />
         ) : (
           <>
             {!isEditing ? (

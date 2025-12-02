@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { Copy, type LucideIcon, Trash2 } from "lucide-react";
-import { InputGroupButton } from "../ui";
+import { Badge, InputGroupButton } from "../ui";
 import {
   Tooltip,
   TooltipContent,
@@ -50,10 +50,10 @@ export function KeyHeader({ keyName, isSelected, keyData, projectId, onKeyDelete
 
   return (
     <>
-      <div className="font-mono text-sm break-words sticky bg-background top-0 z-10 py-2 px-4">
+      <div className="text-sm break-words sticky bg-background top-0 z-10 py-2 px-4">
         <div
           className={cn(
-            "transition-colors relative",
+            "transition-colors relative font-mono",
             isSelected && "text-primary"
           )}
         >
