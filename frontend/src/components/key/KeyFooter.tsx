@@ -21,20 +21,20 @@ export const KeyFooter: FC<KeyFooterProps> = ({
   }
 
   return (
-    <div className="mt-auto pb-2.5 flex flex-col gap-2 px-4">
+    <div className="mt-auto pb-2 flex flex-col gap-2 px-4">
       {description ? (
         <p className="text-sm break-words text-muted-foreground">
           {description}
         </p>
       ) : null}
-      {tags && tags.length > 0 ? (
+      {isPlural || (tags && tags.length > 0) ? (
         <div className="text-sm break-words text-muted-foreground flex gap-2 flex-wrap">
+          {isPlural ? <Badge>Plural</Badge> : null}
           {tags?.map((tag) => (
             <Badge variant="secondary" key={tag}>
               {tag}
             </Badge>
           ))}
-          {isPlural ? <Badge variant="outline">Plural</Badge> : null}
         </div>
       ) : null}
     </div>

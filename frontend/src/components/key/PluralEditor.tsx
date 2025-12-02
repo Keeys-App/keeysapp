@@ -1,6 +1,8 @@
 import type { TranslationTextEditorRef } from "./TranslationTextEditor";
-import type { FC } from "react";
+import { Fragment, type FC } from "react";
 import type { Language, LanguageWithLocale } from "@/types/project";
+import { Badge } from "../ui";
+import { TranslationEditForm } from "./TranslationEditForm";
 
 interface PluralEditorProps {
   language: Language | LanguageWithLocale;
@@ -16,23 +18,20 @@ interface PluralEditorProps {
   onEditorReady?: (ref: TranslationTextEditorRef | null) => void;
 }
 
-export const PluralEditor: FC<PluralEditorProps> = ({
-  language,
-  value,
-  direction,
-  onChange,
-  onSave,
-  onCancel,
-  hasChanges,
-  defaultLanguageValue,
-  markReviewedOnSave,
-  onMarkReviewedOnSaveChange,
-  onEditorReady,
-}) => {
+export const PluralEditor: FC<PluralEditorProps> = (props) => {
   return (
-    <div>
-      {language.pluralForms.map((form) => {
-        return <div key={form}>{form}</div>;
+    <div className="grid grid-cols-[auto_1fr] -mb-[1px]">
+      {props.language.pluralForms.map((form) => {
+        return (
+          <Fragment key={form}>
+            <div className="capitalize text-muted-foreground border-b p-2 border-r">
+              <Badge className="capitalize">{form}</Badge>
+            </div>
+            <div className="border-b p-2">
+              Editor will be here
+            </div>
+          </Fragment>
+        );
       })}
     </div>
   );
