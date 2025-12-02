@@ -300,7 +300,7 @@ export const TranslationEditor = memo(
     );
   },
   (prevProps, nextProps) => {
-    // Only re-render if key ID, language, or editing state changed
+    // Only re-render if key ID, language, editing state, or isPlural changed
     // Also check if translation value changed
     const prevTranslation = prevProps.keyData.translations.find(
       (t) => t.language === prevProps.language.code
@@ -311,6 +311,7 @@ export const TranslationEditor = memo(
 
     return (
       prevProps.keyData.id === nextProps.keyData.id &&
+      prevProps.keyData.isPlural === nextProps.keyData.isPlural &&
       prevProps.language.code === nextProps.language.code &&
       prevProps.isEditing === nextProps.isEditing &&
       prevTranslation?.value === nextTranslation?.value

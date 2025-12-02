@@ -104,6 +104,7 @@ export const Key = memo(
       prevProps.keyData.id !== nextProps.keyData.id ||
       prevProps.keyData.key !== nextProps.keyData.key ||
       prevProps.keyData.description !== nextProps.keyData.description ||
+      prevProps.keyData.isPlural !== nextProps.keyData.isPlural ||
       prevProps.keyData.updatedAt !== nextProps.keyData.updatedAt ||
       prevProps.isSelected !== nextProps.isSelected ||
       prevProps.projectId !== nextProps.projectId ||
