@@ -667,7 +667,9 @@ class KeyService:
         
         # If value is empty or only whitespace, delete the translation
         if not value.strip():
+            logger.info(f"Deleting translation for key {key_public_id}, language {language}, value was: '{value}'")
             if translation:
+                logger.info(f"Found existing translation to delete: {translation.id}")
                 # Log translation deletion
                 await KeyService._create_log(
                     db=db,
@@ -678,8 +680,13 @@ class KeyService:
                     language=language,
                     old_value=translation.value
                 )
-                db.delete(translation)
+                await db.execute(
+                    delete(Translation).where(Translation.id == translation.id)
+                )
                 await db.commit()
+                logger.info("Translation deleted and committed")
+            else:
+                logger.info("No existing translation found to delete")
             return None
         
         # Determine action type based on AI generation

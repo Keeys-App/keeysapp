@@ -169,31 +169,56 @@ export const KeyAi: FC<KeyAiProps> = ({
   const [variantsMutation] =
     useMutation<AiSuggestVariantsData>(AI_SUGGEST_VARIANTS);
 
-  // Calculate empty languages (languages without translations)
-  const emptyLanguages = useMemo(() => {
+  // Calculate languages with missing translations
+  // For plural keys: languages missing any plural form
+  // For regular keys: languages without any translation
+  const languagesWithEmptyForms = useMemo(() => {
     if (!currentKey || !defaultLanguage || !defaultLanguageValue) {
       return [];
     }
     
-    const existingTranslations = new Set(
-      currentKey.translations
-        .filter((t) => t.value && t.value.trim() !== "")
-        .map((t) => t.language)
-    );
-    
-    return projectLanguages.filter(
-      (lang) => !lang.default && !existingTranslations.has(lang.code)
-    );
-  }, [currentKey, defaultLanguage, defaultLanguageValue, projectLanguages]);
+    return projectLanguages
+      .filter((lang) => !lang.default)
+      .map((lang) => {
+        const translation = currentKey.translations.find((t) => t.language === lang.code);
+        
+        if (isPlural) {
+          // For plural keys, check which forms are missing
+          const existingValue = translation?.value ? parsePluralValue(translation.value) : {};
+          const missingForms = lang.pluralForms.filter((form) => !existingValue[form]?.trim());
+          
+          return {
+            lang,
+            missingForms,
+            hasAnyMissing: missingForms.length > 0,
+          };
+        } else {
+          // For regular keys, check if translation exists
+          const hasMissing = !translation?.value?.trim();
+          return {
+            lang,
+            missingForms: [] as PluralForm[],
+            hasAnyMissing: hasMissing,
+          };
+        }
+      })
+      .filter((item) => item.hasAnyMissing);
+  }, [currentKey, defaultLanguage, defaultLanguageValue, projectLanguages, isPlural]);
+  
+  // For backward compatibility
+  const emptyLanguages = useMemo(
+    () => languagesWithEmptyForms.map((item) => item.lang),
+    [languagesWithEmptyForms]
+  );
 
   // Mutation for saving translations
   const [setTranslation] = useMutation(SET_TRANSLATION, {
     refetchQueries: currentKey ? [{ query: GET_KEY, variables: { id: currentKey.id } }] : [],
   });
 
-  // Autotranslate all empty languages
+  // Autotranslate all empty languages/forms
   const handleAutotranslateAll = async () => {
-    if (!currentKey || !defaultLanguage || !defaultLanguageValue || emptyLanguages.length === 0) {
+    if (!currentKey || !defaultLanguage || !defaultLanguageValue || languagesWithEmptyForms.length === 0) {
       return;
     }
 
@@ -202,14 +227,22 @@ export const KeyAi: FC<KeyAiProps> = ({
     let errorCount = 0;
 
     try {
-      for (const lang of emptyLanguages) {
+      for (const { lang, missingForms } of languagesWithEmptyForms) {
         try {
           let translatedValue: string;
 
           if (isPlural) {
-            // For plural keys, translate each form separately
+            // For plural keys, translate only missing forms
             const sourcePluralValue = parsePluralValue(defaultLanguageValue);
-            const translatedPluralValue: PluralValue = {};
+            
+            // Get existing translation to preserve filled forms
+            const existingTranslation = currentKey.translations.find((t) => t.language === lang.code);
+            const existingPluralValue = existingTranslation?.value 
+              ? parsePluralValue(existingTranslation.value) 
+              : {};
+            
+            // Start with existing values
+            const translatedPluralValue: PluralValue = { ...existingPluralValue };
 
             // Plural form explanations
             const pluralFormExplanations: Record<PluralForm, string> = {
@@ -221,8 +254,8 @@ export const KeyAi: FC<KeyAiProps> = ({
               other: "for other counts (default form)",
             };
 
-            // Translate each plural form for this language
-            for (const form of lang.pluralForms) {
+            // Translate only missing forms
+            for (const form of missingForms) {
               try {
                 // Find best source text for this form
                 const sourceFormText = sourcePluralValue[form] 
@@ -262,7 +295,7 @@ export const KeyAi: FC<KeyAiProps> = ({
               }
             }
 
-            // Serialize plural value to JSON
+            // Serialize plural value to JSON (includes existing + new translations)
             const filtered = Object.fromEntries(
               Object.entries(translatedPluralValue).filter(([, v]) => v !== "")
             );
@@ -800,20 +833,25 @@ export const KeyAi: FC<KeyAiProps> = ({
   
   // If no language is being edited, show autotranslate option or tip
   if (!currentLanguage) {
-    if (emptyLanguages.length > 0 && defaultLanguageValue) {
-      // Show autotranslate button when there are empty languages
+    // Calculate total missing forms for description
+    const totalMissingForms = isPlural
+      ? languagesWithEmptyForms.reduce((acc, item) => acc + item.missingForms.length, 0)
+      : languagesWithEmptyForms.length;
+    
+    if (languagesWithEmptyForms.length > 0 && defaultLanguageValue) {
+      // Show autotranslate button when there are empty languages/forms
+      const description = isPlural
+        ? `Fill ${totalMissingForms} empty plural form${totalMissingForms > 1 ? "s" : ""} across ${languagesWithEmptyForms.length} language${languagesWithEmptyForms.length > 1 ? "s" : ""} using AI.`
+        : `Translate to ${languagesWithEmptyForms.length} empty language${languagesWithEmptyForms.length > 1 ? "s" : ""} using AI.`;
+      
       card = (
         <AutopilotCard
           isPending={isAutotranslating}
           title="Autotranslate"
-          description={
-            <>
-              Translate to {emptyLanguages.length} empty language{emptyLanguages.length > 1 ? "s" : ""} using AI.
-            </>
-          }
+          description={description}
           actions={[
             {
-              label: `Translate all (${emptyLanguages.length})`,
+              label: isPlural ? `Fill all (${totalMissingForms})` : `Translate all (${languagesWithEmptyForms.length})`,
               icon: Sparkles,
               onClick: handleAutotranslateAll,
               variant: "default",
