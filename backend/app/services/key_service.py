@@ -596,16 +596,28 @@ class KeyService:
         Returns:
             True if deleted, False otherwise
         """
-        # Get key
-        key_obj = await KeyService.get_key_by_public_id(db, public_id)
+        logger.info(f"delete_key called for public_id={public_id}, user_id={user_id}")
+        
+        # Get key with relationships loaded for proper cascade deletion
+        result = await db.execute(
+            select(Key)
+            .where(Key.public_id == public_id)
+            .options(joinedload(Key.translations), joinedload(Key.logs))
+        )
+        key_obj = result.unique().scalar_one_or_none()
+        
         if not key_obj:
+            logger.warning(f"Key {public_id} not found")
             return False
+        
+        logger.info(f"Found key: id={key_obj.id}, key={key_obj.key}")
         
         # Check permission
         if not await ProjectService.can_user_edit_project(db, key_obj.project_id, user_id):
+            logger.warning(f"User {user_id} has no permission to delete key {public_id}")
             return False
         
-        # Log key deletion
+        # Log key deletion before deleting
         await KeyService._create_log(
             db=db,
             key_id=key_obj.id,
@@ -615,8 +627,14 @@ class KeyService:
             old_value=key_obj.key
         )
         
-        db.delete(key_obj)
+        # Flush to save the log before deleting the key
+        await db.flush()
+        
+        # Delete key using ORM delete (triggers cascade)
+        await db.delete(key_obj)
         await db.commit()
+        
+        logger.info(f"Key {public_id} deleted and committed")
         return True
 
     @staticmethod

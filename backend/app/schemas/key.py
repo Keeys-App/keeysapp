@@ -809,18 +809,28 @@ class KeyMutation:
             UnauthorizedError: If user is not authenticated
             DatabaseError: If database operation fails
         """
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"delete_key resolver called with id={id}")
+        
         current_user_id = await get_current_user_id(info)
         if not current_user_id:
             raise UnauthorizedError("User must be authenticated to delete keys")
         
+        logger.info(f"delete_key: user_id={current_user_id}")
+        
         async with AsyncSessionLocal() as db:
             try:
-                return await KeyService.delete_key(db, id, current_user_id)
+                result = await KeyService.delete_key(db, id, current_user_id)
+                logger.info(f"delete_key: service returned {result}")
+                return result
             except (UnauthorizedError, AuthenticationError):
                 raise
             except (IntegrityError, OperationalError) as e:
+                logger.error(f"delete_key: database error: {e}")
                 handle_database_exception(e, "key deletion")
             except Exception as e:
+                logger.error(f"delete_key: unexpected error: {e}")
                 handle_database_exception(e, "key deletion")
 
     @strawberry.mutation

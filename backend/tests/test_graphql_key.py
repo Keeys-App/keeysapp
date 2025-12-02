@@ -414,6 +414,42 @@ class TestDeleteKeyMutation:
         assert result.errors is None
         assert result.data["deleteKey"] is True
 
+    @pytest.mark.asyncio
+    async def test_delete_key_actually_removes_from_db(self, authenticated_graphql_client):
+        """Test that deleted key is actually removed from database."""
+        team_id = await create_team(authenticated_graphql_client)
+        project_id = await create_project(authenticated_graphql_client, team_id)
+        key_id = await create_key(authenticated_graphql_client, project_id)
+        
+        # Verify key exists before deletion
+        get_query = """
+            query Key($id: String!) {
+                key(id: $id) {
+                    id
+                    key
+                }
+            }
+        """
+        result = await authenticated_graphql_client.execute_async(get_query, {"id": key_id})
+        assert result.errors is None
+        assert result.data["key"] is not None
+        assert result.data["key"]["id"] == key_id
+        
+        # Delete the key
+        delete_query = """
+            mutation DeleteKey($id: String!) {
+                deleteKey(id: $id)
+            }
+        """
+        result = await authenticated_graphql_client.execute_async(delete_query, {"id": key_id})
+        assert result.errors is None
+        assert result.data["deleteKey"] is True
+        
+        # Verify key no longer exists
+        result = await authenticated_graphql_client.execute_async(get_query, {"id": key_id})
+        # Should either have errors or return None
+        assert result.data is None or result.data.get("key") is None
+
 
 class TestSetTranslationMutation:
     """Tests for setTranslation mutation."""
@@ -445,6 +481,109 @@ class TestSetTranslationMutation:
         assert result.errors is None
         assert result.data["setTranslation"]["language"] == "de"
         assert result.data["setTranslation"]["value"] == "Testübersetzung"
+
+    @pytest.mark.asyncio
+    async def test_set_translation_empty_deletes(self, authenticated_graphql_client):
+        """Test that setting empty value deletes the translation."""
+        team_id = await create_team(authenticated_graphql_client)
+        project_id = await create_project(authenticated_graphql_client, team_id)
+        key_id = await create_key(authenticated_graphql_client, project_id)
+        
+        # Verify translation exists (created with key)
+        get_query = """
+            query Key($id: String!) {
+                key(id: $id) {
+                    translations {
+                        language
+                        value
+                    }
+                }
+            }
+        """
+        result = await authenticated_graphql_client.execute_async(get_query, {"id": key_id})
+        assert result.errors is None
+        en_translation = next(
+            (t for t in result.data["key"]["translations"] if t["language"] == "en"), 
+            None
+        )
+        assert en_translation is not None
+        assert en_translation["value"] == "Test value"
+        
+        # Delete translation by setting empty value
+        set_query = """
+            mutation SetTranslation($input: SetTranslationInput!) {
+                setTranslation(input: $input) {
+                    language
+                    value
+                }
+            }
+        """
+        result = await authenticated_graphql_client.execute_async(set_query, {
+            "input": {
+                "keyId": key_id,
+                "language": "en",
+                "value": ""
+            }
+        })
+        
+        # Should return null for deleted translation
+        assert result.errors is None
+        assert result.data["setTranslation"] is None
+        
+        # Verify translation is actually removed
+        result = await authenticated_graphql_client.execute_async(get_query, {"id": key_id})
+        assert result.errors is None
+        en_translation = next(
+            (t for t in result.data["key"]["translations"] if t["language"] == "en"), 
+            None
+        )
+        assert en_translation is None, "Translation should be deleted but still exists"
+
+    @pytest.mark.asyncio
+    async def test_set_translation_update_existing(self, authenticated_graphql_client):
+        """Test updating an existing translation."""
+        team_id = await create_team(authenticated_graphql_client)
+        project_id = await create_project(authenticated_graphql_client, team_id)
+        key_id = await create_key(authenticated_graphql_client, project_id)
+        
+        query = """
+            mutation SetTranslation($input: SetTranslationInput!) {
+                setTranslation(input: $input) {
+                    language
+                    value
+                }
+            }
+        """
+        
+        # Update existing "en" translation
+        result = await authenticated_graphql_client.execute_async(query, {
+            "input": {
+                "keyId": key_id,
+                "language": "en",
+                "value": "Updated value"
+            }
+        })
+        
+        assert result.errors is None
+        assert result.data["setTranslation"]["value"] == "Updated value"
+        
+        # Verify it persisted
+        get_query = """
+            query Key($id: String!) {
+                key(id: $id) {
+                    translations {
+                        language
+                        value
+                    }
+                }
+            }
+        """
+        result = await authenticated_graphql_client.execute_async(get_query, {"id": key_id})
+        en_translation = next(
+            (t for t in result.data["key"]["translations"] if t["language"] == "en"), 
+            None
+        )
+        assert en_translation["value"] == "Updated value"
 
 
 class TestApproveTranslationMutation:
