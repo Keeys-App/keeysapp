@@ -65,7 +65,7 @@ export const CheckboxCard: FC<CheckboxCardProps> = ({
   const card = (
     <Label
       className={cn(
-        "hover:bg-accent/50 flex items-start gap-3 rounded-lg border px-3 pt-3 pb-2.5 cursor-pointer",
+        "hover:bg-accent/50 flex items-start gap-3 rounded-md border px-3 pt-3 pb-2.5 cursor-pointer",
         styles.label,
         disabled && "opacity-50 cursor-not-allowed hover:bg-transparent",
         className
