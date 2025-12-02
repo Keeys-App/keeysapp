@@ -42,19 +42,21 @@ import { CheckboxCard } from '@/components/blocks';
   description="Enable plural forms for this key"
 />
 
-// С иконкой в заголовке
+// С иконкой, purple темой и подсказкой при disabled (для AI функций)
 <CheckboxCard
   id="autopilot"
   checked={autopilot}
   onCheckedChange={setAutopilot}
+  variant="purple"
   title={
     <span className="flex items-center gap-1.5">
-      <Sparkles className="h-3.5 w-3.5 text-primary" />
+      <Sparkles className="h-3.5 w-3.5 text-purple-600" />
       Autopilot
     </span>
   }
   description="Automatically translate using AI"
   disabled={!hasDefaultValue}
+  disabledReason="Enter a default value first to enable autopilot"
 />
 ```
 

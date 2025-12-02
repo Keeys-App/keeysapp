@@ -53,6 +53,13 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
   // Check if autopilot should be shown (more than 1 language in project)
   const showAutopilot = projectLanguages.length > 1 && !!defaultLanguage;
 
+  // Uncheck autopilot when default value is cleared
+  useEffect(() => {
+    if (!defaultValue.trim()) {
+      setAutopilot(false);
+    }
+  }, [defaultValue]);
+
   // Track the last processed mutation result to avoid duplicate toasts
   const lastProcessedDataRef = useRef<any>(null);
 
@@ -332,6 +339,25 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
                 title="Plural key"
                 description='Enable plural forms for this key (e.g., "1 item" vs "5 items")'
               />
+
+              {/* Autopilot checkbox */}
+              {showAutopilot ? (
+                <CheckboxCard
+                  id="autopilot"
+                  checked={autopilot}
+                  onCheckedChange={setAutopilot}
+                  disabled={isSaving || !defaultValue.trim()}
+                  disabledReason="Enter a default value first to enable autopilot"
+                  variant="purple"
+                  title={
+                    <span className="flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5 text-purple-600" />
+                      Autopilot
+                    </span>
+                  }
+                  description="Automatically translate to all project languages using AI when default value is provided"
+                />
+              ) : null}
             </TabsContent>
 
             <TabsContent value="metadata" className="space-y-4">
@@ -364,23 +390,6 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
           </Tabs>
 
           <DialogFooter className="flex-col gap-4 sm:flex-col">
-            {/* Autopilot checkbox */}
-            {showAutopilot ? (
-              <CheckboxCard
-                id="autopilot"
-                checked={autopilot}
-                onCheckedChange={setAutopilot}
-                disabled={isSaving || !defaultValue.trim()}
-                title={
-                  <span className="flex items-center gap-1.5">
-                    <Sparkles className="h-3.5 w-3.5 text-primary" />
-                    Autopilot
-                  </span>
-                }
-                description="Automatically translate to all project languages using AI when default value is provided"
-              />
-            ) : null}
-
             {/* Buttons row */}
             <div className="flex items-center justify-between w-full">
               {/* Add Another Key */}
