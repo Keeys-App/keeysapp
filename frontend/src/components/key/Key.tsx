@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import { TranslationEditor } from "./TranslationEditor";
 import { LanguageHeader } from "./LanguageHeader";
 import { KeyHeader } from "./KeyHeader";
@@ -47,6 +47,20 @@ export const Key = memo(
       }
     };
 
+    // Sort languages so default language comes first
+    const sortedLanguages = useMemo(() => {
+      return [...projectLanguages].sort((a, b) => {
+        // Default language comes first
+        if ("default" in a && a.default) {
+          return -1;
+        }
+        if ("default" in b && b.default) {
+          return 1;
+        }
+        return 0;
+      });
+    }, [projectLanguages]);
+
     return (
       <div
         className={cn(
@@ -69,7 +83,7 @@ export const Key = memo(
           />
         </div>
         <div className="flex flex-col">
-          {projectLanguages.map((language) => (
+          {sortedLanguages.map((language) => (
             <div
               key={language.code}
               className="group grid grid-cols-[120px_1fr] min-w-[500px] even:bg-muted/50 border-b last:-mb-px"
