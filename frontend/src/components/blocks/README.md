@@ -27,6 +27,37 @@ import { ProjectStatus } from '@/components/blocks';
 <ProjectStatus status="draft" showIcon={false} />
 ```
 
+### CheckboxCard
+
+Красивая карточка с чекбоксом, заголовком и описанием. При активации подсвечивается синим.
+
+```tsx
+import { CheckboxCard } from '@/components/blocks';
+
+<CheckboxCard
+  id="is-plural"
+  checked={isPlural}
+  onCheckedChange={setIsPlural}
+  title="Plural key"
+  description="Enable plural forms for this key"
+/>
+
+// С иконкой в заголовке
+<CheckboxCard
+  id="autopilot"
+  checked={autopilot}
+  onCheckedChange={setAutopilot}
+  title={
+    <span className="flex items-center gap-1.5">
+      <Sparkles className="h-3.5 w-3.5 text-primary" />
+      Autopilot
+    </span>
+  }
+  description="Automatically translate using AI"
+  disabled={!hasDefaultValue}
+/>
+```
+
 ### ColorPicker
 
 Компонент для выбора цвета из палитры с визуальной индикацией выбранного цвета.

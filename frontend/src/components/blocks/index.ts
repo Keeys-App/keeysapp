@@ -6,6 +6,7 @@
 export { ProjectStatus, getProjectStatusInfo } from './ProjectStatus';
 export { ColorPicker } from './ColorPicker';
 export { Combobox, type ComboboxOption } from './Combobox';
+export { CheckboxCard } from './CheckboxCard';
 export { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 export { LoadingState } from './LoadingState';
 export { ErrorState } from './ErrorState';

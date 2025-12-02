@@ -20,8 +20,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CheckboxCard } from "@/components/blocks";
 import { TagsEditor } from "./TagsEditor";
-import { Label } from "@/components/ui/label";
 
 interface CreateKeyDialogProps {
   open: boolean;
@@ -324,24 +324,14 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
               ) : null}
 
               {/* Plural */}
-              <Label className="hover:bg-accent/50 flex items-start gap-3 rounded-lg border p-3 cursor-pointer has-[[aria-checked=true]]:border-blue-600 has-[[aria-checked=true]]:bg-blue-50 dark:has-[[aria-checked=true]]:border-blue-900 dark:has-[[aria-checked=true]]:bg-blue-950">
-                <Checkbox
-                  id="is-plural"
-                  checked={isPlural}
-                  onCheckedChange={(checked) => {
-                    return setIsPlural(checked === true);
-                  }}
-                  disabled={isSaving}
-                  className="data-[state=checked]:border-blue-600 data-[state=checked]:bg-blue-600 data-[state=checked]:text-white dark:data-[state=checked]:border-blue-700 dark:data-[state=checked]:bg-blue-700"
-                />
-                <div className="grid gap-1.5 font-normal">
-                  <p className="text-sm leading-none font-medium">Plural key</p>
-                  <p className="text-muted-foreground text-sm">
-                    Enable plural forms for this key (e.g., "1 item" vs "5
-                    items")
-                  </p>
-                </div>
-              </Label>
+              <CheckboxCard
+                id="is-plural"
+                checked={isPlural}
+                onCheckedChange={setIsPlural}
+                disabled={isSaving}
+                title="Plural key"
+                description='Enable plural forms for this key (e.g., "1 item" vs "5 items")'
+              />
             </TabsContent>
 
             <TabsContent value="metadata" className="space-y-4">
@@ -376,27 +366,19 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
           <DialogFooter className="flex-col gap-4 sm:flex-col">
             {/* Autopilot checkbox */}
             {showAutopilot ? (
-              <Label className="hover:bg-accent/50 flex items-start gap-3 rounded-lg border p-3 cursor-pointer has-[[aria-checked=true]]:border-blue-600 has-[[aria-checked=true]]:bg-blue-50 dark:has-[[aria-checked=true]]:border-blue-900 dark:has-[[aria-checked=true]]:bg-blue-950">
-                <Checkbox
-                  id="autopilot"
-                  checked={autopilot}
-                  onCheckedChange={(checked) => {
-                    return setAutopilot(checked === true);
-                  }}
-                  disabled={isSaving || !defaultValue.trim()}
-                  className="data-[state=checked]:border-blue-600 data-[state=checked]:bg-blue-600 data-[state=checked]:text-white dark:data-[state=checked]:border-blue-700 dark:data-[state=checked]:bg-blue-700"
-                />
-                <div className="grid gap-1.5 font-normal">
-                  <p className="text-sm leading-none font-medium flex items-center gap-1.5">
+              <CheckboxCard
+                id="autopilot"
+                checked={autopilot}
+                onCheckedChange={setAutopilot}
+                disabled={isSaving || !defaultValue.trim()}
+                title={
+                  <span className="flex items-center gap-1.5">
                     <Sparkles className="h-3.5 w-3.5 text-primary" />
                     Autopilot
-                  </p>
-                  <p className="text-muted-foreground text-sm">
-                    Automatically translate to all project languages using AI
-                    when default value is provided
-                  </p>
-                </div>
-              </Label>
+                  </span>
+                }
+                description="Automatically translate to all project languages using AI when default value is provided"
+              />
             ) : null}
 
             {/* Buttons row */}
