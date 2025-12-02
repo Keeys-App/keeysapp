@@ -47,7 +47,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Locales API",
+    title="Keeys API",
     description="API for localization management",
     version="1.0.0",
     lifespan=lifespan
@@ -80,7 +80,7 @@ app.include_router(project_router)
 
 @app.get("/")
 async def root():
-    return {"message": "Hi there! This is Locales API. Visit https://keeys.app for more information."}
+    return {"message": "Hi there! This is Keeys API. Visit https://keeys.app for more information."}
 
 
 @app.get("/health")

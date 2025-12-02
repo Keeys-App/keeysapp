@@ -1,6 +1,6 @@
-# Locales Documentation
+# Keeys Documentation
 
-Добро пожаловать в документацию проекта Locales!
+Добро пожаловать в документацию проекта Keeys!
 
 ## 📚 Содержание
 
@@ -39,7 +39,7 @@
 ## 🏗️ Архитектура
 
 ```
-Locales/
+Keeys/
 ├── backend/          # FastAPI + GraphQL + PostgreSQL
 │   ├── app/         # Основной код приложения
 │   └── tests/       # Тесты

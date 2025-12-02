@@ -56,7 +56,7 @@ export const OnboardingWizard: FC = () => {
     <div className="flex h-full items-center justify-center p-6">
       <Card className="w-full max-w-3xl">
         <CardHeader>
-          <CardTitle className="text-2xl">Welcome to Locales! 🎉</CardTitle>
+          <CardTitle className="text-2xl">Welcome to Keeys! 🎉</CardTitle>
           <CardDescription>
             Let's get you started with a few quick steps
           </CardDescription>

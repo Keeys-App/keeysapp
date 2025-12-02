@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     
     # API
     api_v1_str: str = "/api/v1"
-    project_name: str = "Locales API"
+    project_name: str = "Keeys API"
     
     # Security
     jwt_secret_key: str = "your-secret-key-here"
@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     # Brevo (Email)
     brevo_api_key: Optional[str] = None
     brevo_sender_email: str = "noreply@example.com"
-    brevo_sender_name: str = "Locales App"
+    brevo_sender_name: str = "Keeys App"
     
     # Application URL (for email links)
     app_url: str = "http://localhost:3000"

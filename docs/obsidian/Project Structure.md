@@ -1,11 +1,11 @@
 # Project Structure
 
-> [!info] Структура проекта Locales
+> [!info] Структура проекта Keeys
 
 ## Общий обзор
 
 ```
-Locales/
+Keeys/
 ├── backend/                # FastAPI + GraphQL Backend
 ├── frontend/               # React + TypeScript Frontend
 ├── docs/                   # Документация (Obsidian)

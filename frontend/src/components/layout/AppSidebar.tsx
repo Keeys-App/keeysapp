@@ -97,7 +97,7 @@ export const AppSidebar: FC = () => {
                   <Languages className="size-5" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">Locales</span>
+                  <span className="truncate font-medium">Keeys</span>
                   <span className="truncate text-xs">Beta</span>
                 </div>
               </Link>

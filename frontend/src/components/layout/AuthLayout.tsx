@@ -32,7 +32,7 @@ export const AuthLayout: FC = () => {
           <div className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-md">
             <Languages className="size-4" />
           </div>
-          Locales
+          Keeys
         </a>
         <Outlet />
       </div>

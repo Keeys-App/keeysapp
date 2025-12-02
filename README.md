@@ -1,4 +1,4 @@
-# Locales - Translation Management System
+# Keeys - Translation Management System
 
 > Система управления локализацией с полноценной системой авторизации
 
@@ -187,7 +187,7 @@ mutation {
 ## 📁 Структура проекта
 
 ```
-Locales/
+Keeys/
 ├── backend/                  # FastAPI + GraphQL
 │   ├── app/                 # Код приложения
 │   │   ├── models/          # SQLAlchemy модели
