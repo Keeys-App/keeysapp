@@ -201,3 +201,55 @@ class TestTeamActivityQuery:
         
         # Should fail - either errors or null data
         assert result.errors is not None or result.data is None or result.data.get("teamActivity") is None
+
+    @pytest.mark.asyncio
+    async def test_team_activity_includes_extra_data(self, authenticated_graphql_client):
+        """Test teamActivity returns extraData field."""
+        team_id = await create_team(authenticated_graphql_client)
+        project_id = await create_project(authenticated_graphql_client, team_id)
+        
+        query = """
+            query TeamActivity($teamId: String!) {
+                teamActivity(teamId: $teamId) {
+                    id
+                    action
+                    extraData
+                }
+            }
+        """
+        result = await authenticated_graphql_client.execute_async(query, {
+            "teamId": team_id
+        })
+        
+        assert result.errors is None, f"GraphQL errors: {result.errors}"
+        # extraData field should be queryable (may be null for some actions)
+        for log in result.data["teamActivity"]:
+            assert "extraData" in log
+
+    @pytest.mark.asyncio
+    async def test_team_activity_includes_project_info(self, authenticated_graphql_client):
+        """Test teamActivity returns project information."""
+        team_id = await create_team(authenticated_graphql_client)
+        project_id = await create_project(authenticated_graphql_client, team_id)
+        
+        query = """
+            query TeamActivity($teamId: String!) {
+                teamActivity(teamId: $teamId) {
+                    id
+                    action
+                    project {
+                        id
+                        name
+                        color
+                    }
+                }
+            }
+        """
+        result = await authenticated_graphql_client.execute_async(query, {
+            "teamId": team_id
+        })
+        
+        assert result.errors is None
+        # Should have at least one log with project info
+        logs_with_project = [log for log in result.data["teamActivity"] if log["project"]]
+        assert len(logs_with_project) >= 1

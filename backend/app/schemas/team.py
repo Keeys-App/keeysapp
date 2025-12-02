@@ -496,6 +496,8 @@ class TeamQuery:
                     ActionType.PROJECT_DELETE,
                     ActionType.PROJECT_EXPORT,
                     ActionType.PROJECT_IMPORT,
+                    # Batch import
+                    ActionType.KEYS_BATCH_IMPORT,
                     # Team management
                     ActionType.MEMBER_ADD,
                     ActionType.MEMBER_REMOVE,

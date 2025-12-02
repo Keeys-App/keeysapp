@@ -394,6 +394,7 @@ def build_activity_log_type(log) -> ActivityLogType:
         language=log.language,
         old_value=log.old_value,
         new_value=log.new_value,
+        extra_data=log.extra_data,
         created_at=log.created_at
     )
 

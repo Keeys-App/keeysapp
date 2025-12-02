@@ -928,20 +928,6 @@ class ProjectService:
                 project.available_tags = config.get('availableTags', [])
                 logger.info(f"Set available_tags: {config.get('availableTags')}")
             
-            # Log project import (ActivityLog already imported at top of file)
-            # Note: ActivityLog is already imported at module level
-            await ProjectService._create_log(
-                db=db,
-                project_id=project.id,
-                user_id=owner_id,
-                action=ActionType.PROJECT_IMPORT,
-                field_name="import",
-                extra_data={
-                    'keys_count': len(keys_data),
-                    'locales_count': len(locales)
-                }
-            )
-            
             # Create keys with descriptions and tags first
             logger.info(f"Creating {len(keys_data)} keys")
             created_keys = {}
