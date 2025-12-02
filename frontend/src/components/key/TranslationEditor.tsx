@@ -1,4 +1,4 @@
-import { useState, useEffect, memo, useRef } from "react";
+import { useState, useEffect, memo, useRef, useCallback } from "react";
 import { useMutation } from "@apollo/client";
 import { toast } from "sonner";
 import {
@@ -58,12 +58,17 @@ export const TranslationEditor = memo(
     const wasEditingRef = useRef(false);
     const valueToSaveRef = useRef<string | null>(null);
     const isAutoSavingRef = useRef(false);
+    const currentEditorRef = useRef<TranslationTextEditorRef | null>(null);
     const { setEditorRef } = useTranslationEditor();
 
     // Register/unregister editor ref in context when editing starts/stops
-    const handleEditorReady = (ref: TranslationTextEditorRef | null) => {
-      setEditorRef(ref);
-    };
+    // Use ref comparison to prevent infinite update loops
+    const handleEditorReady = useCallback((ref: TranslationTextEditorRef | null) => {
+      if (currentEditorRef.current !== ref) {
+        currentEditorRef.current = ref;
+        setEditorRef(ref);
+      }
+    }, [setEditorRef]);
 
     // Update value when currentValue changes from outside (e.g., switching keys)
     useEffect(() => {
@@ -279,6 +284,8 @@ export const TranslationEditor = memo(
             onSave={handleSave}
             onCancel={handleCancel}
             hasChanges={hasChanges()}
+            isEditing={isEditing}
+            onEditingChange={onEditingChange}
             defaultLanguageValue={defaultLanguageValue}
             markReviewedOnSave={markReviewedOnSave}
             onMarkReviewedOnSaveChange={setMarkReviewedOnSave}

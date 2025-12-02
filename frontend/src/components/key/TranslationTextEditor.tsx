@@ -35,7 +35,13 @@ export const TranslationTextEditor = forwardRef<TranslationTextEditorRef, Transl
   autoFocus = true,
 }, ref) => {
   const editorRef = useRef<HTMLDivElement>(null);
+  const onChangeRef = useRef(onChange);
   const [isFocused, setIsFocused] = useState(false);
+
+  // Keep onChange ref up to date
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
   // Get text content preserving all whitespace including trailing spaces
   const getTextContent = (element: HTMLElement): string => {
@@ -59,11 +65,12 @@ export const TranslationTextEditor = forwardRef<TranslationTextEditorRef, Transl
   };
 
   // Expose insertText method via ref
+  // Use empty deps array to prevent ref object recreation on every render
   useImperativeHandle(ref, () => ({
     insertText: (text: string) => {
       if (editorRef.current) {
         setTextContent(editorRef.current, text);
-        onChange(text);
+        onChangeRef.current(text);
         // Focus the editor after inserting text
         editorRef.current.focus();
         // Move cursor to end
@@ -75,7 +82,7 @@ export const TranslationTextEditor = forwardRef<TranslationTextEditorRef, Transl
         sel?.addRange(range);
       }
     },
-  }), [onChange]);
+  }), []);
 
   // Sync external value changes to the editor
   useEffect(() => {
