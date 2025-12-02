@@ -1,4 +1,4 @@
-import { type FC, useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { type FC, type ReactNode, useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { useSavingStore } from "@/stores";
 import { Badge } from "../ui";
@@ -27,6 +27,10 @@ interface TranslationEditFormProps {
   markReviewedOnSave?: boolean;
   onMarkReviewedOnSaveChange?: (value: boolean) => void;
   onEditorReady?: (ref: TranslationTextEditorRef | null) => void;
+  /** Optional label to show on the left (e.g., plural form badge) */
+  label?: ReactNode;
+  /** Show simplified toolbar without extra options (for plural forms) */
+  compact?: boolean;
 }
 
 interface TextIssue {
@@ -90,6 +94,8 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
   markReviewedOnSave: externalMarkReviewedOnSave,
   onMarkReviewedOnSaveChange,
   onEditorReady,
+  label,
+  compact = false,
 }) => {
   const { isSaving } = useSavingStore();
   const onEditorReadyRef = useRef(onEditorReady);
@@ -189,8 +195,8 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
     }
   };
 
-  return (
-    <div className="bg-background">
+  const editorContent = (
+    <div className="border-b">
       <TranslationTextEditor
         ref={editorRef}
         value={value}
@@ -198,7 +204,6 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
         onKeyDown={handleKeyDown}
         direction={direction}
         disabled={false}
-        rows={3}
         autoFocus
       />
       <div className="flex gap-2 p-2 border-t">
@@ -219,7 +224,7 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
           >
             Cancel
           </Button>
-          {defaultLanguageValue && !value ? (
+          {!compact && defaultLanguageValue && !value ? (
             <Button
               onClick={handleCopyFromDefault}
               disabled={isSaving}
@@ -231,7 +236,7 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
           ) : null}
         </div>
         <div className="flex gap-2 items-center">
-          {textIssues.length > 0 ? (
+          {!compact && textIssues.length > 0 ? (
             <Popover>
               <PopoverTrigger asChild>
                 <Badge className="cursor-pointer bg-destructive/10 text-destructive">
@@ -253,29 +258,50 @@ export const TranslationEditForm: FC<TranslationEditFormProps> = ({
 
           <Badge variant="outline" className="font-mono">{value.length}</Badge>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Ellipsis className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuCheckboxItem
-                checked={markReviewedOnSave}
-                onCheckedChange={handleMarkReviewedToggle}
-                onSelect={(e) => e.preventDefault()}
-              >
-                Autoapprove on save
-              </DropdownMenuCheckboxItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {!compact ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Ellipsis className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuCheckboxItem
+                  checked={markReviewedOnSave}
+                  onCheckedChange={handleMarkReviewedToggle}
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  Autoapprove on save
+                </DropdownMenuCheckboxItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : null}
         </div>
       </div>
+    </div>
+  );
+
+  // If label is provided, render in grid layout (for plural forms)
+  if (label) {
+    return (
+      <>
+        <div className="capitalize text-muted-foreground border-b p-2 border-r flex items-start pt-2">
+          {label}
+        </div>
+        {editorContent}
+      </>
+    );
+  }
+
+  // Otherwise render just the editor with background
+  return (
+    <div className="bg-background">
+      {editorContent}
     </div>
   );
 };
