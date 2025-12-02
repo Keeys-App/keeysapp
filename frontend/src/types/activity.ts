@@ -10,6 +10,14 @@ export interface ActivityProject {
   color?: string;
 }
 
+export interface BatchImportExtraData {
+  created_keys: number;
+  updated_keys: number;
+  total_processed: number;
+  error_count: number;
+  translations_count?: number;
+}
+
 export interface ActivityLog {
   id: number;
   projectId: number | null;
@@ -24,6 +32,7 @@ export interface ActivityLog {
   language: string | null;
   oldValue: string | null;
   newValue: string | null;
+  extraData: BatchImportExtraData | null;
   createdAt: string;
 }
 
@@ -59,6 +68,8 @@ export type ActionType =
   | 'TRANSLATION_AI_UPDATE'
   | 'TRANSLATION_DELETE'
   | 'TRANSLATION_IMPORT'
+  // Batch import action
+  | 'KEYS_BATCH_IMPORT'
   // Review actions
   | 'REVIEW_APPROVE'
   | 'REVIEW_REJECT'

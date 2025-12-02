@@ -33,6 +33,7 @@ export const LANGUAGE_CONFIG_FRAGMENT = gql`
     code
     locale
     direction
+    pluralForms
     default
   }
 `;
@@ -157,10 +158,22 @@ export interface SimpleTeam {
   description?: string | null;
 }
 
+/**
+ * Plural form categories according to CLDR standard.
+ * - zero: Used for zero quantity (e.g., Arabic)
+ * - one: Singular form (e.g., 1 item)
+ * - two: Dual form (e.g., Arabic for exactly 2)
+ * - few: Paucal form (e.g., Russian 2-4)
+ * - many: Large quantity form (e.g., Russian 5-20)
+ * - other: General/default form (always present)
+ */
+export type PluralForm = 'zero' | 'one' | 'two' | 'few' | 'many' | 'other';
+
 export interface LanguageConfig {
   code: string;
   locale: string;
   direction: 'ltr' | 'rtl';
+  pluralForms: PluralForm[];
   default?: boolean;
 }
 

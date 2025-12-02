@@ -17,7 +17,7 @@ from app.core.exceptions import (
     handle_database_exception
 )
 from app.schemas.auth import UserType
-from app.constants.languages import LANGUAGE_CONFIGS
+from app.constants.languages import LANGUAGE_CONFIGS, get_plural_forms
 
 logger = logging.getLogger(__name__)
 
@@ -25,11 +25,20 @@ logger = logging.getLogger(__name__)
 @strawberry.type
 class LanguageConfigType:
     """
-    GraphQL type for language configuration with custom locale and text direction.
+    GraphQL type for language configuration with custom locale, text direction, and plural forms.
+    
+    Plural forms follow CLDR standard:
+    - zero: Used for zero quantity (e.g., Arabic)
+    - one: Singular form (e.g., 1 item)
+    - two: Dual form (e.g., Arabic for exactly 2)
+    - few: Paucal form (e.g., Russian 2-4)
+    - many: Large quantity form (e.g., Russian 5-20)
+    - other: General/default form (always present)
     """
     code: str
     locale: str
     direction: str
+    plural_forms: List[str]  # CLDR plural forms: ['one', 'other'], ['one', 'few', 'many', 'other'], etc.
     default: bool = False
 
 
@@ -259,6 +268,7 @@ async def build_project_type(project, current_user_id: int, stats: Optional[dict
                 code=code,
                 locale=lang.get('locale', ''),
                 direction=lang.get('direction', LANGUAGE_CONFIGS.get(code, {}).get('direction', 'ltr')),
+                plural_forms=get_plural_forms(code),
                 default=code == project.default_language
             ))
     

@@ -31,6 +31,7 @@ import {
   DiffContent,
   SimpleValueContent,
   LanguageInfoContent,
+  BatchImportContent,
 } from './content';
 
 interface ActivityItemProps {
@@ -72,6 +73,8 @@ const actionLabels: Record<string, string> = {
   TRANSLATION_AI_UPDATE: 'AI translation',
   TRANSLATION_DELETE: 'Translation deleted',
   TRANSLATION_IMPORT: 'Imported',
+  // Batch import action
+  KEYS_BATCH_IMPORT: 'Keys imported',
   // Review actions
   REVIEW_APPROVE: 'Approved',
   REVIEW_REJECT: 'Rejected',
@@ -110,6 +113,8 @@ const actionIcons: Record<string, typeof History> = {
   TRANSLATION_AI_UPDATE: Sparkles,
   TRANSLATION_DELETE: Trash,
   TRANSLATION_IMPORT: FileDown,
+  // Batch import action
+  KEYS_BATCH_IMPORT: FileUp,
   // Review actions
   REVIEW_APPROVE: MessageSquareHeart,
   REVIEW_REJECT: MessageSquareX,
@@ -148,6 +153,8 @@ const actionColors: Record<string, string> = {
   TRANSLATION_AI_UPDATE: 'bg-indigo-500/10 text-indigo-600',
   TRANSLATION_DELETE: 'bg-red-500/10 text-red-600',
   TRANSLATION_IMPORT: 'bg-cyan-500/10 text-cyan-600',
+  // Batch import action
+  KEYS_BATCH_IMPORT: 'bg-emerald-500/10 text-emerald-600',
   // Review actions
   REVIEW_APPROVE: 'bg-green-500/10 text-green-600',
   REVIEW_REJECT: 'bg-red-500/10 text-red-600',
@@ -210,8 +217,13 @@ export const ActivityItem: FC<ActivityItemProps> = ({ log, isLast, showProject =
 
         {/* Action details */}
         <div className="text-sm text-muted-foreground space-y-1">
-          {/* Review actions */}
-          {(log.action === 'REVIEW_APPROVE' ||
+          {/* Batch import action */}
+          {log.action === 'KEYS_BATCH_IMPORT' && log.extraData ? (
+            <BatchImportContent
+              extraData={log.extraData}
+              language={log.language || undefined}
+            />
+          ) : (log.action === 'REVIEW_APPROVE' ||
             log.action === 'REVIEW_REJECT' ||
             log.action === 'REVIEW_DELETE') ? (
             <ReviewContent

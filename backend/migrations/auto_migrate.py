@@ -902,6 +902,45 @@ def migrate_add_onboarding_completed_if_needed():
         return False
 
 
+def migrate_add_keys_batch_import_action_type_if_needed():
+    """
+    Add KEYS_BATCH_IMPORT action type to actiontype enum.
+    Safe to run multiple times.
+    """
+    try:
+        logger.info("🔄 Migration: Adding KEYS_BATCH_IMPORT action type")
+        
+        with engine.connect() as connection:
+            # Check if enum value exists by querying pg_enum
+            result = connection.execute(text("""
+                SELECT EXISTS (
+                    SELECT 1 
+                    FROM pg_type t 
+                    JOIN pg_enum e ON t.oid = e.enumtypid 
+                    WHERE t.typname = 'actiontype' 
+                    AND e.enumlabel = 'KEYS_BATCH_IMPORT'
+                )
+            """))
+            exists = result.scalar()
+            
+            if exists:
+                logger.info("✅ Migration: KEYS_BATCH_IMPORT already exists, skipping")
+                return True
+            
+            # Add the new enum value
+            logger.info("Adding KEYS_BATCH_IMPORT to actiontype enum...")
+            connection.execute(
+                text("ALTER TYPE actiontype ADD VALUE 'KEYS_BATCH_IMPORT'")
+            )
+            connection.commit()
+            logger.info("✅ Migration: KEYS_BATCH_IMPORT added successfully")
+            return True
+        
+    except Exception as e:
+        logger.error(f"❌ Migration failed: {str(e)}")
+        return False
+
+
 def migrate_create_password_reset_tokens_if_needed():
     """
     Create password_reset_tokens table if it doesn't exist.
@@ -973,6 +1012,7 @@ def run_all_migrations():
         ("set_default_project_status", migrate_set_default_project_status_if_needed),
         ("add_onboarding_completed", migrate_add_onboarding_completed_if_needed),
         ("create_password_reset_tokens", migrate_create_password_reset_tokens_if_needed),
+        ("add_keys_batch_import_action_type", migrate_add_keys_batch_import_action_type_if_needed),
         # Add more migrations here as needed
     ]
     

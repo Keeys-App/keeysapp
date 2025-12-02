@@ -947,6 +947,25 @@ class KeyService:
             # Commit all changes
             await db.commit()
             
+            # Log batch import summary
+            if success_count > 0:
+                import_summary = ActivityLog(
+                    team_id=project.team_id,
+                    project_id=project.id,
+                    user_id=user_id,
+                    action=ActionType.KEYS_BATCH_IMPORT,
+                    field_name="batch_import",
+                    language=language,
+                    extra_data={
+                        "created_keys": created_keys,
+                        "updated_keys": updated_keys,
+                        "total_processed": success_count,
+                        "error_count": error_count
+                    }
+                )
+                db.add(import_summary)
+                await db.commit()
+            
         except Exception as e:
             await db.rollback()
             return {

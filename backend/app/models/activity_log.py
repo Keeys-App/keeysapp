@@ -44,6 +44,9 @@ class ActionType(str, enum.Enum):
     TRANSLATION_DELETE = "TRANSLATION_DELETE"
     TRANSLATION_IMPORT = "TRANSLATION_IMPORT"
     
+    # Batch import action
+    KEYS_BATCH_IMPORT = "KEYS_BATCH_IMPORT"
+    
     # Review actions
     REVIEW_APPROVE = "REVIEW_APPROVE"
     REVIEW_REJECT = "REVIEW_REJECT"

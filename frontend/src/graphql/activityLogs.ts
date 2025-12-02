@@ -28,6 +28,7 @@ export const GET_TEAM_ACTIVITY = gql`
       language
       oldValue
       newValue
+      extraData
       createdAt
     }
   }
@@ -56,6 +57,7 @@ export const GET_PROJECT_ACTIVITY = gql`
       language
       oldValue
       newValue
+      extraData
       createdAt
     }
   }

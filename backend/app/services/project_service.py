@@ -1048,6 +1048,26 @@ class ProjectService:
                     translations_count += 1
             
             logger.info(f"Created {translations_count} translations, committing to database")
+            
+            # Log batch import summary with statistics
+            logger.info(f"Creating KEYS_BATCH_IMPORT log: created_keys={len(created_keys)}, translations_count={translations_count}")
+            import_summary = ActivityLog(
+                team_id=team_id,
+                project_id=project.id,
+                user_id=owner_id,
+                action=ActionType.KEYS_BATCH_IMPORT,
+                field_name="batch_import",
+                extra_data={
+                    "created_keys": len(created_keys),
+                    "updated_keys": 0,
+                    "total_processed": len(created_keys),
+                    "translations_count": translations_count,
+                    "error_count": 0
+                }
+            )
+            db.add(import_summary)
+            logger.info(f"KEYS_BATCH_IMPORT log added to session")
+            
             await db.commit()
             await db.refresh(project)
             logger.info(f"Import completed successfully for project: {project.public_id}")

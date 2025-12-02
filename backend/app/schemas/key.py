@@ -62,6 +62,9 @@ class ActionTypeEnum(str, enum.Enum):
     TRANSLATION_DELETE = "TRANSLATION_DELETE"
     TRANSLATION_IMPORT = "TRANSLATION_IMPORT"
     
+    # Batch import action
+    KEYS_BATCH_IMPORT = "KEYS_BATCH_IMPORT"
+    
     # Review actions
     REVIEW_APPROVE = "REVIEW_APPROVE"
     REVIEW_REJECT = "REVIEW_REJECT"
@@ -115,6 +118,7 @@ class ActivityLogType:
     language: Optional[str]
     old_value: Optional[str]
     new_value: Optional[str]
+    extra_data: Optional[strawberry.scalars.JSON] = None
     created_at: datetime
 
 
@@ -333,6 +337,9 @@ def build_activity_log_type(log) -> ActivityLogType:
         "TRANSLATION_AI_UPDATE": ActionTypeEnum.TRANSLATION_AI_UPDATE,
         "TRANSLATION_DELETE": ActionTypeEnum.TRANSLATION_DELETE,
         "TRANSLATION_IMPORT": ActionTypeEnum.TRANSLATION_IMPORT,
+        
+        # Batch import action
+        "KEYS_BATCH_IMPORT": ActionTypeEnum.KEYS_BATCH_IMPORT,
         
         # Review actions
         "REVIEW_APPROVE": ActionTypeEnum.REVIEW_APPROVE,

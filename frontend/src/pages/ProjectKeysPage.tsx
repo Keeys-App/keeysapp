@@ -58,6 +58,7 @@ export const ProjectKeysPage: FC = () => {
         flag: commonLang?.flag || '🏳️',
         locale: langConfig.locale,
         direction: (direction === 'rtl' ? 'rtl' : 'ltr') as 'ltr' | 'rtl',
+        pluralForms: langConfig.pluralForms || commonLang?.pluralForms || ['other'],
         default: langConfig.default,
       };
     });
