@@ -6,7 +6,7 @@ import { PATHS } from "@/constants/paths";
 import { useAuth, useBreadcrumbs } from "@/contexts";
 import { useEffect, useState, useMemo, useCallback, type FC } from "react";
 import { KeyList, CreateKeyDialog, KeysAsidePanel } from "@/components/key";
-import { COMMON_LANGUAGES } from "@/types/project";
+import { useLanguagesStore } from "@/stores";
 import { LoadingState, ErrorState, NotFoundState } from "@/components/blocks";
 import type { TranslationKey } from "@/types/translationKey";
 import { useLayoutStore } from "@/stores";
@@ -39,6 +39,9 @@ export const ProjectKeysPage: FC = () => {
   const project = data?.project;
   const selectedKey = keyData?.key || null;
 
+  // Get languages from store
+  const { commonLanguages } = useLanguagesStore();
+
   // Build enhanced language list with locale information
   const projectLanguages = useMemo(() => {
     if (!project?.languages) {
@@ -46,9 +49,7 @@ export const ProjectKeysPage: FC = () => {
     }
     
     return project.languages.map((langConfig) => {
-      const commonLang = COMMON_LANGUAGES.find((l) => {
-        return l.code === langConfig.code;
-      });
+      const commonLang = commonLanguages.find((l) => l.code === langConfig.code);
       
       const direction = langConfig.direction || commonLang?.direction || 'ltr';
       
@@ -62,7 +63,7 @@ export const ProjectKeysPage: FC = () => {
         default: langConfig.default,
       };
     });
-  }, [project?.languages]);
+  }, [project?.languages, commonLanguages]);
 
   // Get current editing language value and default language value
   const currentLanguageCode = editingTranslation?.language || null;

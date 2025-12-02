@@ -1,6 +1,6 @@
-import { useState, type FC } from 'react';
+import { useState, useMemo, type FC } from 'react';
 import { X, Edit2, Check, Star } from 'lucide-react';
-import { LANGUAGE_CONFIGS } from '@/types/project';
+import { useLanguagesStore } from '@/stores';
 import type { LanguageConfigInput } from '@/graphql/projects';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,25 +27,20 @@ export const LanguageConfigEditor: FC<LanguageConfigEditorProps> = ({
 }) => {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editingLocale, setEditingLocale] = useState('');
+  const { languageConfigs } = useLanguagesStore();
 
   // Prepare language options for Combobox
-  const availableLanguageOptions: ComboboxOption[] = LANGUAGE_CONFIGS
-    .filter((lang) => {
-      return !languages.some((l) => {
-        return l.code === lang.code;
-      });
-    })
-    .map((lang) => {
-      return {
+  const availableLanguageOptions: ComboboxOption[] = useMemo(() => {
+    return languageConfigs
+      .filter((lang) => !languages.some((l) => l.code === lang.code))
+      .map((lang) => ({
         value: lang.code,
         label: `${lang.flag} ${lang.name} (${lang.code})`,
-      };
-    });
+      }));
+  }, [languageConfigs, languages]);
 
   const handleAddLanguage = (langCode: string) => {
-    const langConfig = LANGUAGE_CONFIGS.find((l) => {
-      return l.code === langCode;
-    });
+    const langConfig = languageConfigs.find((l) => l.code === langCode);
     if (langConfig) {
       onChange([
         ...languages,
@@ -89,9 +84,7 @@ export const LanguageConfigEditor: FC<LanguageConfigEditorProps> = ({
   };
 
   const getLanguageInfo = (code: string) => {
-    return LANGUAGE_CONFIGS.find((l) => {
-      return l.code === code;
-    });
+    return languageConfigs.find((l) => l.code === code);
   };
 
   return (

@@ -23,9 +23,8 @@ import {
   ArrowRight,
   Download
 } from "lucide-react";
-import { COMMON_LANGUAGES } from "@/types/project";
 import { toast } from "sonner";
-import { useSaving } from "@/stores";
+import { useSaving, useLanguagesStore } from "@/stores";
 
 export const ProjectPage: FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -33,6 +32,7 @@ export const ProjectPage: FC = () => {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { setBreadcrumbs } = useBreadcrumbs();
   const withSaving = useSaving();
+  const { commonLanguages } = useLanguagesStore();
 
   const { data, loading, error } = useQuery<GetProjectData>(GET_PROJECT, {
     variables: { id },
@@ -303,9 +303,7 @@ export const ProjectPage: FC = () => {
           <CardContent className="space-y-4">
             {project.languages && project.languages.length > 0 ? (
               project.languages.map((langConfig) => {
-                const language = COMMON_LANGUAGES.find(l => {
-                  return l.code === langConfig.code;
-                });
+                const language = commonLanguages.find(l => l.code === langConfig.code);
                 const isDefault = langConfig.code === project.defaultLanguage;
                 const langProgress = project.languageProgress?.find(lp => {
                   return lp.code === langConfig.code;

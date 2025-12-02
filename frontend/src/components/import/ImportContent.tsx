@@ -4,7 +4,6 @@ import { Upload, ArrowRight, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import type { Project } from "@/types/project";
 import { GET_PROJECT_KEYS, BATCH_IMPORT_TRANSLATIONS } from "@/graphql/keys";
-import { COMMON_LANGUAGES } from "@/types/project";
 import { Button } from "@/components/ui/button";
 import { LoadingState, ErrorState } from "@/components/blocks";
 import { ImportUpload, type ImportFile } from "./ImportUpload";
@@ -14,7 +13,7 @@ import { ImportPreview } from "./ImportPreview";
 import { parseImport, type ParsedTranslation } from "./utils/importFormats";
 import { getBestLanguageMatch } from "./utils/languageDetector";
 import { getUserFriendlyErrorMessage } from "@/lib/utils";
-import { useSaving, useSavingStore } from "@/stores";
+import { useSaving, useSavingStore, useLanguagesStore } from "@/stores";
 import { useAllProjectKeys } from "@/hooks/useAllProjectKeys";
 
 interface ImportContentProps {
@@ -24,11 +23,13 @@ interface ImportContentProps {
 type ImportStep = "upload" | "language" | "preview";
 
 export const ImportContent: FC<ImportContentProps> = ({ project }) => {
-  const projectLanguages = COMMON_LANGUAGES.filter((language) => {
-    return project.languages.some((lang) => {
-      return lang.code === language.code;
+  const { commonLanguages } = useLanguagesStore();
+  
+  const projectLanguages = useMemo(() => {
+    return commonLanguages.filter((language) => {
+      return project.languages.some((lang) => lang.code === language.code);
     });
-  });
+  }, [commonLanguages, project.languages]);
 
   const [currentStep, setCurrentStep] = useState<ImportStep>("upload");
   const [importFiles, setImportFiles] = useState<ImportFile[]>([]);

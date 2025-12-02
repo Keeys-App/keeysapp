@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/breadcrumb';
 import { useBreadcrumbs } from '@/contexts';
 import { useLayoutStore, useTeamStore, useOnboardingStore } from '@/stores';
+import { useLanguagesInit } from '@/hooks/useLanguagesInit';
 import { Button } from '@/components/ui/button';
 import {
   Tooltip,
@@ -34,6 +35,9 @@ export const Layout: FC = () => {
   const { isPanelOpen, showPanelToggle, togglePanel } = useLayoutStore();
   const { selectedTeamId, setSelectedTeamId } = useTeamStore();
   const { isOnboardingComplete } = useOnboardingStore();
+  
+  // Initialize languages from API (single source of truth)
+  useLanguagesInit();
 
   // Fetch teams to check if user has any teams
   const { data: teamsData, loading: teamsLoading } = useQuery<GetTeamsResponse>(GET_TEAMS, {

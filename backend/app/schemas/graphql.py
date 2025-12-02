@@ -11,7 +11,7 @@ from app.schemas.auth import (
     UpdateProfileInput,
     ChangePasswordInput,
 )
-from app.schemas.project import ProjectQuery, ProjectMutation, ProjectType
+from app.schemas.project import ProjectQuery, ProjectMutation, ProjectType, AvailableLanguageType
 from app.schemas.team import TeamQuery, TeamMutation, TeamType, InviteInfoType, PendingInviteType
 from app.schemas.project_access import ProjectAccessMutation
 from app.schemas.key import KeyQuery, KeyMutation, KeyType, KeysConnection, ActivityLogType
@@ -44,6 +44,7 @@ class Query:
     # Include project queries
     projects: List[ProjectType] = strawberry.field(resolver=ProjectQuery.projects)
     project: Optional[ProjectType] = strawberry.field(resolver=ProjectQuery.project)
+    available_languages: List[AvailableLanguageType] = strawberry.field(resolver=ProjectQuery.available_languages)
     
     # Include key queries
     project_keys: KeysConnection = strawberry.field(resolver=KeyQuery.project_keys)

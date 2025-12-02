@@ -1,7 +1,7 @@
 import { useState, useMemo, type FC } from "react";
 import { Download } from "lucide-react";
 import type { Project } from "@/types/project";
-import { COMMON_LANGUAGES } from "@/types/project";
+import { useLanguagesStore } from "@/stores";
 import { Button } from "@/components/ui/button";
 import { LoadingState, ErrorState } from "@/components/blocks";
 import { ExportSettings } from "./ExportSettings";
@@ -20,26 +20,25 @@ interface ExportContentProps {
 }
 
 export const ExportContent: FC<ExportContentProps> = ({ project }) => {
+  const { commonLanguages } = useLanguagesStore();
   const sourceLanguage = project.defaultLanguage || "en";
   
   // Sort languages: source language first, then rest alphabetically
-  const projectLanguages = COMMON_LANGUAGES
-    .filter((language) => {
-      return project.languages.some((lang) => {
-        return lang.code === language.code;
+  const projectLanguages = useMemo(() => {
+    return commonLanguages
+      .filter((language) => project.languages.some((lang) => lang.code === language.code))
+      .sort((a, b) => {
+        // Source language always first
+        if (a.code === sourceLanguage) {
+          return -1;
+        }
+        if (b.code === sourceLanguage) {
+          return 1;
+        }
+        // Rest alphabetically
+        return a.name.localeCompare(b.name);
       });
-    })
-    .sort((a, b) => {
-      // Source language always first
-      if (a.code === sourceLanguage) {
-        return -1;
-      }
-      if (b.code === sourceLanguage) {
-        return 1;
-      }
-      // Rest alphabetically
-      return a.name.localeCompare(b.name);
-    });
+  }, [commonLanguages, project.languages, sourceLanguage]);
 
   const [options, setOptions] = useState<ExportOptions>({
     format: "i18n",

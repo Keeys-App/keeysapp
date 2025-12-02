@@ -17,7 +17,7 @@ from app.core.exceptions import (
     handle_database_exception
 )
 from app.schemas.auth import UserType
-from app.constants.languages import LANGUAGE_CONFIGS, get_plural_forms
+from app.constants.languages import LANGUAGE_CONFIGS, get_plural_forms, get_all_languages
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +51,33 @@ class LanguageProgressType:
     progress: int  # Percentage (0-100)
     completed: int  # Number of completed translations
     total: int  # Total number of keys
+
+
+@strawberry.type
+class DetectionPatternsType:
+    """
+    GraphQL type for language detection patterns (regex strings for file import).
+    """
+    end_patterns: List[str]      # e.g., app-en.json
+    middle_patterns: List[str]   # e.g., en-US.json
+    start_patterns: List[str]    # e.g., en.translations.json
+    full_names: List[str]        # e.g., english.json
+
+
+@strawberry.type
+class AvailableLanguageType:
+    """
+    GraphQL type for available language with full metadata.
+    Single source of truth for language configuration.
+    """
+    code: str
+    name: str
+    native_name: str
+    flag: str
+    locale: str
+    direction: str
+    plural_forms: List[str]
+    detection_patterns: DetectionPatternsType
 
 
 @strawberry.input
@@ -335,6 +362,35 @@ class ProjectQuery:
     """
     GraphQL queries for projects.
     """
+
+    @strawberry.field
+    def available_languages(self) -> List[AvailableLanguageType]:
+        """
+        Get all available languages with their full configurations.
+        This is the single source of truth for language metadata.
+        
+        Returns:
+            List of all supported languages with metadata
+        """
+        languages = get_all_languages()
+        return [
+            AvailableLanguageType(
+                code=lang['code'],
+                name=lang['name'],
+                native_name=lang['native_name'],
+                flag=lang['flag'],
+                locale=lang['locale'],
+                direction=lang['direction'],
+                plural_forms=lang['plural_forms'],
+                detection_patterns=DetectionPatternsType(
+                    end_patterns=lang['detection_patterns']['end_patterns'],
+                    middle_patterns=lang['detection_patterns']['middle_patterns'],
+                    start_patterns=lang['detection_patterns']['start_patterns'],
+                    full_names=lang['detection_patterns']['full_names'],
+                )
+            )
+            for lang in languages
+        ]
 
     @strawberry.field
     async def projects(self, info: Info) -> List[ProjectType]:

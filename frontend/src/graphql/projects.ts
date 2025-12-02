@@ -126,6 +126,27 @@ export const DELETE_PROJECT = gql`
   }
 `;
 
+// Query to get all available languages (single source of truth)
+export const GET_AVAILABLE_LANGUAGES = gql`
+  query GetAvailableLanguages {
+    availableLanguages {
+      code
+      name
+      nativeName
+      flag
+      locale
+      direction
+      pluralForms
+      detectionPatterns {
+        endPatterns
+        middlePatterns
+        startPatterns
+        fullNames
+      }
+    }
+  }
+`;
+
 // Mutation to add a project member
 export const ADD_PROJECT_MEMBER = gql`
   mutation AddProjectMember($input: AddProjectMemberInput!) {
@@ -260,5 +281,29 @@ export interface DeleteProjectData {
 
 export interface AddProjectMemberData {
   addProjectMember: Project | null;
+}
+
+// Available languages types (single source of truth from backend)
+
+export interface DetectionPatterns {
+  endPatterns: string[];
+  middlePatterns: string[];
+  startPatterns: string[];
+  fullNames: string[];
+}
+
+export interface AvailableLanguage {
+  code: string;
+  name: string;
+  nativeName: string;
+  flag: string;
+  locale: string;
+  direction: 'ltr' | 'rtl';
+  pluralForms: PluralForm[];
+  detectionPatterns: DetectionPatterns;
+}
+
+export interface GetAvailableLanguagesData {
+  availableLanguages: AvailableLanguage[];
 }
 

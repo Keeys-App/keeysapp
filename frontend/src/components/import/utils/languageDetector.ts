@@ -2,7 +2,7 @@
  * Language detection utilities for import files using centralized language configs.
  */
 
-import { LANGUAGE_CONFIGS } from "@/types/project";
+import { getLanguageConfigs, type LanguageConfig } from "@/stores";
 
 export interface LanguageMatch {
   code: string;
@@ -17,8 +17,9 @@ export interface LanguageMatch {
 export function detectLanguageFromFilename(filename: string): LanguageMatch[] {
   const matches: LanguageMatch[] = [];
   const lowerFilename = filename.toLowerCase();
+  const languageConfigs: LanguageConfig[] = getLanguageConfigs();
 
-  for (const langConfig of LANGUAGE_CONFIGS) {
+  for (const langConfig of languageConfigs) {
     const { code, detectionPatterns } = langConfig;
     let maxConfidence = 0;
 
