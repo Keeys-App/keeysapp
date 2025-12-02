@@ -325,34 +325,6 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
                   />
                 </Field>
               ) : null}
-            </TabsContent>
-
-            <TabsContent value="metadata" className="space-y-4">
-              {/* Description */}
-              <Field>
-                <FieldLabel>Description</FieldLabel>
-                <Textarea
-                  placeholder="Describe the purpose of this key..."
-                  value={description}
-                  onChange={(e) => {
-                    return setDescription(e.target.value);
-                  }}
-                  disabled={isSaving}
-                  rows={5}
-                />
-              </Field>
-              
-              {/* Tags */}
-              <Field>
-                <FieldLabel>Tags</FieldLabel>
-                <TagsEditor
-                  selectedTags={tags}
-                  availableTags={availableTags}
-                  onChange={setTags}
-                  disabled={isSaving}
-                  placeholder="Select or create tags..."
-                />
-              </Field>
 
               {/* Plural */}
               <div className="flex items-center gap-2">
@@ -381,6 +353,34 @@ export const CreateKeyDialog: FC<CreateKeyDialogProps> = ({
                   </Tooltip>
                 </TooltipProvider>
               </div>
+            </TabsContent>
+
+            <TabsContent value="metadata" className="space-y-4">
+              {/* Description */}
+              <Field>
+                <FieldLabel>Description</FieldLabel>
+                <Textarea
+                  placeholder="Describe the purpose of this key..."
+                  value={description}
+                  onChange={(e) => {
+                    return setDescription(e.target.value);
+                  }}
+                  disabled={isSaving}
+                  rows={5}
+                />
+              </Field>
+              
+              {/* Tags */}
+              <Field>
+                <FieldLabel>Tags</FieldLabel>
+                <TagsEditor
+                  selectedTags={tags}
+                  availableTags={availableTags}
+                  onChange={setTags}
+                  disabled={isSaving}
+                  placeholder="Select or create tags..."
+                />
+              </Field>
             </TabsContent>
           </Tabs>
 
