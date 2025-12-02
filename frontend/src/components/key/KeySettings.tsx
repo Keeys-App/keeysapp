@@ -1,18 +1,12 @@
 import { type FC, useState, useEffect, useRef } from "react";
 import { useMutation } from "@apollo/client";
 import { toast } from "sonner";
-import { Trash2, Info } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { useSaving, useSavingStore } from "@/stores";
 import type { TranslationKey } from "@/types/translationKey";
 import { Item } from "../ui/item";
+import { CheckboxCard } from "@/components/blocks";
 import { useKeyActions } from "@/hooks/useKeyActions";
 import { DeleteKeyDialog } from "./DeleteKeyDialog";
 import { UPDATE_KEY } from "@/graphql/keys";
@@ -108,37 +102,14 @@ export const KeySettings: FC<KeySettingsProps> = ({
   return (
     <div className="space-y-4">
       {/* Plural Settings */}
-      <Item variant="outline">
-        <div className="space-y-3">
-          <h3 className="text-sm font-semibold">Key Type</h3>
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="settings-is-plural"
-              checked={isPlural}
-              onCheckedChange={(checked) => {
-                return handlePluralChange(checked === true);
-              }}
-              disabled={isSaving}
-            />
-            <label
-              htmlFor="settings-is-plural"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-            >
-              Plural key
-            </label>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs">
-                  <p>Enable plural forms for this key (e.g., "1 item" vs "5 items")</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-        </div>
-      </Item>
+      <CheckboxCard
+        id="settings-is-plural"
+        checked={isPlural}
+        onCheckedChange={handlePluralChange}
+        disabled={isSaving}
+        title="Plural key"
+        description='Enable plural forms for this key (e.g., "1 item" vs "5 items")'
+      />
 
       {/* Danger Zone */}
       <Item variant="outline">
