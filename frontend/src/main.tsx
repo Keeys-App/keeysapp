@@ -1,4 +1,4 @@
-import { StrictMode } from 'react';
+import { StrictMode, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ApolloProvider } from '@apollo/client';
 import '@fontsource/geist-sans/400.css';
@@ -12,8 +12,15 @@ import App from './App.tsx';
 import { apolloClient } from './lib/apollo';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { BreadcrumbProvider } from './contexts';
+import { init } from '@plausible-analytics/tracker';
 
 function AppWithProviders() {
+  useEffect(() => {
+    init({
+      domain: 'app.keeys.app',
+    });
+  }, []);
+
   return (
     <ApolloProvider client={apolloClient}>
       <ThemeProvider>
@@ -28,5 +35,5 @@ function AppWithProviders() {
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AppWithProviders />
-  </StrictMode>
+  </StrictMode>,
 );
