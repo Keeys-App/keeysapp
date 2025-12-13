@@ -35,11 +35,14 @@ backend/
 │       └── user_service.py   # Business logic
 ├── tests/                    # Unit tests (pytest)
 │   ├── conftest.py           # Fixtures
-│   ├── test_models.py        # Model tests (10)
-│   ├── test_security.py      # JWT tests (7)
-│   ├── test_services.py      # Service tests (11)
-│   ├── test_user_service_uuid.py  # UUID tests (5)
-│   └── test_error_handling.py     # Security tests (18)
+│   ├── test_ai_service.py    # AI Service tests
+│   ├── test_graphql_*.py     # GraphQL Resolver tests
+│   ├── test_key_*.py         # Key management tests
+│   ├── test_models.py        # Model tests
+│   ├── test_security.py      # JWT tests
+│   ├── test_services.py      # Service tests
+│   ├── test_team_service.py  # Team tests
+│   └── test_error_handling.py     # Security tests
 ├── migrations/               # DB migrations
 │   ├── auto_migrate.py       # Automatic migrations
 │   ├── migrate_add_public_id.py   # Add UUID

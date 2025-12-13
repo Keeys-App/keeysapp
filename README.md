@@ -105,13 +105,14 @@ Full documentation is located in **Obsidian Vault**: `docs/obsidian/`
 - ✅ Access control checks on backend
 
 ### Testing
-- ✅ 70 automated tests
+- ✅ 272 automated tests
 - ✅ Code coverage ~95%
-- ✅ Model tests (10)
-- ✅ Service tests (30)
-- ✅ Security/JWT tests (7)
-- ✅ UUID tests (5)
-- ✅ Error handling tests (18)
+- ✅ Model tests
+- ✅ Service tests
+- ✅ Review/AI tests
+- ✅ GraphQL tests
+- ✅ Security/JWT tests
+- ✅ Error handling tests
 
 ### UI/UX
 - ✅ Beautiful forms with Radix UI
@@ -139,14 +140,15 @@ pytest -v
 pytest --cov=app --cov-report=html
 ```
 
-**Result:** ✅ 70 passed in 12.19s (~95% coverage)
+**Result:** ✅ 272 tests (~95% coverage)
 
 **Includes:**
-- ✅ 10 model tests
-- ✅ 7 JWT/security tests  
-- ✅ 30 service tests (11 user + 19 project)
-- ✅ 5 UUID tests
-- ✅ 18 error handling and protection tests
+- ✅ AI Service & GraphQL tests
+- ✅ GraphQL specific tests (Flow, Project, etc.)
+- ✅ Key management & search tests
+- ✅ Team service tests
+- ✅ Security, Auth & JWT tests
+- ✅ Service & Model tests
 
 More details: [Testing Guide](docs/obsidian/Testing%20Guide.md)
 

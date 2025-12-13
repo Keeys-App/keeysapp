@@ -78,12 +78,14 @@ More details: [[Authentication Setup]] | [[Security Best Practices]]
 
 ## 🧪 Testing
 
-**63 automated tests** cover authentication system, security and functionality.
+**272 automated tests** cover authentication system, security and functionality.
 
 **Includes:**
 - Model and service tests
+- AI Service & GraphQL tests
+- Key management & search tests
+- Team service tests
 - JWT token and UUID tests
-- **Key search tests** (12 tests) - [[Keys Search Feature]]
 - **Error handling tests** (SQL never reaches frontend)
 - **SQL injection protection tests**
 
@@ -105,4 +107,4 @@ More details: [[Testing Guide]] | [[Keys Search Feature]]
 
 ---
 
-*Documentation updated: 2025-10-13*
+*Documentation updated: 2025-12-13*
