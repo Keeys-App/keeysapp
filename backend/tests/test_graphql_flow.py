@@ -535,12 +535,12 @@ class TestCompleteUserFlow:
             "input": {
                 "keyId": TestCompleteUserFlow.key_id,
                 "language": "ru",
-                "value": "Отправить"
+                "value": "Enviar"
             }
         })
         
         assert result.errors is None, f"Set translation failed: {result.errors}"
-        assert result.data["setTranslation"]["value"] == "Отправить"
+        assert result.data["setTranslation"]["value"] == "Enviar"
         
         print("✓ Russian translation added")
 

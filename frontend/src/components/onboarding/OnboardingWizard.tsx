@@ -2,6 +2,7 @@ import { type FC } from 'react';
 import { useMutation } from '@apollo/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useOnboardingStore, useTeamStore } from '@/stores';
+import { useLanguagesInit } from '@/hooks/useLanguagesInit';
 import { CreateTeamStep } from './CreateTeamStep';
 import { InviteMembersStep } from './InviteMembersStep';
 import { CreateProjectStep } from './CreateProjectStep';
@@ -20,6 +21,9 @@ export const OnboardingWizard: FC = () => {
 
   const { setSelectedTeamId } = useTeamStore();
   const [completeOnboardingMutation] = useMutation(COMPLETE_ONBOARDING_MUTATION);
+
+  // Initialize languages from API for language selector
+  useLanguagesInit();
 
   const steps = [
     { number: 1, title: 'Create Team', description: 'Set up your team workspace' },

@@ -49,10 +49,10 @@ The export format follows the i18n structure with separate keys and translations
       }
     },
     {
-      "code": "ru",
+      "code": "es",
       "keys": {
-        "button.submit": "Отправить",
-        "button.cancel": "Отмена"
+        "button.submit": "Enviar",
+        "button.cancel": "Cancelar"
       }
     }
   ]

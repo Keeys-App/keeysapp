@@ -184,7 +184,7 @@ LANGUAGE_CONFIGS: Dict[str, Dict[str, Any]] = {
     # Slavic languages - one/few/many/other
     'ru': {
         'name': 'Russian',
-        'native_name': 'Русский',
+        'native_name': 'Russkiy',
         'flag': '🇷🇺',
         'locale': 'ru-RU',
         'direction': 'ltr',
@@ -193,12 +193,12 @@ LANGUAGE_CONFIGS: Dict[str, Dict[str, Any]] = {
             'end_patterns': [r'[-_.]ru\.(json|js|ts)$', r'[-_.]ru[-_.]'],
             'middle_patterns': [r'[-_.]ru[-_.]', r'ru[-_]RU'],
             'start_patterns': [r'^ru[-_.]'],
-            'full_names': [r'russian', r'русский'],
+            'full_names': [r'russian'],
         },
     },
     'uk': {
         'name': 'Ukrainian',
-        'native_name': 'Українська',
+        'native_name': 'Ukrainska',
         'flag': '🇺🇦',
         'locale': 'uk-UA',
         'direction': 'ltr',
@@ -207,7 +207,7 @@ LANGUAGE_CONFIGS: Dict[str, Dict[str, Any]] = {
             'end_patterns': [r'[-_.]uk\.(json|js|ts)$', r'[-_.]uk[-_.]'],
             'middle_patterns': [r'[-_.]uk[-_.]', r'uk[-_]UA'],
             'start_patterns': [r'^uk[-_.]'],
-            'full_names': [r'ukrainian', r'українська'],
+            'full_names': [r'ukrainian'],
         },
     },
     'pl': {

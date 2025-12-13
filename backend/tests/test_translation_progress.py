@@ -72,7 +72,7 @@ def test_translation_progress_calculation(db_session: Session):
     
     # Add 3 translations (one missing)
     KeyService.set_translation(db_session, str(key1.public_id), "en", "Submit", user.id)
-    KeyService.set_translation(db_session, str(key1.public_id), "ru", "Отправить", user.id)
+    KeyService.set_translation(db_session, str(key1.public_id), "fr", "Soumettre", user.id)
     KeyService.set_translation(db_session, str(key2.public_id), "en", "Cancel", user.id)
     # key2 "ru" is missing
     
@@ -103,7 +103,7 @@ def test_translation_progress_calculation(db_session: Session):
     assert empty_translation is None, "Empty translation should be deleted from DB"
     
     # Add the final translation
-    KeyService.set_translation(db_session, str(key2.public_id), "ru", "Отмена", user.id)
+    KeyService.set_translation(db_session, str(key2.public_id), "fr", "Annuler", user.id)
     
     # Expected: 4/4 = 100%
     db_session.refresh(project)

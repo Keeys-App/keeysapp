@@ -14,13 +14,11 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { BreadcrumbProvider } from './contexts';
 import { init } from '@plausible-analytics/tracker';
 
-function AppWithProviders() {
-  useEffect(() => {
-    init({
-      domain: 'app.keeys.app',
-    });
-  }, []);
+init({
+  domain: 'app.keeys.app',
+});
 
+function AppWithProviders() {
   return (
     <ApolloProvider client={apolloClient}>
       <ThemeProvider>

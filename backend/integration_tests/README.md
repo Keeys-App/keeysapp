@@ -1,24 +1,24 @@
-# Integration Tests / Интеграционные тесты
+# Integration Tests
 
-Интеграционные тесты, которые проверяют работу всей системы через HTTP API.
+Integration tests that verify entire system through HTTP API.
 
-## Отличие от unit-тестов
+## Difference from Unit Tests
 
-**Unit тесты (`tests/`):**
-- Тестируют отдельные функции/классы
-- Используют in-memory SQLite
-- Быстрые (~7 секунд)
-- Запускаются автоматически: `pytest`
+**Unit tests (`tests/`):**
+- Test individual functions/classes
+- Use in-memory SQLite
+- Fast (~7 seconds)
+- Run automatically: `pytest`
 
-**Integration тесты (`integration_tests/`):**
-- Тестируют реальное API
-- Используют реальную PostgreSQL БД
-- Требуют запущенный backend
-- Запускаются вручную
+**Integration tests (`integration_tests/`):**
+- Test real API
+- Use real PostgreSQL DB
+- Require running backend
+- Run manually
 
-## Использование
+## Usage
 
-### 1. Запустите backend
+### 1. Start Backend
 
 ```bash
 cd backend
@@ -26,33 +26,33 @@ source venv/bin/activate
 python main.py
 ```
 
-### 2. Запустите интеграционные тесты
+### 2. Run Integration Tests
 
 ```bash
-# В другом терминале
+# In another terminal
 cd backend
 source venv/bin/activate
 python integration_tests/<test_name>.py
 ```
 
-## Доступные тесты
+## Available Tests
 
 ### check_error_safety.py
-Проверяет что технические ошибки НИКОГДА не показываются пользователям.
+Verifies that technical errors NEVER shown to users.
 
 ```bash
 python integration_tests/check_error_safety.py
 ```
 
-**Что тестирует:**
-- ✅ Duplicate email ошибка безопасна
-- ✅ Wrong credentials ошибка безопасна
-- ✅ User ID использует UUID (не integer)
-- ✅ Нет SQL деталей в ответах
-- ✅ Нет stack traces
-- ✅ Нет путей к файлам
+**What it tests:**
+- ✅ Duplicate email error is safe
+- ✅ Wrong credentials error is safe
+- ✅ User ID uses UUID (not integer)
+- ✅ No SQL details in responses
+- ✅ No stack traces
+- ✅ No file paths
 
-**Пример вывода:**
+**Example output:**
 ```
 ============================================================
   TESTING ERROR SAFETY
@@ -71,14 +71,14 @@ Total: 3/3 tests passed
 🎉 ALL TESTS PASSED!
 ```
 
-## Добавление новых тестов
+## Adding New Tests
 
-1. Создайте файл `test_<feature>.py` (БЕЗ префикса `test_` если не хотите чтобы pytest его подхватил)
-2. Используйте `requests` для HTTP запросов
-3. Проверяйте реальные ответы API
-4. Убедитесь что backend запущен
+1. Create file `test_<feature>.py` (WITHOUT `test_` prefix if you don't want pytest to pick it up)
+2. Use `requests` for HTTP requests
+3. Check real API responses
+4. Make sure backend is running
 
-Пример:
+Example:
 ```python
 import requests
 
@@ -88,22 +88,22 @@ def test_my_feature():
         json={"query": "..."}
     )
     data = response.json()
-    # Проверки...
+    # Checks...
 ```
 
-## Когда запускать
+## When to Run
 
-- После изменений в error handling
-- Перед деплоем в продакшен
-- При добавлении новых API endpoints
-- При изменении схемы базы данных
+- After error handling changes
+- Before production deploy
+- When adding new API endpoints
+- When changing database schema
 
 ## CI/CD
 
-Для автоматизации в CI/CD:
+For automation in CI/CD:
 
 ```yaml
-# Пример для GitHub Actions
+# Example for GitHub Actions
 - name: Run integration tests
   run: |
     cd backend
@@ -114,5 +114,4 @@ def test_my_feature():
 
 ---
 
-*Для unit-тестов смотрите папку `tests/`*
-
+*For unit tests see `tests/` folder*
