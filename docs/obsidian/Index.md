@@ -24,8 +24,6 @@ Welcome to the Keeys project documentation!
 
 ### Development
 - [[Backend Organization]] - Backend folder organization
-- [[Performance Optimization]] - Performance optimization
-- [[N+1 Query Optimization]] - Query optimization
 - [[Database Enums and Migrations]] - Working with enums and migrations
 - [[Error Handling Best Practices]] - Error handling
 - [[Railway Deployment]] - Railway deployment
