@@ -1,81 +1,81 @@
-# Система тегов для ключей перевода
+# Tag System for Translation Keys
 
-Реализована полная система тегов для ключей перевода с поддержкой импорта/экспорта.
+Implemented complete tag system for translation keys with import/export support.
 
-## Что добавлено
+## What's Added
 
 ### Backend
 
-1. **Модели базы данных**
-   - Добавлено поле `tags` (JSON массив) в таблицу `keys`
-   - Добавлено поле `available_tags` (JSON массив) в таблицу `projects`
+1. **Database Models**
+   - Added `tags` field (JSON array) to `keys` table
+   - Added `available_tags` field (JSON array) to `projects` table
 
 2. **GraphQL API**
-   - `KeyType.tags: [String!]` - массив тегов ключа
-   - `ProjectType.availableTags: [String!]` - доступные теги проекта
-   - `CreateKeyInput.tags: [String]` - теги при создании ключа
-   - `UpdateKeyInput.tags: [String]` - обновление тегов ключа
+   - `KeyType.tags: [String!]` - key tags array
+   - `ProjectType.availableTags: [String!]` - project available tags
+   - `CreateKeyInput.tags: [String]` - tags when creating key
+   - `UpdateKeyInput.tags: [String]` - update key tags
 
-3. **Сервисы**
-   - Автоматическое обновление `available_tags` проекта при добавлении новых тегов
-   - Поддержка тегов в импорте/экспорте проектов
+3. **Services**
+   - Automatic update of project `available_tags` when adding new tags
+   - Tag support in project import/export
 
-4. **Миграция**
-   - Файл: `backend/migrations/add_tags_support.py`
+4. **Migration**
+   - File: `backend/migrations/add_tags_support.py`
 
 ### Frontend
 
-1. **Компоненты**
-   - `Tags` - базовый компонент тегов из shadcn (components/ui/tags.tsx)
-   - `TagsEditor` - редактор тегов с автодополнением (components/key/TagsEditor.tsx)
+1. **Components**
+   - `Tags` - basic tags component from shadcn (components/ui/tags.tsx)
+   - `TagsEditor` - tag editor with autocomplete (components/key/TagsEditor.tsx)
 
-2. **Интеграция**
-   - CreateKeyDialog: вкладка "Metadata" содержит редактор тегов
-   - KeyManagement: вкладка "Meta" содержит редактор тегов
-   - Поддержка создания новых тегов "на лету"
+2. **Integration**
+   - CreateKeyDialog: "Metadata" tab contains tag editor
+   - KeyManagement: "Meta" tab contains tag editor
+   - Support for creating new tags "on the fly"
 
-3. **Типы**
-   - Обновлены TypeScript типы для `TranslationKey`, `Project`
-   - Обновлены GraphQL запросы
+3. **Types**
+   - Updated TypeScript types for `TranslationKey`, `Project`
+   - Updated GraphQL queries
 
-## Запуск миграции
+## Running Migration
 
 ### Backend
 
 ```bash
 cd backend
 
-# Активировать venv
+# Activate venv
 source venv/bin/activate
 
-# Запустить миграцию
+# Run migration
 python migrations/add_tags_support.py
 ```
 
-Миграция добавит новые колонки с значением по умолчанию `[]`, поэтому она безопасна для существующих данных.
+Migration will add new columns with default value `[]`, so it's safe for existing data.
 
 ### Frontend
 
-Установка зависимостей не требуется - все компоненты уже добавлены.
+No dependency installation required - all components already added.
 
-## Использование
+## Usage
 
-### Создание ключа с тегами
+### Creating Key with Tags
 
-1. Откройте диалог создания ключа
-2. Перейдите на вкладку "Metadata"
-3. Выберите существующие теги или создайте новые, введя название и нажав на опцию "Create"
+1. Open key creation dialog
+2. Go to "Metadata" tab
+3. Select existing tags or create new ones by entering name and clicking "Create" option
 
-### Редактирование тегов
+### Editing Tags
 
-1. Выберите ключ в списке
-2. В правой панели перейдите на вкладку "Meta"
-3. Используйте редактор тегов для добавления/удаления тегов
-4. Нажмите "Save Tags"
+1. Select key in list
+2. In right panel go to "Meta" tab
+3. Use tag editor to add/remove tags
+4. Click "Save Tags"
 
-### Импорт/Экспорт
+### Import/Export
 
-Теги автоматически включаются в экспортируемые данные:
+Tags automatically included in exported data:
 
 ```json
 {
@@ -94,24 +94,23 @@ python migrations/add_tags_support.py
 }
 ```
 
-## Особенности
+## Features
 
-- **Автодополнение**: TagsEditor показывает все доступные теги проекта
-- **Создание на лету**: Новые теги автоматически добавляются в `available_tags` проекта
-- **Поиск**: Фильтрация тегов по введенному тексту
-- **Сохранение в проекте**: Все уникальные теги сохраняются на уровне проекта для удобства
+- **Autocomplete**: TagsEditor shows all available project tags
+- **Create on the fly**: New tags automatically added to project `available_tags`
+- **Search**: Filter tags by entered text
+- **Save in project**: All unique tags saved at project level for convenience
 
-## Технические детали
+## Technical Details
 
 ### Backend
 
-- Теги хранятся как JSON массив строк
-- При создании/обновлении ключа автоматически обновляется список `available_tags` проекта
-- Экспорт/импорт полностью поддерживает теги
+- Tags stored as JSON string array
+- When creating/updating key, project `available_tags` list automatically updated
+- Export/import fully supports tags
 
 ### Frontend
 
-- Компонент Tags построен на основе Radix UI Popover и Command
-- TagsEditor поддерживает управление с клавиатуры
-- Использует глобальный `useSaving` store для отображения статуса сохранения
-
+- Tags component built on Radix UI Popover and Command
+- TagsEditor supports keyboard management
+- Uses global `useSaving` store to display saving status

@@ -1,58 +1,58 @@
 # Universal Activity Logging System - Refactoring Summary
 
-## 🎯 Что сделано
+## 🎯 What's Done
 
-Система логирования переведена с узкоспециализированной `key_logs` на универсальную `activity_logs`.
+Logging system migrated from specialized `key_logs` to universal `activity_logs`.
 
-### ✅ Основные изменения:
+### ✅ Main Changes:
 
-1. **Новая модель `ActivityLog`**
-   - Универсальная таблица для всех типов активности
-   - Поддержка project-level, key-level и team management actions
-   - SET NULL foreign keys (история сохраняется после удаления)
-   - Новые поля: `project_id`, `affected_user_id`, `extra_data`
+1. **New `ActivityLog` model**
+   - Universal table for all activity types
+   - Support for project-level, key-level and team management actions
+   - SET NULL foreign keys (history preserved after deletion)
+   - New fields: `project_id`, `affected_user_id`, `extra_data`
 
-2. **Расширенный enum `ActionType`**
-   - 🆕 Действия проекта: CREATE, UPDATE_NAME, UPDATE_DESCRIPTION, etc.
-   - 🆕 Управление командой: MEMBER_ADD, MEMBER_REMOVE, MEMBER_ROLE_CHANGE
-   - ✏️ Действия ключей: KEY_CREATE, KEY_UPDATE, KEY_DELETE
-   - ✏️ Переводы: TRANSLATION_UPDATE, TRANSLATION_DELETE, TRANSLATION_IMPORT
+2. **Extended `ActionType` enum**
+   - 🆕 Project actions: CREATE, UPDATE_NAME, UPDATE_DESCRIPTION, etc.
+   - 🆕 Team management: MEMBER_ADD, MEMBER_REMOVE, MEMBER_ROLE_CHANGE
+   - ✏️ Key actions: KEY_CREATE, KEY_UPDATE, KEY_DELETE
+   - ✏️ Translations: TRANSLATION_UPDATE, TRANSLATION_DELETE, TRANSLATION_IMPORT
    - ✅ Review actions: REVIEW_APPROVE, REVIEW_REJECT, REVIEW_DELETE
 
-3. **Автоматическая миграция**
+3. **Automatic migration**
    - `key_logs` → `activity_logs`
-   - Сохранены все существующие данные
-   - Обновлены enum значения
-   - Добавлены индексы
+   - All existing data preserved
+   - Enum values updated
+   - Indexes added
 
-4. **Новый GraphQL query**
+4. **New GraphQL query**
    ```graphql
    projectActivity(projectId: String!, limit: Int): [ActivityLogType!]!
    ```
-   Возвращает ВСЕ логи проекта (включая изменения ключей и переводов)
+   Returns ALL project logs (including key and translation changes)
 
 5. **Backward Compatibility**
-   - Старый API `keyLogs` продолжает работать
-   - Legacy типы `KeyLog` и `KeyActionType` доступны
+   - Old API `keyLogs` continues working
+   - Legacy types `KeyLog` and `KeyActionType` available
 
-## 📊 Структура
+## 📊 Structure
 
 ### Backend
 
-**Новые файлы:**
-- `backend/app/models/activity_log.py` - модель ActivityLog
-- `backend/migrations/migrate_to_activity_logs.py` - миграция
-- `docs/obsidian/Universal Activity Logging.md` - документация
+**New files:**
+- `backend/app/models/activity_log.py` - ActivityLog model
+- `backend/migrations/migrate_to_activity_logs.py` - migration
+- `docs/obsidian/Universal Activity Logging.md` - documentation
 
-**Обновленные файлы:**
-- `backend/app/models/__init__.py` - экспорт ActivityLog
-- `backend/app/services/key_service.py` - использует ActivityLog
-- `backend/app/services/project_service.py` - использует ActivityLog в импорте
-- `backend/app/schemas/key.py` - новые типы и query
-- `backend/app/schemas/graphql.py` - добавлен projectActivity
-- `backend/migrations/auto_migrate.py` - автомиграция
+**Updated files:**
+- `backend/app/models/__init__.py` - ActivityLog export
+- `backend/app/services/key_service.py` - uses ActivityLog
+- `backend/app/services/project_service.py` - uses ActivityLog in import
+- `backend/app/schemas/key.py` - new types and query
+- `backend/app/schemas/graphql.py` - added projectActivity
+- `backend/migrations/auto_migrate.py` - auto migration
 
-## 🚀 Использование
+## 🚀 Usage
 
 ### GraphQL Query - Project Activity
 
@@ -105,52 +105,52 @@ query GetKeyLogs($keyId: String!) {
 ## 📝 Action Types
 
 ### Project Actions (TODO - not yet logged)
-- `PROJECT_CREATE` - проект создан
-- `PROJECT_UPDATE_NAME` - имя изменено
-- `PROJECT_UPDATE_DESCRIPTION` - описание изменено
-- `PROJECT_UPDATE_LANGUAGES` - языки обновлены
-- `PROJECT_UPDATE_COLOR` - цвет изменен
-- `PROJECT_DELETE` - проект удален
+- `PROJECT_CREATE` - project created
+- `PROJECT_UPDATE_NAME` - name changed
+- `PROJECT_UPDATE_DESCRIPTION` - description changed
+- `PROJECT_UPDATE_LANGUAGES` - languages updated
+- `PROJECT_UPDATE_COLOR` - color changed
+- `PROJECT_DELETE` - project deleted
 - `PROJECT_IMPORT` / `PROJECT_EXPORT`
 
 ### Team Management (TODO - not yet logged)
-- `MEMBER_ADD` - участник добавлен
-- `MEMBER_REMOVE` - участник удален
-- `MEMBER_ROLE_CHANGE` - роль изменена
+- `MEMBER_ADD` - member added
+- `MEMBER_REMOVE` - member removed
+- `MEMBER_ROLE_CHANGE` - role changed
 
 ### Key Actions (✅ already logged)
-- `KEY_CREATE` - ключ создан
-- `KEY_UPDATE` - ключ переименован
-- `KEY_UPDATE_DESCRIPTION` - описание изменено
-- `KEY_DELETE` - ключ удален
+- `KEY_CREATE` - key created
+- `KEY_UPDATE` - key renamed
+- `KEY_UPDATE_DESCRIPTION` - description changed
+- `KEY_DELETE` - key deleted
 
 ### Translation Actions (✅ already logged)
-- `TRANSLATION_UPDATE` - перевод добавлен/обновлен
-- `TRANSLATION_DELETE` - перевод удален
-- `TRANSLATION_IMPORT` - перевод импортирован
+- `TRANSLATION_UPDATE` - translation added/updated
+- `TRANSLATION_DELETE` - translation deleted
+- `TRANSLATION_IMPORT` - translation imported
 
 ### Review Actions (✅ already logged)
-- `REVIEW_APPROVE` - перевод одобрен
-- `REVIEW_REJECT` - перевод отклонен
-- `REVIEW_DELETE` - отзыв удален
+- `REVIEW_APPROVE` - translation approved
+- `REVIEW_REJECT` - translation rejected
+- `REVIEW_DELETE` - review deleted
 
 ## 🎨 Frontend - Project Activity Page
 
-### Рекомендуемая структура:
+### Recommended structure:
 
 ```
 /projects/:id/activity
 ```
 
-### Компоненты для реализации:
+### Components to implement:
 
-1. **ProjectActivityPage** - основная страница
-2. **ActivityTimeline** - timeline всех действий
-3. **ActivityItem** - отдельный элемент активности
-4. **ActivityFilters** - фильтры (по типу, пользователю, дате)
-5. **ActivityIcon** - иконки для разных типов действий
+1. **ProjectActivityPage** - main page
+2. **ActivityTimeline** - timeline of all actions
+3. **ActivityItem** - single activity item
+4. **ActivityFilters** - filters (by type, user, date)
+5. **ActivityIcon** - icons for different action types
 
-### Пример использования:
+### Usage example:
 
 ```typescript
 import { useQuery } from '@apollo/client';
@@ -173,19 +173,19 @@ function ProjectActivityPage() {
 
 ## 🔧 TODO
 
-1. **Добавить логирование в ProjectService:**
+1. **Add logging to ProjectService:**
    - `create_project()`
    - `update_project()`
    - `delete_project()`
    - `add_project_member()`
    - `remove_project_member()`
 
-2. **Создать frontend:**
+2. **Create frontend:**
    - Project Activity page
    - Activity timeline component
    - Filters and search
 
-3. **Тесты:**
+3. **Tests:**
    - `test_activity_logging.py`
    - Frontend component tests
 
@@ -197,35 +197,35 @@ function ProjectActivityPage() {
 
 ## 🔗 Links
 
-- Подробная документация: `docs/obsidian/Universal Activity Logging.md`
-- Миграция: `backend/migrations/migrate_to_activity_logs.py`
+- Detailed documentation: `docs/obsidian/Universal Activity Logging.md`
+- Migration: `backend/migrations/migrate_to_activity_logs.py`
 - Model: `backend/app/models/activity_log.py`
 - GraphQL Schema: `backend/app/schemas/key.py`
 
 ## ⚠️ Breaking Changes
 
-Нет! Система полностью обратно совместима. Старый код продолжит работать.
+None! System is fully backward compatible. Old code will continue working.
 
 ### Migration Notes
 
-- Миграция запускается автоматически при старте приложения
-- Все существующие `key_logs` будут конвертированы в `activity_logs`
-- Foreign keys изменены с CASCADE на SET NULL
-- Enum значения обновлены (CREATE → KEY_CREATE, etc.)
+- Migration runs automatically on application start
+- All existing `key_logs` will be converted to `activity_logs`
+- Foreign keys changed from CASCADE to SET NULL
+- Enum values updated (CREATE → KEY_CREATE, etc.)
 
 ## 📈 Benefits
 
-1. **Единая лента активности** - все действия в проекте в одном месте
-2. **Полная история** - логи сохраняются даже после удаления сущностей
-3. **Расширяемость** - легко добавлять новые типы действий
-4. **Team insights** - видно кто что делает в проекте
-5. **Audit trail** - полный аудит для compliance
+1. **Single activity feed** - all project actions in one place
+2. **Complete history** - logs preserved even after entity deletion
+3. **Extensibility** - easy to add new action types
+4. **Team insights** - see who does what in project
+5. **Audit trail** - complete audit for compliance
 
-## 🎉 Готово к использованию!
+## 🎉 Ready to use!
 
-Система полностью работает на backend. Осталось только создать UI для Project Activity page.
+System fully works on backend. Only need to create UI for Project Activity page.
 
-**Пример запроса через GraphQL Playground:**
+**Example query via GraphQL Playground:**
 
 ```
 http://localhost:8000/graphql
@@ -245,4 +245,3 @@ query {
   }
 }
 ```
-

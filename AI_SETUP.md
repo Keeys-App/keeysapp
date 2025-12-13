@@ -1,49 +1,49 @@
 # AI Autopilot - Quick Setup Guide
 
-## 🚀 Быстрый запуск
+## 🚀 Quick Start
 
 ### 1. Backend Setup
 
 ```bash
 cd backend
 
-# Активировать virtual environment
+# Activate virtual environment
 source venv/bin/activate
 
-# Установить зависимости (включая OpenAI)
+# Install dependencies (including OpenAI)
 pip install -r requirements.txt
 
-# Проверить .env файл (API key уже добавлен)
+# Check .env file (API key already added)
 cat .env | grep OPENAI
 
-# Запустить сервер
+# Start server
 python main.py
 ```
 
-Сервер должен запуститься на `http://localhost:8000`
+Server should start at `http://localhost:8000`
 
-### 2. Проверка GraphQL Schema
+### 2. Check GraphQL Schema
 
-Откройте GraphQL Playground: `http://localhost:8000/graphql`
+Open GraphQL Playground: `http://localhost:8000/graphql`
 
-Доступные мутации:
-- `aiTranslate` - перевод текста
-- `aiRephrase` - перефразирование
-- `aiShorten` - сокращение текста
-- `aiSuggestVariants` - генерация вариантов
+Available mutations:
+- `aiTranslate` - translate text
+- `aiRephrase` - rephrase text
+- `aiShorten` - shorten text
+- `aiSuggestVariants` - generate variants
 
 ### 3. Frontend
 
-Frontend уже настроен и готов к работе! Просто запустите:
+Frontend is already configured and ready to use! Just run:
 
 ```bash
 cd frontend
 yarn dev
 ```
 
-## 🎯 Тестирование в GraphQL Playground
+## 🎯 Testing in GraphQL Playground
 
-### Пример: Перевод текста
+### Example: Translate Text
 
 ```graphql
 mutation {
@@ -60,14 +60,14 @@ mutation {
 }
 ```
 
-**Важно:** Добавьте Authorization header:
+**Important:** Add Authorization header:
 ```json
 {
   "Authorization": "Bearer YOUR_TOKEN_HERE"
 }
 ```
 
-### Пример: Rephrase
+### Example: Rephrase
 
 ```graphql
 mutation {
@@ -82,7 +82,7 @@ mutation {
 }
 ```
 
-### Пример: Suggest Variants
+### Example: Suggest Variants
 
 ```graphql
 mutation {
@@ -98,19 +98,19 @@ mutation {
 }
 ```
 
-## ✅ Проверка установки
+## ✅ Installation Check
 
-1. **Backend запущен**: `curl http://localhost:8000/graphql` должен вернуть GraphQL Playground
-2. **OpenAI настроен**: В логах backend не должно быть "OpenAI API key not configured"
-3. **Frontend подключён**: Проверьте браузер консоль на ошибки
+1. **Backend running**: `curl http://localhost:8000/graphql` should return GraphQL Playground
+2. **OpenAI configured**: Backend logs should not have "OpenAI API key not configured"
+3. **Frontend connected**: Check browser console for errors
 
 ## 🔧 Troubleshooting
 
 ### ImportError: cannot import name 'get_current_user'
-✅ **ИСПРАВЛЕНО** - использован `get_current_user_id` из `project.py`
+✅ **FIXED** - using `get_current_user_id` from `project.py`
 
 ### Unknown type 'TranslateInput'
-✅ **ИСПРАВЛЕНО** - schema обновлена правильно
+✅ **FIXED** - schema updated correctly
 
 ### ModuleNotFoundError: No module named 'openai'
 ```bash
@@ -118,14 +118,14 @@ pip install -r requirements.txt
 ```
 
 ### "AI service is not configured"
-Проверьте `.env`:
+Check `.env`:
 ```bash
 echo $OPENAI_API_KEY
 ```
 
-## 📝 Переменные окружения
+## 📝 Environment Variables
 
-Убедитесь, что в `.env` есть:
+Make sure `.env` contains:
 
 ```env
 OPENAI_API_KEY=sk-proj-...
@@ -137,30 +137,29 @@ OPENAI_TIMEOUT=120
 
 ## 🎨 UI Workflow
 
-1. Выберите ключ из списка
-2. Кликните на поле перевода
-3. Откройте правую панель "Suggestions"
-4. Выберите действие:
-   - **Пустой перевод** → кнопка "Translate"
-   - **Существующий перевод** → "Rephrase", "Shorten", "Suggest variants"
-5. Дождитесь результата (индикатор в footer)
-6. Примените или отклоните предложение
+1. Select a key from the list
+2. Click on translation field
+3. Open right panel "Suggestions"
+4. Choose action:
+   - **Empty translation** → "Translate" button
+   - **Existing translation** → "Rephrase", "Shorten", "Suggest variants"
+5. Wait for result (indicator in footer)
+6. Apply or reject suggestion
 
-## 🔐 Безопасность
+## 🔐 Security
 
-- ✅ Все операции требуют аутентификации
-- ✅ Ошибки не раскрывают технические детали
-- ✅ API key хранится в .env (не в коде)
-- ✅ Логи содержат только безопасную информацию
+- ✅ All operations require authentication
+- ✅ Errors don't reveal technical details
+- ✅ API key stored in .env (not in code)
+- ✅ Logs contain only safe information
 
-## 📊 Мониторинг
+## 📊 Monitoring
 
-Логи backend показывают:
-- Запросы к AI: `User {id} requesting AI {operation}`
-- Успешные операции: `{Operation} completed successfully`
-- Ошибки: `{Operation} error: ...` (только в логах, не для пользователя)
+Backend logs show:
+- AI requests: `User {id} requesting AI {operation}`
+- Successful operations: `{Operation} completed successfully`
+- Errors: `{Operation} error: ...` (only in logs, not for user)
 
 ---
 
-✨ **Всё готово к использованию!**
-
+✨ **Everything is ready to use!**

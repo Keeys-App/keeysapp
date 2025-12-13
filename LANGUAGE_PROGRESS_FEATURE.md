@@ -1,13 +1,13 @@
 # Language Progress Bars Feature
 
-## Обзор
-Добавлена возможность отображения прогресса переводов для каждого языка отдельно на странице проекта.
+## Overview
+Added ability to display translation progress for each language separately on project page.
 
-## Изменения
+## Changes
 
 ### Backend
 
-#### 1. Новый метод в ProjectService (`backend/app/services/project_service.py`)
+#### 1. New method in ProjectService (`backend/app/services/project_service.py`)
 ```python
 @staticmethod
 def get_language_progress(db: Session, project_id: int) -> dict:
@@ -19,39 +19,39 @@ def get_language_progress(db: Session, project_id: int) -> dict:
     """
 ```
 
-Метод эффективно вычисляет прогресс для каждого языка с помощью одного SQL-запроса:
-- Получает общее количество ключей
-- Подсчитывает заполненные переводы для каждого языка
-- Вычисляет процент завершения
+Method efficiently calculates progress for each language using single SQL query:
+- Gets total key count
+- Counts completed translations for each language
+- Calculates completion percentage
 
-#### 2. Новый GraphQL тип (`backend/app/schemas/project.py`)
+#### 2. New GraphQL type (`backend/app/schemas/project.py`)
 ```python
 @strawberry.type
 class LanguageProgressType:
     """
     GraphQL type for language translation progress.
     """
-    code: str              # Код языка (en, ru, de и т.д.)
-    progress: int          # Процент завершения (0-100)
-    completed: int         # Количество завершенных переводов
-    total: int            # Общее количество ключей
+    code: str              # Language code (en, ru, de, etc.)
+    progress: int          # Completion percentage (0-100)
+    completed: int         # Number of completed translations
+    total: int            # Total number of keys
 ```
 
-#### 3. Обновлен ProjectType
-Добавлено новое поле:
+#### 3. Updated ProjectType
+Added new field:
 ```python
 language_progress: List[LanguageProgressType]
 ```
 
-#### 4. Обновлена функция build_project_type
-- Добавлен параметр `db: Optional[Session]`
-- При наличии сессии БД вызывается `get_language_progress()`
-- Для всех настроенных языков создаются объекты `LanguageProgressType`
-- Если язык не имеет переводов, возвращается прогресс 0%
+#### 4. Updated build_project_type function
+- Added parameter `db: Optional[Session]`
+- When DB session available, calls `get_language_progress()`
+- Creates `LanguageProgressType` objects for all configured languages
+- If language has no translations, returns 0% progress
 
 ### Frontend
 
-#### 1. Обновлен GraphQL запрос (`frontend/src/graphql/projects.ts`)
+#### 1. Updated GraphQL query (`frontend/src/graphql/projects.ts`)
 ```graphql
 languageProgress {
   code
@@ -61,7 +61,7 @@ languageProgress {
 }
 ```
 
-#### 2. Добавлен новый TypeScript тип
+#### 2. Added new TypeScript type
 ```typescript
 export interface LanguageProgress {
   code: string;
@@ -71,7 +71,7 @@ export interface LanguageProgress {
 }
 ```
 
-#### 3. Обновлен интерфейс Project
+#### 3. Updated Project interface
 ```typescript
 interface Project {
   // ... existing fields
@@ -79,50 +79,49 @@ interface Project {
 }
 ```
 
-#### 4. Обновлен компонент ProjectPage (`frontend/src/pages/ProjectPage.tsx`)
-Карточка "Languages" теперь отображает для каждого языка:
-- Флаг и название языка
-- Badge "Default" для языка по умолчанию
-- Код языка и локаль
-- **Прогресс-бар** с процентом завершения
-- Количество завершенных переводов из общего числа
+#### 4. Updated ProjectPage component (`frontend/src/pages/ProjectPage.tsx`)
+"Languages" card now displays for each language:
+- Flag and language name
+- "Default" badge for default language
+- Language code and locale
+- **Progress bar** with completion percentage
+- Number of completed translations out of total
 
-## UI Изменения
+## UI Changes
 
-### До:
+### Before:
 ```
 🇬🇧 English                    [Default]
-    en · en-US123
+    en · en-US
 ```
 
-### После:
+### After:
 ```
 🇬🇧 English [Default]          20%
-    en · en-US123
+    en · en-US
     [████░░░░░░░░░░░░░░░░] 
     5 of 25 translations
 ```
 
-## Производительность
+## Performance
 
-- Используется эффективный SQL-запрос с GROUP BY
-- Данные загружаются только когда запрашивается детальная информация о проекте
-- Не влияет на скорость списка проектов
-- Все расчеты выполняются на стороне базы данных
+- Uses efficient SQL query with GROUP BY
+- Data loads only when detailed project information requested
+- Doesn't affect project list speed
+- All calculations performed database-side
 
-## Совместимость
+## Compatibility
 
-- ✅ Обратно совместимо с существующими проектами
-- ✅ Корректно обрабатывает проекты без переводов (0%)
-- ✅ Корректно обрабатывает новые языки без переводов
-- ✅ Все изменения покрыты TypeScript типами
+- ✅ Backward compatible with existing projects
+- ✅ Correctly handles projects without translations (0%)
+- ✅ Correctly handles new languages without translations
+- ✅ All changes covered by TypeScript types
 
-## Тестирование
+## Testing
 
-Рекомендуется протестировать:
-1. Проект без ключей (все языки должны показывать 0%)
-2. Проект с частично заполненными переводами
-3. Проект с полностью заполненными переводами (100%)
-4. Добавление нового языка к существующему проекту
-5. Удаление переводов и обновление прогресса
-
+Recommended tests:
+1. Project without keys (all languages should show 0%)
+2. Project with partially filled translations
+3. Project with fully filled translations (100%)
+4. Adding new language to existing project
+5. Deleting translations and updating progress

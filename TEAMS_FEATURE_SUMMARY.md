@@ -1,149 +1,148 @@
 # Teams Feature - Summary
 
-## 🎉 Что добавлено
+## 🎉 What's Added
 
-### Система управления командами
-Полностью работающая система команд с возможностью совместной работы над проектами.
+### Team Management System
+Fully functional team system with ability to collaborate on projects.
 
-## ✨ Основные возможности
+## ✨ Main Features
 
-### 1. **Команды (Teams)**
-- ✅ Создание команд
-- ✅ Просмотр списка команд
-- ✅ Управление участниками с ролями:
-  - **admin** - полный доступ к управлению командой
-  - **editor** - редактирование контента
-  - **viewer** - только просмотр
-  - **translator** - перевод текстов
-  - **reviewer** - проверка переводов
+### 1. **Teams**
+- ✅ Team creation
+- ✅ View team list
+- ✅ Member management with roles:
+  - **admin** - full access to team management
+  - **editor** - content editing
+  - **viewer** - view only
+  - **translator** - text translation
+  - **reviewer** - translation review
 
-### 2. **Селектор команд в хедере**
-- ✅ Быстрое переключение между командами
-- ✅ Фильтрация проектов по выбранной команде
-- ✅ Опция "All teams" для просмотра всех проектов
-- ✅ Сохранение выбранной команды между сессиями (localStorage)
+### 2. **Team Selector in Header**
+- ✅ Quick switching between teams
+- ✅ Project filtering by selected team
+- ✅ "All teams" option to view all projects
+- ✅ Save selected team between sessions (localStorage)
 
-### 3. **Проекты с командами**
-- ✅ Каждый проект принадлежит команде
-- ✅ Выбор команды при создании проекта обязателен
-- ✅ Детальный контроль доступа через ProjectAccess
+### 3. **Projects with Teams**
+- ✅ Each project belongs to a team
+- ✅ Team selection required when creating project
+- ✅ Detailed access control via ProjectAccess
 
-### 4. **Навигация**
-- ✅ Раздел "Teams" в sidebar
-- ✅ Страницы:
-  - `/teams` - список команд
-  - `/team/create` - создание команды
-  - `/team/:id` - просмотр команды (TODO)
-  - `/team/:id/edit` - редактирование команды (TODO)
+### 4. **Navigation**
+- ✅ "Teams" section in sidebar
+- ✅ Pages:
+  - `/teams` - team list
+  - `/team/create` - create team
+  - `/team/:id` - view team (TODO)
+  - `/team/:id/edit` - edit team (TODO)
 
-## 🏗 Архитектура
+## 🏗 Architecture
 
 ### Backend
 ```
-Teams (команда)
-  ├── TeamMembers (участники с ролями)
-  └── Projects (проекты команды)
-        └── ProjectAccess (детальный доступ к проектам)
+Teams (team)
+  ├── TeamMembers (members with roles)
+  └── Projects (team projects)
+        └── ProjectAccess (detailed project access)
 ```
 
-### Ключевые особенности:
-- Пользователь может быть в нескольких командах
-- Доступ к проектам управляется на уровне каждого проекта
-- Проекты можно переносить между командами
-- UUID для всех публичных ID (безопасность)
+### Key Features:
+- User can be in multiple teams
+- Project access managed at each project level
+- Projects can be transferred between teams
+- UUID for all public IDs (security)
 
-## 🚀 Как использовать
+## 🚀 How to Use
 
-### 1. Создание команды
-1. Перейти в "Teams" → "Create Team"
-2. Указать название и описание
-3. Команда готова к использованию
+### 1. Create Team
+1. Go to "Teams" → "Create Team"
+2. Specify name and description
+3. Team ready to use
 
-### 2. Создание проекта
+### 2. Create Project
 1. Dashboard → "Create Project"
-2. **Выбрать команду** из dropdown (обязательно!)
-3. Заполнить остальные поля
-4. Проект создается в выбранной команде
+2. **Select team** from dropdown (required!)
+3. Fill remaining fields
+4. Project created in selected team
 
-### 3. Фильтрация проектов
-1. Использовать селектор команды в хедере
-2. Выбрать команду для просмотра только её проектов
-3. Или выбрать "All teams" для просмотра всех
+### 3. Filter Projects
+1. Use team selector in header
+2. Select team to view only its projects
+3. Or select "All teams" to view all
 
-## 📝 TODO (расширенная функциональность)
+## 📝 TODO (extended functionality)
 
-### Высокий приоритет:
-- [ ] **TeamPage** - детальный просмотр команды
-  - Список участников
-  - Управление ролями
-  - Список проектов команды
+### High Priority:
+- [ ] **TeamPage** - detailed team view
+  - Member list
+  - Role management
+  - Team project list
   
-- [ ] **EditTeamPage** - редактирование команды
+- [ ] **EditTeamPage** - team editing
   
-- [ ] **Управление участниками**
-  - AddTeamMemberDialog - добавление через поиск
-  - UserSearchInput - поиск по email/username
-  - Изменение ролей
-  - Удаление участников
+- [ ] **Member Management**
+  - AddTeamMemberDialog - add via search
+  - UserSearchInput - search by email/username
+  - Change roles
+  - Remove members
 
-### Средний приоритет:
-- [ ] **ProjectAccessManager** - управление доступом к проектам
-  - Список участников команды
-  - Предоставление/отзыв доступа
-  - Изменение ролей в проектах
+### Medium Priority:
+- [ ] **ProjectAccessManager** - project access management
+  - Team member list
+  - Grant/revoke access
+  - Change roles in projects
 
-- [ ] **Отображение команды в ProjectPage**
-  - Показать команду проекта
-  - Кнопка перехода к команде
+- [ ] **Team Display in ProjectPage**
+  - Show project team
+  - Button to navigate to team
 
-### Низкий приоритет:
-- [ ] Группировка проектов по командам на Dashboard
-- [ ] Статистика команды (количество проектов, участников, ключей)
-- [ ] Приглашения в команду (TeamInvitations)
-- [ ] Перенос проектов между командами (UI)
+### Low Priority:
+- [ ] Group projects by teams on Dashboard
+- [ ] Team statistics (number of projects, members, keys)
+- [ ] Team invitations (TeamInvitations)
+- [ ] Transfer projects between teams (UI)
 
-## 📊 База данных
+## 📊 Database
 
-### Новые таблицы:
-- `teams` - команды
-- `team_members` - участники команд с ролями
-- `project_access` - детальный доступ к проектам
+### New Tables:
+- `teams` - teams
+- `team_members` - team members with roles
+- `project_access` - detailed project access
 
-### Изменения:
-- `projects` - добавлен `team_id` (NOT NULL)
-- `project_members` - удалена (заменена на project_access)
+### Changes:
+- `projects` - added `team_id` (NOT NULL)
+- `project_members` - removed (replaced with project_access)
 
-## 🔒 Безопасность
+## 🔒 Security
 
-- ✅ UUID для всех публичных идентификаторов
-- ✅ Проверки доступа на уровне сервисов
-- ✅ Только owner/admin могут управлять командой
-- ✅ Детальный контроль доступа к проектам
-- ✅ Технические ошибки не показываются пользователям
-- ✅ **НЕТ поиска пользователей** - только ввод email (приватность!)
-- ✅ Список пользователей БД **никогда не показывается**
+- ✅ UUID for all public identifiers
+- ✅ Access checks at service level
+- ✅ Only owner/admin can manage team
+- ✅ Detailed project access control
+- ✅ Technical errors not shown to users
+- ✅ **NO user search** - email input only (privacy!)
+- ✅ User DB list **never shown**
 
 ## 🎨 UI/UX
 
-- ✅ Shadcn UI компоненты
-- ✅ Консистентный дизайн
-- ✅ Адаптивная верстка
+- ✅ Shadcn UI components
+- ✅ Consistent design
+- ✅ Responsive layout
 - ✅ Loading states
 - ✅ Error handling
 - ✅ Toast notifications
 - ✅ Global saving indicator
 
-## 🧪 Тестирование
+## 🧪 Testing
 
-Базовый flow для тестирования:
-1. Создать команду
-2. Создать проект, выбрав команду
-3. Переключиться между командами через селектор
-4. Проверить фильтрацию проектов
+Basic flow for testing:
+1. Create team
+2. Create project, selecting team
+3. Switch between teams via selector
+4. Check project filtering
 
 ---
 
-**Статус:** ✅ Базовая функциональность полностью работает!
+**Status:** ✅ Basic functionality fully works!
 
-**Дата:** 2024-12-XX
-
+**Date:** 2024-12-XX

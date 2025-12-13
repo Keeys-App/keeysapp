@@ -1,201 +1,201 @@
 # Project Structure
 
-> [!info] Структура проекта Keeys
+> [!info] Keeys Project Structure
 
-## Общий обзор
+## Overview
 
 ```
 Keeys/
 ├── backend/                # FastAPI + GraphQL Backend
 ├── frontend/               # React + TypeScript Frontend
-├── docs/                   # Документация (Obsidian)
-├── BOILERPLATE_README.md   # README шаблона
-├── GRAPHQL_SETUP.md        # Настройка GraphQL
-├── README.md               # Основной README
-└── node_modules/           # Node зависимости (root)
+├── docs/                   # Documentation (Obsidian)
+├── BOILERPLATE_README.md   # Template README
+├── GRAPHQL_SETUP.md        # GraphQL Setup
+├── README.md               # Main README
+└── node_modules/           # Node dependencies (root)
 ```
 
 ## Backend
 
 ```
 backend/
-├── app/                      # Основной код приложения
+├── app/                      # Main application code
 │   ├── core/
-│   │   ├── config.py          # Настройки
-│   │   ├── security.py        # JWT утилиты
-│   │   └── exceptions.py      # Кастомные исключения (безопасные)
-│   ├── database.py            # Подключение к БД
+│   │   ├── config.py          # Settings
+│   │   ├── security.py        # JWT utilities
+│   │   └── exceptions.py      # Custom exceptions (safe)
+│   ├── database.py            # DB connection
 │   ├── models/
-│   │   ├── base.py           # Базовая модель
-│   │   └── user.py           # Модель User (с UUID)
+│   │   ├── base.py           # Base model
+│   │   └── user.py           # User model (with UUID)
 │   ├── schemas/
-│   │   ├── auth.py           # GraphQL auth схемы
-│   │   └── graphql.py        # Корневая GraphQL схема
+│   │   ├── auth.py           # GraphQL auth schemas
+│   │   └── graphql.py        # Root GraphQL schema
 │   └── services/
-│       └── user_service.py   # Бизнес-логика
-├── tests/                    # Unit тесты (pytest)
+│       └── user_service.py   # Business logic
+├── tests/                    # Unit tests (pytest)
 │   ├── conftest.py           # Fixtures
-│   ├── test_models.py        # Тесты моделей (10)
-│   ├── test_security.py      # Тесты JWT (7)
-│   ├── test_services.py      # Тесты сервисов (11)
-│   ├── test_user_service_uuid.py  # Тесты UUID (5)
-│   └── test_error_handling.py     # Тесты безопасности (18)
-├── migrations/               # Миграции БД
-│   ├── auto_migrate.py       # Автоматические миграции
-│   ├── migrate_add_public_id.py   # Добавить UUID
-│   ├── recreate_tables.py    # Пересоздать таблицы
+│   ├── test_models.py        # Model tests (10)
+│   ├── test_security.py      # JWT tests (7)
+│   ├── test_services.py      # Service tests (11)
+│   ├── test_user_service_uuid.py  # UUID tests (5)
+│   └── test_error_handling.py     # Security tests (18)
+├── migrations/               # DB migrations
+│   ├── auto_migrate.py       # Automatic migrations
+│   ├── migrate_add_public_id.py   # Add UUID
+│   ├── recreate_tables.py    # Recreate tables
 │   └── README.md
-├── scripts/                  # Утилиты
-│   ├── clear_users.py        # Очистка пользователей
-│   ├── list_users.py         # Список пользователей
+├── scripts/                  # Utilities
+│   ├── clear_users.py        # Clear users
+│   ├── list_users.py         # List users
 │   └── README.md
-├── integration_tests/        # Интеграционные тесты
-│   ├── check_error_safety.py # Проверка безопасности ошибок
+├── integration_tests/        # Integration tests
+│   ├── check_error_safety.py # Check error safety
 │   └── README.md
-├── venv/                     # Виртуальное окружение
-├── Dockerfile                # Docker образ
-├── env.example               # Пример .env
-├── main.py                   # Точка входа
-├── pytest.ini                # Конфигурация pytest
+├── venv/                     # Virtual environment
+├── Dockerfile                # Docker image
+├── env.example               # .env example
+├── main.py                   # Entry point
+├── pytest.ini                # pytest configuration
 ├── railway.json              # Railway config
-├── requirements.txt          # Зависимости
-└── run_tests.sh             # Запуск тестов с coverage
+├── requirements.txt          # Dependencies
+└── run_tests.sh             # Run tests with coverage
 ```
 
-### Backend - Ключевые файлы
+### Backend - Key Files
 
-| Файл | Описание |
+| File | Description |
 |------|----------|
-| `main.py` | Точка входа, настройка FastAPI и GraphQL |
-| `app/database.py` | Подключение к PostgreSQL через SQLAlchemy |
-| `app/models/user.py` | Модель User с UUID и хэшированием паролей |
-| `app/services/user_service.py` | CRUD операции для пользователей |
-| `app/schemas/auth.py` | GraphQL типы и мутации для авторизации |
-| `app/core/security.py` | JWT создание и верификация |
-| `app/core/exceptions.py` | Безопасные кастомные исключения |
-| `app/core/config.py` | Настройки из .env |
-| `migrations/auto_migrate.py` | Автоматические миграции при старте |
-| `scripts/list_users.py` | Утилита просмотра пользователей |
-| `scripts/clear_users.py` | Утилита очистки пользователей |
+| `main.py` | Entry point, FastAPI and GraphQL setup |
+| `app/database.py` | PostgreSQL connection via SQLAlchemy |
+| `app/models/user.py` | User model with UUID and password hashing |
+| `app/services/user_service.py` | CRUD operations for users |
+| `app/schemas/auth.py` | GraphQL types and mutations for auth |
+| `app/core/security.py` | JWT creation and verification |
+| `app/core/exceptions.py` | Safe custom exceptions |
+| `app/core/config.py` | Settings from .env |
+| `migrations/auto_migrate.py` | Automatic migrations on start |
+| `scripts/list_users.py` | User viewing utility |
+| `scripts/clear_users.py` | User clearing utility |
 
 ## Frontend
 
 ```
 frontend/
-├── dist/                     # Собранные файлы
-├── node_modules/             # Node зависимости
+├── dist/                     # Built files
+├── node_modules/             # Node dependencies
 ├── public/
-│   └── vite.svg             # Публичные файлы
+│   └── vite.svg             # Public files
 ├── src/
 │   ├── assets/
-│   │   └── react.svg        # Ресурсы
+│   │   └── react.svg        # Resources
 │   ├── components/
-│   │   ├── LoginForm.tsx     # Форма входа
-│   │   ├── ProtectedRoute.tsx # Защита маршрутов
-│   │   └── RegisterForm.tsx  # Форма регистрации
+│   │   ├── LoginForm.tsx     # Login form
+│   │   ├── ProtectedRoute.tsx # Route protection
+│   │   └── RegisterForm.tsx  # Registration form
 │   ├── contexts/
-│   │   ├── AuthContext.tsx   # Управление авторизацией
-│   │   └── ThemeContext.tsx  # Управление темой
+│   │   ├── AuthContext.tsx   # Auth management
+│   │   └── ThemeContext.tsx  # Theme management
 │   ├── graphql/
 │   │   ├── __init__.ts
-│   │   └── auth.ts           # Auth queries и mutations
+│   │   └── auth.ts           # Auth queries and mutations
 │   ├── lib/
-│   │   └── apollo.ts         # Apollo Client настройка
+│   │   └── apollo.ts         # Apollo Client setup
 │   ├── pages/
-│   │   ├── AuthPage.tsx      # Страница входа/регистрации
-│   │   └── DashboardPage.tsx # Защищенный дашборд
-│   ├── App.css              # Стили App
-│   ├── App.tsx              # Главный компонент с роутингом
-│   ├── index.css            # Глобальные стили
-│   └── main.tsx             # Точка входа React
-├── Dockerfile               # Docker образ
-├── env.example              # Пример .env файла
-├── eslint.config.js         # ESLint конфигурация
-├── index.html               # HTML шаблон
-├── nginx.conf               # Nginx конфигурация
-├── package.json             # Node зависимости и скрипты
-├── railway.json             # Конфигурация Railway
+│   │   ├── AuthPage.tsx      # Login/registration page
+│   │   └── DashboardPage.tsx # Protected dashboard
+│   ├── App.css              # App styles
+│   ├── App.tsx              # Main component with routing
+│   ├── index.css            # Global styles
+│   └── main.tsx             # React entry point
+├── Dockerfile               # Docker image
+├── env.example              # .env example file
+├── eslint.config.js         # ESLint configuration
+├── index.html               # HTML template
+├── nginx.conf               # Nginx configuration
+├── package.json             # Node dependencies and scripts
+├── railway.json             # Railway configuration
 ├── README.md                # Frontend README
-├── tsconfig.json            # TypeScript конфигурация
-├── tsconfig.app.json        # TypeScript для приложения
-├── tsconfig.node.json       # TypeScript для Node
-├── vite.config.ts           # Vite конфигурация
-└── yarn.lock                # Yarn lock файл
+├── tsconfig.json            # TypeScript configuration
+├── tsconfig.app.json        # TypeScript for application
+├── tsconfig.node.json       # TypeScript for Node
+├── vite.config.ts           # Vite configuration
+└── yarn.lock                # Yarn lock file
 ```
 
-### Frontend - Ключевые файлы
+### Frontend - Key Files
 
-| Файл | Описание |
+| File | Description |
 |------|----------|
-| `src/main.tsx` | Точка входа React приложения |
-| `src/App.tsx` | Роутинг и основная структура |
-| `src/lib/apollo.ts` | Apollo Client с auth link |
-| `src/contexts/AuthContext.tsx` | Управление состоянием авторизации |
-| `src/graphql/auth.ts` | GraphQL запросы авторизации |
-| `src/components/LoginForm.tsx` | Компонент формы входа |
-| `src/components/RegisterForm.tsx` | Компонент формы регистрации |
-| `src/components/ProtectedRoute.tsx` | HOC для защиты маршрутов |
-| `src/pages/AuthPage.tsx` | Страница авторизации |
-| `src/pages/DashboardPage.tsx` | Защищенная страница дашборда |
+| `src/main.tsx` | React application entry point |
+| `src/App.tsx` | Routing and main structure |
+| `src/lib/apollo.ts` | Apollo Client with auth link |
+| `src/contexts/AuthContext.tsx` | Auth state management |
+| `src/graphql/auth.ts` | Auth GraphQL queries |
+| `src/components/LoginForm.tsx` | Login form component |
+| `src/components/RegisterForm.tsx` | Registration form component |
+| `src/components/ProtectedRoute.tsx` | HOC for route protection |
+| `src/pages/AuthPage.tsx` | Authentication page |
+| `src/pages/DashboardPage.tsx` | Protected dashboard page |
 
-## Документация
+## Documentation
 
 ```
 docs/
 └── obsidian/
-    ├── README.md                    # Главная страница документации
-    ├── Quick Start.md               # Быстрый старт
-    ├── Authentication Setup.md      # Настройка авторизации
-    ├── Authentication Cheatsheet.md # Шпаргалка
-    ├── Testing Guide.md             # Руководство по тестам
-    ├── Project Structure.md         # Этот файл
-    ├── Backend Development.md       # Разработка backend
-    └── Frontend Development.md      # Разработка frontend
+    ├── README.md                    # Main documentation page
+    ├── Quick Start.md               # Quick start
+    ├── Authentication Setup.md      # Auth setup
+    ├── Authentication Cheatsheet.md # Cheatsheet
+    ├── Testing Guide.md             # Test guide
+    ├── Project Structure.md         # This file
+    ├── Backend Development.md       # Backend development
+    └── Frontend Development.md      # Frontend development
 ```
 
-## Конфигурационные файлы
+## Configuration Files
 
 ### Backend
 
-| Файл | Назначение |
+| File | Purpose |
 |------|------------|
-| `requirements.txt` | Python зависимости |
-| `pytest.ini` | Настройки pytest |
-| `.env` | Переменные окружения (не в git) |
-| `env.example` | Пример .env |
-| `Dockerfile` | Docker образ |
-| `railway.json` | Деплой на Railway |
+| `requirements.txt` | Python dependencies |
+| `pytest.ini` | pytest settings |
+| `.env` | Environment variables (not in git) |
+| `env.example` | .env example |
+| `Dockerfile` | Docker image |
+| `railway.json` | Railway deployment |
 
 ### Frontend
 
-| Файл | Назначение |
+| File | Purpose |
 |------|------------|
-| `package.json` | Node зависимости и скрипты |
-| `yarn.lock` | Версии зависимостей |
-| `tsconfig.json` | TypeScript конфигурация |
+| `package.json` | Node dependencies and scripts |
+| `yarn.lock` | Dependency versions |
+| `tsconfig.json` | TypeScript configuration |
 | `vite.config.ts` | Vite build tool |
-| `eslint.config.js` | Линтер |
-| `.env` | Переменные окружения (не в git) |
-| `env.example` | Пример .env |
+| `eslint.config.js` | Linter |
+| `.env` | Environment variables (not in git) |
+| `env.example` | .env example |
 
-## Соглашения по именованию
+## Naming Conventions
 
 ### Backend (Python)
 
 ```python
-# Файлы: snake_case
+# Files: snake_case
 user_service.py
 auth_schema.py
 
-# Классы: PascalCase
+# Classes: PascalCase
 class UserService:
 class AuthPayload:
 
-# Функции и переменные: snake_case
+# Functions and variables: snake_case
 def create_user():
 user_data = {}
 
-# Константы: UPPER_SNAKE_CASE
+# Constants: UPPER_SNAKE_CASE
 DATABASE_URL = "..."
 SECRET_KEY = "..."
 ```
@@ -203,39 +203,39 @@ SECRET_KEY = "..."
 ### Frontend (TypeScript/React)
 
 ```typescript
-// Файлы компонентов: PascalCase
+// Component files: PascalCase
 LoginForm.tsx
 AuthContext.tsx
 
-// Файлы утилит: camelCase
+// Utility files: camelCase
 apollo.ts
 auth.ts
 
-// Компоненты: PascalCase
+// Components: PascalCase
 const LoginForm: FC = () => {}
 
-// Функции и переменные: camelCase
+// Functions and variables: camelCase
 const handleSubmit = () => {}
 const userData = {}
 
-// Константы: UPPER_SNAKE_CASE
+// Constants: UPPER_SNAKE_CASE
 const API_BASE_URL = "..."
 
-// Типы и интерфейсы: PascalCase
+// Types and interfaces: PascalCase
 interface User {}
 type AuthContextType = {}
 ```
 
-## Git структура
+## Git Structure
 
 ```
 .git/
-.gitignore              # Игнорируемые файлы
-  ├── .env              # Секреты
+.gitignore              # Ignored files
+  ├── .env              # Secrets
   ├── venv/             # Python venv
-  ├── node_modules/     # Node модули
+  ├── node_modules/     # Node modules
   ├── __pycache__/      # Python cache
-  └── dist/             # Build файлы
+  └── dist/             # Build files
 ```
 
 ## Environment Variables
@@ -254,45 +254,45 @@ PORT=8000
 VITE_API_URL=http://localhost:8000
 ```
 
-## Порты по умолчанию
+## Default Ports
 
-| Сервис | Порт | URL |
+| Service | Port | URL |
 |--------|------|-----|
 | Backend API | 8000 | http://localhost:8000 |
 | GraphQL Playground | 8000 | http://localhost:8000/graphql |
 | Frontend Dev | 5173 | http://localhost:5173 |
 | PostgreSQL | 5432 | localhost:5432 |
 
-## Утилиты
+## Utilities
 
 ### Backend
 
-#### Скрипты управления (scripts/)
+#### Management scripts (scripts/)
 ```bash
-# Просмотр пользователей
+# View users
 python scripts/list_users.py
 
-# Очистка пользователей
+# Clear users
 python scripts/clear_users.py
 ```
 
-#### Миграции (migrations/)
+#### Migrations (migrations/)
 ```bash
-# Автоматически при старте приложения
-# Или вручную:
+# Automatically on application start
+# Or manually:
 python migrations/migrate_add_public_id.py
 python migrations/recreate_tables.py
 ```
 
-#### Тесты
+#### Tests
 ```bash
-# Unit тесты
+# Unit tests
 pytest
 
-# С coverage
+# With coverage
 ./run_tests.sh
 
-# Интеграционные тесты
+# Integration tests
 python integration_tests/check_error_safety.py
 ```
 
@@ -312,14 +312,13 @@ yarn lint
 yarn preview
 ```
 
-## Связанные документы
+## Related Documents
 
-- [[Quick Start]] - Быстрый старт
-- [[Authentication Setup]] - Настройка авторизации
-- [[Backend Development]] - Разработка backend
-- [[Frontend Development]] - Разработка frontend
+- [[Quick Start]] - Quick start
+- [[Authentication Setup]] - Auth setup
+- [[Backend Development]] - Backend development
+- [[Frontend Development]] - Frontend development
 
 ---
 
-*Обновлено: 2025-10-09*
-
+*Updated: 2025-10-09*

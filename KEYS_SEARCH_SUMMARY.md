@@ -1,133 +1,133 @@
-# Keys Search Feature - Резюме реализации
+# Keys Search Feature - Implementation Summary
 
-## 📋 Общая информация
+## 📋 General Information
 
-**Дата:** 2025-10-13  
-**Функция:** Поиск ключей переводов по имени, описанию и значениям переводов  
-**Статус:** ✅ Полностью реализовано и протестировано
+**Date:** 2025-10-13  
+**Feature:** Search translation keys by name, description and translation values  
+**Status:** ✅ Fully implemented and tested
 
-## 🎯 Что реализовано
+## 🎯 What's Implemented
 
 ### Backend
 
 1. **Service Layer (`backend/app/services/key_service.py`)**
-   - Добавлен параметр `search` в `get_project_keys_paginated()`
-   - Поиск по трем критериям:
-     - Имя ключа (`key.key`)
-     - Описание ключа (`key.description`)
-     - Значения переводов (`translation.value`)
-   - Case-insensitive поиск через SQL `ILIKE`
-   - Использование подзапроса для избежания проблем с JSON полем `tags`
+   - Added `search` parameter to `get_project_keys_paginated()`
+   - Search by three criteria:
+     - Key name (`key.key`)
+     - Key description (`key.description`)
+     - Translation values (`translation.value`)
+   - Case-insensitive search via SQL `ILIKE`
+   - Using subquery to avoid issues with JSON `tags` field
 
 2. **GraphQL Schema (`backend/app/schemas/key.py`)**
-   - Добавлен параметр `search: Optional[str]` в query `project_keys`
-   - Обработка ошибок с **безопасным** выводом (без SQL деталей)
-   - Используется `DatabaseError` для пользовательских сообщений
+   - Added `search: Optional[str]` parameter to `project_keys` query
+   - Error handling with **safe** output (no SQL details)
+   - Uses `DatabaseError` for user messages
 
-3. **Тесты (`backend/tests/test_key_search.py`)**
-   - **12 тестов** покрывают все сценарии:
-     - Поиск по имени, описанию, переводам
-     - Case-insensitive поиск
-     - Частичное совпадение
-     - Пагинация
-     - Пустые запросы
-     - Поиск на разных языках
-     - Проверка доступа
-     - Спецсимволы
-   - **Результат:** 147/147 тестов прошли ✅
+3. **Tests (`backend/tests/test_key_search.py`)**
+   - **12 tests** cover all scenarios:
+     - Search by name, description, translations
+     - Case-insensitive search
+     - Partial matching
+     - Pagination
+     - Empty queries
+     - Search in different languages
+     - Access checks
+     - Special characters
+   - **Result:** 147/147 tests passed ✅
 
 ### Frontend
 
 1. **Store (`frontend/src/stores/useKeysSearchStore.ts`)**
-   - Zustand store для управления состоянием поиска
-   - Методы: `setSearch()`, `clearSearch()`
+   - Zustand store for search state management
+   - Methods: `setSearch()`, `clearSearch()`
 
-2. **Компоненты**
+2. **Components**
    - **`KeysSearch.tsx`**
-     - Поле ввода с debounce 300мс
-     - Индикатор загрузки (spinner в иконке поиска)
-     - Кнопка очистки поиска
-     - Отображение количества результатов
+     - Input field with 300ms debounce
+     - Loading indicator (spinner in search icon)
+     - Clear search button
+     - Results count display
    
    - **`KeyList.tsx`**
-     - Интеграция с поисковым store
-     - Очистка кэша при изменении поиска
-     - Скелетоны показываются только при первой загрузке
+     - Integration with search store
+     - Cache clearing on search change
+     - Skeletons shown only on first load
    
    - **`EmptySearchResults.tsx`**
-     - Компонент пустого состояния для поиска
-     - Кнопка очистки поиска
+     - Empty state component for search
+     - Clear search button
    
    - **`KeyControls.tsx`**
-     - Передача состояния загрузки в `KeysSearch`
+     - Passes loading state to `KeysSearch`
 
 3. **GraphQL (`frontend/src/graphql/keys.ts`)**
-   - Обновлен запрос `GET_PROJECT_KEYS` с параметром `search`
+   - Updated `GET_PROJECT_KEYS` query with `search` parameter
 
-## 🔒 Безопасность
+## 🔒 Security
 
-### Критическая проблема ИСПРАВЛЕНА
+### Critical Issue FIXED
 
-**Проблема:** SQL запросы и технические детали показывались пользователям  
-**Решение:**
-- Backend логирует все детали ошибок в логи сервера
-- Пользователю возвращается только `DatabaseError` с generic сообщением
-- Frontend использует `getUserFriendlyErrorMessage()` для дополнительной фильтрации
+**Problem:** SQL queries and technical details were shown to users  
+**Solution:**
+- Backend logs all error details to server logs
+- User only receives `DatabaseError` with generic message
+- Frontend uses `getUserFriendlyErrorMessage()` for additional filtering
 
-**Результат:** SQL, stack traces и технические детали НИКОГДА не попадают к пользователю ✅
+**Result:** SQL, stack traces and technical details NEVER reach the user ✅
 
-## 🎨 UX Улучшения
+## 🎨 UX Improvements
 
-- ⚡ **Мгновенная обратная связь**: индикатор появляется сразу при вводе
-- 🔄 **Два состояния загрузки**: `isTyping` (debounce) и `isLoading` (запрос)
-- 🎯 **Минималистичный UI**: спиннер в поле поиска, без скелетонов при поиске
-- 📊 **Счетчик результатов**: показывает количество найденных ключей
-- ❌ **Быстрая очистка**: кнопка очистки поиска
+- ⚡ **Instant feedback**: indicator appears immediately on input
+- 🔄 **Two loading states**: `isTyping` (debounce) and `isLoading` (request)
+- 🎯 **Minimalist UI**: spinner in search field, no skeletons during search
+- 📊 **Results counter**: shows number of found keys
+- ❌ **Quick clear**: clear search button
 
-## 📊 Статистика
+## 📊 Statistics
 
-- **Backend тесты:** 147/147 ✅
-- **Время выполнения:** 91.06s
-- **Покрытие поиска:** 12 тестов
-- **Файлов изменено:** 11
-- **Строк добавлено:** ~800
+- **Backend tests:** 147/147 ✅
+- **Execution time:** 91.06s
+- **Search coverage:** 12 tests
+- **Files changed:** 11
+- **Lines added:** ~800
 
-## 📚 Документация
+## 📚 Documentation
 
-Создана полная документация в Obsidian:
+Full documentation created in Obsidian:
 
-- `docs/obsidian/Keys Search Feature.md` - Детальная документация
-- `docs/obsidian/README.md` - Обновлен индекс
+- `docs/obsidian/Keys Search Feature.md` - Detailed documentation
+- `docs/obsidian/README.md` - Updated index
 
-**Разделы документации:**
-1. Обзор
-2. Архитектура (Backend + Frontend)
-3. Безопасность (Error Handling)
-4. Использование
-5. Производительность
-6. Тестирование
-7. Индикатор загрузки
-8. Возможные улучшения
+**Documentation sections:**
+1. Overview
+2. Architecture (Backend + Frontend)
+3. Security (Error Handling)
+4. Usage
+5. Performance
+6. Testing
+7. Loading Indicator
+8. Possible Improvements
 
-## 🚀 Как использовать
+## 🚀 How to Use
 
-### Для пользователей
+### For Users
 
-1. Откройте страницу ключей проекта
-2. Введите текст в поле поиска
-3. Результаты обновятся автоматически (300мс debounce)
-4. Нажмите крестик для очистки
+1. Open project keys page
+2. Enter text in search field
+3. Results will update automatically (300ms debounce)
+4. Click X to clear
 
-### Для разработчиков
+### For Developers
 
-**Запуск тестов:**
+**Run tests:**
 ```bash
 cd backend
 source venv/bin/activate
 python -m pytest tests/test_key_search.py -v
 ```
 
-**Использование store:**
+**Using store:**
 ```typescript
 import { useKeysSearchStore } from '@/stores';
 
@@ -136,32 +136,32 @@ const { search, setSearch, clearSearch } = useKeysSearchStore();
 
 ## ✅ Checklist
 
-- [x] Backend: добавлен параметр search
-- [x] Backend: обработка ошибок без SQL деталей
-- [x] Backend: тесты (12 тестов)
-- [x] Frontend: создан store
-- [x] Frontend: компонент поиска с debounce
-- [x] Frontend: индикатор загрузки
-- [x] Frontend: компонент пустого состояния
-- [x] Frontend: интеграция с KeyList
-- [x] GraphQL: обновлен запрос
-- [x] Документация: Obsidian
-- [x] Тесты: все 147 прошли ✅
-- [x] Безопасность: SQL не показывается пользователям ✅
+- [x] Backend: added search parameter
+- [x] Backend: error handling without SQL details
+- [x] Backend: tests (12 tests)
+- [x] Frontend: created store
+- [x] Frontend: search component with debounce
+- [x] Frontend: loading indicator
+- [x] Frontend: empty state component
+- [x] Frontend: integration with KeyList
+- [x] GraphQL: updated query
+- [x] Documentation: Obsidian
+- [x] Tests: all 147 passed ✅
+- [x] Security: SQL not shown to users ✅
 
-## 🔧 Технические детали
+## 🔧 Technical Details
 
-**SQL Query оптимизация:**
-- Использование подзапроса `Translation.key_id.distinct()` 
-- Избегание проблем с `DISTINCT` на JSON поле `tags`
-- Корректная пагинация результатов
+**SQL Query optimization:**
+- Using subquery `Translation.key_id.distinct()` 
+- Avoiding issues with `DISTINCT` on JSON `tags` field
+- Correct pagination of results
 
 **Performance:**
-- Debounce 300мс минимизирует запросы
-- Cache invalidation при изменении поиска
-- Виртуализация списка работает с результатами поиска
+- 300ms debounce minimizes requests
+- Cache invalidation on search change
+- List virtualization works with search results
 
-## 📝 Дополнительно
+## 📝 Additional
 
-См. полную документацию в `docs/obsidian/Keys Search Feature.md`
+See full documentation in `docs/obsidian/Keys Search Feature.md`
 

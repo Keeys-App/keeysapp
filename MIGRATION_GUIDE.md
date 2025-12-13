@@ -1,86 +1,86 @@
-# Инструкция по миграции языков с кастомными локалями
+# Migration Guide for Languages with Custom Locales
 
-## Что изменилось?
+## What Changed?
 
-Теперь в каждом проекте можно настраивать кастомные локали для каждого языка!
+Now you can configure custom locales for each language in every project!
 
-**До:**
-- EN (Английский)
-- RU (Русский)
+**Before:**
+- EN (English)
+- RU (Russian)
 
-**Теперь:**
-- EN → en-US (Английский США)
-- EN → en-GB (Английский Великобритания)
-- RU → ru-RU (Русский Россия)
-- PT → pt-BR (Португальский Бразилия)
-- PT → pt-PT (Португальский Португалия)
+**Now:**
+- EN → en-US (English USA)
+- EN → en-GB (English UK)
+- RU → ru-RU (Russian Russia)
+- PT → pt-BR (Portuguese Brazil)
+- PT → pt-PT (Portuguese Portugal)
 
-## Запуск миграции (для существующих проектов)
+## Running Migration (for existing projects)
 
-Если у вас уже есть проекты в базе данных, выполните миграцию:
+If you already have projects in database, run migration:
 
 ```bash
 cd backend
 
-# Активируйте виртуальное окружение
+# Activate virtual environment
 source venv/bin/activate
 
-# Запустите миграцию
+# Run migration
 python migrations/migrate_languages_to_config.py
 ```
 
-Миграция автоматически:
-- ✅ Преобразует старые коды языков в новый формат
-- ✅ Применит дефолтные локали (en → en-US, ru → ru-RU, и т.д.)
-- ✅ Сохранит все существующие данные
+Migration automatically:
+- ✅ Converts old language codes to new format
+- ✅ Applies default locales (en → en-US, ru → ru-RU, etc.)
+- ✅ Preserves all existing data
 
-## Как использовать в UI?
+## How to Use in UI?
 
-### Создание/Редактирование проекта
+### Creating/Editing Project
 
-1. Откройте форму создания или редактирования проекта
-2. В секции "Languages" увидите новый интерфейс:
-   - Каждый язык отображается с флагом, названием и текущей локалью
-   - Нажмите на кнопку редактирования (✏️) рядом с языком
-   - В диалоге введите кастомную локаль (например, `en-GB`, `pt-BR`)
-   - Нажмите "Save"
+1. Open project create or edit form
+2. In "Languages" section you'll see new interface:
+   - Each language displays with flag, name and current locale
+   - Click edit button (✏️) next to language
+   - In dialog enter custom locale (e.g., `en-GB`, `pt-BR`)
+   - Click "Save"
 
-### Просмотр проекта
+### Viewing Project
 
-На странице проекта теперь отображается:
-- Код языка (EN)
-- Кастомная локаль (`en-US`)
+On project page now displays:
+- Language code (EN)
+- Custom locale (`en-US`)
 
-## Примеры популярных локалей
+## Examples of Popular Locales
 
-### Английский
-- `en-US` - США
-- `en-GB` - Великобритания
-- `en-AU` - Австралия
-- `en-CA` - Канада
+### English
+- `en-US` - USA
+- `en-GB` - United Kingdom
+- `en-AU` - Australia
+- `en-CA` - Canada
 
-### Испанский
-- `es-ES` - Испания
-- `es-MX` - Мексика
-- `es-AR` - Аргентина
+### Spanish
+- `es-ES` - Spain
+- `es-MX` - Mexico
+- `es-AR` - Argentina
 
-### Португальский
-- `pt-PT` - Португалия
-- `pt-BR` - Бразилия
+### Portuguese
+- `pt-PT` - Portugal
+- `pt-BR` - Brazil
 
-### Китайский
-- `zh-CN` - Упрощенный (Китай)
-- `zh-TW` - Традиционный (Тайвань)
-- `zh-HK` - Гонконг
+### Chinese
+- `zh-CN` - Simplified (China)
+- `zh-TW` - Traditional (Taiwan)
+- `zh-HK` - Hong Kong
 
-### Французский
-- `fr-FR` - Франция
-- `fr-CA` - Канада
-- `fr-BE` - Бельгия
+### French
+- `fr-FR` - France
+- `fr-CA` - Canada
+- `fr-BE` - Belgium
 
-## API примеры
+## API Examples
 
-### GraphQL запрос (создание проекта)
+### GraphQL Query (create project)
 
 ```graphql
 mutation {
@@ -102,7 +102,7 @@ mutation {
 }
 ```
 
-### GraphQL запрос (обновление проекта)
+### GraphQL Query (update project)
 
 ```graphql
 mutation {
@@ -122,16 +122,15 @@ mutation {
 }
 ```
 
-## Обратная совместимость
+## Backward Compatibility
 
-✅ Все существующие проекты продолжат работать
-✅ API автоматически конвертирует старый формат в новый
-✅ Дефолтные локали применяются автоматически
+✅ All existing projects will continue working
+✅ API automatically converts old format to new
+✅ Default locales applied automatically
 
-## Поддержка
+## Support
 
-При возникновении проблем:
-1. Проверьте логи миграции
-2. См. подробную документацию: `backend/migrations/README_LANGUAGE_CONFIG.md`
-3. См. изменения в коде: `CHANGELOG.md`
-
+If issues arise:
+1. Check migration logs
+2. See detailed documentation: `backend/migrations/README_LANGUAGE_CONFIG.md`
+3. See code changes: `CHANGELOG.md`

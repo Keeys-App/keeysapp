@@ -1,14 +1,14 @@
-# Lazy Loading для Списка Ключей
+# Lazy Loading for Keys List
 
-## Обзор
+## Overview
 
-Реализована функция ленивой загрузки (lazy loading) ключей переводов с пагинацией на уровне GraphQL и infinite scroll на фронтенде. Это значительно улучшает производительность при работе с проектами, содержащими большое количество ключей.
+Implemented lazy loading feature for translation keys with pagination at GraphQL level and infinite scroll on frontend. This significantly improves performance when working with projects containing large number of keys.
 
-## Backend Изменения
+## Backend Changes
 
-### 1. GraphQL Schema (`backend/app/schemas/key.py` и `backend/app/schemas/graphql.py`)
+### 1. GraphQL Schema (`backend/app/schemas/key.py` and `backend/app/schemas/graphql.py`)
 
-#### Новый тип `KeysConnection`
+#### New type `KeysConnection`
 ```python
 @strawberry.type
 class KeysConnection:
@@ -20,7 +20,7 @@ class KeysConnection:
     has_more: bool
 ```
 
-#### Обновленный Query `project_keys`
+#### Updated Query `project_keys`
 ```python
 @strawberry.field
 def project_keys(
@@ -32,17 +32,17 @@ def project_keys(
 ) -> KeysConnection
 ```
 
-**Параметры:**
-- `project_id` - UUID проекта
-- `offset` - количество ключей для пропуска (по умолчанию: 0)
-- `limit` - максимальное количество возвращаемых ключей (по умолчанию: 50, максимум: 200)
+**Parameters:**
+- `project_id` - project UUID
+- `offset` - number of keys to skip (default: 0)
+- `limit` - maximum number of returned keys (default: 50, maximum: 200)
 
-**Возвращает:**
-- `keys` - список ключей
-- `total_count` - общее количество ключей в проекте
-- `has_more` - флаг наличия дополнительных ключей для загрузки
+**Returns:**
+- `keys` - list of keys
+- `total_count` - total number of keys in project
+- `has_more` - flag indicating additional keys available for loading
 
-#### Регистрация в Root Schema (`backend/app/schemas/graphql.py`)
+#### Registration in Root Schema (`backend/app/schemas/graphql.py`)
 ```python
 from app.schemas.key import KeyQuery, KeyMutation, KeyType, KeysConnection, ActivityLogType
 
@@ -52,11 +52,11 @@ class Query:
     project_keys: KeysConnection = strawberry.field(resolver=KeyQuery.project_keys)
 ```
 
-**Важно:** Тип возвращаемого значения должен быть `KeysConnection`, а не `List[KeyType]`!
+**Important:** Return type must be `KeysConnection`, not `List[KeyType]`!
 
 ### 2. Key Service (`backend/app/services/key_service.py`)
 
-#### Новый метод `get_project_keys_paginated`
+#### New method `get_project_keys_paginated`
 ```python
 @staticmethod
 def get_project_keys_paginated(
@@ -68,17 +68,17 @@ def get_project_keys_paginated(
 ) -> Optional[Dict[str, any]]
 ```
 
-**Особенности:**
-- Использует SQL `OFFSET` и `LIMIT` для эффективной пагинации
-- Eager loading переводов через `joinedload` для предотвращения N+1 проблемы
-- Возвращает как список ключей, так и общее количество
-- Проверяет права доступа пользователя к проекту
+**Features:**
+- Uses SQL `OFFSET` and `LIMIT` for efficient pagination
+- Eager loading of translations via `joinedload` to prevent N+1 problem
+- Returns both key list and total count
+- Checks user access rights to project
 
-## Frontend Изменения
+## Frontend Changes
 
 ### 1. GraphQL Query (`frontend/src/graphql/keys.ts`)
 
-#### Обновленный запрос `GET_PROJECT_KEYS`
+#### Updated query `GET_PROJECT_KEYS`
 ```graphql
 query GetProjectKeys($projectId: String!, $offset: Int, $limit: Int) {
   projectKeys(projectId: $projectId, offset: $offset, limit: $limit) {
@@ -105,11 +105,11 @@ query GetProjectKeys($projectId: String!, $offset: Int, $limit: Int) {
 
 ### 2. KeyList Component (`frontend/src/components/key/KeyList.tsx`)
 
-#### Основные изменения:
+#### Main changes:
 
-**Константы:**
+**Constants:**
 ```typescript
-const PAGE_SIZE = 50; // Размер страницы для загрузки
+const PAGE_SIZE = 50; // Page size for loading
 ```
 
 **State:**
@@ -117,7 +117,7 @@ const PAGE_SIZE = 50; // Размер страницы для загрузки
 const [isLoadingMore, setIsLoadingMore] = useState(false);
 ```
 
-**Функция загрузки дополнительных ключей:**
+**Function for loading additional keys:**
 ```typescript
 const loadMoreKeys = useCallback(async () => {
   if (isLoadingMore || !hasMore) {
@@ -132,7 +132,7 @@ const loadMoreKeys = useCallback(async () => {
         limit: PAGE_SIZE,
       },
       updateQuery: (prev, { fetchMoreResult }) => {
-        // Объединение предыдущих и новых ключей
+        // Merge previous and new keys
         return {
           projectKeys: {
             ...fetchMoreResult.projectKeys,
@@ -150,7 +150,7 @@ const loadMoreKeys = useCallback(async () => {
 }, [fetchMore, keys.length, hasMore, isLoadingMore]);
 ```
 
-**Автоматическая загрузка при прокрутке:**
+**Automatic loading on scroll:**
 ```typescript
 useEffect(() => {
   const [lastItem] = [...virtualizer.getVirtualItems()].reverse();
@@ -177,63 +177,63 @@ useEffect(() => {
 ]);
 ```
 
-**UI индикаторы:**
-- Скелетон загрузки при подгрузке дополнительных ключей
-- Сообщение "Loaded all {totalCount} keys" когда все ключи загружены
+**UI indicators:**
+- Loading skeleton when loading additional keys
+- Message "Loaded all {totalCount} keys" when all keys are loaded
 
-## Преимущества
+## Benefits
 
-### Производительность
-- **Уменьшение начального времени загрузки**: Вместо загрузки всех ключей сразу, загружается только первая страница (50 ключей)
-- **Меньше нагрузки на БД**: SQL запросы с LIMIT выполняются быстрее
-- **Меньше памяти на клиенте**: В DOM рендерится только видимая часть списка благодаря виртуализации
+### Performance
+- **Reduced initial load time**: Instead of loading all keys at once, only first page loads (50 keys)
+- **Less DB load**: SQL queries with LIMIT execute faster
+- **Less client memory**: Only visible part of list renders in DOM thanks to virtualization
 
-### Масштабируемость
-- **Поддержка больших проектов**: Проекты с тысячами ключей теперь загружаются мгновенно
-- **Адаптивная загрузка**: Ключи загружаются по мере необходимости
-- **Ограничение максимального размера страницы**: Защита от злоупотреблений (max 200 ключей за запрос)
+### Scalability
+- **Support for large projects**: Projects with thousands of keys now load instantly
+- **Adaptive loading**: Keys load as needed
+- **Maximum page size limit**: Protection against abuse (max 200 keys per request)
 
 ### UX
-- **Плавная прокрутка**: Виртуализация + lazy loading работают вместе
-- **Визуальная обратная связь**: Индикаторы загрузки и счетчик загруженных ключей
-- **Нет лишних ожиданий**: Пользователь может начать работать сразу после загрузки первой страницы
+- **Smooth scrolling**: Virtualization + lazy loading work together
+- **Visual feedback**: Loading indicators and counter of loaded keys
+- **No unnecessary waiting**: User can start working immediately after first page loads
 
-## Совместимость
+## Compatibility
 
-- Старый метод `get_project_keys` сохранен для обратной совместимости
-- Apollo Client кеширование работает корректно с пагинированными запросами
-- Виртуализация (@tanstack/react-virtual) продолжает работать с динамическим списком
+- Old method `get_project_keys` preserved for backward compatibility
+- Apollo Client caching works correctly with paginated queries
+- Virtualization (@tanstack/react-virtual) continues to work with dynamic list
 
-## Технические детали
+## Technical Details
 
 ### Backend
-- **ORM**: SQLAlchemy с eager loading
+- **ORM**: SQLAlchemy with eager loading
 - **GraphQL**: Strawberry
-- **Безопасность**: Валидация параметров, проверка прав доступа, ограничение максимального limit
+- **Security**: Parameter validation, access checks, maximum limit restriction
 
 ### Frontend
-- **Apollo Client**: `fetchMore` для подгрузки данных
-- **React Hooks**: `useCallback`, `useEffect` для оптимизации
-- **Виртуализация**: @tanstack/react-virtual для рендеринга только видимых элементов
+- **Apollo Client**: `fetchMore` for data loading
+- **React Hooks**: `useCallback`, `useEffect` for optimization
+- **Virtualization**: @tanstack/react-virtual for rendering only visible elements
 
-## Тестирование
+## Testing
 
-### Проверка функционала:
-1. Открыть проект с большим количеством ключей (>50)
-2. Убедиться, что загружаются только первые 50 ключей
-3. Прокрутить список вниз
-4. Проверить автоматическую подгрузку следующей страницы
-5. Убедиться в отображении индикатора загрузки
-6. Дождаться загрузки всех ключей и проверить финальное сообщение
+### Functionality check:
+1. Open project with large number of keys (>50)
+2. Verify that only first 50 keys load
+3. Scroll list down
+4. Check automatic loading of next page
+5. Verify loading indicator display
+6. Wait for all keys to load and check final message
 
-### Проверка производительности:
+### Performance check:
 ```bash
-# Backend тесты (если есть)
+# Backend tests (if available)
 cd backend
 python -m pytest tests/test_key_performance.py
 
-# Проверка GraphQL запросов
-# Открыть GraphQL Playground и выполнить:
+# Check GraphQL queries
+# Open GraphQL Playground and execute:
 query {
   projectKeys(projectId: "...", offset: 0, limit: 50) {
     keys { id key }
@@ -243,40 +243,40 @@ query {
 }
 ```
 
-## Кастомный Скроллбар
+## Custom Scrollbar
 
-### Проблема
-При использовании lazy loading нативный скроллбар изменяет размер по мере загрузки новых элементов, что создает плохой UX - пользователь не понимает реальное количество элементов.
+### Problem
+When using lazy loading, native scrollbar changes size as new elements load, creating poor UX - user doesn't understand real element count.
 
-### Решение
-Реализован кастомный скроллбар (`CustomScrollbar` компонент), который:
+### Solution
+Implemented custom scrollbar (`CustomScrollbar` component) that:
 
-1. **Показывает реальные пропорции**: Размер и позиция скроллбара рассчитываются на основе `totalCount`, а не загруженных элементов
-2. **Индикатор прогресса**: Внутри ползунка отображается прогресс загрузки (синий цвет заполняет пропорционально загруженным элементам)
-3. **Процент загрузки**: Отображается текстовый индикатор процента загруженных ключей
-4. **Интерактивность**: Поддерживает клик по треку и drag & drop ползунка
+1. **Shows real proportions**: Scrollbar size and position calculated based on `totalCount`, not loaded elements
+2. **Progress indicator**: Inside handle, loading progress displays (blue color fills proportionally to loaded elements)
+3. **Loading percentage**: Text indicator of loaded keys percentage displays
+4. **Interactivity**: Supports track click and drag & drop of handle
 
-### Особенности реализации
+### Implementation Features
 
-**Виртуализация с totalCount:**
+**Virtualization with totalCount:**
 ```typescript
 const virtualizer = useVirtualizer({
-  count: totalCount || keys.length, // Используем totalCount, а не keys.length
+  count: totalCount || keys.length, // Use totalCount, not keys.length
   // ...
 });
 ```
 
-**Рендеринг незагруженных элементов:**
+**Rendering unloaded elements:**
 ```typescript
 const key = keys[virtualItem.index];
 
-// Если ключ еще не загружен, показываем skeleton
+// If key not yet loaded, show skeleton
 if (!key) {
   return <KeySkeleton />;
 }
 ```
 
-**Скрытие нативного скроллбара:**
+**Hiding native scrollbar:**
 ```css
 .hide-scrollbar {
   scrollbar-width: none; /* Firefox */
@@ -287,25 +287,24 @@ if (!key) {
 }
 ```
 
-### Компоненты
+### Components
 
-- **`CustomScrollbar`** (`frontend/src/components/ui/custom-scrollbar.tsx`) - Кастомный скроллбар
-- **Обновлен** `KeyList.tsx` - Интеграция кастомного скроллбара и виртуализации с totalCount
+- **`CustomScrollbar`** (`frontend/src/components/ui/custom-scrollbar.tsx`) - Custom scrollbar
+- **Updated** `KeyList.tsx` - Integration of custom scrollbar and virtualization with totalCount
 
-## Возможные улучшения
+## Possible Improvements
 
-1. ~~**Кастомный скроллбар с правильными пропорциями**~~ ✅ Реализовано
-2. **Предзагрузка**: Начинать загрузку следующей страницы заранее (при достижении 80% списка) - частично реализовано (загрузка за 10 элементов до конца)
-3. **Кеширование на уровне Service Worker**: Для офлайн поддержки
-4. **Виртуальная прокрутка с двусторонней загрузкой**: Загрузка в обе стороны при прокрутке
-5. **Поиск и фильтрация**: Адаптировать пагинацию для работы с фильтрами
-6. **Метрики**: Добавить аналитику для отслеживания времени загрузки страниц
+1. ~~**Custom scrollbar with correct proportions**~~ ✅ Implemented
+2. **Preloading**: Start loading next page in advance (at 80% of list) - partially implemented (loads 10 elements before end)
+3. **Service Worker caching**: For offline support
+4. **Virtual scrolling with bidirectional loading**: Loading in both directions when scrolling
+5. **Search and filtering**: Adapt pagination to work with filters
+6. **Metrics**: Add analytics to track page load times
 
-## Миграция
+## Migration
 
-Изменения обратно совместимы. Если старый код вызывает `projectKeys` без параметров `offset` и `limit`, они будут использовать значения по умолчанию (0 и 50).
+Changes are backward compatible. If old code calls `projectKeys` without `offset` and `limit` parameters, they will use default values (0 and 50).
 
-Обновление не требует миграции базы данных - все изменения только на уровне логики.
+Update doesn't require database migration - all changes are at logic level only.
 
-**После обновления кода необходимо перезапустить backend сервер**, чтобы GraphQL схема обновилась с новым типом `KeysConnection`.
-
+**After updating code, backend server must be restarted** for GraphQL schema to update with new `KeysConnection` type.

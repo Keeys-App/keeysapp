@@ -1,116 +1,116 @@
 # Team Activity Logging Feature
 
-## Обзор
+## Overview
 
-Реализована полная система логирования активности для проектов и команд с UI для просмотра истории изменений.
+Implemented complete activity logging system for projects and teams with UI for viewing change history.
 
-## ✅ Реализовано
+## ✅ Implemented
 
 ### Backend
 
-#### 1. Activity Logging в ProjectService
-- ✅ `create_project` - логирует создание проекта (`PROJECT_CREATE`)
-- ✅ `update_project` - логирует изменения:
-  - Имени (`PROJECT_UPDATE_NAME`)
-  - Описания (`PROJECT_UPDATE_DESCRIPTION`)
-  - Языков (`PROJECT_UPDATE_LANGUAGES`)
-  - Языка по умолчанию (`PROJECT_UPDATE_DEFAULT_LANGUAGE`)
-  - Цвета (`PROJECT_UPDATE_COLOR`)
-  - Статуса (`PROJECT_UPDATE_STATUS`)
-- ✅ `delete_project` - логирует удаление (`PROJECT_DELETE`)
-- ✅ `export_project_data` - логирует экспорт (`PROJECT_EXPORT`)
-- ✅ `import_project_data` - логирует импорт (`PROJECT_IMPORT`)
+#### 1. Activity Logging in ProjectService
+- ✅ `create_project` - logs project creation (`PROJECT_CREATE`)
+- ✅ `update_project` - logs changes:
+  - Name (`PROJECT_UPDATE_NAME`)
+  - Description (`PROJECT_UPDATE_DESCRIPTION`)
+  - Languages (`PROJECT_UPDATE_LANGUAGES`)
+  - Default language (`PROJECT_UPDATE_DEFAULT_LANGUAGE`)
+  - Color (`PROJECT_UPDATE_COLOR`)
+  - Status (`PROJECT_UPDATE_STATUS`)
+- ✅ `delete_project` - logs deletion (`PROJECT_DELETE`)
+- ✅ `export_project_data` - logs export (`PROJECT_EXPORT`)
+- ✅ `import_project_data` - logs import (`PROJECT_IMPORT`)
 
-#### 2. Activity Logging в ProjectAccessService
-- ✅ `grant_project_access` - логирует:
-  - Добавление участника (`MEMBER_ADD`)
-  - Изменение роли существующего участника (`MEMBER_ROLE_CHANGE`)
-- ✅ `revoke_project_access` - логирует удаление (`MEMBER_REMOVE`)
-- ✅ `update_project_access_role` - логирует изменение роли (`MEMBER_ROLE_CHANGE`)
+#### 2. Activity Logging in ProjectAccessService
+- ✅ `grant_project_access` - logs:
+  - Member addition (`MEMBER_ADD`)
+  - Existing member role change (`MEMBER_ROLE_CHANGE`)
+- ✅ `revoke_project_access` - logs removal (`MEMBER_REMOVE`)
+- ✅ `update_project_access_role` - logs role change (`MEMBER_ROLE_CHANGE`)
 
 #### 3. GraphQL API
-- ✅ Новый query `teamActivity(teamId: String!, limit: Int)` в `TeamQuery`
-- ✅ Добавлен в основную схему GraphQL
-- ✅ Возвращает логи для всех проектов команды
-- ✅ **Фильтр по типу действий**: показываются только изменения команды и проектов
-  - ✅ Проекты: создание, обновление, удаление, экспорт, импорт
-  - ✅ Команда: добавление/удаление/изменение роли участников
-  - ❌ Исключены: ключи, переводы, ревью (есть на странице проекта)
-- ✅ С проверкой доступа и eager loading для производительности
+- ✅ New query `teamActivity(teamId: String!, limit: Int)` in `TeamQuery`
+- ✅ Added to main GraphQL schema
+- ✅ Returns logs for all team projects
+- ✅ **Filter by action type**: shows only team and project changes
+  - ✅ Projects: create, update, delete, export, import
+  - ✅ Team: add/remove/change member role
+  - ❌ Excluded: keys, translations, reviews (available on project page)
+- ✅ With access checks and eager loading for performance
 
 ### Frontend
 
 #### 1. TypeScript Types
-- ✅ `types/activity.ts` - типы для ActivityLog и ActionType
-- ✅ Все типы действий (проекты, команда, ключи, переводы, ревью)
+- ✅ `types/activity.ts` - types for ActivityLog and ActionType
+- ✅ All action types (projects, team, keys, translations, reviews)
 
 #### 2. GraphQL Queries
 - ✅ `graphql/activityLogs.ts`:
-  - `GET_TEAM_ACTIVITY` - получение активности команды
-  - `GET_PROJECT_ACTIVITY` - получение активности проекта
+  - `GET_TEAM_ACTIVITY` - get team activity
+  - `GET_PROJECT_ACTIVITY` - get project activity
 
 #### 3. UI Components
-- ✅ `components/activity/ActivityItem.tsx` - отображение одной записи
-  - Иконки и цвета для всех типов действий
-  - Diff для изменений
-  - Информация о пользователях
-  - Временные метки
-- ✅ `components/activity/ActivityTimeline.tsx` - timeline с логами
+- ✅ `components/activity/ActivityItem.tsx` - single entry display
+  - Icons and colors for all action types
+  - Diff for changes
+  - User information
+  - Timestamps
+- ✅ `components/activity/ActivityTimeline.tsx` - timeline with logs
   - Loading states
   - Error handling
   - Empty states
 
 #### 4. Pages
-- ✅ `pages/TeamLogsPage.tsx` - страница активности команды
-  - Breadcrumbs навигация
-  - Отображение всех изменений в проектах команды
-  - Retry при ошибках
+- ✅ `pages/TeamLogsPage.tsx` - team activity page
+  - Breadcrumbs navigation
+  - Display of all team project changes
+  - Retry on errors
 
 #### 5. Routing & Navigation
-- ✅ Добавлен путь `PATHS.TEAM_LOGS = '/team/:id/logs'`
-- ✅ Добавлен роут в `App.tsx`
-- ✅ Кнопка "Activity" на странице команды (`TeamPage.tsx`)
-- ✅ **Пункт "Team Activity" в левом меню** (`AppSidebar.tsx`)
-  - Показывается только когда команда выбрана
-  - Использует `useTeamStore()` для получения ID текущей команды
-  - Динамически формирует URL `/team/${selectedTeamId}/logs`
+- ✅ Added path `PATHS.TEAM_LOGS = '/team/:id/logs'`
+- ✅ Added route in `App.tsx`
+- ✅ "Activity" button on team page (`TeamPage.tsx`)
+- ✅ **"Team Activity" item in left menu** (`AppSidebar.tsx`)
+  - Shows only when team is selected
+  - Uses `useTeamStore()` to get current team ID
+  - Dynamically forms URL `/team/${selectedTeamId}/logs`
 
-## 📊 Логируемые действия
+## 📊 Logged Actions
 
-### В Team Activity отображаются (13 типов):
+### Shown in Team Activity (13 types):
 
-**Проекты (10 типов):**
-- ✅ Создание, обновление (имя, описание, языки, default language, цвет, статус)
-- ✅ Удаление, экспорт, импорт
+**Projects (10 types):**
+- ✅ Create, update (name, description, languages, default language, color, status)
+- ✅ Delete, export, import
 
-**Управление командой (3 типа):**
-- ✅ Добавление участника
-- ✅ Удаление участника
-- ✅ Изменение роли участника
+**Team Management (3 types):**
+- ✅ Add member
+- ✅ Remove member
+- ✅ Change member role
 
-### НЕ отображаются в Team Activity (9 типов):
+### NOT shown in Team Activity (9 types):
 
-**Ключи и переводы:**
-- ❌ Действия с ключами (создание, обновление, удаление)
-- ❌ Действия с переводами (обновление, удаление, импорт, AI)
-- ❌ Действия с ревью (одобрение, отклонение)
+**Keys and translations:**
+- ❌ Key actions (create, update, delete)
+- ❌ Translation actions (update, delete, import, AI)
+- ❌ Review actions (approve, reject)
 
-> **Примечание:** Детальный лог ключей и переводов доступен на странице проекта через query `projectActivity`
+> **Note:** Detailed key and translation log available on project page via `projectActivity` query
 
 ## 🎨 UI Features
 
-- **Цветовая кодировка**: каждый тип действия имеет свой цвет
-- **Иконки**: уникальные иконки для каждого типа действия
-- **Diff view**: показывает изменения "до/после" (только для детальных логов ключей)
-- **Timeline**: визуальная линия времени событий
-- **User attribution**: отображение пользователя, выполнившего действие
-- **Affected user**: для действий с командой показывает затронутого пользователя
+- **Color coding**: each action type has its own color
+- **Icons**: unique icons for each action type
+- **Diff view**: shows "before/after" changes (only for detailed key logs)
+- **Timeline**: visual timeline of events
+- **User attribution**: displays user who performed action
+- **Affected user**: for team actions shows affected user
 - **Relative time**: "2 hours ago", "yesterday", etc.
-- **Empty states**: красивые пустые состояния
-- **Error handling**: retry кнопки при ошибках
-- **Упрощенный вид**: в Team Activity НЕ показывается diff для читаемости
+- **Empty states**: beautiful empty states
+- **Error handling**: retry buttons on errors
+- **Simplified view**: Team Activity does NOT show diff for readability
 
-## 📝 Структура данных
+## 📝 Data Structure
 
 ```typescript
 interface ActivityLog {
@@ -130,26 +130,26 @@ interface ActivityLog {
 }
 ```
 
-## 🚀 Использование
+## 🚀 Usage
 
-### Просмотр активности команды
+### Viewing Team Activity
 
-**Способ 1: Через левое меню**
-1. Выбрать команду в TeamSwitcher (верхнее меню)
-2. В левом меню появится пункт **"Team Activity"**
-3. Нажать на него для просмотра активности
+**Method 1: Via left menu**
+1. Select team in TeamSwitcher (top menu)
+2. **"Team Activity"** item appears in left menu
+3. Click it to view activity
 
-**Способ 2: Со страницы команды**
-1. Перейти на страницу команды: `/team/:id`
-2. Нажать кнопку "Activity" в header
-3. Откроется страница `/team/:id/logs` со всей активностью
+**Method 2: From team page**
+1. Navigate to team page: `/team/:id`
+2. Click "Activity" button in header
+3. Opens page `/team/:id/logs` with all activity
 
-### Что логируется автоматически
+### What's Logged Automatically
 
-Все изменения в проектах и управлении доступом теперь автоматически логируются:
+All changes in projects and access management are now automatically logged:
 
 ```python
-# Backend автоматически создает лог при:
+# Backend automatically creates log when:
 - ProjectService.create_project()
 - ProjectService.update_project()
 - ProjectService.delete_project()
@@ -160,31 +160,30 @@ interface ActivityLog {
 - ProjectAccessService.update_project_access_role()
 ```
 
-## 🔒 Безопасность
+## 🔒 Security
 
-- ✅ Проверка доступа к команде перед показом логов
-- ✅ SET NULL для foreign keys - история сохраняется даже после удаления
-- ✅ Не показываются технические ошибки пользователю
+- ✅ Access check to team before showing logs
+- ✅ SET NULL for foreign keys - history preserved even after deletion
+- ✅ Technical errors not shown to user
 
-## 📖 Дополнительная документация
+## 📖 Additional Documentation
 
-См. `/docs/obsidian/Universal Activity Logging.md` для подробной документации о:
+See `/docs/obsidian/Universal Activity Logging.md` for detailed documentation about:
 - Database schema
 - Action types
 - Migration guide
 - Performance considerations
 - Data retention policies
 
-## 🎯 Next Steps (опционально)
+## 🎯 Next Steps (optional)
 
-### Возможные улучшения:
-- [ ] Фильтры по типу действия (Project, Team, Keys, Translations)
-- [ ] Фильтры по пользователю
-- [ ] Фильтры по дате
-- [ ] Поиск в логах
-- [ ] Pagination/infinite scroll для больших объемов
-- [ ] Экспорт истории в CSV/JSON
-- [ ] Показывать название проекта рядом с действием
-- [ ] Группировка по датам (Today, Yesterday, Last Week)
-- [ ] Real-time обновления через WebSocket
-
+### Possible improvements:
+- [ ] Filters by action type (Project, Team, Keys, Translations)
+- [ ] Filters by user
+- [ ] Filters by date
+- [ ] Search in logs
+- [ ] Pagination/infinite scroll for large volumes
+- [ ] Export history to CSV/JSON
+- [ ] Show project name next to action
+- [ ] Group by dates (Today, Yesterday, Last Week)
+- [ ] Real-time updates via WebSocket

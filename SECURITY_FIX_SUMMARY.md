@@ -1,115 +1,115 @@
-# Исправление критической проблемы безопасности
+# Critical Security Issue Fix
 
-## Проблема
-Технические ошибки с бэкенда показывались пользователям напрямую, что является:
-- **Уязвимостью безопасности** - раскрытие технических деталей
-- **Плохим UX** - непонятные сообщения для пользователей
-- **Потенциальной утечкой данных** - SQL ошибки, структура БД, пути к файлам
+## Problem
+Technical errors from backend were shown directly to users, which is:
+- **Security vulnerability** - disclosure of technical details
+- **Poor UX** - incomprehensible messages for users
+- **Potential data leak** - SQL errors, DB structure, file paths
 
-## Что было сделано
+## What Was Done
 
-### 1. Создана централизованная функция `getUserFriendlyErrorMessage`
-**Файл:** `frontend/src/lib/utils.ts`
+### 1. Created Centralized Function `getUserFriendlyErrorMessage`
+**File:** `frontend/src/lib/utils.ts`
 
-Функция:
-- Логирует технические ошибки в консоль для разработчиков
-- Обрабатывает специфичные коды ошибок (UNAUTHENTICATED, FORBIDDEN, и т.д.)
-- Фильтрует безопасные сообщения
-- Возвращает понятные fallback сообщения для пользователей
+Function:
+- Logs technical errors to console for developers
+- Handles specific error codes (UNAUTHENTICATED, FORBIDDEN, etc.)
+- Filters safe messages
+- Returns understandable fallback messages for users
 
-### 2. Обновлены все компоненты
+### 2. Updated All Components
 
-#### Компоненты ключей перевода:
-- ✅ `TranslationEditor.tsx` - обработка ошибок при сохранении перевода
-- ✅ `CreateKeyDialog.tsx` - обработка ошибок при создании ключа
+#### Translation Key Components:
+- ✅ `TranslationEditor.tsx` - error handling when saving translation
+- ✅ `CreateKeyDialog.tsx` - error handling when creating key
 
-#### Компоненты проектов:
-- ✅ `CreateProjectDialog.tsx` - обработка ошибок при создании проекта
-- ✅ `EditProjectDialog.tsx` - обработка ошибок при редактировании проекта
-- ✅ `ProjectList.tsx` - обработка ошибок при удалении проекта
-- ✅ `KeyList.tsx` - обработка ошибок при загрузке ключей
-- ✅ `ExportContent.tsx` - обработка ошибок при загрузке для экспорта
-- ✅ `ImportContent.tsx` - обработка ошибок при загрузке для импорта
+#### Project Components:
+- ✅ `CreateProjectDialog.tsx` - error handling when creating project
+- ✅ `EditProjectDialog.tsx` - error handling when editing project
+- ✅ `ProjectList.tsx` - error handling when deleting project
+- ✅ `KeyList.tsx` - error handling when loading keys
+- ✅ `ExportContent.tsx` - error handling when loading for export
+- ✅ `ImportContent.tsx` - error handling when loading for import
 
-#### Компоненты аутентификации:
-- ✅ `LoginForm.tsx` - безопасная обработка ошибок логина
-- ✅ `RegisterForm.tsx` - безопасная обработка ошибок регистрации
+#### Authentication Components:
+- ✅ `LoginForm.tsx` - safe login error handling
+- ✅ `RegisterForm.tsx` - safe registration error handling
 
-### 3. Создана документация
-**Файл:** `docs/obsidian/Error Handling Best Practices.md`
+### 3. Created Documentation
+**File:** `docs/obsidian/Error Handling Best Practices.md`
 
-Содержит:
-- Принципы безопасной обработки ошибок
-- Примеры правильного и неправильного кода
-- Контрольный список для проверки
-- Гайдлайны для новых компонентов
+Contains:
+- Principles of safe error handling
+- Examples of correct and incorrect code
+- Checklist for verification
+- Guidelines for new components
 
-## Примеры изменений
+## Change Examples
 
-### Было (ПЛОХО):
+### Was (BAD):
 ```typescript
 onError: (error) => {
   toast(`Error: ${error.message}`);
-  // Пользователь видит: "Variable '$input' got invalid value {'keyId': '...'}; Field 'language' of required type 'String!' was not provided."
+  // User sees: "Variable '$input' got invalid value {'keyId': '...'}; Field 'language' of required type 'String!' was not provided."
 }
 ```
 
-### Стало (ХОРОШО):
+### Became (GOOD):
 ```typescript
 onError: (error) => {
   const message = getUserFriendlyErrorMessage(error, 'Failed to update translation. Please try again.');
   toast.error(message);
-  // Пользователь видит: "Failed to update translation. Please try again."
-  // Разработчик видит полную ошибку в console.error
+  // User sees: "Failed to update translation. Please try again."
+  // Developer sees full error in console.error
 }
 ```
 
-## Что НЕ показывается пользователю
+## What is NOT Shown to User
 
-- ❌ Стектрейсы
-- ❌ SQL запросы/ошибки
-- ❌ Названия таблиц БД
-- ❌ Названия переменных GraphQL
-- ❌ Пути к файлам сервера
-- ❌ IP адреса
-- ❌ Любые технические детали
+- ❌ Stack traces
+- ❌ SQL queries/errors
+- ❌ Database table names
+- ❌ GraphQL variable names
+- ❌ Server file paths
+- ❌ IP addresses
+- ❌ Any technical details
 
-## Что МОЖНО показывать
+## What CAN Be Shown
 
 - ✅ "Failed to create project"
 - ✅ "Invalid input data"
 - ✅ "Unable to connect to server"
 - ✅ "Please try again later"
 
-## Проверка
+## Verification
 
-Для проверки обработки ошибок запустите:
+To check error handling run:
 ```bash
 cd frontend
-# Поиск прямого использования error.message (не должно быть)
+# Search for direct error.message usage (should be none)
 grep -r "error\.message" src/components/
 
-# Поиск toast с error (должны использовать getUserFriendlyErrorMessage)
+# Search for toast with error (should use getUserFriendlyErrorMessage)
 grep -r "toast.*error\." src/components/
 ```
 
-## Следующие шаги
+## Next Steps
 
-1. ✅ Все критичные компоненты обновлены
-2. ✅ Создана централизованная функция
-3. ✅ Создана документация
-4. 🔄 При создании новых компонентов - следовать документации
-5. 🔄 Code review должен проверять обработку ошибок
+1. ✅ All critical components updated
+2. ✅ Created centralized function
+3. ✅ Created documentation
+4. 🔄 When creating new components - follow documentation
+5. 🔄 Code review should check error handling
 
-## Важно для команды
+## Important for Team
 
-**Перед каждым коммитом:**
-- Проверяйте, что новые компоненты используют `getUserFriendlyErrorMessage`
-- Не показывайте технические ошибки пользователям
-- Логируйте всё в console.error для отладки
+**Before each commit:**
+- Verify new components use `getUserFriendlyErrorMessage`
+- Don't show technical errors to users
+- Log everything to console.error for debugging
 
 ---
 
-**Дата исправления:** 2025-10-10
-**Приоритет:** КРИТИЧЕСКИЙ
-**Статус:** ИСПРАВЛЕНО ✅
+**Fix Date:** 2025-10-10
+**Priority:** CRITICAL
+**Status:** FIXED ✅

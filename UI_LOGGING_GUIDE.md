@@ -1,14 +1,14 @@
-# UI для логирования ключей - Руководство
+# Key Logging UI - Guide
 
-## Обзор
+## Overview
 
-Реализован полноценный UI для просмотра истории изменений ключей переводов в виде timeline компонента.
+Implemented full UI for viewing translation key change history as timeline component.
 
-## Структура UI
+## UI Structure
 
-### Key Management - Табы
+### Key Management - Tabs
 
-При выборе ключа в списке, справа отображается панель `KeyManagement` с двумя вкладками:
+When key is selected in list, right panel displays `KeyManagement` with two tabs:
 
 ```
 ┌─────────────────────────────────┐
@@ -17,122 +17,122 @@
 │  [ History ] [ Settings ]       │
 ├─────────────────────────────────┤
 │                                 │
-│   (содержимое вкладки)          │
+│   (tab content)                 │
 │                                 │
 └─────────────────────────────────┘
 ```
 
-#### 1. History (дефолтная вкладка)
+#### 1. History (default tab)
 
-Timeline с историей всех изменений ключа:
+Timeline with history of all key changes:
 
 ```
-○ Создан                    2 hours ago
+○ Created                    2 hours ago
   Created:
   ┌────────────────────────┐
   │ button.submit          │
   └────────────────────────┘
 
-○ Перевод обновлен         1 hour ago
+○ Translation updated       1 hour ago
   en
   Old:
   ┌────────────────────────┐
-  │ Submit                 │ (зачеркнуто, красный фон)
+  │ Submit                 │ (strikethrough, red background)
   └────────────────────────┘
   New:
   ┌────────────────────────┐
-  │ Submit form            │ (зеленый фон)
+  │ Submit form            │ (green background)
   └────────────────────────┘
 
-○ Описание изменено        30 minutes ago
+○ Description changed      30 minutes ago
   Old:
   ┌────────────────────────┐
-  │ Old description        │ (зачеркнуто, красный фон)
+  │ Old description        │ (strikethrough, red background)
   └────────────────────────┘
   New:
   ┌────────────────────────┐
-  │ New description        │ (зеленый фон)
+  │ New description        │ (green background)
   └────────────────────────┘
 ```
 
 #### 2. Settings
 
-Форма редактирования ключа (прежний функционал):
+Key editing form (previous functionality):
 - Key Name (textarea)
 - Description (textarea)
 - Tags (editor)
 - Save Changes (button)
 
-## Цветовая индикация
+## Color Indication
 
-Timeline использует цветовые индикаторы для разных типов действий:
+Timeline uses color indicators for different action types:
 
-| Цвет | Действие | Иконка |
+| Color | Action | Icon |
 |------|----------|--------|
-| 🟢 Зеленый | CREATE | Plus |
-| 🔵 Синий | UPDATE_KEY, UPDATE_DESCRIPTION | Edit, FileText |
-| 🟣 Фиолетовый | UPDATE_TRANSLATION | Languages |
-| 🟠 Оранжевый | DELETE_TRANSLATION | Trash2 |
-| 🔴 Красный | DELETE | Trash2 |
+| 🟢 Green | CREATE | Plus |
+| 🔵 Blue | UPDATE_KEY, UPDATE_DESCRIPTION | Edit, FileText |
+| 🟣 Purple | UPDATE_TRANSLATION | Languages |
+| 🟠 Orange | DELETE_TRANSLATION | Trash2 |
+| 🔴 Red | DELETE | Trash2 |
 
-## Отображение изменений
+## Change Display
 
-### Создание (только новое значение)
+### Creation (new value only)
 ```
 Created:
 ┌────────────────────────┐
-│ new value              │ (зеленый фон)
+│ new value              │ (green background)
 └────────────────────────┘
 ```
 
-### Обновление (старое и новое значение)
+### Update (old and new value)
 ```
 Old:
 ┌────────────────────────┐
-│ old value              │ (красный фон, зачеркнуто)
+│ old value              │ (red background, strikethrough)
 └────────────────────────┘
 New:
 ┌────────────────────────┐
-│ new value              │ (зеленый фон)
+│ new value              │ (green background)
 └────────────────────────┘
 ```
 
-### Удаление (только старое значение)
+### Deletion (old value only)
 ```
 Deleted:
 ┌────────────────────────┐
-│ deleted value          │ (красный фон, зачеркнуто)
+│ deleted value          │ (red background, strikethrough)
 └────────────────────────┘
 ```
 
-## Особенности
+## Features
 
-### Автоматическое обновление
-- При переключении между ключами timeline автоматически загружает историю нового ключа
-- Используется `useEffect` с зависимостью от `keyId`
+### Automatic Updates
+- When switching between keys, timeline automatically loads new key's history
+- Uses `useEffect` with `keyId` dependency
 
-### Относительное время
-- Вместо абсолютных дат показывается относительное время
-- Использует `date-fns` с русской локалью
-- Примеры: "2 часа назад", "вчера", "3 дня назад"
+### Relative Time
+- Shows relative time instead of absolute dates
+- Uses `date-fns` with locale support
+- Examples: "2 hours ago", "yesterday", "3 days ago"
 
-### Состояния загрузки
-- Скелетоны при загрузке (5 placeholder-ов)
-- Сообщение об ошибке если не удалось загрузить
-- Пустое состояние если нет истории
+### Loading States
+- Skeletons during loading (5 placeholders)
+- Error message if failed to load
+- Empty state if no history
 
-### Языковые метки
-Для переводов показывается код языка:
+### Language Labels
+For translations shows language code:
 ```
-○ Перевод обновлен
-  [en]  ← языковой код
+○ Translation updated
+  [en]  ← language code
   Old: ...
   New: ...
 ```
 
-## Технические детали
+## Technical Details
 
-### Компоненты
+### Components
 
 #### `KeyManagement.tsx`
 ```tsx
@@ -147,7 +147,7 @@ Deleted:
   </TabsContent>
   
   <TabsContent value="settings">
-    {/* форма редактирования */}
+    {/* editing form */}
   </TabsContent>
 </Tabs>
 ```
@@ -166,7 +166,7 @@ export const KeyLogsTimeline: FC<KeyLogsTimelineProps> = ({
 }
 ```
 
-### GraphQL запрос
+### GraphQL Query
 
 ```graphql
 query GetKeyLogs($keyId: String!, $limit: Int) {
@@ -184,7 +184,7 @@ query GetKeyLogs($keyId: String!, $limit: Int) {
 }
 ```
 
-### Типы данных
+### Data Types
 
 ```typescript
 interface KeyLog {
@@ -202,85 +202,84 @@ interface KeyLog {
 
 ## Styling
 
-### Timeline линия
-- Вертикальная линия слева от иконок
-- Серого цвета (`bg-border`)
-- Абсолютное позиционирование
+### Timeline Line
+- Vertical line left of icons
+- Gray color (`bg-border`)
+- Absolute positioning
 
-### Иконки действий
-- Круглые (32x32px)
-- Цветной фон в зависимости от действия
-- Белая иконка внутри
-- z-index: 10 (поверх линии)
+### Action Icons
+- Circular (32x32px)
+- Colored background depending on action
+- White icon inside
+- z-index: 10 (above line)
 
-### Блоки значений
-- Моноширинный шрифт для кода
+### Value Blocks
+- Monospace font for code
 - Rounded corners
 - Padding: 8px
-- Border и background соответствуют типу (old/new/deleted)
+- Border and background match type (old/new/deleted)
 
-## Использование
+## Usage
 
-1. **Выберите ключ** в списке ключей
-2. **По умолчанию откроется вкладка History** с timeline
-3. **Просмотрите историю изменений** - прокручивайте вниз для более старых записей
-4. **Переключитесь на Settings** если нужно отредактировать ключ
+1. **Select a key** in keys list
+2. **History tab opens by default** with timeline
+3. **View change history** - scroll down for older entries
+4. **Switch to Settings** if you need to edit key
 
-## Производительность
+## Performance
 
-- Лимит по умолчанию: 50 записей (можно изменить)
-- Lazy loading при прокрутке не реализован (будет в будущем)
-- Автоматический refetch при смене ключа
+- Default limit: 50 entries (adjustable)
+- Lazy loading on scroll not implemented (future)
+- Automatic refetch on key change
 
-## Доступность
+## Accessibility
 
-- Цветовая индикация дублируется иконками
-- Текстовые метки для всех действий
-- Keyboard navigation работает через стандартные табы Radix UI
+- Color indication duplicated with icons
+- Text labels for all actions
+- Keyboard navigation works via standard Radix UI tabs
 
-## Будущие улучшения
+## Future Improvements
 
-1. ✅ Infinite scroll для большой истории
-2. ✅ Фильтры по типу действия
-3. ✅ Фильтры по дате
-4. ✅ Отображение имени пользователя вместо ID
-5. ✅ Возможность отката к предыдущей версии
-6. ✅ Экспорт истории в файл
+1. ✅ Infinite scroll for large history
+2. ✅ Filters by action type
+3. ✅ Filters by date
+4. ✅ Display user name instead of ID
+5. ✅ Ability to revert to previous version
+6. ✅ Export history to file
 
-## Пример работы
+## Example Workflow
 
-### Сценарий 1: Создание ключа с переводом
+### Scenario 1: Creating key with translation
 
-1. Пользователь создает ключ `button.submit` с описанием и переводом на английский "Submit"
-2. В timeline появляются 2 записи:
-   - CREATE: создание ключа
-   - UPDATE_TRANSLATION: добавление перевода
+1. User creates key `button.submit` with description and English translation "Submit"
+2. Timeline shows 2 entries:
+   - CREATE: key creation
+   - UPDATE_TRANSLATION: translation addition
 
-### Сценарий 2: Изменение перевода
+### Scenario 2: Changing translation
 
-1. Пользователь меняет перевод с "Submit" на "Submit form"
-2. В timeline появляется запись UPDATE_TRANSLATION с обоими значениями
-3. Старое значение показано зачеркнутым на красном фоне
-4. Новое значение показано на зеленом фоне
+1. User changes translation from "Submit" to "Submit form"
+2. Timeline shows UPDATE_TRANSLATION entry with both values
+3. Old value shown strikethrough on red background
+4. New value shown on green background
 
-### Сценарий 3: Переименование ключа
+### Scenario 3: Renaming key
 
-1. Пользователь меняет имя ключа с `button.submit` на `form.submit_button`
-2. В timeline появляется запись UPDATE_KEY
-3. Оба значения отображаются моноширинным шрифтом
+1. User changes key name from `button.submit` to `form.submit_button`
+2. Timeline shows UPDATE_KEY entry
+3. Both values displayed in monospace font
 
 ## Troubleshooting
 
-### Логи не загружаются
-- Проверьте, что backend запущен
-- Проверьте права доступа к проекту
-- Откройте DevTools и проверьте GraphQL запрос
+### Logs not loading
+- Check that backend is running
+- Check project access rights
+- Open DevTools and check GraphQL query
 
-### Timeline пустой
-- Это нормально для новых ключей без изменений
-- Показывается сообщение "No history yet"
+### Timeline empty
+- Normal for new keys without changes
+- Shows "No history yet" message
 
-### Ошибка "Failed to load history"
-- Проблема с сетью или backend
-- Проверьте консоль на наличие GraphQL ошибок
-
+### Error "Failed to load history"
+- Network or backend problem
+- Check console for GraphQL errors

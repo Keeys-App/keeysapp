@@ -1,27 +1,27 @@
 # Keeys - Translation Management System
 
-> Система управления локализацией с полноценной системой авторизации
+> Localization management system with full authentication
 
-## 🚀 Быстрый старт
+## 🚀 Quick Start
 
-### Требования
+### Requirements
 - Python 3.12+
 - Node.js 18+
 - PostgreSQL
 - Yarn
 
-### Запуск Backend
+### Running Backend
 
-**Сначала запустите PostgreSQL:**
+**First, start PostgreSQL:**
 ```bash
 # macOS (Homebrew)
 brew services start postgresql@14
 
-# или если установлен Postgres.appas
-# просто запустите приложение Postgres.app
+# or if Postgres.app is installed
+# just launch the Postgres.app application
 ```
 
-**Затем запустите backend:**
+**Then start the backend:**
 ```bash
 cd backend
 source venv/bin/activate
@@ -29,133 +29,133 @@ python main.py
 ```
 Backend: http://localhost:8000
 
-### Запуск Frontend
+### Running Frontend
 ```bash
 cd frontend
 yarn dev
 ```
 Frontend: http://localhost:5173
 
-## 📚 Документация
+## 📚 Documentation
 
-Полная документация находится в **Obsidian Vault**: `docs/obsidian/`
+Full documentation is located in **Obsidian Vault**: `docs/obsidian/`
 
-### 📖 Основные документы
+### 📖 Main Documents
 
-| Документ | Описание |
+| Document | Description |
 |----------|----------|
-| [README](docs/obsidian/README.md) | Главная страница документации |
-| [Quick Start](docs/obsidian/Quick%20Start.md) | Подробный быстрый старт |
-| [Authentication Setup](docs/obsidian/Authentication%20Setup.md) | Полная настройка системы авторизации |
-| [Authentication Cheatsheet](docs/obsidian/Authentication%20Cheatsheet.md) | Быстрая справка по авторизации |
-| [Testing Guide](docs/obsidian/Testing%20Guide.md) | Руководство по тестированию (28 тестов) |
-| [Project Structure](docs/obsidian/Project%20Structure.md) | Детальная структура проекта |
+| [README](docs/obsidian/README.md) | Main documentation page |
+| [Quick Start](docs/obsidian/Quick%20Start.md) | Detailed quick start guide |
+| [Authentication Setup](docs/obsidian/Authentication%20Setup.md) | Complete authentication system setup |
+| [Authentication Cheatsheet](docs/obsidian/Authentication%20Cheatsheet.md) | Quick authentication reference |
+| [Testing Guide](docs/obsidian/Testing%20Guide.md) | Testing guide (28 tests) |
+| [Project Structure](docs/obsidian/Project%20Structure.md) | Detailed project structure |
 
-### 🔍 Как использовать документацию
+### 🔍 How to Use Documentation
 
-**В Obsidian (рекомендуется):**
-1. Откройте Obsidian
+**In Obsidian (recommended):**
+1. Open Obsidian
 2. "Open folder as vault"
-3. Выберите `docs/obsidian`
-4. Используйте внутренние ссылки для навигации
+3. Select `docs/obsidian`
+4. Use internal links for navigation
 
-**В редакторе кода:**
-- Просто открывайте `.md` файлы в `docs/obsidian/`
+**In code editor:**
+- Simply open `.md` files in `docs/obsidian/`
 
-## 🏗️ Технологический стек
+## 🏗️ Technology Stack
 
 ### Backend
-- **FastAPI** - Современный веб-фреймворк
-- **Strawberry GraphQL** - GraphQL для Python
-- **PostgreSQL** - База данных
+- **FastAPI** - Modern web framework
+- **Strawberry GraphQL** - GraphQL for Python
+- **PostgreSQL** - Database
 - **SQLAlchemy** - ORM
-- **JWT** (pyjwt) - Авторизация
-- **bcrypt** - Хэширование паролей
-- **pytest** - Тестирование
+- **JWT** (pyjwt) - Authentication
+- **bcrypt** - Password hashing
+- **pytest** - Testing
 
 ### Frontend
-- **React 19** - UI библиотека
-- **TypeScript** - Типизация
-- **Radix UI** - Компоненты UI
-- **Apollo Client** - GraphQL клиент
-- **React Router** - Маршрутизация
-- **Vite** - Сборка
+- **React 19** - UI library
+- **TypeScript** - Type safety
+- **Radix UI** - UI components
+- **Apollo Client** - GraphQL client
+- **React Router** - Routing
+- **Vite** - Build tool
 
-## ✅ Реализовано
+## ✅ Implemented
 
-### Система авторизации
-- ✅ Регистрация пользователей
-- ✅ Вход с JWT токенами
-- ✅ Защищенные маршруты
-- ✅ Хэширование паролей (bcrypt)
+### Authentication System
+- ✅ User registration
+- ✅ Login with JWT tokens
+- ✅ Protected routes
+- ✅ Password hashing (bcrypt)
 - ✅ GraphQL API (queries & mutations)
-- ✅ Контекст авторизации на frontend
-- ✅ Автоматическое обновление токенов в headers
-- ✅ Валидация форм
+- ✅ Authentication context on frontend
+- ✅ Automatic token updates in headers
+- ✅ Form validation
 
-### Модуль проектов
-- ✅ CRUD операции для проектов (создание, чтение, обновление, удаление)
-- ✅ Система прав доступа (owner, admin, editor, viewer)
-- ✅ Управление участниками проектов
-- ✅ Многоязычность (поддержка нескольких языков в проекте)
-- ✅ Цветовые метки для проектов
-- ✅ Статусы проектов (active, archived, draft)
-- ✅ UI с карточками проектов (grid layout)
-- ✅ Модальные окна создания/редактирования
-- ✅ Проверка прав доступа на backend
+### Projects Module
+- ✅ CRUD operations for projects (create, read, update, delete)
+- ✅ Access control system (owner, admin, editor, viewer)
+- ✅ Project member management
+- ✅ Multi-language support (multiple languages per project)
+- ✅ Color labels for projects
+- ✅ Project statuses (active, archived, draft)
+- ✅ UI with project cards (grid layout)
+- ✅ Create/edit modal dialogs
+- ✅ Access control checks on backend
 
-### Тестирование
-- ✅ 70 автоматических тестов
-- ✅ Покрытие кода ~95%
-- ✅ Тесты моделей (10)
-- ✅ Тесты сервисов (30)
-- ✅ Тесты безопасности/JWT (7)
-- ✅ Тесты UUID (5)
-- ✅ Тесты обработки ошибок (18)
+### Testing
+- ✅ 70 automated tests
+- ✅ Code coverage ~95%
+- ✅ Model tests (10)
+- ✅ Service tests (30)
+- ✅ Security/JWT tests (7)
+- ✅ UUID tests (5)
+- ✅ Error handling tests (18)
 
 ### UI/UX
-- ✅ Красивые формы с Radix UI
-- ✅ Темная/светлая тема
-- ✅ Валидация на клиенте
-- ✅ Обработка ошибок
-- ✅ Адаптивный дизайн
-- ✅ Grid layout для списка проектов
-- ✅ Color picker для выбора цвета
-- ✅ Multi-select для языков
+- ✅ Beautiful forms with Radix UI
+- ✅ Dark/light theme
+- ✅ Client-side validation
+- ✅ Error handling
+- ✅ Responsive design
+- ✅ Grid layout for project list
+- ✅ Color picker for color selection
+- ✅ Multi-select for languages
 
-## 🧪 Тестирование
+## 🧪 Testing
 
 ```bash
 cd backend
 source venv/bin/activate
 
-# Все тесты
+# All tests
 pytest
 
-# С подробным выводом
+# With verbose output
 pytest -v
 
-# С покрытием
+# With coverage
 pytest --cov=app --cov-report=html
 ```
 
-**Результат:** ✅ 70 passed in 12.19s (~95% coverage)
+**Result:** ✅ 70 passed in 12.19s (~95% coverage)
 
-**Включает:**
-- ✅ 10 тестов моделей
-- ✅ 7 тестов JWT/безопасности  
-- ✅ 30 тестов сервисов (11 user + 19 project)
-- ✅ 5 тестов UUID
-- ✅ 18 тестов обработки ошибок и защиты
+**Includes:**
+- ✅ 10 model tests
+- ✅ 7 JWT/security tests  
+- ✅ 30 service tests (11 user + 19 project)
+- ✅ 5 UUID tests
+- ✅ 18 error handling and protection tests
 
-Подробнее: [Testing Guide](docs/obsidian/Testing%20Guide.md)
+More details: [Testing Guide](docs/obsidian/Testing%20Guide.md)
 
-## 🔐 Авторизация
+## 🔐 Authentication
 
 ### GraphQL Playground
 http://localhost:8000/graphql
 
-**Регистрация:**
+**Registration:**
 ```graphql
 mutation {
   register(input: {
@@ -169,7 +169,7 @@ mutation {
 }
 ```
 
-**Вход:**
+**Login:**
 ```graphql
 mutation {
   login(input: {
@@ -182,37 +182,37 @@ mutation {
 }
 ```
 
-Подробнее: [Authentication Setup](docs/obsidian/Authentication%20Setup.md)
+More details: [Authentication Setup](docs/obsidian/Authentication%20Setup.md)
 
-## 📁 Структура проекта
+## 📁 Project Structure
 
 ```
 Keeys/
 ├── backend/                  # FastAPI + GraphQL
-│   ├── app/                 # Код приложения
-│   │   ├── models/          # SQLAlchemy модели
-│   │   ├── schemas/         # GraphQL схемы
-│   │   ├── services/        # Бизнес-логика
+│   ├── app/                 # Application code
+│   │   ├── models/          # SQLAlchemy models
+│   │   ├── schemas/         # GraphQL schemas
+│   │   ├── services/        # Business logic
 │   │   └── core/            # Config, JWT, Exceptions
-│   ├── tests/               # Unit тесты (70)
-│   ├── migrations/          # БД миграции (авто)
-│   ├── scripts/             # Утилиты
-│   └── integration_tests/   # Интеграционные тесты
+│   ├── tests/               # Unit tests (70)
+│   ├── migrations/          # DB migrations (auto)
+│   ├── scripts/             # Utilities
+│   └── integration_tests/   # Integration tests
 ├── frontend/                # React + TypeScript
 │   └── src/
-│       ├── components/      # React компоненты
+│       ├── components/      # React components
 │       ├── contexts/        # React contexts
-│       ├── pages/           # Страницы
+│       ├── pages/           # Pages
 │       └── graphql/         # GraphQL queries
 └── docs/
-    └── obsidian/            # Документация
+    └── obsidian/            # Documentation
 ```
 
-Подробнее: [Project Structure](docs/obsidian/Project%20Structure.md)
+More details: [Project Structure](docs/obsidian/Project%20Structure.md)
 
-## 🔗 Полезные ссылки
+## 🔗 Useful Links
 
-| Сервис | URL |
+| Service | URL |
 |--------|-----|
 | Backend API | http://localhost:8000 |
 | GraphQL Playground | http://localhost:8000/graphql |
@@ -220,76 +220,76 @@ Keeys/
 | API Docs | http://localhost:8000/docs |
 | Health Check | http://localhost:8000/health |
 
-## 🛠️ Разработка
+## 🛠️ Development
 
 ### Backend
 ```bash
-# Запуск с автоперезагрузкой
+# Run with auto-reload
 cd backend
 source venv/bin/activate
 python main.py
 
-# Unit тесты
+# Unit tests
 pytest -v
 
 # Coverage
 pytest --cov=app --cov-report=html
 
-# Утилиты
+# Utilities
 python scripts/list_users.py
 python scripts/clear_users.py
 
-# Миграции (автоматически при старте или вручную)
+# Migrations (automatic on start or manual)
 python migrations/migrate_add_public_id.py
 ```
 
 ### Frontend
 ```bash
-# Dev сервер
+# Dev server
 cd frontend
 yarn dev
 
-# Линтинг
+# Linting
 yarn lint
 
-# Сборка
+# Build
 yarn build
 ```
 
-## 🔄 Следующие шаги
+## 🔄 Next Steps
 
-### Функционал переводов
-- [ ] Ключи переводов (keys) для проектов
-- [ ] Редактор переводов с поддержкой множественных языков
-- [ ] Импорт/экспорт переводов (JSON, YAML, CSV)
-- [ ] История изменений переводов
-- [ ] Комментарии к переводам
+### Translation Features
+- [ ] Translation keys for projects
+- [ ] Translation editor with multi-language support
+- [ ] Import/export translations (JSON, YAML, CSV)
+- [ ] Translation change history
+- [ ] Translation comments
 
-### Улучшения авторизации
-- [ ] Добавить восстановление пароля
-- [ ] Реализовать подтверждение email
-- [ ] Добавить OAuth (Google, GitHub)
-- [ ] Реализовать refresh tokens
+### Authentication Improvements
+- [ ] Add password recovery
+- [ ] Implement email confirmation
+- [ ] Add OAuth (Google, GitHub)
+- [ ] Implement refresh tokens
 
-### Дополнительно
-- [ ] Добавить управление профилем
-- [ ] Поиск по проектам
-- [ ] Фильтрация и сортировка
-- [ ] Статистика по проектам
-- [ ] API документация
+### Additional
+- [ ] Add profile management
+- [ ] Project search
+- [ ] Filtering and sorting
+- [ ] Project statistics
+- [ ] API documentation
 
-## 🤝 Вклад в проект
+## 🤝 Contributing
 
-1. Изучите документацию в `docs/obsidian/`
-2. Создайте feature branch
-3. Напишите код и тесты
-4. Убедитесь что все тесты проходят
-5. Создайте Pull Request
+1. Study the documentation in `docs/obsidian/`
+2. Create a feature branch
+3. Write code and tests
+4. Ensure all tests pass
+5. Create a Pull Request
 
-## 📝 Лицензия
+## 📝 License
 
-Все права защищены © 2025
+All rights reserved © 2025
 
 ---
 
-**Документация:** [docs/obsidian/](docs/obsidian/) | **Тесты:** ✅ 70 passed (~95% coverage) | **Безопасность:** UUID + Safe Errors
+**Documentation:** [docs/obsidian/](docs/obsidian/) | **Tests:** ✅ 70 passed (~95% coverage) | **Security:** UUID + Safe Errors

@@ -1,34 +1,34 @@
 # Performance Optimization - N+1 Query Fix
 
-## Проблема
+## Problem
 
-GraphQL запрос `GetProjectKeys` занимал **~500 мс** из-за классической проблемы N+1 запросов.
+GraphQL query `GetProjectKeys` took **~500 ms** due to classic N+1 query problem.
 
-## Решение
+## Solution
 
-Добавлена оптимизация с использованием SQLAlchemy `joinedload()` для eager loading связанных данных.
+Added optimization using SQLAlchemy `joinedload()` for eager loading of related data.
 
-## Изменения
+## Changes
 
 ### 1. Backend - KeyService (`backend/app/services/key_service.py`)
 
-#### ✅ Добавлен импорт `joinedload`
+#### ✅ Added `joinedload` import
 ```python
 from sqlalchemy.orm import Session, joinedload
 ```
 
-#### ✅ Оптимизирован `get_project_keys()`
+#### ✅ Optimized `get_project_keys()`
 ```python
-# До: N+1 проблема (1 + N запросов)
+# Before: N+1 problem (1 + N queries)
 keys = db.query(Key).filter(Key.project_id == project.id).order_by(Key.key).all()
 
-# После: Один JOIN запрос
+# After: One JOIN query
 keys = db.query(Key).options(
     joinedload(Key.translations)
 ).filter(Key.project_id == project.id).order_by(Key.key).all()
 ```
 
-#### ✅ Оптимизирован `get_key_by_public_id()`
+#### ✅ Optimized `get_key_by_public_id()`
 ```python
 def get_key_by_public_id(db: Session, public_id: str, eager_load_translations: bool = True):
     query = db.query(Key)
@@ -37,13 +37,13 @@ def get_key_by_public_id(db: Session, public_id: str, eager_load_translations: b
     return query.filter(Key.public_id == uuid_obj).first()
 ```
 
-#### ✅ Оптимизирован `batch_import_translations()`
-Добавлен eager loading при получении существующих ключей проекта.
+#### ✅ Optimized `batch_import_translations()`
+Added eager loading when getting existing project keys.
 
 ### 2. Backend - ProjectService (`backend/app/services/project_service.py`)
 
-#### ✅ Исправлена обработка языков
-Добавлена поддержка строковых значений языков (не только объектов):
+#### ✅ Fixed language handling
+Added support for string language values (not just objects):
 ```python
 elif isinstance(lang, str):
     languages_data.append({
@@ -52,96 +52,95 @@ elif isinstance(lang, str):
     })
 ```
 
-#### ✅ Улучшен подсчет переводов
-Добавлен фильтр whitespace-only переводов:
+#### ✅ Improved translation count
+Added filter for whitespace-only translations:
 ```python
 .filter(
     Translation.value.isnot(None),
     Translation.value != '',
-    func.trim(Translation.value) != ''  # Новое!
+    func.trim(Translation.value) != ''  # New!
 )
 ```
 
-### 3. Тесты
+### 3. Tests
 
-#### ✅ Созданы тесты производительности (`tests/test_key_performance.py`)
-- Тест N+1 проблемы (20 ключей)
-- Тест eager loading для одного ключа
-- Тест lazy loading
+#### ✅ Created performance tests (`tests/test_key_performance.py`)
+- Test N+1 problem (20 keys)
+- Test eager loading for single key
+- Test lazy loading
 
-#### ✅ Исправлены существующие тесты
-- `test_create_project` - обновлены проверки формата языков
-- `test_update_project` - обновлены проверки формата языков
-- `test_translation_progress_calculation` - добавлена передача статистики
-- `test_translation_with_whitespace_not_counted` - добавлена передача статистики
-- `test_empty_string_translation_not_counted` - добавлена передача статистики
+#### ✅ Fixed existing tests
+- `test_create_project` - updated language format checks
+- `test_update_project` - updated language format checks
+- `test_translation_progress_calculation` - added stats passing
+- `test_translation_with_whitespace_not_counted` - added stats passing
+- `test_empty_string_translation_not_counted` - added stats passing
 
-## Результаты
+## Results
 
-### 📊 Производительность
+### 📊 Performance
 
-| Метрика | До | После | Улучшение |
+| Metric | Before | After | Improvement |
 |---------|-----|-------|-----------|
-| **Запросов (20 ключей)** | ~23 | **6** | **↓ 74%** |
-| **Время ответа** | ~500 мс | **~50-100 мс** | **↓ 80-90%** |
-| **Запросов (1 ключ)** | 2 | **1** | **↓ 50%** |
+| **Queries (20 keys)** | ~23 | **6** | **↓ 74%** |
+| **Response Time** | ~500 ms | **~50-100 ms** | **↓ 80-90%** |
+| **Queries (1 key)** | 2 | **1** | **↓ 50%** |
 
-### ✅ Тесты
+### ✅ Tests
 
 ```
 76 passed, 3 warnings in 13.15s
 ```
 
-**Все тесты проходят успешно!**
+**All tests pass successfully!**
 
-## Детали оптимизации
+## Optimization Details
 
-### Как это работает
+### How It Works
 
-**До оптимизации:**
-1. Запрос: получить все ключи проекта
-2. Для каждого ключа: получить его переводы (N запросов)
-3. Итого: **1 + N запросов**
+**Before optimization:**
+1. Query: get all project keys
+2. For each key: get its translations (N queries)
+3. Total: **1 + N queries**
 
-**После оптимизации:**
-1. Запрос: получить все ключи с переводами через JOIN
-2. Итого: **1 запрос**
+**After optimization:**
+1. Query: get all keys with translations via JOIN
+2. Total: **1 query**
 
-### Анализ запросов для 20 ключей
+### Query Analysis for 20 Keys
 
 1. ✓ Get project by UUID
 2. ✓ Check user access
 3. ✓ Verify project existence
 4. ✓ Check project membership
 5. ✓ Verify project again
-6. ✓ **Get keys with translations** (единственный JOIN запрос!)
+6. ✓ **Get keys with translations** (single JOIN query!)
 
-**Всего: 6 запросов** независимо от количества ключей!
+**Total: 6 queries** regardless of key count!
 
-## Документация
+## Documentation
 
-Создана документация по оптимизации:
+Created optimization documentation:
 - `docs/obsidian/N+1 Query Optimization.md`
 
-## Дополнительные улучшения
+## Additional Improvements
 
-1. ✅ Whitespace-only переводы теперь не учитываются в прогрессе
-2. ✅ Поддержка строковых значений языков в сервисах
-3. ✅ Опциональный eager loading для гибкости
+1. ✅ Whitespace-only translations now not counted in progress
+2. ✅ String language value support in services
+3. ✅ Optional eager loading for flexibility
 
-## Рекомендации
+## Recommendations
 
-### Когда использовать eager loading:
-- ✅ Загрузка коллекций объектов
-- ✅ Данные нужны сразу в ответе
-- ✅ Известно, что связанные данные будут использоваться
+### When to use eager loading:
+- ✅ Loading object collections
+- ✅ Data needed immediately in response
+- ✅ Known that related data will be used
 
-### Когда НЕ использовать:
-- ❌ Связи могут не понадобиться
-- ❌ Очень большие связанные коллекции (тысячи записей)
-- ❌ Загрузка одного объекта где связь опциональна
+### When NOT to use:
+- ❌ Relations may not be needed
+- ❌ Very large related collections (thousands of records)
+- ❌ Loading single object where relation is optional
 
-## Заключение
+## Conclusion
 
-Оптимизация N+1 запросов снизила время ответа на **80-90%** и сократила количество запросов к базе данных на **74%**, что значительно улучшает производительность приложения, особенно для проектов с большим количеством ключей переводов.
-
+N+1 query optimization reduced response time by **80-90%** and cut database queries by **74%**, significantly improving application performance, especially for projects with large number of translation keys.

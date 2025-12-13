@@ -2,26 +2,26 @@
 
 ## 📋 Overview
 
-Реализована полноценная система onboarding для новых пользователей:
-- 3-шаговый wizard (создание команды, приглашение участников, создание проекта)
-- Хранение состояния в базе данных
-- Защита от обхода через изменение URL
-- Синхронизация между устройствами
+Implemented full onboarding system for new users:
+- 3-step wizard (create team, invite members, create project)
+- State stored in database
+- Protection against bypass via URL modification
+- Synchronization between devices
 
 ## 🎯 Features
 
 ### Wizard Steps:
 
-1. **Create Team** - Создание первой команды
-2. **Invite Members** - Приглашение участников (опционально)
-3. **Create Project** - Создание первого проекта с английским языком по умолчанию
+1. **Create Team** - Creating first team
+2. **Invite Members** - Inviting members (optional)
+3. **Create Project** - Creating first project with English language by default
 
 ### Security:
 
-✅ Состояние хранится в PostgreSQL (поле `users.onboarding_completed`)  
-✅ Невозможно обойти через localStorage/cookies  
-✅ Редирект на `/onboarding` при попытке доступа к другим страницам  
-✅ Синхронизация между всеми устройствами пользователя  
+✅ State stored in PostgreSQL (`users.onboarding_completed` field)  
+✅ Cannot bypass via localStorage/cookies  
+✅ Redirect to `/onboarding` when attempting to access other pages  
+✅ Synchronization between all user devices  
 
 ## 🚀 Deployment Steps
 
@@ -33,7 +33,7 @@ source venv/bin/activate
 python -m migrations.add_onboarding_completed
 ```
 
-**Результат:**
+**Result:**
 ```
 ✓ Successfully added onboarding_completed column
 Migration completed successfully!
@@ -41,18 +41,18 @@ Migration completed successfully!
 
 ### 2. Restart Backend Server
 
-Перезапустите backend сервер для загрузки обновленной GraphQL схемы:
+Restart backend server to load updated GraphQL schema:
 
 ```bash
-# В терминале с запущенным backend:
-# 1. Остановите сервер (Ctrl+C)
-# 2. Запустите снова:
+# In terminal with running backend:
+# 1. Stop server (Ctrl+C)
+# 2. Start again:
 python main.py
 ```
 
-### 3. Frontend (автоматически)
+### 3. Frontend (automatic)
 
-Frontend автоматически перезагружается при изменениях. Никаких дополнительных действий не требуется.
+Frontend automatically reloads on changes. No additional actions required.
 
 ## 📝 Database Changes
 
@@ -67,7 +67,7 @@ ADD COLUMN onboarding_completed BOOLEAN NOT NULL DEFAULT FALSE;
 
 `backend/migrations/add_onboarding_completed.py`
 
-**Rollback (если нужно):**
+**Rollback (if needed):**
 ```bash
 python -m migrations.add_onboarding_completed --downgrade
 ```
@@ -76,10 +76,10 @@ python -m migrations.add_onboarding_completed --downgrade
 
 ### Backend:
 
-**Files Modified:**
-- `backend/app/models/user.py` - добавлено поле `onboarding_completed`
-- `backend/app/schemas/auth.py` - обновлен `UserType`, добавлена мутация `completeOnboarding`
-- `backend/app/schemas/graphql.py` - зарегистрирована мутация в schema
+**Modified Files:**
+- `backend/app/models/user.py` - added `onboarding_completed` field
+- `backend/app/schemas/auth.py` - updated `UserType`, added `completeOnboarding` mutation
+- `backend/app/schemas/graphql.py` - registered mutation in schema
 
 **New GraphQL Mutation:**
 ```graphql
@@ -93,115 +93,114 @@ mutation CompleteOnboarding {
 
 ### Frontend:
 
-**Files Created:**
-- `frontend/src/stores/onboardingStore.ts` - Zustand store для локального состояния
-- `frontend/src/pages/OnboardingPage.tsx` - страница wizard
-- `frontend/src/components/onboarding/` - компоненты wizard
-  - `OnboardingWizard.tsx` - главный компонент с progress indicator
-  - `CreateTeamStep.tsx` - шаг 1: создание команды
-  - `InviteMembersStep.tsx` - шаг 2: приглашение участников
-  - `CreateProjectStep.tsx` - шаг 3: создание проекта
+**Created Files:**
+- `frontend/src/stores/onboardingStore.ts` - Zustand store for local state
+- `frontend/src/pages/OnboardingPage.tsx` - wizard page
+- `frontend/src/components/onboarding/` - wizard components
+  - `OnboardingWizard.tsx` - main component with progress indicator
+  - `CreateTeamStep.tsx` - step 1: team creation
+  - `InviteMembersStep.tsx` - step 2: member invites
+  - `CreateProjectStep.tsx` - step 3: project creation
 
-**Files Modified:**
-- `frontend/src/App.tsx` - добавлен роут `/onboarding`
-- `frontend/src/constants/paths.ts` - добавлена константа `PATHS.ONBOARDING`
-- `frontend/src/pages/AuthPage.tsx` - проверка команд после регистрации
-- `frontend/src/components/layout/Layout.tsx` - защита от обхода onboarding
-- `frontend/src/contexts/AuthContext.tsx` - синхронизация статуса с backend
-- `frontend/src/graphql/auth.ts` - обновлены queries/mutations
+**Modified Files:**
+- `frontend/src/App.tsx` - added `/onboarding` route
+- `frontend/src/constants/paths.ts` - added `PATHS.ONBOARDING` constant
+- `frontend/src/pages/AuthPage.tsx` - team check after registration
+- `frontend/src/components/layout/Layout.tsx` - protection against onboarding bypass
+- `frontend/src/contexts/AuthContext.tsx` - status synchronization with backend
+- `frontend/src/graphql/auth.ts` - updated queries/mutations
 
 ## 🧪 Testing Checklist
 
 ### Registration Flow:
-- [ ] Новый пользователь регистрируется
-- [ ] Автоматический редирект на `/onboarding`
-- [ ] Wizard отображается корректно
+- [ ] New user registers
+- [ ] Automatic redirect to `/onboarding`
+- [ ] Wizard displays correctly
 
 ### Wizard Flow:
-- [ ] Шаг 1: Создание команды с валидацией
-- [ ] Команда автоматически выбирается в TeamStore
-- [ ] Шаг 2: Добавление участников (можно пропустить)
-- [ ] Шаг 3: Английский язык предзаполнен
-- [ ] Создание проекта работает
-- [ ] Редирект на созданный проект
+- [ ] Step 1: Team creation with validation
+- [ ] Team automatically selected in TeamStore
+- [ ] Step 2: Adding members (can skip)
+- [ ] Step 3: English language prefilled
+- [ ] Project creation works
+- [ ] Redirect to created project
 
 ### Security:
-- [ ] Попытка открыть `/` → редирект на `/onboarding`
-- [ ] Попытка открыть `/teams` → редирект на `/onboarding`
-- [ ] Изменение URL вручную не помогает обойти
-- [ ] После завершения можно свободно перемещаться
+- [ ] Attempt to open `/` → redirect to `/onboarding`
+- [ ] Attempt to open `/teams` → redirect to `/onboarding`
+- [ ] Manual URL changes don't help bypass
+- [ ] After completion can move freely
 
 ### Multi-Device:
-- [ ] Завершить onboarding на устройстве A
-- [ ] Войти на устройстве B → сразу попадает на dashboard
-- [ ] Очистка localStorage не помогает обойти
-- [ ] Incognito режим использует данные с сервера
+- [ ] Complete onboarding on device A
+- [ ] Login on device B → immediately lands on dashboard
+- [ ] Clearing localStorage doesn't help bypass
+- [ ] Incognito mode uses data from server
 
 ## 📚 Documentation
 
-Подробная документация в:
-- `frontend/src/components/onboarding/README.md` - полное описание компонентов и flow
+Detailed documentation in:
+- `frontend/src/components/onboarding/README.md` - complete component and flow description
 
 ## 🐛 Troubleshooting
 
 ### GraphQL Error: "Cannot query field 'onboardingCompleted'"
 
-**Причина:** Backend сервер не перезапущен после миграции
+**Cause:** Backend server not restarted after migration
 
-**Решение:**
+**Solution:**
 ```bash
-# Остановить backend (Ctrl+C)
-# Запустить снова
+# Stop backend (Ctrl+C)
+# Start again
 cd backend
 source venv/bin/activate
 python main.py
 ```
 
-### Пользователь застрял на onboarding
+### User stuck on onboarding
 
-**Причина:** Поле в БД не обновилось
+**Cause:** Field in DB not updated
 
-**Решение (временное для тестирования):**
+**Solution (temporary for testing):**
 ```sql
 UPDATE users SET onboarding_completed = true WHERE email = 'user@example.com';
 ```
 
-### Миграция не применилась
+### Migration not applied
 
-**Проверка:**
+**Check:**
 ```sql
 \d users
--- Должен быть столбец onboarding_completed
+-- Should have onboarding_completed column
 ```
 
-**Повторная попытка:**
+**Retry:**
 ```bash
 python -m migrations.add_onboarding_completed
 ```
 
 ## 🎨 UI/UX Features
 
-- Красивый progress indicator с 3 шагами
-- Анимации переходов между шагами
-- Зеленые чекмарки для завершенных шагов
-- Центрированный card layout
+- Beautiful progress indicator with 3 steps
+- Transition animations between steps
+- Green checkmarks for completed steps
+- Centered card layout
 - Responsive design
 - Toast notifications
-- Global saving indicator в footer
+- Global saving indicator in footer
 
 ## 🔮 Future Enhancements
 
-Возможные улучшения:
-- Email уведомления о приглашениях
-- Импорт существующих проектов в onboarding
-- Шаблоны команд и проектов
-- Анимация конфетти при завершении
-- Возможность вернуться к предыдущему шагу
-- Сохранение прогресса при выходе
+Possible improvements:
+- Email notifications for invites
+- Import existing projects in onboarding
+- Team and project templates
+- Confetti animation on completion
+- Ability to go back to previous step
+- Save progress on logout
 
 ---
 
 **Status:** ✅ Ready for Production  
 **Date:** November 30, 2025  
 **Migration:** Required (`add_onboarding_completed.py`)
-

@@ -1,58 +1,58 @@
 # Key Logging Feature - Summary
 
-## Что сделано ✅
+## What's Done ✅
 
-Реализована полноценная система аудита (логирования) всех изменений ключей переводов.
+Implemented full audit (logging) system for all translation key changes.
 
-## Основные компоненты
+## Main Components
 
 ### 1. Backend Models
-- **`KeyLog`** модель (`app/models/key_log.py`) - хранит историю изменений
-- **`KeyActionType`** enum - типы действий (create, update, delete и т.д.)
+- **`KeyLog`** model (`app/models/key_log.py`) - stores change history
+- **`KeyActionType`** enum - action types (create, update, delete, etc.)
 
 ### 2. Database
-- Таблица `key_logs` с индексами для производительности
-- Автоматическая миграция при запуске приложения
-- CASCADE удаление при удалении ключа
+- `key_logs` table with indexes for performance
+- Automatic migration on application start
+- CASCADE delete when key is deleted
 
 ### 3. Service Layer
-- Метод `KeyService._create_log()` - создает записи логов
-- Логирование интегрировано во все методы:
-  - `create_key()` - создание ключа + переводы
-  - `update_key()` - изменение имени/описания (теги НЕ логируются)
-  - `set_translation()` - создание/обновление перевода
-  - `delete_translation()` - удаление перевода
-  - `delete_key()` - удаление ключа
-  - `batch_import_translations()` - массовый импорт
+- Method `KeyService._create_log()` - creates log entries
+- Logging integrated into all methods:
+  - `create_key()` - key creation + translations
+  - `update_key()` - name/description changes (tags NOT logged)
+  - `set_translation()` - translation creation/update
+  - `delete_translation()` - translation deletion
+  - `delete_key()` - key deletion
+  - `batch_import_translations()` - bulk import
 
 ### 4. GraphQL API
-- Запрос `keyLogs(keyId: String!, limit: Int)` - получение истории
-- Типы `KeyLogType` и `KeyActionTypeEnum`
-- Автоматическая проверка прав доступа
+- Query `keyLogs(keyId: String!, limit: Int)` - get history
+- Types `KeyLogType` and `KeyActionTypeEnum`
+- Automatic access rights check
 
 ### 5. Tests
-- Полный набор тестов в `tests/test_key_logging.py`
-- Покрытие всех сценариев использования
+- Full test suite in `tests/test_key_logging.py`
+- Coverage of all usage scenarios
 
 ### 6. Documentation
-- Детальная документация в `docs/obsidian/Key Logging.md`
+- Detailed documentation in `docs/obsidian/Key Logging.md`
 
-## Что логируется ✅
+## What's Logged ✅
 
-- ✅ Создание ключа
-- ✅ Изменение имени ключа
-- ✅ Изменение описания
-- ✅ Создание перевода
-- ✅ Обновление перевода
-- ✅ Удаление перевода
-- ✅ Удаление ключа
+- ✅ Key creation
+- ✅ Key name change
+- ✅ Description change
+- ✅ Translation creation
+- ✅ Translation update
+- ✅ Translation deletion
+- ✅ Key deletion
 
-## Что НЕ логируется ❌
+## What's NOT Logged ❌
 
-- ❌ Изменение тегов (метаданные)
-- ❌ Любые другие метаданные
+- ❌ Tag changes (metadata)
+- ❌ Any other metadata
 
-## Пример использования
+## Usage Example
 
 ### GraphQL Query
 ```graphql
@@ -100,9 +100,9 @@ query GetKeyHistory($keyId: String!) {
 }
 ```
 
-## Запуск миграции
+## Running Migration
 
-Миграция запускается автоматически при старте приложения. Для ручного запуска:
+Migration runs automatically on application start. For manual run:
 
 ```bash
 cd backend
@@ -110,7 +110,7 @@ source venv/bin/activate
 python migrations/create_key_logs_table.py
 ```
 
-## Запуск тестов
+## Running Tests
 
 ```bash
 cd backend
@@ -118,7 +118,7 @@ source venv/bin/activate
 pytest tests/test_key_logging.py -v
 ```
 
-## Структура данных
+## Data Structure
 
 ```sql
 CREATE TABLE key_logs (
@@ -142,63 +142,61 @@ CREATE INDEX idx_key_logs_created_at ON key_logs(created_at);
 
 ## UI Features ✅
 
-1. ✅ **Timeline компонент** - отображает историю изменений в виде timeline
-2. ✅ **Табы в Key Management** - вкладки "History" (дефолтная) и "Settings"
-3. ✅ **Цветовая индикация** - разные цвета для разных типов действий
-4. ✅ **Относительное время** - "2 часа назад" вместо абсолютной даты
-5. ✅ **Отображение изменений** - показывает старые и новые значения
+1. ✅ **Timeline component** - displays change history as timeline
+2. ✅ **Tabs in Key Management** - "History" (default) and "Settings" tabs
+3. ✅ **Color indication** - different colors for different action types
+4. ✅ **Relative time** - "2 hours ago" instead of absolute date
+5. ✅ **Change display** - shows old and new values
 
 ## Future Enhancements
 
-1. Показывать имя пользователя вместо userId
-2. Возможность отката к предыдущим версиям
-3. Фильтры по типу действия, пользователю, дате
-4. Экспорт истории изменений
+1. Show user name instead of userId
+2. Ability to revert to previous versions
+3. Filters by action type, user, date
+4. Export change history
 
-## Файлы изменений
+## Changed Files
 
 ### Backend
 
-**Новые файлы:**
-- `backend/app/models/key_log.py` - модель
-- `backend/migrations/create_key_logs_table.py` - миграция
-- `backend/tests/test_key_logging.py` - тесты
-- `docs/obsidian/Key Logging.md` - документация
+**New files:**
+- `backend/app/models/key_log.py` - model
+- `backend/migrations/create_key_logs_table.py` - migration
+- `backend/tests/test_key_logging.py` - tests
+- `docs/obsidian/Key Logging.md` - documentation
 
-**Измененные файлы:**
-- `backend/app/models/__init__.py` - добавлен экспорт KeyLog
-- `backend/app/services/key_service.py` - добавлено логирование
-- `backend/app/schemas/key.py` - добавлены GraphQL типы и запросы
-- `backend/app/schemas/graphql.py` - добавлен запрос keyLogs
-- `backend/migrations/auto_migrate.py` - добавлена автомиграция
+**Modified files:**
+- `backend/app/models/__init__.py` - added KeyLog export
+- `backend/app/services/key_service.py` - added logging
+- `backend/app/schemas/key.py` - added GraphQL types and queries
+- `backend/app/schemas/graphql.py` - added keyLogs query
+- `backend/migrations/auto_migrate.py` - added auto-migration
 
 ### Frontend
 
-**Новые файлы:**
-- `frontend/src/components/key/KeyLogsTimeline.tsx` - timeline компонент для отображения истории
-- История изменений отображается в виде timeline с цветовыми индикаторами
+**New files:**
+- `frontend/src/components/key/KeyLogsTimeline.tsx` - timeline component for history display
+- Change history displayed as timeline with color indicators
 
-**Измененные файлы:**
-- `frontend/src/components/key/KeyManagement.tsx` - добавлены табы (History и Settings)
-- `frontend/src/components/key/index.ts` - добавлен экспорт KeyLogsTimeline
-- `frontend/src/graphql/keys.ts` - добавлен запрос GET_KEY_LOGS
-- `frontend/src/components/key/README.md` - обновлена документация
-- `frontend/package.json` - добавлен пакет date-fns
+**Modified files:**
+- `frontend/src/components/key/KeyManagement.tsx` - added tabs (History and Settings)
+- `frontend/src/components/key/index.ts` - added KeyLogsTimeline export
+- `frontend/src/graphql/keys.ts` - added GET_KEY_LOGS query
+- `frontend/src/components/key/README.md` - updated documentation
+- `frontend/package.json` - added date-fns package
 
-### Общие
-- `CHANGELOG.md` - обновлен changelog
-- `KEY_LOGGING_SUMMARY.md` - добавлена документация
+### General
+- `CHANGELOG.md` - updated changelog
+- `KEY_LOGGING_SUMMARY.md` - added documentation
 
-## Производительность
+## Performance
 
-- Индексы на часто используемые поля
-- Лимит по умолчанию: 50 записей
-- Рекомендуется настроить retention policy для старых логов
+- Indexes on frequently used fields
+- Default limit: 50 entries
+- Recommend configuring retention policy for old logs
 
-## Безопасность
+## Security
 
-- Доступ к логам только для пользователей с доступом к проекту
-- User ID сохраняется даже после удаления пользователя (SET NULL)
-- Логи удаляются при удалении ключа (CASCADE)
-
-
+- Log access only for users with project access
+- User ID preserved even after user deletion (SET NULL)
+- Logs deleted when key is deleted (CASCADE)

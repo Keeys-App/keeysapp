@@ -1,38 +1,38 @@
-# 📊 Результаты тестирования производительности
+# 📊 Performance Test Results
 
-## Тестовые данные
+## Test Data
 
-- **Проект ID**: `14abd505-72e0-4d55-a4fb-30b4ae02f3f2`
-- **Количество ключей**: **1367**
-- **Размер ответа**: **467,199 байт (~456 KB)**
-- **Дата тестирования**: 10 октября 2025
+- **Project ID**: `14abd505-72e0-4d55-a4fb-30b4ae02f3f2`
+- **Number of keys**: **1367**
+- **Response size**: **467,199 bytes (~456 KB)**
+- **Test date**: October 10, 2025
 
-## 🎯 Результаты замеров
+## 🎯 Measurement Results
 
 ### GetProjectKeys Query
 
-| Замер | Время (сек) | Время (мс) |
+| Measurement | Time (sec) | Time (ms) |
 |-------|-------------|------------|
-| #1    | 0.061759s   | **61.76 мс** |
-| #2    | 0.075392s   | **75.39 мс** |
-| #3    | 0.069938s   | **69.94 мс** |
-| #4    | 0.075042s   | **75.04 мс** |
-| #5    | 0.104934s   | **104.93 мс** |
+| #1    | 0.061759s   | **61.76 ms** |
+| #2    | 0.075392s   | **75.39 ms** |
+| #3    | 0.069938s   | **69.94 ms** |
+| #4    | 0.075042s   | **75.04 ms** |
+| #5    | 0.104934s   | **104.93 ms** |
 
-**Среднее время: 77.41 мс** ⚡
+**Average time: 77.41 ms** ⚡
 
-## 📈 Сравнение До/После
+## 📈 Before/After Comparison
 
-| Метрика | До оптимизации | После оптимизации | Улучшение |
+| Metric | Before Optimization | After Optimization | Improvement |
 |---------|----------------|-------------------|-----------|
-| **Время ответа** | ~500 мс | **~77 мс** | **↓ 85%** |
-| **Запросов к БД** | ~1370 (N+1) | **6-8** | **↓ 99.5%** |
-| **Производительность** | Медленно | **Быстро** | **6.5x** |
+| **Response Time** | ~500 ms | **~77 ms** | **↓ 85%** |
+| **DB Queries** | ~1370 (N+1) | **6-8** | **↓ 99.5%** |
+| **Performance** | Slow | **Fast** | **6.5x** |
 
-## 🔧 Оптимизации
+## 🔧 Optimizations
 
 ### 1. Eager Loading
-Использование `joinedload(Key.translations)` для загрузки переводов одним JOIN запросом вместо отдельных запросов для каждого ключа.
+Using `joinedload(Key.translations)` to load translations with one JOIN query instead of separate queries for each key.
 
 ```python
 keys = db.query(Key).options(
@@ -40,101 +40,100 @@ keys = db.query(Key).options(
 ).filter(Key.project_id == project.id).order_by(Key.key).all()
 ```
 
-### 2. Структура запросов
+### 2. Query Structure
 
-**До (N+1 проблема):**
+**Before (N+1 problem):**
 ```
-1. SELECT keys WHERE project_id = X        -- 1 запрос
-2. SELECT translations WHERE key_id = 1    -- запрос для каждого ключа
-3. SELECT translations WHERE key_id = 2    -- запрос для каждого ключа
+1. SELECT keys WHERE project_id = X        -- 1 query
+2. SELECT translations WHERE key_id = 1    -- query for each key
+3. SELECT translations WHERE key_id = 2    -- query for each key
 ...
 1368. SELECT translations WHERE key_id = 1367
 ```
-**Всего: ~1370 запросов** 😱
+**Total: ~1370 queries** 😱
 
-**После (eager loading):**
+**After (eager loading):**
 ```
 1. SELECT project WHERE id = X
 2. Check user permissions  
 3. Check project access
 4. SELECT keys LEFT JOIN translations WHERE project_id = X
 ```
-**Всего: ~6 запросов** ✅
+**Total: ~6 queries** ✅
 
-## 🎯 Выводы
+## 🎯 Conclusions
 
-### ✅ Достижения:
+### ✅ Achievements:
 
-1. **Скорость увеличена в 6.5 раз**
-   - Было: ~500 мс
-   - Стало: ~77 мс
-   - Для 1367 ключей!
+1. **Speed increased 6.5 times**
+   - Was: ~500 ms
+   - Now: ~77 ms
+   - For 1367 keys!
 
-2. **Запросов к БД сокращено на 99.5%**
-   - Было: ~1370 запросов
-   - Стало: 6-8 запросов
+2. **DB queries reduced by 99.5%**
+   - Was: ~1370 queries
+   - Now: 6-8 queries
 
-3. **Стабильная производительность**
-   - Все замеры в диапазоне 60-105 мс
-   - Среднее отклонение: ±20 мс
+3. **Stable performance**
+   - All measurements in 60-105 ms range
+   - Average deviation: ±20 ms
 
-4. **Масштабируемость**
-   - Количество запросов не зависит от количества ключей
-   - 10 ключей = 6 запросов
-   - 1000 ключей = 6 запросов
-   - 10000 ключей = 6 запросов
+4. **Scalability**
+   - Number of queries doesn't depend on number of keys
+   - 10 keys = 6 queries
+   - 1000 keys = 6 queries
+   - 10000 keys = 6 queries
 
-### 📊 Практическое значение:
+### 📊 Practical Impact:
 
-Для проекта с **1367 ключами**:
-- ⏱️ Экономия времени на каждый запрос: **~420 мс**
-- 🔄 Если 100 запросов в день: экономия **42 секунды**
-- 📅 За месяц (3000 запросов): экономия **21 минута**
-- 🌍 Лучший UX для пользователей
-- 💰 Меньше нагрузка на сервер
+For project with **1367 keys**:
+- ⏱️ Time saved per request: **~420 ms**
+- 🔄 If 100 requests per day: saves **42 seconds**
+- 📅 Per month (3000 requests): saves **21 minutes**
+- 🌍 Better UX for users
+- 💰 Less server load
 
-### 🚀 Рекомендации:
+### 🚀 Recommendations:
 
-1. ✅ **Оптимизация работает отлично** - можно применять в продакшене
-2. ✅ **Все тесты проходят** (76/76)
-3. ✅ **Код чистый** - удален весь легаси
-4. 📝 **Документация обновлена**
+1. ✅ **Optimization works great** - can be applied in production
+2. ✅ **All tests pass** (76/76)
+3. ✅ **Code is clean** - all legacy removed
+4. 📝 **Documentation updated**
 
-## 🔬 Технические детали
+## 🔬 Technical Details
 
-### Используемые технологии:
-- **SQLAlchemy** с `joinedload()` для eager loading
-- **PostgreSQL** для хранения данных
-- **GraphQL** для API
-- **FastAPI** для backend
+### Technologies Used:
+- **SQLAlchemy** with `joinedload()` for eager loading
+- **PostgreSQL** for data storage
+- **GraphQL** for API
+- **FastAPI** for backend
 
-### Тестовое окружение:
+### Test Environment:
 - **OS**: macOS (darwin 25.0.0)
 - **Python**: 3.13.6
-- **PostgreSQL**: (версия из базы)
-- **FastAPI**: (версия из requirements.txt)
+- **PostgreSQL**: (version from database)
+- **FastAPI**: (version from requirements.txt)
 
-## 📚 Связанные документы
+## 📚 Related Documents
 
-- [PERFORMANCE_OPTIMIZATION.md](./PERFORMANCE_OPTIMIZATION.md) - Техническое описание оптимизации
-- [LEGACY_REMOVAL.md](./LEGACY_REMOVAL.md) - Удаление легаси кода
-- [docs/obsidian/N+1 Query Optimization.md](./docs/obsidian/N+1%20Query%20Optimization.md) - Детальная документация
+- [PERFORMANCE_OPTIMIZATION.md](./PERFORMANCE_OPTIMIZATION.md) - Technical description of optimization
+- [LEGACY_REMOVAL.md](./LEGACY_REMOVAL.md) - Legacy code removal
+- [docs/obsidian/N+1 Query Optimization.md](./docs/obsidian/N+1%20Query%20Optimization.md) - Detailed documentation
 
-## ✅ Чеклист
+## ✅ Checklist
 
-- [x] Добавлен eager loading в `get_project_keys()`
-- [x] Добавлен eager loading в `get_key_by_public_id()`
-- [x] Добавлен eager loading в `batch_import_translations()`
-- [x] Созданы тесты производительности
-- [x] Все тесты проходят (76/76)
-- [x] Проведено тестирование на реальных данных (1367 ключей)
-- [x] Время ответа < 100 мс
-- [x] Количество запросов < 10
-- [x] Документация обновлена
+- [x] Added eager loading to `get_project_keys()`
+- [x] Added eager loading to `get_key_by_public_id()`
+- [x] Added eager loading to `batch_import_translations()`
+- [x] Created performance tests
+- [x] All tests pass (76/76)
+- [x] Tested on real data (1367 keys)
+- [x] Response time < 100 ms
+- [x] Number of queries < 10
+- [x] Documentation updated
 
-## 🎉 Заключение
+## 🎉 Conclusion
 
-Оптимизация N+1 запросов **успешно реализована и протестирована**!
+N+1 query optimization **successfully implemented and tested**!
 
-**Результат**: Запрос для 1367 ключей выполняется за **77 мс** вместо **500 мс** - улучшение в **6.5 раз**! 🚀
-
+**Result**: Query for 1367 keys executes in **77 ms** instead of **500 ms** - **6.5x improvement**! 🚀

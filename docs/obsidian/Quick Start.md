@@ -1,17 +1,17 @@
 # Quick Start
 
-> [!info] Быстрый старт проекта Keeys
+> [!info] Keeys Project Quick Start
 
-## Предварительные требования
+## Prerequisites
 
 - Python 3.12+
 - Node.js 18+
 - PostgreSQL
 - Yarn
 
-## Установка и запуск
+## Installation and Running
 
-### 1. Подготовка
+### 1. Preparation
 
 ```bash
 cd /Users/mbrtn/Projects/locales
@@ -22,61 +22,61 @@ cd /Users/mbrtn/Projects/locales
 ```bash
 cd backend
 
-# Активировать виртуальное окружение
+# Activate virtual environment
 source venv/bin/activate
 
-# Установить зависимости (если еще не установлены)
+# Install dependencies (if not already installed)
 pip install -r requirements.txt
 
-# Создать .env файл
+# Create .env file
 cp env.example .env
 
-# Сгенерировать JWT_SECRET_KEY
+# Generate JWT_SECRET_KEY
 python -c "import secrets; print(secrets.token_urlsafe(32))"
-# Скопируйте вывод и используйте как JWT_SECRET_KEY
+# Copy output and use as JWT_SECRET_KEY
 
-# Настроить .env:
+# Configure .env:
 # DATABASE_URL=postgresql://user:password@localhost:5432/locales_db
-# JWT_SECRET_KEY=<сгенерированный_ключ>
+# JWT_SECRET_KEY=<generated_key>
 # JWT_ALGORITHM=HS256
-# ACCESS_TOKEN_EXPIRE_MINUTES=10080  # 7 дней
+# ACCESS_TOKEN_EXPIRE_MINUTES=10080  # 7 days
 
-# Запустить сервер
+# Start server
 python main.py
 ```
 
-Backend будет доступен на `http://localhost:8000`
+Backend will be available at `http://localhost:8000`
 
 ### 3. Frontend
 
 ```bash
 cd frontend
 
-# Установить зависимости
+# Install dependencies
 yarn install
 
-# Запустить dev сервер
+# Start dev server
 yarn dev
 ```
 
-Frontend будет доступен на `http://localhost:5173`
+Frontend will be available at `http://localhost:5173`
 
-## Использование приложения
+## Using the Application
 
-1. Откройте `http://localhost:5173` в браузере
-2. Нажмите **"Sign up"** для создания аккаунта
-3. Заполните форму:
+1. Open `http://localhost:5173` in browser
+2. Click **"Sign up"** to create account
+3. Fill the form:
    - Email: `test@example.com`
    - Username: `testuser`
    - Password: `password123`
-4. После регистрации вы автоматически войдете в систему
-5. Вы увидите дашборд с информацией о пользователе
+4. After registration you'll be automatically logged in
+5. You'll see dashboard with user information
 
-## Тестирование через GraphQL
+## Testing via GraphQL
 
-Откройте `http://localhost:8000/graphql`
+Open `http://localhost:8000/graphql`
 
-### Регистрация
+### Registration
 
 ```graphql
 mutation {
@@ -95,7 +95,7 @@ mutation {
 }
 ```
 
-### Вход
+### Login
 
 ```graphql
 mutation {
@@ -111,7 +111,7 @@ mutation {
 }
 ```
 
-### Получить текущего пользователя
+### Get Current User
 
 ```graphql
 query {
@@ -130,53 +130,52 @@ HTTP Headers:
 }
 ```
 
-## Что включено
+## What's Included
 
 ### Backend
-✅ Модель User с хэшированием паролей (bcrypt)  
-✅ JWT авторизация  
-✅ GraphQL мутации: `register`, `login`  
-✅ GraphQL query: `me` (получить текущего пользователя)  
-✅ Автоматическое создание таблиц БД  
+✅ User model with password hashing (bcrypt)  
+✅ JWT authentication  
+✅ GraphQL mutations: `register`, `login`  
+✅ GraphQL query: `me` (get current user)  
+✅ Automatic database table creation  
 
 ### Frontend
-✅ Форма входа с валидацией  
-✅ Форма регистрации с валидацией  
-✅ Защищенные маршруты (редирект на login если не авторизован)  
-✅ Auth context для управления состоянием  
-✅ Токен сохраняется в localStorage  
-✅ Apollo Client настроен с auth headers  
-✅ Красивый UI с Radix UI компонентами  
-✅ Поддержка темной/светлой темы  
+✅ Login form with validation  
+✅ Registration form with validation  
+✅ Protected routes (redirect to login if not authenticated)  
+✅ Auth context for state management  
+✅ Token saved in localStorage  
+✅ Apollo Client configured with auth headers  
+✅ Beautiful UI with Radix UI components  
+✅ Dark/light theme support  
 
-## Следующие шаги
+## Next Steps
 
-- Добавить больше функций на дашборд
-- Создать дополнительные защищенные маршруты
-- Добавить управление профилем пользователя
-- Реализовать role-based access control
-- Добавить функцию восстановления пароля
+- Add more features to dashboard
+- Create additional protected routes
+- Add user profile management
+- Implement role-based access control
+- Add password recovery feature
 
-## Переменные окружения
+## Environment Variables
 
-Полное описание всех переменных смотрите в [[Environment Variables]].
+See full description of all variables in [[Environment Variables]].
 
-**Обязательные:**
-- `DATABASE_URL` - подключение к PostgreSQL
-- `JWT_SECRET_KEY` - секретный ключ для JWT токенов
+**Required:**
+- `DATABASE_URL` - PostgreSQL connection
+- `JWT_SECRET_KEY` - secret key for JWT tokens
 
-**Опциональные (есть дефолтные значения):**
-- `JWT_ALGORITHM` - алгоритм шифрования JWT (по умолчанию: HS256)
-- `ACCESS_TOKEN_EXPIRE_MINUTES` - время жизни токена в минутах (по умолчанию: 525600 = 1 год)
+**Optional (have default values):**
+- `JWT_ALGORITHM` - JWT encryption algorithm (default: HS256)
+- `ACCESS_TOKEN_EXPIRE_MINUTES` - token lifetime in minutes (default: 525600 = 1 year)
 
-## Связанные документы
+## Related Documents
 
-- [[Environment Variables]] - Переменные окружения
-- [[Authentication Setup]] - Подробная документация по авторизации
-- [[Authentication Cheatsheet]] - Шпаргалка по авторизации
-- [[Testing Guide]] - Руководство по тестированию
+- [[Environment Variables]] - Environment variables
+- [[Authentication Setup]] - Detailed authentication documentation
+- [[Authentication Cheatsheet]] - Authentication cheatsheet
+- [[Testing Guide]] - Testing guide
 
 ---
 
-*Обновлено: 2025-10-10*
-
+*Updated: 2025-10-10*

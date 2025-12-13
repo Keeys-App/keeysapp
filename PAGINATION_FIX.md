@@ -1,29 +1,29 @@
-# Исправление работы с пагинацией
+# Pagination Fix
 
-## Проблема
+## Problem
 
-После внедрения lazy loading с пагинацией для ключей, компоненты экспорта и импорта использовали хардкод лимит в 10,000 записей. Это создавало проблему для проектов с большим количеством ключей.
+After implementing lazy loading with pagination for keys, export and import components used hardcoded limit of 10,000 records. This created problems for projects with large number of keys.
 
-## Решение
+## Solution
 
-### Создан новый хук `useAllProjectKeys`
+### Created new hook `useAllProjectKeys`
 
-Хук автоматически загружает все ключи проекта через пагинацию:
+Hook automatically loads all project keys through pagination:
 
-**Расположение**: `frontend/src/hooks/useAllProjectKeys.ts`
+**Location**: `frontend/src/hooks/useAllProjectKeys.ts`
 
-**Особенности**:
-- 📄 Загружает данные порциями по 100 записей (PAGE_SIZE)
-- 🔄 Автоматически делает fetchMore пока `hasMore === true`
-- 📊 Показывает прогресс загрузки (сколько загружено из общего количества)
-- 🌐 Использует `network-only` для всегда свежих данных
-- ⚡ Эффективно работает с любым количеством ключей
+**Features**:
+- 📄 Loads data in chunks of 100 records (PAGE_SIZE)
+- 🔄 Automatically does fetchMore while `hasMore === true`
+- 📊 Shows loading progress (how many loaded out of total)
+- 🌐 Uses `network-only` for always fresh data
+- ⚡ Efficiently works with any number of keys
 
-**Пример использования**:
+**Usage example**:
 ```typescript
 const { keys, loading, error, totalCount } = useAllProjectKeys(projectId);
 
-// Показывает прогресс во время загрузки
+// Shows progress during loading
 if (loading) {
   return <LoadingState 
     message={`Loading... ${keys.length > 0 ? `(${keys.length} of ${totalCount})` : ''}`} 
@@ -31,36 +31,35 @@ if (loading) {
 }
 ```
 
-### Обновлённые компоненты
+### Updated Components
 
 #### ✅ ExportContent.tsx
-- Заменён `useQuery` с лимитом на `useAllProjectKeys`
-- Показывает прогресс загрузки всех ключей
-- Работает с любым количеством ключей
+- Replaced `useQuery` with limit with `useAllProjectKeys`
+- Shows loading progress for all keys
+- Works with any number of keys
 
 #### ✅ ImportContent.tsx
-- Заменён `useQuery` с лимитом на `useAllProjectKeys`
-- Показывает прогресс загрузки существующих ключей
-- Корректно определяет конфликты для любого количества ключей
+- Replaced `useQuery` with limit with `useAllProjectKeys`
+- Shows loading progress for existing keys
+- Correctly identifies conflicts for any number of keys
 
-## Производительность
+## Performance
 
-- **Маленькие проекты (<100 ключей)**: 1 запрос, мгновенная загрузка
-- **Средние проекты (100-1000 ключей)**: 2-10 запросов, ~1-3 секунды
-- **Большие проекты (1000+ ключей)**: пропорционально количеству, с визуальным прогрессом
+- **Small projects (<100 keys)**: 1 request, instant loading
+- **Medium projects (100-1000 keys)**: 2-10 requests, ~1-3 seconds
+- **Large projects (1000+ keys)**: proportional to quantity, with visual progress
 
-## Преимущества
+## Benefits
 
-✅ Нет ограничения на количество ключей  
-✅ Эффективная загрузка только нужных данных  
-✅ Визуальный прогресс для пользователя  
-✅ Переиспользуемый хук для других компонентов  
-✅ Автоматическая обработка ошибок
+✅ No limit on number of keys  
+✅ Efficient loading of only needed data  
+✅ Visual progress for user  
+✅ Reusable hook for other components  
+✅ Automatic error handling
 
-## Дальнейшие улучшения
+## Future Improvements
 
-Можно рассмотреть:
-- Добавление кэширования результатов хука
-- Использование Web Workers для парсинга больших файлов импорта
-- Streaming экспорта для очень больших проектов
-
+Can consider:
+- Adding caching of hook results
+- Using Web Workers for parsing large import files
+- Streaming export for very large projects

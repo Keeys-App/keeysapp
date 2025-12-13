@@ -20,10 +20,13 @@ It is running continuously and autorestars and starts by the user.
 
 - For any documentation we use Obsidian. The Vault is in docs/obsidian dir.
 
-## Comments
+## Comments & Language
 
 - Write code comments, in English only, even if the user communicates in another language.
 - All project's interfaces must be in English only
+- **ALL code, comments, documentation, and technical content MUST be written in English**
+- Variable names, function names, class names, constants - everything in English
+- Exception: user-facing UI text that will be localized
 
 ## TypeScript
 
@@ -62,7 +65,7 @@ It is running continuously and autorestars and starts by the user.
 ## Sensitive Data
 
 - Never commit secrets, passwords, or API keys to the repository. Use environment variables and `.env` files, and ensure they are listed in `.gitignore`.
-- На форнтенд ни при каких условиях не должн НИКОГДА попадать в чистом виде ошибки SQL или технического вида
+- SQL errors or technical details must NEVER reach the frontend in raw form under any circumstances
 
 ## Documentation
 
@@ -88,25 +91,25 @@ It is running continuously and autorestars and starts by the user.
 
 ## Apollo Client
 
-- НИКОГДА не используйте устаревшие опции `onCompleted` и `onError` в хуках `useQuery`, `useLazyQuery` и `useMutation`.
-- Вместо этого используйте `useEffect` для обработки `data` и `error`:
+- NEVER use deprecated `onCompleted` and `onError` options in `useQuery`, `useLazyQuery` and `useMutation` hooks.
+- Instead, use `useEffect` to handle `data` and `error`:
 
 ```typescript
-// ❌ Устаревший подход
+// ❌ Deprecated approach
 const [mutation, { loading }] = useMutation(MUTATION, {
   onCompleted: (data) => { /* ... */ },
   onError: (error) => { /* ... */ }
 });
 
-// ✅ Правильный подход
+// ✅ Correct approach
 const [mutation, { loading, data, error }] = useMutation(MUTATION);
 
 useEffect(() => {
-  if (data) { /* обработка успеха */ }
+  if (data) { /* handle success */ }
 }, [data]);
 
 useEffect(() => {
-  if (error) { /* обработка ошибки */ }
+  if (error) { /* handle error */ }
 }, [error]);
 ```
 
@@ -191,15 +194,15 @@ const handleSave = async () => {
 
 ## Database Enums
 
-- **CRITICAL**: Все enum значения в PostgreSQL должны быть в UPPERCASE (например, "CREATE", "UPDATE_KEY", "IMPORT")
-- При добавлении нового значения в enum:
-  1. Обновите Python enum в модели (например, `IMPORT = "IMPORT"`)
-  2. Обновите GraphQL enum в схеме
-  3. Обновите `action_map` в функции `build_*_type`
-  4. **ОБЯЗАТЕЛЬНО** добавьте миграцию в `backend/migrations/auto_migrate.py`
-  5. Добавьте маппинг на frontend (labels, icons, colors)
-- PostgreSQL enums регистрозависимые - lowercase и UPPERCASE это разные значения!
-- После изменения enum ВСЕГДА нужен рестарт backend
+- **CRITICAL**: All enum values in PostgreSQL must be in UPPERCASE (e.g., "CREATE", "UPDATE_KEY", "IMPORT")
+- When adding a new enum value:
+  1. Update Python enum in the model (e.g., `IMPORT = "IMPORT"`)
+  2. Update GraphQL enum in the schema
+  3. Update `action_map` in the `build_*_type` function
+  4. **MANDATORY** add migration to `backend/migrations/auto_migrate.py`
+  5. Add frontend mapping (labels, icons, colors)
+- PostgreSQL enums are case-sensitive - lowercase and UPPERCASE are different values!
+- After changing enum, backend restart is ALWAYS required
 
 ## Conditional Classes
 
@@ -319,51 +322,55 @@ If you answer "yes" to any question, refactor before proceeding.
 
 ## Routing & Navigation
 
-- Всегда используйте константы из `PATHS` (`@/constants/paths`) для навигации и ссылок.
-- Никогда не используйте хардкод путей типа `'/project/123'` или `'/team/:id/edit'`.
-- Для динамических путей используйте `.replace()`:
+- Always use constants from `PATHS` (`@/constants/paths`) for navigation and links.
+- Never use hardcoded paths like `'/project/123'` or `'/team/:id/edit'`.
+- For dynamic paths, use `.replace()`:
 
-// ❌ BAD - хардкод пути
+```typescript
+// ❌ BAD - hardcoded path
 <Link to={`/project/${projectId}/keys`}>
 
-// ✅ GOOD - использование PATHS
+// ✅ GOOD - using PATHS
 import { PATHS } from '@/constants/paths';
 <Link to={PATHS.PROJECT_KEYS.replace(':id', projectId)}>
 
-// ❌ BAD - хардкод в navigate
+// ❌ BAD - hardcoded navigate
 navigate(`/team/${teamId}/edit`);
 
-// ✅ GOOD - использование PATHS
-navigate(PATHS.TEAM_EDIT.replace(':id', teamId));**Преимущества:**
-- Type safety при рефакторинге
-- Централизованное управление путями
-- Легко найти все использования маршрута
-- Предотвращение опечаток
+// ✅ GOOD - using PATHS
+navigate(PATHS.TEAM_EDIT.replace(':id', teamId));
+```
+
+**Benefits:**
+- Type safety during refactoring
+- Centralized path management
+- Easy to find all route usages
+- Prevents typos
 
 
 ## Async SQLAlchemy
 
-**Проект полностью на асинхронном SQLAlchemy 2.0. Все запросы к БД ДОЛЖНЫ быть async.**
+**The project is fully on async SQLAlchemy 2.0. All DB queries MUST be async.**
 
-### Ключевые правила:
+### Key Rules:
 
-- Все сервисы: `async def method(db: AsyncSession, ...)` 
-- Все резолверы: `async def resolver(self, info: Info)`
+- All services: `async def method(db: AsyncSession, ...)` 
+- All resolvers: `async def resolver(self, info: Info)`
 - Database dependency: `async with async_get_db() as db:`
-- get_current_user_id: ВСЕГДА `await get_current_user_id(info)`
+- get_current_user_id: ALWAYS `await get_current_user_id(info)`
 
-### Паттерны:
+### Patterns:
 
-**Query:**
+```python
 # SELECT
 result = await db.execute(select(User).where(User.email == email))
-user = result.scalar_one_or_none()  # или .scalars().all()
+user = result.scalar_one_or_none()  # or .scalars().all()
 
 # UPDATE
 await db.execute(update(User).where(User.id == id).values(email=new_email))
 
 # DELETE
-db.delete(entity)  # БЕЗ await
+db.delete(entity)  # WITHOUT await
 
 # COMMIT/FLUSH/REFRESH
 await db.commit()
@@ -372,13 +379,14 @@ await db.refresh(entity)
 
 # COUNT
 result = await db.execute(select(func.count(Key.id)).where(...))
-total = result.scalar() or 0**Imports:**
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, delete, func
-from app.database import async_get_db❌ НЕ используй: `Session`, `db.query()`, `get_db()`, `SessionLocal`, `next(get_db())`
+total = result.scalar() or 0
+```
 
-# Imports
+**Imports:**
+```python
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete, func
 from app.database import async_get_db
-❌ НЕ используй: Session, db.query(), get_db(), SessionLocal, next(get_db())
+```
+
+❌ DON'T use: `Session`, `db.query()`, `get_db()`, `SessionLocal`, `next(get_db())`

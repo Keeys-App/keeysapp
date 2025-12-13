@@ -1,21 +1,21 @@
 # AI JSON Validation - Structured Output
 
-## Проблема
+## Problem
 
-При работе с gibberish текстом (например, "asdasdasd"), AI мог возвращать извинения на целевом языке:
+When working with gibberish text (e.g., "asdasdasd"), AI could return apologies in target language:
 ```
 Lo siento, pero la entrada "asdasdasd" no contiene un significado claro...
 ```
 
-Такие ответы показывались как валидные переводы, что было неправильно.
+Such responses were shown as valid translations, which was incorrect.
 
-## Решение
+## Solution
 
-Переход на **structured JSON output** от OpenAI. Теперь AI сам определяет, может ли он выполнить задачу.
+Transition to **structured JSON output** from OpenAI. Now AI itself determines if it can perform the task.
 
-## Формат ответа
+## Response Format
 
-### Для translate, rephrase, shorten:
+### For translate, rephrase, shorten:
 ```json
 {
   "success": true,
@@ -24,7 +24,7 @@ Lo siento, pero la entrada "asdasdasd" no contiene un significado claro...
 }
 ```
 
-### Для suggest_variants:
+### For suggest_variants:
 ```json
 {
   "success": true,
@@ -33,9 +33,9 @@ Lo siento, pero la entrada "asdasdasd" no contiene un significado claro...
 }
 ```
 
-## Примеры
+## Examples
 
-### ✅ Успешный случай (валидный текст)
+### ✅ Success Case (valid text)
 **Input:** "Hello, world!"
 **Response:**
 ```json
@@ -44,9 +44,9 @@ Lo siento, pero la entrada "asdasdasd" no contiene un significado claro...
   "result": "Hola, mundo!"
 }
 ```
-→ Показывается как suggestion
+→ Shown as suggestion
 
-### ❌ Неуспешный случай (gibberish)
+### ❌ Failure Case (gibberish)
 **Input:** "asdasdasd"
 **Response:**
 ```json
@@ -56,30 +56,30 @@ Lo siento, pero la entrada "asdasdasd" no contiene un significado claro...
   "reason": "The input appears to be random characters without clear meaning"
 }
 ```
-→ Показывается ошибка: "Unable to translate this text. Please try with different content."
+→ Shows error: "Unable to translate this text. Please try with different content."
 
-## Преимущества
+## Benefits
 
-1. **Универсальность** - работает на всех языках
-2. **AI сам решает** - не нужно прописывать паттерны для каждого языка
-3. **Чистые результаты** - никогда не показывается извинения/объяснения как переводы
-4. **Логирование** - в backend логах видно причину отказа AI
+1. **Universal** - works in all languages
+2. **AI decides** - no need to write patterns for each language
+3. **Clean results** - never shows apologies/explanations as translations
+4. **Logging** - backend logs show AI refusal reason
 
-## Обновлённые методы
+## Updated Methods
 
 ### AIService (backend/app/services/ai_service.py)
 
 **translate()**
 ```python
 response_format={"type": "json_object"}
-# Парсинг JSON
+# Parse JSON
 response_data = json.loads(response_text)
 if not response_data.get("success"):
     raise Exception("Unable to translate...")
 return response_data["result"]
 ```
 
-**rephrase()**, **shorten()** - аналогично
+**rephrase()**, **shorten()** - same
 
 **suggest_variants()**
 ```python
@@ -92,70 +92,70 @@ return response_data["variants"][:count]
 
 ## System Prompts
 
-Все промпты обновлены:
+All prompts updated:
 ```
 "You are a professional translator. "
 "Respond ONLY with valid JSON in this exact format:
 {"success": true/false, "result": "...", "reason": "..."}
 
 Rules:
-- If the text is translatable, set success=true and provide translation
-- If the text is gibberish, set success=false and explain in reason
-- NEVER include apologies or explanations in the result field
+- If text is translatable, set success=true and provide translation
+- If text is gibberish, set success=false and explain in reason
+- NEVER include apologies or explanations in result field
 ```
 
-## Тестирование
+## Testing
 
-### Запуск тестов
+### Run Tests
 ```bash
 cd backend
 source venv/bin/activate
 pytest tests/test_ai_service.py -v
 ```
 
-### Тест-кейсы
+### Test Cases
 
 **test_translate_valid_text**
-- Переводит "Hello, world!" на испанский
-- Проверяет что результат не содержит извинений
+- Translates "Hello, world!" to Spanish
+- Verifies result doesn't contain apologies
 
 **test_translate_gibberish**
-- Пытается перевести "asdasdasd"
-- Должен выбросить Exception
-- Не должен возвращать "Lo siento..."
+- Attempts to translate "asdasdasd"
+- Should throw Exception
+- Should not return "Lo siento..."
 
 **test_rephrase_gibberish**
-- Пытается перефразировать "xyzxyzxyz"
-- Должен выбросить Exception
+- Attempts to rephrase "xyzxyzxyz"
+- Should throw Exception
 
 **test_suggest_variants_gibberish**
-- Пытается сгенерировать варианты для "qweasdzxc"
-- Должен выбросить Exception
+- Attempts to generate variants for "qweasdzxc"
+- Should throw Exception
 
 **test_translate_to_russian/chinese/arabic**
-- Проверяет работу на разных языках
+- Verifies works in different languages
 
-### Ручное тестирование
+### Manual Testing
 
-1. Откройте ключ в UI
-2. Выберите язык для перевода
-3. Попробуйте перевести gibberish текст (например, "asdasd")
-4. Должна показаться ошибка, а не карточка с извинениями
-5. Попробуйте нормальный текст - должна показаться карточка
+1. Open key in UI
+2. Select language for translation
+3. Try translating gibberish text (e.g., "asdasd")
+4. Should show error, not card with apologies
+5. Try normal text - should show card
 
 ## Breaking Changes
 
 ### Backend API
 
-Изменений в GraphQL API нет - всё работает как раньше.
+No changes in GraphQL API - everything works as before.
 
 ### Frontend
 
-Изменений не требуется - обрабатывается через существующую логику `success` полей.
+No changes required - handled through existing `success` field logic.
 
-## Логирование
+## Logging
 
-### Успешный случай
+### Success Case
 ```
 INFO: Translation completed successfully
 ```
@@ -166,19 +166,18 @@ WARNING: AI could not translate: The input appears to be random characters
 INFO: Translation failed. Please try again.
 ```
 
-## Миграции
+## Migrations
 
-Миграции не требуются - это изменение только в логике обработки ответов AI.
+No migrations required - this is only change in AI response processing logic.
 
-## Мониторинг
+## Monitoring
 
-В production логах смотрите:
-- `WARNING: AI could not translate/rephrase/shorten` - AI отказался
-- Частота таких предупреждений показывает качество input данных
+In production logs look for:
+- `WARNING: AI could not translate/rephrase/shorten` - AI refused
+- Frequency of such warnings shows input data quality
 
-## Рекомендации
+## Recommendations
 
-- Используйте валидацию на frontend перед отправкой в AI
-- Минимальная длина текста: 2 символа
-- Запретите отправку только пробелов/спецсимволов
-
+- Use frontend validation before sending to AI
+- Minimum text length: 2 characters
+- Prohibit sending only spaces/special characters

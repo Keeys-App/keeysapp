@@ -1,53 +1,53 @@
 # Keeys Documentation
 
-Добро пожаловать в документацию проекта Keeys!
+Welcome to the Keeys project documentation!
 
-## 📚 Содержание
+## 📚 Contents
 
-### Начало работы
-- [[Quick Start]] - Быстрый старт проекта
-- [[Environment Variables]] - Переменные окружения
-- [[Project Structure]] - Структура проекта
+### Getting Started
+- [[Quick Start]] - Project quick start
+- [[Environment Variables]] - Environment variables
+- [[Project Structure]] - Project structure
 
-### Основные функции
-- [[Teams System]] - **НОВОЕ!** Система команд и совместной работы
-- [[Keys Module]] - Управление ключами переводов
-- [[Keys Search Feature]] - **НОВОЕ!** Поиск ключей с тестами
-- [[Universal Activity Logging]] - Логирование всех действий
-- [[Project Export Import]] - Экспорт и импорт проектов
+### Main Features
+- [[Teams System]] - **NEW!** Team system and collaboration
+- [[Keys Module]] - Translation keys management
+- [[Keys Search Feature]] - **NEW!** Key search with tests
+- [[Universal Activity Logging]] - Logging all actions
+- [[Project Export Import]] - Project export and import
 
-### Авторизация
-- [[Authentication Setup]] - Полная документация системы авторизации
-- [[Authentication Cheatsheet]] - Шпаргалка по авторизации
-- [[Security Best Practices]] - Рекомендации по безопасности
-- [[Testing Guide]] - Руководство по тестированию
+### Authentication
+- [[Authentication Setup]] - Complete authentication system documentation
+- [[Authentication Cheatsheet]] - Authentication cheatsheet
+- [[Security Best Practices]] - Security recommendations
+- [[Testing Guide]] - Testing guide
 
-### Разработка
-- [[Backend Organization]] - Организация папок backend
-- [[Performance Optimization]] - Оптимизация производительности
-- [[N+1 Query Optimization]] - Оптимизация запросов
-- [[Database Enums and Migrations]] - Работа с enum и миграциями
-- [[Error Handling Best Practices]] - Обработка ошибок
-- [[Railway Deployment]] - Деплой на Railway
+### Development
+- [[Backend Organization]] - Backend folder organization
+- [[Performance Optimization]] - Performance optimization
+- [[N+1 Query Optimization]] - Query optimization
+- [[Database Enums and Migrations]] - Working with enums and migrations
+- [[Error Handling Best Practices]] - Error handling
+- [[Railway Deployment]] - Railway deployment
 
-## 🚀 Быстрый старт
+## 🚀 Quick Start
 
-1. Клонируйте репозиторий
-2. Следуйте инструкциям в [[Quick Start]]
-3. Изучите [[Authentication Setup]] для понимания системы авторизации
+1. Clone repository
+2. Follow instructions in [[Quick Start]]
+3. Study [[Authentication Setup]] to understand authentication system
 
-## 🏗️ Архитектура
+## 🏗️ Architecture
 
 ```
 Keeys/
 ├── backend/          # FastAPI + GraphQL + PostgreSQL
-│   ├── app/         # Основной код приложения
-│   └── tests/       # Тесты
+│   ├── app/         # Main application code
+│   └── tests/       # Tests
 └── frontend/        # React + Radix UI + Apollo Client
-    └── src/         # Исходный код frontend
+    └── src/         # Frontend source code
 ```
 
-## 📖 Основные технологии
+## 📖 Main Technologies
 
 **Backend:**
 - FastAPI
@@ -64,46 +64,45 @@ Keeys/
 - Apollo Client
 - React Router
 
-## 🔐 Система авторизации
+## 🔐 Authentication System
 
-Полноценная система регистрации и авторизации с JWT токенами и UUID для безопасности.
+Complete registration and authentication system with JWT tokens and UUID for security.
 
-**Особенности:**
-- ✅ UUID вместо автоинкремента (защита от enumeration)
-- ✅ Безопасная обработка ошибок (SQL никогда не показывается пользователям)
-- ✅ JWT токены с истечением
-- ✅ bcrypt хэширование паролей
+**Features:**
+- ✅ UUID instead of auto-increment (protection against enumeration)
+- ✅ Safe error handling (SQL never shown to users)
+- ✅ JWT tokens with expiration
+- ✅ bcrypt password hashing
 
-Подробнее: [[Authentication Setup]] | [[Security Best Practices]]
+More details: [[Authentication Setup]] | [[Security Best Practices]]
 
-## 🧪 Тестирование
+## 🧪 Testing
 
-**63 автоматических теста** покрывают систему авторизации, безопасности и функционал.
+**63 automated tests** cover authentication system, security and functionality.
 
-**Включает:**
-- Тесты моделей и сервисов
-- Тесты JWT токенов и UUID
-- **Тесты поиска ключей** (12 тестов) - [[Keys Search Feature]]
-- **Тесты обработки ошибок** (SQL никогда не попадает на frontend)
-- **Тесты защиты от SQL injection**
+**Includes:**
+- Model and service tests
+- JWT token and UUID tests
+- **Key search tests** (12 tests) - [[Keys Search Feature]]
+- **Error handling tests** (SQL never reaches frontend)
+- **SQL injection protection tests**
 
-Подробнее: [[Testing Guide]] | [[Keys Search Feature]]
+More details: [[Testing Guide]] | [[Keys Search Feature]]
 
-## 📝 Соглашения
+## 📝 Conventions
 
-- Код на английском
-- Комментарии на английском
-- UI/UX на английском
-- Документация на русском (Obsidian)
+- Code in English
+- Comments in English
+- UI/UX in English
+- Documentation in English
 
-## 🤝 Вклад в проект
+## 🤝 Contributing
 
-1. Создайте feature branch
-2. Внесите изменения
-3. Напишите тесты
-4. Создайте Pull Request
+1. Create feature branch
+2. Make changes
+3. Write tests
+4. Create Pull Request
 
 ---
 
-*Документация обновлена: 2025-10-13*
-
+*Documentation updated: 2025-10-13*

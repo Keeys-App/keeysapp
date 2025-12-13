@@ -1,26 +1,26 @@
-# Удаление легаси поддержки строкового формата языков
+# Removing Legacy String Format Language Support
 
-## 🗑️ Проблема
+## 🗑️ Problem
 
-Проект использовал два формата для хранения языков:
-- **Старый (легаси)**: `["en", "ru"]` - массив строк
-- **Новый**: `[{code: "en", locale: "en-US"}, {code: "ru", locale: "ru-RU"}]` - массив объектов
+Project used two formats for storing languages:
+- **Old (legacy)**: `["en", "ru"]` - array of strings
+- **New**: `[{code: "en", locale: "en-US"}, {code: "ru", locale: "ru-RU"}]` - array of objects
 
-Поддержка обоих форматов создавала технический долг и усложняла кодовую базу.
+Supporting both formats created technical debt and complicated codebase.
 
-## ✅ Решение
+## ✅ Solution
 
-Полностью удалена поддержка легаси формата. Теперь поддерживается **только** новый формат с объектами.
+Completely removed legacy format support. Now **only** new format with objects is supported.
 
-## 📝 Изменения
+## 📝 Changes
 
 ### Backend
 
 #### 1. `backend/app/services/project_service.py`
 
-**Удалено из `create_project()`:**
+**Removed from `create_project()`:**
 ```python
-# УДАЛЕНО
+# REMOVED
 elif isinstance(lang, str):
     languages_data.append({
         'code': lang,
@@ -28,9 +28,9 @@ elif isinstance(lang, str):
     })
 ```
 
-**Удалено из `update_project()`:**
+**Removed from `update_project()`:**
 ```python
-# УДАЛЕНО
+# REMOVED
 elif isinstance(lang, str):
     languages_data.append({
         'code': lang,
@@ -38,9 +38,9 @@ elif isinstance(lang, str):
     })
 ```
 
-**Удалено из `export_project()`:**
+**Removed from `export_project()`:**
 ```python
-# УДАЛЕНО
+# REMOVED
 if isinstance(lang, dict):
     code = lang.get('code', '')
 else:
@@ -48,26 +48,26 @@ else:
     code = lang
 ```
 
-**Теперь:**
+**Now:**
 ```python
-# lang всегда dict с 'code' и 'locale'
+# lang is always dict with 'code' and 'locale'
 code = lang.get('code', '')
 ```
 
 #### 2. `backend/app/schemas/project.py`
 
-**Удалено из `build_project_type()`:**
+**Removed from `build_project_type()`:**
 ```python
-# УДАЛЕНО
+# REMOVED
 elif isinstance(lang, str):
     # Old format (backward compatibility): "en"
     locale = DEFAULT_LANGUAGE_LOCALES.get(lang, f'{lang}-{lang.upper()}')
     languages.append(LanguageConfigType(code=lang, locale=locale))
 ```
 
-**Теперь:**
+**Now:**
 ```python
-# lang всегда dict с 'code' и 'locale'
+# lang is always dict with 'code' and 'locale'
 languages.append(LanguageConfigType(
     code=lang.get('code', ''),
     locale=lang.get('locale', '')
@@ -78,9 +78,9 @@ languages.append(LanguageConfigType(
 
 #### 3. `frontend/src/components/project/ProjectForm.tsx`
 
-**Удалено:**
+**Removed:**
 ```typescript
-// УДАЛЕНО: Fallback для старого формата
+// REMOVED: Fallback for old format
 const code = String(lang);
 const langConfig = LANGUAGE_CONFIGS.find((l) => l.code === code);
 return {
@@ -89,9 +89,9 @@ return {
 };
 ```
 
-**Теперь:**
+**Now:**
 ```typescript
-// Языки всегда в правильном формате: {code: string, locale: string}
+// Languages always in correct format: {code: string, locale: string}
 const languages = (project.languages || []).map(
   (lang): LanguageConfigInput => ({
     code: lang.code,
@@ -100,51 +100,51 @@ const languages = (project.languages || []).map(
 );
 ```
 
-**Также удален неиспользуемый импорт:**
+**Also removed unused import:**
 ```typescript
-// УДАЛЕНО
+// REMOVED
 import { LANGUAGE_CONFIGS } from "@/types/project";
 ```
 
-### Тесты
+### Tests
 
-Обновлены **все** тесты на использование нового формата:
+Updated **all** tests to use new format:
 
 #### `test_project_service.py`
-- Все `languages=["en"]` → `languages=[{"code": "en", "locale": "en-US"}]`
-- Все `languages=["ru"]` → `languages=[{"code": "ru", "locale": "ru-RU"}]`
-- И т.д.
+- All `languages=["en"]` → `languages=[{"code": "en", "locale": "en-US"}]`
+- All `languages=["ru"]` → `languages=[{"code": "ru", "locale": "ru-RU"}]`
+- etc.
 
 #### `test_translation_progress.py`
-- Все `languages=["en"]` → `languages=[{"code": "en", "locale": "en-US"}]`
-- Все `languages=["en", "ru"]` → `languages=[{"code": "en", "locale": "en-US"}, {"code": "ru", "locale": "ru-RU"}]`
+- All `languages=["en"]` → `languages=[{"code": "en", "locale": "en-US"}]`
+- All `languages=["en", "ru"]` → `languages=[{"code": "en", "locale": "en-US"}, {"code": "ru", "locale": "ru-RU"}]`
 
 #### `test_key_performance.py`
-- Обновлен на использование объектов с `code` и `locale`
+- Updated to use objects with `code` and `locale`
 
-## 🧪 Результаты тестирования
+## 🧪 Test Results
 
 ```bash
 76 passed, 3 warnings in 12.95s
 ```
 
-**Все тесты прошли успешно!** ✅
+**All tests passed successfully!** ✅
 
-## 🚀 Преимущества
+## 🚀 Benefits
 
-1. **Упрощение кода** - меньше условных проверок и конвертаций
-2. **Улучшение читаемости** - код стал чище и понятнее
-3. **Меньше багов** - нет риска случайной обработки неправильного формата
-4. **Единообразие** - один формат данных во всем приложении
-5. **Проще поддержка** - не нужно помнить о двух форматах
+1. **Code simplification** - fewer conditional checks and conversions
+2. **Improved readability** - code is cleaner and clearer
+3. **Fewer bugs** - no risk of accidentally handling wrong format
+4. **Consistency** - single data format throughout application
+5. **Easier maintenance** - no need to remember two formats
 
 ## ⚠️ Breaking Changes
 
-### Если у вас есть старые данные в базе
+### If you have old data in database
 
-Если в вашей базе данных остались проекты со старым форматом (массивы строк), они **перестанут работать**.
+If your database still has projects with old format (string arrays), they **will stop working**.
 
-**Решение:** Запустите миграцию для конвертации старых данных:
+**Solution:** Run migration to convert old data:
 
 ```bash
 cd backend
@@ -152,13 +152,13 @@ source venv/bin/activate
 python migrations/migrate_languages_to_config.py
 ```
 
-Эта миграция конвертирует все старые форматы в новые.
+This migration converts all old formats to new ones.
 
-### Если вы используете API напрямую
+### If you use API directly
 
-Если вы отправляете запросы к API с языками в старом формате:
+If you send API requests with languages in old format:
 
-**Раньше работало:**
+**Previously worked:**
 ```json
 {
   "name": "My Project",
@@ -166,7 +166,7 @@ python migrations/migrate_languages_to_config.py
 }
 ```
 
-**Теперь ТОЛЬКО так:**
+**Now ONLY this way:**
 ```json
 {
   "name": "My Project",
@@ -177,20 +177,19 @@ python migrations/migrate_languages_to_config.py
 }
 ```
 
-## 📚 Связанные документы
+## 📚 Related Documents
 
-- [README_LANGUAGE_CONFIG.md](backend/migrations/README_LANGUAGE_CONFIG.md) - Документация по миграции языков
-- [PERFORMANCE_OPTIMIZATION.md](PERFORMANCE_OPTIMIZATION.md) - Оптимизация N+1 запросов
+- [README_LANGUAGE_CONFIG.md](backend/migrations/README_LANGUAGE_CONFIG.md) - Language migration documentation
+- [PERFORMANCE_OPTIMIZATION.md](PERFORMANCE_OPTIMIZATION.md) - N+1 query optimization
 
-## ✅ Чеклист для разработчиков
+## ✅ Developer Checklist
 
-- [x] Удалена поддержка строкового формата в backend
-- [x] Удалена поддержка строкового формата в frontend
-- [x] Обновлены все тесты
-- [x] Все тесты проходят успешно
-- [x] Обновлена документация
+- [x] Removed string format support in backend
+- [x] Removed string format support in frontend
+- [x] Updated all tests
+- [x] All tests pass successfully
+- [x] Updated documentation
 
-## 🎯 Заключение
+## 🎯 Conclusion
 
-Легаси код успешно удален! Проект теперь использует **только** современный формат языков с объектами `{code, locale}`, что делает код чище, безопаснее и проще в поддержке.
-
+Legacy code successfully removed! Project now uses **only** modern language format with `{code, locale}` objects, making code cleaner, safer and easier to maintain.

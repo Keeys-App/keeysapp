@@ -1,16 +1,16 @@
 # Keys Search Feature
 
-## Обзор
+## Overview
 
-Реализована функция поиска ключей переводов с поддержкой поиска по имени ключа, описанию и значениям переводов.
+Implemented translation key search feature with support for searching by key name, description and translation values.
 
-## Архитектура
+## Architecture
 
 ### Backend
 
 #### GraphQL Schema (`backend/app/schemas/key.py`)
 
-Добавлен параметр `search` в query `project_keys`:
+Added `search` parameter to `project_keys` query:
 
 ```python
 @strawberry.field
@@ -26,7 +26,7 @@ def project_keys(
 
 #### Service Layer (`backend/app/services/key_service.py`)
 
-Метод `get_project_keys_paginated` обновлен для поддержки поиска:
+Method `get_project_keys_paginated` updated to support search:
 
 ```python
 def get_project_keys_paginated(
@@ -39,18 +39,18 @@ def get_project_keys_paginated(
 ) -> Optional[Dict[str, any]]:
 ```
 
-**Поиск выполняется по:**
-- Имени ключа (`key.key`)
-- Описанию ключа (`key.description`)
-- Значениям переводов (`translation.value`)
+**Search performed by:**
+- Key name (`key.key`)
+- Key description (`key.description`)
+- Translation values (`translation.value`)
 
-Использует case-insensitive поиск через `ilike()` с паттерном `%search%`.
+Uses case-insensitive search via `ilike()` with pattern `%search%`.
 
 ### Frontend
 
 #### Store (`frontend/src/stores/useKeysSearchStore.ts`)
 
-Создан Zustand store для управления состоянием поиска:
+Created Zustand store for search state management:
 
 ```typescript
 interface KeysSearchState {
@@ -62,7 +62,7 @@ interface KeysSearchState {
 
 #### GraphQL Query (`frontend/src/graphql/keys.ts`)
 
-Обновлен запрос `GET_PROJECT_KEYS`:
+Updated `GET_PROJECT_KEYS` query:
 
 ```graphql
 query GetProjectKeys($projectId: String!, $offset: Int, $limit: Int, $search: String) {
@@ -76,76 +76,76 @@ query GetProjectKeys($projectId: String!, $offset: Int, $limit: Int, $search: St
 
 ##### `KeysSearch` (`frontend/src/components/key/KeysSearch.tsx`)
 
-- Поле ввода с debounce (300ms)
-- Кнопка очистки поиска (крестик)
-- Отображение количества результатов
-- Интеграция с `useKeysSearchStore`
+- Input field with debounce (300ms)
+- Clear search button (X icon)
+- Results count display
+- Integration with `useKeysSearchStore`
 
-Особенности:
-- Локальное состояние для мгновенной отзывчивости UI
-- Debounce для минимизации запросов к серверу
-- Синхронизация с глобальным store
+Features:
+- Local state for instant UI responsiveness
+- Debounce to minimize server requests
+- Synchronization with global store
 
 ##### `KeyList` (`frontend/src/components/key/KeyList.tsx`)
 
-Обновлен для:
-- Использования параметра `search` из store
-- Очистки кэша при изменении поискового запроса
-- Передачи `search` в GraphQL запросы (initial + fetchMore)
+Updated to:
+- Use `search` parameter from store
+- Clear cache on search query change
+- Pass `search` to GraphQL queries (initial + fetchMore)
 
 ##### `EmptySearchResults` (`frontend/src/components/key/EmptySearchResults.tsx`)
 
-Новый компонент для отображения пустого состояния при отсутствии результатов поиска:
-- Отображает текст поискового запроса
-- Кнопка очистки поиска
-- Использует компонент `Empty` из UI библиотеки
+New component for displaying empty state when no search results:
+- Displays search query text
+- Clear search button
+- Uses `Empty` component from UI library
 
 ##### `KeyControls` (`frontend/src/components/key/KeyControls.tsx`)
 
-Обновлен для передачи `totalCount` в `KeysSearch` для отображения количества результатов.
+Updated to pass `totalCount` to `KeysSearch` for results count display.
 
-## Безопасность
+## Security
 
 ### 🚨 CRITICAL: Error Handling
 
-**Проблема:** При ошибках SQL детали могли раскрываться пользователям, нарушая ПРАВИЛО #1 проекта.
+**Problem:** On errors SQL details could be exposed to users, violating project RULE #1.
 
-**Решение:**
-1. **Backend**: Все ошибки ловятся и логируются с полными деталями, но пользователям возвращается только `DatabaseError` с generic сообщением: "An error occurred. Please try again later."
-2. **Технические детали** (SQL запросы, stack traces, имена таблиц) логируются только на сервере и НИКОГДА не передаются клиенту
-3. **Frontend**: Использует `getUserFriendlyErrorMessage()` для дополнительной фильтрации
+**Solution:**
+1. **Backend**: All errors are caught and logged with full details, but users only receive `DatabaseError` with generic message: "An error occurred. Please try again later."
+2. **Technical details** (SQL queries, stack traces, table names) are logged only on server and NEVER passed to client
+3. **Frontend**: Uses `getUserFriendlyErrorMessage()` for additional filtering
 
 ```python
 # Backend error handling (backend/app/schemas/key.py)
 except Exception as e:
-    # Log technical details (только в логах сервера)
+    # Log technical details (only in server logs)
     logger.error(f"Error in project_keys query: {type(e).__name__}: {str(e)}", exc_info=True)
-    # Raise user-friendly error (это видит пользователь)
+    # Raise user-friendly error (user sees this)
     raise DatabaseError(internal_message=f"Error loading keys: {type(e).__name__}: {str(e)}")
 ```
 
 ### SQL Query Optimization
 
-Использован подход с подзапросом для избежания проблем с `DISTINCT` на JSON полях:
-- Сначала получаем ID ключей через подзапрос с `Translation.key_id.distinct()`
-- Затем загружаем полные данные ключей по этим ID
-- Это решает проблему "could not identify an equality operator for type json"
+Used subquery approach to avoid issues with `DISTINCT` on JSON fields:
+- First get key IDs via subquery with `Translation.key_id.distinct()`
+- Then load full key data by these IDs
+- This solves "could not identify an equality operator for type json" problem
 
-## Использование
+## Usage
 
-### Для пользователей
+### For Users
 
-1. На странице ключей проекта введите текст в поле поиска
-2. Результаты обновятся автоматически после 300мс
-3. Отображается количество найденных результатов
-4. Нажмите крестик для очистки поиска
+1. On project keys page enter text in search field
+2. Results will update automatically after 300ms
+3. Number of found results is displayed
+4. Click X to clear search
 
-### Для разработчиков
+### For Developers
 
 **Backend:**
 ```python
-# Поиск выполняется автоматически в KeyService.get_project_keys_paginated
-# при передаче параметра search
+# Search is performed automatically in KeyService.get_project_keys_paginated
+# when passing search parameter
 ```
 
 **Frontend:**
@@ -154,97 +154,97 @@ import { useKeysSearchStore } from '@/stores';
 
 const { search, setSearch, clearSearch } = useKeysSearchStore();
 
-// Установить поисковый запрос
+// Set search query
 setSearch('button');
 
-// Очистить поиск
+// Clear search
 clearSearch();
 ```
 
-## Производительность
+## Performance
 
-- **Debounce**: 300ms для минимизации запросов
-- **Cache invalidation**: Кэш очищается при изменении поискового запроса
-- **Database indexing**: Используется существующий индекс на `keys.key`
-- **Lazy loading**: Виртуализация списка работает с результатами поиска
+- **Debounce**: 300ms to minimize requests
+- **Cache invalidation**: Cache cleared on search query change
+- **Database indexing**: Uses existing index on `keys.key`
+- **Lazy loading**: List virtualization works with search results
 
-## Ограничения
+## Limitations
 
-- Поиск case-insensitive
-- Минимальная длина запроса: нет ограничений (можно искать по 1 символу)
-- Поиск выполняется по полному совпадению подстроки (LIKE %search%)
+- Case-insensitive search
+- Minimum query length: no restriction (can search by 1 character)
+- Search performed by full substring match (LIKE %search%)
 
-## Возможные улучшения
+## Possible Improvements
 
-1. **Full-text search**: Использование PostgreSQL Full-Text Search для более релевантного поиска
-2. **Фильтры**: Добавить фильтры по тегам, статусу перевода, языкам
-3. **История поиска**: Сохранение недавних поисковых запросов
-4. **Подсветка**: Выделение найденных совпадений в результатах
-5. **Сортировка**: Сортировка результатов по релевантности
+1. **Full-text search**: Use PostgreSQL Full-Text Search for more relevant search
+2. **Filters**: Add filters by tags, translation status, languages
+3. **Search history**: Save recent search queries
+4. **Highlighting**: Highlight found matches in results
+5. **Sorting**: Sort results by relevance
 
 ## Testing
 
 ### Backend
 
-Реализованы комплексные тесты для функции поиска в `backend/tests/test_key_search.py`:
+Comprehensive search tests implemented in `backend/tests/test_key_search.py`:
 
 ```bash
-# Запуск всех тестов поиска
+# Run all search tests
 cd backend
 source venv/bin/activate
 python -m pytest tests/test_key_search.py -v
 ```
 
-**Покрытие тестами:**
+**Test Coverage:**
 
-✅ **12 тестов** охватывают следующие сценарии:
+✅ **12 tests** cover following scenarios:
 
-1. **`test_search_by_key_name`** - Поиск по имени ключа (например, "button")
-2. **`test_search_by_description`** - Поиск по описанию ключа
-3. **`test_search_by_translation_value`** - Поиск по значению перевода (на любом языке)
-4. **`test_search_case_insensitive`** - Проверка регистронезависимого поиска
-5. **`test_search_partial_match`** - Частичное совпадение (например, "err" найдет "error")
-6. **`test_search_no_results`** - Поиск без результатов
-7. **`test_search_with_pagination`** - Пагинация результатов поиска
-8. **`test_search_empty_query`** - Пустой запрос возвращает все ключи
-9. **`test_search_whitespace_query`** - Запрос только с пробелами
-10. **`test_search_multiple_languages`** - Поиск на разных языках
-11. **`test_search_unauthorized_user`** - Проверка доступа
-12. **`test_search_with_special_characters`** - Поиск со спецсимволами
+1. **`test_search_by_key_name`** - Search by key name (e.g., "button")
+2. **`test_search_by_description`** - Search by key description
+3. **`test_search_by_translation_value`** - Search by translation value (any language)
+4. **`test_search_case_insensitive`** - Case-insensitive search check
+5. **`test_search_partial_match`** - Partial match (e.g., "err" finds "error")
+6. **`test_search_no_results`** - Search with no results
+7. **`test_search_with_pagination`** - Search results pagination
+8. **`test_search_empty_query`** - Empty query returns all keys
+9. **`test_search_whitespace_query`** - Whitespace-only query
+10. **`test_search_multiple_languages`** - Search in different languages
+11. **`test_search_unauthorized_user`** - Access check
+12. **`test_search_with_special_characters`** - Search with special characters
 
-**Результаты:**
+**Results:**
 ```
 12 passed in 2.52s ✅
 ```
 
 ### Frontend
 
-Frontend тесты можно добавить для компонентов:
+Frontend tests can be added for components:
 
 ```bash
-# TODO: Добавить E2E тесты для UI поиска
+# TODO: Add E2E tests for search UI
 yarn test KeysSearch
 ```
 
-**Тестовые сценарии для frontend:**
-- Debounce работает (300мс задержка)
-- Индикатор загрузки показывается при вводе
-- Счетчик результатов обновляется
-- Кнопка очистки работает
-- Состояние синхронизируется с store
+**Test scenarios for frontend:**
+- Debounce works (300ms delay)
+- Loading indicator shows on input
+- Results counter updates
+- Clear button works
+- State syncs with store
 
-## Индикатор загрузки
+## Loading Indicator
 
-### UX Улучшения
+### UX Improvements
 
-Вместо показа скелетонов при поиске, индикатор загрузки отображается **в самом поле поиска**:
+Instead of showing skeletons during search, loading indicator is displayed **in the search field itself**:
 
-- ⚡ **Мгновенная обратная связь**: спиннер появляется при вводе текста
-- 🔄 **Два состояния**: 
-  - `isTyping` - пользователь печатает (debounce 300мс)
-  - `isLoading` - выполняется GraphQL запрос
-- 🎯 **Минималистичный UI**: нет отвлекающих скелетонов
-- 👁️ **Всегда видимый**: индикатор в поле поиска на виду
+- ⚡ **Instant feedback**: spinner appears when typing
+- 🔄 **Two states**: 
+  - `isTyping` - user is typing (300ms debounce)
+  - `isLoading` - GraphQL query executing
+- 🎯 **Minimalist UI**: no distracting skeletons
+- 👁️ **Always visible**: indicator in search field is in view
 
 ```typescript
 // KeysSearch.tsx
@@ -255,23 +255,22 @@ const showLoading = isLoading || isTyping;
 </InputGroupButton>
 ```
 
-**Логика отображения:**
-- Скелетоны показываются **только** при первой загрузке страницы
-- При поиске: только спиннер в поле поиска + обновление списка
-- Если список уже загружен: плавная замена без скелетонов
+**Display logic:**
+- Skeletons shown **only** on first page load
+- During search: only spinner in search field + list update
+- If list already loaded: smooth replacement without skeletons
 
 ## Related Files
 
 ### Backend
-- `backend/app/services/key_service.py` - Логика поиска с подзапросами
-- `backend/app/schemas/key.py` - GraphQL resolver с обработкой ошибок
-- `backend/tests/test_key_search.py` - **12 тестов** для поиска
+- `backend/app/services/key_service.py` - Search logic with subqueries
+- `backend/app/schemas/key.py` - GraphQL resolver with error handling
+- `backend/tests/test_key_search.py` - **12 tests** for search
 
 ### Frontend
-- `frontend/src/stores/useKeysSearchStore.ts` - Zustand store для состояния поиска
-- `frontend/src/components/key/KeysSearch.tsx` - Поле поиска с debounce и индикатором
-- `frontend/src/components/key/KeyList.tsx` - Виртуализированный список с поиском
-- `frontend/src/components/key/EmptySearchResults.tsx` - Пустое состояние для поиска
-- `frontend/src/components/key/KeyControls.tsx` - Панель управления ключами
-- `frontend/src/graphql/keys.ts` - GraphQL запросы
-
+- `frontend/src/stores/useKeysSearchStore.ts` - Zustand store for search state
+- `frontend/src/components/key/KeysSearch.tsx` - Search field with debounce and indicator
+- `frontend/src/components/key/KeyList.tsx` - Virtualized list with search
+- `frontend/src/components/key/EmptySearchResults.tsx` - Empty state for search
+- `frontend/src/components/key/KeyControls.tsx` - Keys control panel
+- `frontend/src/graphql/keys.ts` - GraphQL queries

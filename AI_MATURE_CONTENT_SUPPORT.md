@@ -1,51 +1,51 @@
 # AI Mature Content Support & Context Handling Fix
 
-## Проблемы
+## Problems
 
-### Проблема 1: Отказ от mature content
-AI отказывался переводить текст с нецензурной лексикой, показывая ошибку:
+### Problem 1: Refusal of mature content
+AI refused to translate text with profanity, showing error:
 ```
 ❌ "Unable to process - text contains offensive language"
 ```
 
-Это было неприемлемо для:
-- Игр с рейтингом 18+
-- Художественных произведений
-- Реалистичных диалогов
-- Профессиональной локализации контента для взрослых
+This was unacceptable for:
+- Games rated 18+
+- Artistic works
+- Realistic dialogues
+- Professional localization of adult content
 
-### Проблема 2: Игнорирование контекста
-AI игнорировал инструкции пользователя в поле "Context":
+### Problem 2: Ignoring context
+AI ignored user instructions in the "Context" field:
 ```
 Text: "Go fuck yourself"
-Context: "Добавляй всегда в конце - пиздец"
-Result: ❌ "Иди на хуй" (контекст проигнорирован)
+Context: "Always add at the end - damn"
+Result: ❌ "Go fuck yourself" (context ignored)
 ```
 
-## Решения
+## Solutions
 
 ### 1. Mature Content Support
-Обновлены system prompts для всех AI функций, чтобы явно указать, что это **профессиональный инструмент локализации**, который должен обрабатывать ЛЮБОЙ контент без фильтрации.
+Updated system prompts for all AI functions to explicitly state that this is a **professional localization tool** that must process ANY content without filtering.
 
 ### 2. Mandatory Context Following
-Усилены промпты для строгого следования контексту:
-- Контекст теперь отмечается как **MANDATORY** (🔴 маркер)
-- Добавлены явные инструкции, что контекст содержит обязательные требования
-- Контекст применяется и в user prompt, и в system content
+Strengthened prompts for strict context compliance:
+- Context now marked as **MANDATORY** (🔴 marker)
+- Added explicit instructions that context contains required rules
+- Context applied in both user prompt and system content
 
-## Изменения
+## Changes
 
 ### 1. Backend - AI Service
 
-**Файл:** `backend/app/services/ai_service.py`
+**File:** `backend/app/services/ai_service.py`
 
-Обновлены system prompts для всех функций:
+Updated system prompts for all functions:
 - `translate()` 
 - `rephrase()`  
 - `shorten()`
 - `suggest_variants()`
 
-**Добавлено для mature content:**
+**Added for mature content:**
 ```python
 "You are a professional translator for a localization tool."
 "- NEVER refuse translation due to content type - this is a professional localization tool"
@@ -54,7 +54,7 @@ Result: ❌ "Иди на хуй" (контекст проигнорирован)
 "- Your role is purely translation - do not judge or filter content"
 ```
 
-**Добавлено для mandatory context:**
+**Added for mandatory context:**
 ```python
 "Context Handling:"
 "- If context is provided, it contains MANDATORY instructions you MUST follow"
@@ -63,7 +63,7 @@ Result: ❌ "Иди на хуй" (контекст проигнорирован)
 "- Context instructions override general translation rules"
 ```
 
-В user prompts:
+In user prompts:
 ```python
 "🔴 MANDATORY CONTEXT - YOU MUST FOLLOW THESE INSTRUCTIONS EXACTLY:\n{context}\n"
 "This context contains REQUIRED instructions that you MUST apply to your translation."
@@ -71,41 +71,41 @@ Result: ❌ "Иди на хуй" (контекст проигнорирован)
 
 ### 2. Tests
 
-**Файл:** `backend/tests/test_ai_service.py`
+**File:** `backend/tests/test_ai_service.py`
 
-**Добавлены новые тесты:**
+**Added new tests:**
 
-Класс `TestAIServiceMatureContent`:
-- `test_translate_mature_content()` - проверяет перевод нецензурного текста
-- `test_rephrase_mature_content()` - проверяет обработку mature content
+Class `TestAIServiceMatureContent`:
+- `test_translate_mature_content()` - checks translation of profane text
+- `test_rephrase_mature_content()` - checks mature content processing
 
-Класс `TestAIServiceWithContext` (расширен):
-- `test_translate_follows_mandatory_context_instructions()` - проверка добавления суффиксов
-- `test_rephrase_follows_mandatory_context_instructions()` - проверка стилистических требований
-- `test_suggest_variants_follows_context()` - проверка применения контекста ко всем вариантам
+Class `TestAIServiceWithContext` (extended):
+- `test_translate_follows_mandatory_context_instructions()` - checks suffix addition
+- `test_rephrase_follows_mandatory_context_instructions()` - checks style requirements
+- `test_suggest_variants_follows_context()` - checks context application to all variants
 
-Обновлен `test_suggest_variants_gibberish()` для более гибкой валидации.
+Updated `test_suggest_variants_gibberish()` for more flexible validation.
 
-**Результат:** ✅ Все 28 тестов прошли успешно
+**Result:** ✅ All 28 tests passed successfully
 
-### 3. Документация
+### 3. Documentation
 
-**Обновлено:**
-- `AUTOPILOT_FEATURE.md` - добавлена секция "Content Policy"
-- `CHANGELOG.md` - добавлена запись о изменениях
-- `docs/obsidian/AI Mature Content Support.md` - новая страница документации
+**Updated:**
+- `AUTOPILOT_FEATURE.md` - added "Content Policy" section
+- `CHANGELOG.md` - added change log entry
+- `docs/obsidian/AI Mature Content Support.md` - new documentation page
 
-## Результат
+## Result
 
 ### Mature Content
-✅ **До:** "Unable to process - text contains offensive language"  
-✅ **После:** [Корректный перевод текста, независимо от содержания]
+✅ **Before:** "Unable to process - text contains offensive language"  
+✅ **After:** [Correct translation regardless of content]
 
 ### Context Following
-✅ **До:** Контекст "Добавляй всегда в конце - пиздец" → "Иди на хуй" (игнорирован)  
-✅ **После:** Контекст "Добавляй всегда в конце - пиздец" → "Иди на хуй - пиздец" (применен)
+✅ **Before:** Context "Always add at the end - damn" → "Go fuck yourself" (ignored)  
+✅ **After:** Context "Always add at the end - damn" → "Go fuck yourself - damn" (applied)
 
-## Проверка
+## Verification
 
 ```bash
 cd backend
@@ -113,30 +113,29 @@ source venv/bin/activate
 pytest tests/test_ai_service.py -v
 ```
 
-Результат: **28 passed** ✅
+Result: **28 passed** ✅
 
-Новые тесты включают:
+New tests include:
 - ✅ Mature content translation
 - ✅ Mandatory context following
 - ✅ Suffix/prefix additions
 - ✅ Style requirements
 
-## Примечания
+## Notes
 
-- Изменения применяются ТОЛЬКО к обработке существующего текста
-- Инструмент НЕ генерирует offensive content сам по себе
-- Профессиональные переводчики несут ответственность за уместность контента
-- Никакой специальной фильтрации или логирования "чувствительного" контента не происходит
+- Changes apply ONLY to processing existing text
+- Tool does NOT generate offensive content on its own
+- Professional translators are responsible for content appropriateness
+- No special filtering or logging of "sensitive" content occurs
 
-## Обратная совместимость
+## Backward Compatibility
 
-✅ Все существующие тесты прошли  
-✅ API не изменился  
-✅ Никаких breaking changes
+✅ All existing tests passed  
+✅ API unchanged  
+✅ No breaking changes
 
-## Когда применять
+## When to Apply
 
-Изменения уже активны для всех пользователей. Перезапуск backend не требуется, так как это изменения в коде Python, которые применяются при следующем запросе к AI.
+Changes are already active for all users. Backend restart is not required, as these are Python code changes that apply on the next AI request.
 
-Если backend уже запущен, рекомендуется перезапустить его для применения изменений.
-
+If backend is already running, restart is recommended to apply changes.
