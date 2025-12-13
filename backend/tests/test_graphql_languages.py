@@ -197,7 +197,7 @@ class TestAvailableLanguagesQuery:
         
         assert russian is not None
         assert russian["name"] == "Russian"
-        assert russian["nativeName"] == "Русский"
+        assert russian["nativeName"] == "Russkiy"  # Transliterated
         assert russian["pluralForms"] == ["one", "few", "many", "other"]
 
     @pytest.mark.asyncio

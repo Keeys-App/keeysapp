@@ -58,7 +58,7 @@ async def create_key(client, project_id: str, key_name: str = None, is_plural: b
         "key": key_name or f"test.key.{unique_id}",
         "description": "Test key",
         "tags": ["test"],
-        "translations": {"en": "Test value", "ru": "Тест"}
+        "translations": {"en": "Test value", "es": "Valor de prueba"}
     }
     if is_plural:
         input_data["isPlural"] = is_plural
@@ -215,7 +215,7 @@ class TestCreateKeyMutation:
                 "key": f"button.submit.{unique_id}",
                 "description": "Submit button text",
                 "tags": ["ui", "button"],
-                "translations": {"en": "Submit", "ru": "Отправить"}
+                "translations": {"en": "Submit", "es": "Enviar"}
             }
         })
         
@@ -246,7 +246,7 @@ class TestCreateKeyMutation:
                 "key": f"items.count.{unique_id}",
                 "description": "Item count with plural",
                 "isPlural": True,
-                "translations": {"en": "item", "ru": "элемент"}
+                "translations": {"en": "item", "es": "artículo"}
             }
         })
         

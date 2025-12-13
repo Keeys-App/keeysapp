@@ -1,122 +1,122 @@
 # Pages
 
-Страницы приложения организованы по функциональности.
+Application pages organized by functionality.
 
-## Структура
+## Structure
 
 ```
 pages/
-├── AuthPage.tsx            # Аутентификация (логин/регистрация)
-├── DashboardPage.tsx       # Главная страница (список проектов)
-├── ProjectPage.tsx         # Страница обзора проекта (статистика)
-├── ProjectKeysPage.tsx     # Страница ключей переводов
-├── CreateProjectPage.tsx   # Создание нового проекта
-├── EditProjectPage.tsx     # Редактирование проекта
-├── ExportPage.tsx          # Экспорт переводов
-├── ImportPage.tsx          # Импорт переводов
-└── index.ts                # Экспорты
+├── AuthPage.tsx            # Authentication (login/registration)
+├── DashboardPage.tsx       # Main page (project list)
+├── ProjectPage.tsx         # Project overview page (statistics)
+├── ProjectKeysPage.tsx     # Translation keys page
+├── CreateProjectPage.tsx   # Create new project
+├── EditProjectPage.tsx     # Edit project
+├── ExportPage.tsx          # Export translations
+├── ImportPage.tsx          # Import translations
+└── index.ts                # Exports
 ```
 
-## Страницы
+## Pages
 
 ### AuthPage (`/auth`)
-Страница аутентификации с переключением между формами входа и регистрации.
+Authentication page with switching between login and registration forms.
 
-**Компоненты:**
-- `LoginForm` - форма входа
-- `RegisterForm` - форма регистрации
+**Components:**
+- `LoginForm` - login form
+- `RegisterForm` - registration form
 
 ### DashboardPage (`/`)
-Главная страница приложения со списком проектов пользователя.
+Main application page with user's project list.
 
-**Компоненты:**
-- `ProjectList` - список проектов
-- `ProjectCard` - карточка проекта
-- `CreateProjectCard` - карточка создания проекта
+**Components:**
+- `ProjectList` - project list
+- `ProjectCard` - project card
+- `CreateProjectCard` - create project card
 
 ### CreateProjectPage (`/project/create`)
-Страница создания нового проекта.
+New project creation page.
 
-**Компоненты:**
-- `ProjectForm` с `mode="create"`
+**Components:**
+- `ProjectForm` with `mode="create"`
 
 **Breadcrumbs:**
 - Dashboard → Create Project
 
-**Особенности:**
-- Отдельная страница вместо модального окна
-- Возможность использовать браузерную навигацию
-- После создания перенаправляет на главную страницу
+**Features:**
+- Separate page instead of modal dialog
+- Ability to use browser navigation
+- After creation redirects to main page
 
 ### EditProjectPage (`/project/:id/edit`)
-Страница редактирования существующего проекта.
+Existing project editing page.
 
-**Компоненты:**
-- `ProjectForm` с `mode="edit"`
+**Components:**
+- `ProjectForm` with `mode="edit"`
 
 **Breadcrumbs:**
 - Dashboard → [Project Name] → Edit
 
-**Особенности:**
-- Загружает данные проекта из GET_PROJECTS
-- Показывает LoadingState во время загрузки
-- Показывает NotFoundState если проект не найден
-- После сохранения перенаправляет на страницу проекта
-- Breadcrumbs динамически обновляются с именем проекта
+**Features:**
+- Loads project data from GET_PROJECTS
+- Shows LoadingState during loading
+- Shows NotFoundState if project not found
+- After saving redirects to project page
+- Breadcrumbs dynamically update with project name
 
 ### ProjectPage (`/project/:id`)
-Страница обзора проекта с общей информацией и статистикой.
+Project overview page with general information and statistics.
 
-**Компоненты:**
-- Статистика перевода (прогресс, количество ключей, языков)
-- Список языков проекта
-- Информация о команде (владелец и члены)
-- Быстрые действия (переход к ключам, экспорт, импорт)
+**Components:**
+- Translation statistics (progress, key count, languages)
+- Project language list
+- Team information (owner and members)
+- Quick actions (go to keys, export, import)
 
 **Breadcrumbs:**
 - Dashboard → [Project Name]
 
-**Особенности:**
-- Визуализация прогресса перевода
-- Отображение количества завершенных и оставшихся переводов
-- Быстрый переход к ключам переводов
-- Отображение всех настроенных языков с отметкой языка по умолчанию
+**Features:**
+- Translation progress visualization
+- Display of completed and remaining translations count
+- Quick access to translation keys
+- Display all configured languages with default language marker
 
 ### ProjectKeysPage (`/project/:id/keys`)
-Страница управления ключами переводов проекта.
+Project translation keys management page.
 
-**Компоненты:**
-- `KeyList` - список ключей переводов
-- `CreateKeyDialog` - диалог создания нового ключа
+**Components:**
+- `KeyList` - translation keys list
+- `CreateKeyDialog` - new key creation dialog
 
 **Breadcrumbs:**
 - Dashboard → [Project Name] → Keys
 
-**Функции:**
-- Просмотр и редактирование ключей
-- Управление переводами
-- Создание новых ключей
+**Features:**
+- View and edit keys
+- Manage translations
+- Create new keys
 
 ### ExportPage (`/project/:id/export`)
-Страница экспорта переводов в различные форматы.
+Export translations to various formats page.
 
-**Форматы:**
+**Formats:**
 - JSON
 - YAML
 - CSV
-- и другие
+- and others
 
 ### ImportPage (`/project/:id/import`)
-Страница импорта переводов из файлов.
+Import translations from files page.
 
-**Поддерживаемые форматы:**
+**Supported formats:**
 - JSON
 - YAML
 - CSV
 
-## Роутинг
+## Routing
 
-Все роуты определены в `constants/paths.ts`:
+All routes defined in `constants/paths.ts`:
 
 ```typescript
 export const PATHS = {
@@ -132,9 +132,9 @@ export const PATHS = {
 } as const;
 ```
 
-## Защита роутов
+## Route Protection
 
-Все страницы кроме `AuthPage` защищены компонентом `ProtectedRoute`:
+All pages except `AuthPage` are protected by `ProtectedRoute` component:
 
 ```tsx
 <Route
@@ -156,15 +156,15 @@ export const PATHS = {
 
 ## Best Practices
 
-- ✅ Используйте константы из `PATHS` вместо hardcoded строк
-- ✅ Используйте `useNavigate` для программной навигации
-- ✅ Используйте `Link` для декларативной навигации
-- ✅ Обрабатывайте состояния загрузки и ошибок
-- ✅ Показывайте fallback UI (LoadingState, ErrorState, NotFoundState)
+- ✅ Use constants from `PATHS` instead of hardcoded strings
+- ✅ Use `useNavigate` for programmatic navigation
+- ✅ Use `Link` for declarative navigation
+- ✅ Handle loading and error states
+- ✅ Show fallback UI (LoadingState, ErrorState, NotFoundState)
 
-## Примеры навигации
+## Navigation Examples
 
-### С использованием Link
+### Using Link
 ```tsx
 import { Link } from 'react-router-dom';
 import { PATHS } from '@/constants/paths';
@@ -175,25 +175,25 @@ import { PATHS } from '@/constants/paths';
 <Link to={PATHS.PROJECT_EDIT.replace(':id', projectId)}>Edit</Link>
 ```
 
-### С использованием useNavigate
+### Using useNavigate
 ```tsx
 import { useNavigate } from 'react-router-dom';
 import { PATHS } from '@/constants/paths';
 
 const navigate = useNavigate();
 
-// Переход на создание проекта
+// Navigate to create project
 navigate(PATHS.PROJECT_CREATE);
 
-// Переход на обзор проекта
+// Navigate to project overview
 navigate(PATHS.PROJECT.replace(':id', projectId));
 
-// Переход на ключи проекта
+// Navigate to project keys
 navigate(PATHS.PROJECT_KEYS.replace(':id', projectId));
 
-// Переход на редактирование с ID
+// Navigate to edit with ID
 navigate(PATHS.PROJECT_EDIT.replace(':id', projectId));
 
-// Назад
+// Go back
 navigate(-1);
 ```

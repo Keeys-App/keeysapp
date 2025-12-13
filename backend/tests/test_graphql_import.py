@@ -39,7 +39,7 @@ def create_export_json(name: str, keys_count: int = 5) -> dict:
             "tags": ["test"]
         })
         locales_en[key_name] = f"English value {i}"
-        locales_ru[key_name] = f"Русское значение {i}"
+        locales_ru[key_name] = f"Russian value {i}"
     
     return {
         "name": name,

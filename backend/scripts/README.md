@@ -1,10 +1,10 @@
-# Scripts / Утилиты
+# Scripts / Utilities
 
-Вспомогательные скрипты для управления приложением.
+Helper scripts for application management.
 
-## Использование
+## Usage
 
-Все скрипты запускаются из папки `backend`:
+All scripts run from `backend` folder:
 
 ```bash
 cd backend
@@ -12,40 +12,37 @@ source venv/bin/activate
 python scripts/<script_name>.py
 ```
 
-
-
-## Доступные скрипты
+## Available Scripts
 
 ### list_users.py
-Показывает список всех пользователей в базе данных.
+Shows list of all users in database.
 
 ```bash
 python scripts/list_users.py
 ```
 
-**Выводит:**
-- ID пользователя
+**Outputs:**
+- User ID
 - Email
 - Username
-- Статус (active/inactive)
-- Права (superuser)
-- Дата создания
+- Status (active/inactive)
+- Permissions (superuser)
+- Creation date
 
 ### clear_users.py
-Удаляет всех пользователей из базы данных.
+Deletes all users from database.
 
 ```bash
 python scripts/clear_users.py
 ```
 
-**⚠️ Внимание:** Скрипт попросит подтверждение перед удалением!
+**⚠️ Warning:** Script will ask for confirmation before deletion!
 
-**Когда использовать:**
-- После изменений в схеме User модели
-- Для очистки тестовых данных
-- При сбросе приложения в начальное состояние
+**When to use:**
+- After changes in User model schema
+- To clean test data
+- When resetting application to initial state
 
 ---
 
-*Для миграций БД смотрите папку `migrations/`*
-
+*For DB migrations see `migrations/` folder*

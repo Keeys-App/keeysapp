@@ -1,81 +1,81 @@
 # Security Best Practices
 
-> [!warning] Рекомендации по безопасности приложения
+> [!warning] Application Security Recommendations
 
-## 🔐 Идентификаторы пользователей
+## 🔐 User Identifiers
 
-### Проблема автоинкремента
+### Auto-Increment Problem
 
-**Не используйте автоинкремент ID для публичных API!**
+**Don't use auto-increment IDs for public APIs!**
 
 ```python
-# ❌ ПЛОХО - предсказуемые ID
+# ❌ BAD - predictable IDs
 id = 1, 2, 3, 4...
 ```
 
-**Проблемы:**
-1. **Enumeration attack** - легко перебрать всех пользователей
-2. **Information disclosure** - узнать количество пользователей
-3. **Предсказуемость** - угадать ID других пользователей
+**Problems:**
+1. **Enumeration attack** - easy to iterate over all users
+2. **Information disclosure** - learn user count
+3. **Predictability** - guess other user IDs
 
-### Решение - UUID
+### Solution - UUID
 
 ```python
-# ✅ ХОРОШО - непредсказуемые UUID
+# ✅ GOOD - unpredictable UUIDs
 public_id = UUID('550e8400-e29b-41d4-a716-446655440000')
 ```
 
-**Преимущества:**
-- ✅ Невозможно перебрать
-- ✅ Не раскрывает количество записей
-- ✅ Глобально уникальный
-- ✅ Безопасно использовать в URL
+**Benefits:**
+- ✅ Impossible to enumerate
+- ✅ Doesn't reveal record count
+- ✅ Globally unique
+- ✅ Safe to use in URLs
 
-### Реализация в проекте
+### Implementation in Project
 
 ```python
 class User(Base):
-    id = Column(Integer, primary_key=True)          # Внутреннее использование
-    public_id = Column(UUID, unique=True)           # Публичное API
+    id = Column(Integer, primary_key=True)          # Internal use
+    public_id = Column(UUID, unique=True)           # Public API
     # ...
 ```
 
-**В GraphQL:**
+**In GraphQL:**
 ```graphql
 type User {
-  id: String!  # UUID как строка
+  id: String!  # UUID as string
   email: String!
   username: String!
 }
 ```
 
-**В JWT токенах:**
+**In JWT tokens:**
 ```python
-# Храним public_id, а не internal id
+# Store public_id, not internal id
 access_token = create_access_token(data={"sub": str(user.public_id)})
 ```
 
-## 🔑 Пароли
+## 🔑 Passwords
 
-### Хэширование
+### Hashing
 
 ```python
-# ✅ Используем bcrypt
+# ✅ Use bcrypt
 import bcrypt
 
 hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
 ```
 
-**Не используйте:**
+**Don't use:**
 - ❌ MD5
 - ❌ SHA1
-- ❌ Простой SHA256
-- ❌ Хранение в plain text
+- ❌ Plain SHA256
+- ❌ Plain text storage
 
-### Ограничения bcrypt
+### bcrypt Limitations
 
 ```python
-# bcrypt ограничен 72 байтами
+# bcrypt limited to 72 bytes
 def _truncate_password_bytes(password: str) -> bytes:
     password_bytes = password.encode('utf-8')
     if len(password_bytes) > 72:
@@ -83,84 +83,84 @@ def _truncate_password_bytes(password: str) -> bytes:
     return password_bytes
 ```
 
-### Требования к паролям
+### Password Requirements
 
-**Минимальные требования:**
-- ✅ Минимум 6 символов (лучше 8-12)
-- ✅ Максимум 72 символа (ограничение bcrypt)
+**Minimum requirements:**
+- ✅ Minimum 6 characters (better 8-12)
+- ✅ Maximum 72 characters (bcrypt limitation)
 
-**Рекомендуется добавить:**
-- Минимум 1 заглавная буква
-- Минимум 1 строчная буква
-- Минимум 1 цифра
-- Минимум 1 спецсимвол
+**Recommended to add:**
+- Minimum 1 uppercase letter
+- Minimum 1 lowercase letter
+- Minimum 1 digit
+- Minimum 1 special character
 
-## 🎫 JWT Токены
+## 🎫 JWT Tokens
 
-### Хранение JWT_SECRET_KEY
+### Storing JWT_SECRET_KEY
 
 ```env
-# ✅ В .env файле
+# ✅ In .env file
 JWT_SECRET_KEY=randomly-generated-long-secret-key-here
 JWT_ALGORITHM=HS256
 
-# ❌ НЕ в коде
-JWT_SECRET_KEY = "hardcoded-secret"  # НИКОГДА!
+# ❌ NOT in code
+JWT_SECRET_KEY = "hardcoded-secret"  # NEVER!
 ```
 
-**Генерация безопасного ключа:**
+**Generating secure key:**
 ```bash
-# Способ 1: Python
+# Method 1: Python
 python -c "import secrets; print(secrets.token_urlsafe(32))"
 
-# Способ 2: OpenSSL
+# Method 2: OpenSSL
 openssl rand -base64 32
 
-# Способ 3: Python script
+# Method 3: Python script
 python3 << EOF
 import secrets
 print(secrets.token_urlsafe(32))
 EOF
 ```
 
-**Пример вывода:**
+**Example output:**
 ```
 fN3K_5mP9xQ2wR8tY7uI4oP3lK6jH5gF9dS2aQ1w
 ```
 
-Скопируйте этот ключ в `.env` файл:
+Copy this key to `.env` file:
 ```env
 JWT_SECRET_KEY=fN3K_5mP9xQ2wR8tY7uI4oP3lK6jH5gF9dS2aQ1w
 ```
 
-### Время жизни токенов
+### Token Lifetime
 
 ```env
-# Разработка - длинные токены для удобства
-ACCESS_TOKEN_EXPIRE_MINUTES=10080  # 7 дней
+# Development - long tokens for convenience
+ACCESS_TOKEN_EXPIRE_MINUTES=10080  # 7 days
 
-# Production - короткие токены для безопасности
-ACCESS_TOKEN_EXPIRE_MINUTES=30  # 30 минут
+# Production - short tokens for security
+ACCESS_TOKEN_EXPIRE_MINUTES=30  # 30 minutes
 
-# Длинные refresh tokens (если реализовано)
-REFRESH_TOKEN_EXPIRE_DAYS=7  # 7 дней
+# Long refresh tokens (if implemented)
+REFRESH_TOKEN_EXPIRE_DAYS=7  # 7 days
 ```
 
-**Рекомендации:**
-- **Development:** 7 дней (10080 минут) - удобно для разработки
-- **Production:** 30 минут - безопаснее, требует refresh token
-- **Mobile apps:** 1 год - пользователи не любят постоянно логиниться
+**Recommendations:**
+- **Development:** 7 days (10080 minutes) - convenient for development
+- **Production:** 30 minutes - safer, requires refresh token
+- **Mobile apps:** 1 year - users don't like constant logins
 
-### Хранение токенов на клиенте
+### Storing Tokens on Client
 
 ```typescript
-// ✅ ХОРОШО - localStorage для web app
+// ✅ GOOD - localStorage for web app
 localStorage.setItem('authToken', token);
 
-// ⚠️ ЛУЧШЕ - httpOnly cookies (защита от XSS)
-// Требует изменений на backend
+// ⚠️ BETTER - httpOnly cookies (XSS protection)
+// Requires backend changes
 
-// ❌ ПЛОХО - обычные cookies без httpOnly
+// ❌ BAD - regular cookies without httpOnly
 ```
 
 ## 🌐 CORS
@@ -168,47 +168,47 @@ localStorage.setItem('authToken', token);
 ### Development
 
 ```python
-# ✅ Разрешить все для разработки
+# ✅ Allow all for development
 allow_origins=["*"]
 ```
 
 ### Production
 
 ```python
-# ✅ Только конкретные домены
+# ✅ Only specific domains
 allow_origins=[
     "https://yourdomain.com",
     "https://www.yourdomain.com"
 ]
 ```
 
-## 🛡️ Валидация входных данных
+## 🛡️ Input Data Validation
 
 ### Email
 
 ```typescript
-// ✅ Валидация на клиенте
+// ✅ Client validation
 <TextField.Root type="email" required />
 
-// ✅ Валидация на сервере
+// ✅ Server validation
 from pydantic import EmailStr
 
-email: EmailStr  # Автоматическая валидация
+email: EmailStr  # Automatic validation
 ```
 
 ### Username
 
 ```python
-# ✅ Проверка на уникальность
+# ✅ Check uniqueness
 existing = UserService.get_user_by_username(db, username)
 if existing:
     raise Exception("Username already taken")
 ```
 
-### Пароли
+### Passwords
 
 ```typescript
-// ✅ Клиентская валидация
+// ✅ Client validation
 if (password.length < 6) {
   setError('Password must be at least 6 characters long');
 }
@@ -218,12 +218,12 @@ if (password.length > 72) {
 }
 ```
 
-## 🔒 Защита маршрутов
+## 🔒 Route Protection
 
 ### Backend
 
 ```python
-# ✅ Проверка токена
+# ✅ Token check
 def get_current_user(token: str) -> User:
     payload = decode_access_token(token)
     if not payload:
@@ -241,7 +241,7 @@ def get_current_user(token: str) -> User:
 ### Frontend
 
 ```tsx
-// ✅ ProtectedRoute компонент
+// ✅ ProtectedRoute component
 <Route
   path="/dashboard"
   element={
@@ -254,106 +254,105 @@ def get_current_user(token: str) -> User:
 
 ## 🚫 Rate Limiting
 
-> [!tip] Рекомендация
-> Добавьте rate limiting для защиты от brute-force атак
+> [!tip] Recommendation
+> Add rate limiting to protect against brute-force attacks
 
 ```python
-# TODO: Реализовать
-# - Максимум 5 попыток входа за 15 минут
-# - Временная блокировка после превышения
-# - Капча после 3 неудачных попыток
+# TODO: Implement
+# - Maximum 5 login attempts per 15 minutes
+# - Temporary block after exceeding
+# - Captcha after 3 failed attempts
 ```
 
-## 📊 Логирование
+## 📊 Logging
 
-### Что логировать
+### What to Log
 
 ```python
-# ✅ Логировать
-- Успешные входы
-- Неудачные попытки входа
-- Изменения пароля
-- Создание пользователей
-- Изменение прав доступа
+# ✅ Log
+- Successful logins
+- Failed login attempts
+- Password changes
+- User creation
+- Permission changes
 
-# ❌ НЕ логировать
-- Пароли (даже хэшированные)
-- Токены
-- Секретные ключи
+# ❌ DO NOT log
+- Passwords (even hashed)
+- Tokens
+- Secret keys
 ```
 
-### Пример
+### Example
 
 ```python
 import logging
 
 logger = logging.getLogger(__name__)
 
-# Успешный вход
+# Successful login
 logger.info(f"User {user.username} logged in successfully")
 
-# Неудачная попытка
+# Failed attempt
 logger.warning(f"Failed login attempt for email: {email}")
 ```
 
-## 🔐 Checklist безопасности
+## 🔐 Security Checklist
 
 ### Backend
-- [x] UUID для публичных ID
-- [x] bcrypt для паролей
-- [x] JWT с истечением
-- [x] Валидация email
-- [x] Проверка уникальности username/email
-- [x] Автоматическая обрезка паролей (72 байта)
-- [ ] Rate limiting для входа
-- [ ] Логирование попыток входа
-- [ ] Email верификация
+- [x] UUID for public IDs
+- [x] bcrypt for passwords
+- [x] JWT with expiration
+- [x] Email validation
+- [x] Username/email uniqueness check
+- [x] Automatic password truncation (72 bytes)
+- [ ] Rate limiting for login
+- [ ] Login attempt logging
+- [ ] Email verification
 - [ ] 2FA (Two-Factor Authentication)
-- [ ] Password reset с токеном
-- [ ] Account lockout после N попыток
+- [ ] Password reset with token
+- [ ] Account lockout after N attempts
 
 ### Frontend
-- [x] Валидация форм
-- [x] Обработка ошибок
-- [x] Защищенные маршруты
-- [x] autocomplete атрибуты
-- [x] maxLength для полей
+- [x] Form validation
+- [x] Error handling
+- [x] Protected routes
+- [x] autocomplete attributes
+- [x] maxLength for fields
 - [ ] CSP (Content Security Policy)
-- [ ] HTTPS only в продакшене
-- [ ] Безопасное хранение токенов
+- [ ] HTTPS only in production
+- [ ] Secure token storage
 
 ### Infrastructure
 - [ ] HTTPS
 - [ ] Firewall
 - [ ] Regular security updates
 - [ ] Backup strategy
-- [ ] Monitoring и alerting
+- [ ] Monitoring and alerting
 - [ ] Penetration testing
 
 ## 🎯 Best Practices
 
-1. **Принцип наименьших привилегий** - давайте только необходимые права
-2. **Defense in depth** - множественные слои защиты
-3. **Fail securely** - при ошибке блокируйте доступ
-4. **Don't trust user input** - всегда валидируйте
-5. **Keep secrets secret** - никогда не коммитьте секреты
-6. **Regular updates** - обновляйте зависимости
-7. **Monitor and log** - отслеживайте подозрительную активность
+1. **Principle of least privilege** - grant only necessary permissions
+2. **Defense in depth** - multiple security layers
+3. **Fail securely** - block access on error
+4. **Don't trust user input** - always validate
+5. **Keep secrets secret** - never commit secrets
+6. **Regular updates** - update dependencies
+7. **Monitor and log** - track suspicious activity
 
-## 📚 Ресурсы
+## 📚 Resources
 
 - [OWASP Top 10](https://owasp.org/www-project-top-ten/)
 - [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html)
 - [JWT Best Practices](https://curity.io/resources/learn/jwt-best-practices/)
 
-## Связанные документы
+## Related Documents
 
-- [[Environment Variables]] - Переменные окружения
-- [[Authentication Setup]] - Настройка авторизации
-- [[Testing Guide]] - Тестирование безопасности
-- [[Project Structure]] - Структура проекта
+- [[Environment Variables]] - Environment variables
+- [[Authentication Setup]] - Authentication setup
+- [[Testing Guide]] - Security testing
+- [[Project Structure]] - Project structure
 
 ---
 
-*Обновлено: 2025-10-10*
-
+*Updated: 2025-10-10*

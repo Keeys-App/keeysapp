@@ -73,7 +73,7 @@ def test_create_key_with_translation_logging(db_session: Session, test_user: Use
         db=db_session,
         project_public_id=str(test_project.public_id),
         key="test.key",
-        translations={"en": "Hello", "ru": "Привет"},
+        translations={"en": "Hello", "fr": "Bonjour"},
         user_id=test_user.id
     )
     
@@ -97,7 +97,7 @@ def test_create_key_with_translation_logging(db_session: Session, test_user: Use
     assert languages == {"en", "ru"}
     
     values = {log.new_value for log in translation_logs}
-    assert values == {"Hello", "Привет"}
+    assert values == {"Hello", "Bonjour"}
 
 
 def test_update_key_name_logging(db_session: Session, test_user: User, test_project: Project):

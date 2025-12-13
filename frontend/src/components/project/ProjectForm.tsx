@@ -451,7 +451,7 @@ export const ProjectForm: FC<ProjectFormProps> = ({
               <Select
                 value={status}
                 onValueChange={(newValue) => {
-                  // Защита от установки пустого значения
+                  // Protection against setting empty value
                   if (newValue && newValue.trim()) {
                     console.log("🔄 Status changed from", status, "to", newValue);
                     setStatus(newValue);

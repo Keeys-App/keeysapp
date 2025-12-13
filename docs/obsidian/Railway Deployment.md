@@ -1,35 +1,35 @@
 # Railway Deployment
 
-> [!info] Руководство по развертыванию на Railway
+> [!info] Railway deployment guide
 
-## Обзор
+## Overview
 
-Railway автоматически развертывает backend и frontend при push в git.
+Railway automatically deploys backend and frontend on git push.
 
-## 🚀 Быстрый деплой
+## 🚀 Quick Deploy
 
-### 1. Подготовка
+### 1. Preparation
 
-Убедитесь что есть:
-- Аккаунт на [Railway.app](https://railway.app)
-- Railway CLI установлен (опционально)
+Make sure you have:
+- Account on [Railway.app](https://railway.app)
+- Railway CLI installed (optional)
 
-### 2. Создание проекта
+### 2. Create Project
 
-1. Зайдите на [Railway Dashboard](https://railway.app/dashboard)
-2. Нажмите **"New Project"**
-3. Выберите **"Deploy from GitHub repo"**
-4. Выберите ваш репозиторий
+1. Go to [Railway Dashboard](https://railway.app/dashboard)
+2. Click **"New Project"**
+3. Select **"Deploy from GitHub repo"**
+4. Select your repository
 
-### 3. Настройка Backend
+### 3. Backend Setup
 
-Railway автоматически обнаружит `railway.json` и развернет backend.
+Railway will automatically detect `railway.json` and deploy backend.
 
-**Переменные окружения (устанавливаются автоматически):**
+**Environment variables (set automatically):**
 - `DATABASE_URL` - Railway PostgreSQL
-- `PORT` - Порт для приложения
+- `PORT` - Application port
 
-**Дополнительные переменные (установите вручную):**
+**Additional variables (set manually):**
 ```env
 SECRET_KEY=your-production-secret-key-here
 ALGORITHM=HS256
@@ -37,17 +37,17 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 ```
 
 > [!warning] SECRET_KEY
-> Сгенерируйте безопасный ключ для продакшена!
+> Generate secure key for production!
 > ```python
 > import secrets
 > print(secrets.token_urlsafe(32))
 > ```
 
-### 4. Настройка Frontend
+### 4. Frontend Setup
 
-1. Добавьте новый сервис в проекте
-2. Выберите папку `frontend`
-3. Установите переменные:
+1. Add new service in project
+2. Select `frontend` folder
+3. Set variables:
 
 ```env
 VITE_API_URL=https://your-backend-url.railway.app
@@ -55,16 +55,16 @@ VITE_API_URL=https://your-backend-url.railway.app
 
 ### 5. PostgreSQL Database
 
-Railway может автоматически создать PostgreSQL:
+Railway can automatically create PostgreSQL:
 
-1. В проекте нажмите **"New"** → **"Database"** → **"PostgreSQL"**
-2. Railway автоматически свяжет с backend (установит `DATABASE_URL`)
+1. In project click **"New"** → **"Database"** → **"PostgreSQL"**
+2. Railway will automatically link with backend (set `DATABASE_URL`)
 
-## 🔄 Миграции на Railway
+## 🔄 Migrations on Railway
 
-### Автоматические миграции
+### Automatic Migrations
 
-Миграции запускаются **автоматически** при старте приложения!
+Migrations run **automatically** on application startup!
 
 ```python
 # main.py
@@ -72,35 +72,35 @@ Railway может автоматически создать PostgreSQL:
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     
-    # Автоматические миграции
+    # Automatic migrations
     from migrations.auto_migrate import run_all_migrations
     run_all_migrations()
     
     yield
 ```
 
-**Что происходит:**
-1. Railway запускает `python main.py`
-2. При старте проверяются нужные миграции
-3. Если `public_id` колонки нет - она добавляется
-4. Генерируются UUID для существующих пользователей
-5. Приложение запускается
+**What happens:**
+1. Railway runs `python main.py`
+2. On startup checks for needed migrations
+3. If `public_id` column missing - it's added
+4. UUIDs generated for existing users
+5. Application starts
 
-**Преимущества:**
-- ✅ Не нужно ничего делать вручную
-- ✅ Безопасно - проверяет перед запуском
-- ✅ Идемпотентно - можно запускать много раз
-- ✅ Работает при каждом деплое
+**Benefits:**
+- ✅ No manual action needed
+- ✅ Safe - checks before running
+- ✅ Idempotent - can run multiple times
+- ✅ Works on every deploy
 
-### Ручной запуск миграций
+### Manual Migration Run
 
-Если нужно запустить миграцию вручную на Railway:
+If you need to run migration manually on Railway:
 
 ```bash
-# Через Railway CLI
+# Via Railway CLI
 railway run python migrations/migrate_add_public_id.py
 
-# Или через Railway Shell
+# Or via Railway Shell
 railway shell
 source venv/bin/activate
 python migrations/migrate_add_public_id.py
@@ -140,14 +140,14 @@ python migrations/migrate_add_public_id.py
 
 ## 🔧 Troubleshooting
 
-### Миграция не запустилась
+### Migration didn't run
 
-**Проверьте логи:**
+**Check logs:**
 ```bash
 railway logs
 ```
 
-**Ищите:**
+**Look for:**
 ```
 🔄 Checking for pending migrations...
 ✅ Migration: public_id column added successfully
@@ -155,26 +155,26 @@ railway logs
 
 ### Database connection failed
 
-**Проверьте:**
-1. PostgreSQL сервис создан и запущен
-2. `DATABASE_URL` установлена автоматически Railway
-3. Backend и Database в одном проекте
+**Check:**
+1. PostgreSQL service created and running
+2. `DATABASE_URL` set automatically by Railway
+3. Backend and Database in same project
 
-### Миграция упала
+### Migration crashed
 
-**Решение:**
-1. Проверьте логи: `railway logs`
-2. Попробуйте ручной запуск через Railway Shell
-3. В крайнем случае - пересоздайте таблицы (удалит данные):
+**Solution:**
+1. Check logs: `railway logs`
+2. Try manual run via Railway Shell
+3. As last resort - recreate tables (will delete data):
 
 ```bash
 railway shell
 python migrations/recreate_tables.py
 ```
 
-## 🔐 Безопасность на Production
+## 🔐 Production Security
 
-### Обязательные настройки
+### Required Settings
 
 ```env
 # Railway Environment Variables
@@ -187,16 +187,16 @@ ENVIRONMENT=production
 DEBUG=False
 ```
 
-### CORS настройка
+### CORS Setup
 
-Обновите `main.py` для production:
+Update `main.py` for production:
 
 ```python
 # Development
 if settings.environment == "development":
     allow_origins = ["*"]
 else:
-    # Production - только ваши домены
+    # Production - only your domains
     allow_origins = [
         "https://yourdomain.com",
         "https://www.yourdomain.com",
@@ -212,11 +212,11 @@ app.add_middleware(
 )
 ```
 
-## 📊 Мониторинг миграций
+## 📊 Migration Monitoring
 
-### Логи миграций
+### Migration Logs
 
-Railway автоматически логирует:
+Railway automatically logs:
 
 ```
 INFO: Application startup
@@ -227,7 +227,7 @@ Checking migration: add_public_id
 INFO: Application startup complete
 ```
 
-### При первом деплое
+### On First Deploy
 
 ```
 🔄 Migration: Adding public_id column to users table
@@ -238,63 +238,63 @@ INFO: Application startup complete
 
 ## 🎯 Best Practices
 
-1. **Автоматические миграции** - Используйте `auto_migrate.py` (уже настроено)
-2. **Идемпотентность** - Миграции безопасно запускать много раз
-3. **Логирование** - Проверяйте логи Railway после деплоя
-4. **Backup** - Railway делает автоматические backup
-5. **Rollback** - Имейте план отката в git
+1. **Automatic migrations** - Use `auto_migrate.py` (already configured)
+2. **Idempotency** - Migrations safe to run multiple times
+3. **Logging** - Check Railway logs after deploy
+4. **Backup** - Railway makes automatic backups
+5. **Rollback** - Have rollback plan in git
 
-## 🔄 Процесс деплоя
+## 🔄 Deploy Process
 
 ```
 1. git push
    ↓
-2. Railway обнаруживает изменения
+2. Railway detects changes
    ↓
-3. Railway собирает приложение
+3. Railway builds application
    ↓
-4. Запускается main.py
+4. Starts main.py
    ↓
-5. Создаются таблицы (если нужно)
+5. Creates tables (if needed)
    ↓
-6. Запускаются миграции (автоматически)
+6. Runs migrations (automatically)
    ↓
-7. Приложение готово ✅
+7. Application ready ✅
 ```
 
 ## 📱 Railway CLI
 
-### Установка
+### Installation
 
 ```bash
 npm install -g @railway/cli
 ```
 
-### Команды
+### Commands
 
 ```bash
-# Логин
+# Login
 railway login
 
-# Подключиться к проекту
+# Link to project
 railway link
 
-# Посмотреть логи
+# View logs
 railway logs
 
-# Запустить команду
+# Run command
 railway run python migrations/migrate_add_public_id.py
 
-# Открыть shell
+# Open shell
 railway shell
 
-# Посмотреть переменные
+# View variables
 railway variables
 ```
 
-## 🆕 Добавление новой миграции
+## 🆕 Adding New Migration
 
-### 1. Создайте скрипт
+### 1. Create Script
 
 ```python
 # migrations/migrate_add_new_field.py
@@ -308,18 +308,18 @@ def migrate_add_new_field():
     return True
 ```
 
-### 2. Добавьте в auto_migrate.py
+### 2. Add to auto_migrate.py
 
 ```python
 def run_all_migrations():
     migrations = [
         ("add_public_id", migrate_add_public_id_if_needed),
-        ("add_new_field", migrate_add_new_field),  # Новая миграция
+        ("add_new_field", migrate_add_new_field),  # New migration
     ]
     # ...
 ```
 
-### 3. Commit и push
+### 3. Commit and Push
 
 ```bash
 git add .
@@ -327,21 +327,20 @@ git commit -m "Add migration for new_field"
 git push
 ```
 
-Railway автоматически запустит новую миграцию при деплое!
+Railway will automatically run new migration on deploy!
 
-## 🔗 Полезные ссылки
+## 🔗 Useful Links
 
 - [Railway Docs](https://docs.railway.app/)
 - [Railway PostgreSQL](https://docs.railway.app/databases/postgresql)
 - [Environment Variables](https://docs.railway.app/develop/variables)
 
-## Связанные документы
+## Related Documents
 
-- [[Quick Start]] - Локальная разработка
-- [[Security Best Practices]] - Безопасность
-- [[Project Structure]] - Структура проекта
+- [[Quick Start]] - Local development
+- [[Security Best Practices]] - Security
+- [[Project Structure]] - Project structure
 
 ---
 
-*Обновлено: 2025-10-09*
-
+*Updated: 2025-10-09*

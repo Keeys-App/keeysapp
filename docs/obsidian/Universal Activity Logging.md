@@ -2,15 +2,15 @@
 
 ## Overview
 
-Универсальная система логирования активности для отслеживания всех изменений в проекте: действия на уровне проекта, изменения ключей, переводы и управление командой.
+Universal activity logging system for tracking all project changes: project-level actions, key changes, translations and team management.
 
 ### Key Features
 
-- ✅ **Единая таблица** `activity_logs` для всех типов активности
-- ✅ **SET NULL** foreign keys - история сохраняется даже после удаления сущностей
-- ✅ **Project Activity** - общая лента активности проекта
-- ✅ **Расширяемость** - легко добавлять новые типы действий
-- ✅ **Backward Compatibility** - старый API `keyLogs` продолжает работать
+- ✅ **Single table** `activity_logs` for all activity types
+- ✅ **SET NULL** foreign keys - history preserved even after entity deletion
+- ✅ **Project Activity** - unified project activity feed
+- ✅ **Extensibility** - easy to add new action types
+- ✅ **Backward Compatibility** - old API `keyLogs` continues working
 
 ## Database Schema
 
@@ -22,7 +22,7 @@ class ActivityLog(Base):
     
     id = Column(Integer, primary_key=True)
     
-    # Entity references (nullable для сохранения истории)
+    # Entity references (nullable for history preservation)
     project_id = Column(Integer, ForeignKey("projects.id", ondelete="SET NULL"), nullable=True)
     key_id = Column(Integer, ForeignKey("keys.id", ondelete="SET NULL"), nullable=True)
     
@@ -87,20 +87,20 @@ class ActionType(enum.Enum):
 
 ### Automatic Migration
 
-Миграция выполняется автоматически при старте приложения:
+Migration runs automatically on application startup:
 
 ```bash
 cd backend
 python main.py
 ```
 
-Миграция:
-1. Переименовывает `key_logs` → `activity_logs`
-2. Добавляет новые поля: `project_id`, `affected_user_id`, `extra_data`
-3. Изменяет CASCADE → SET NULL для foreign keys
-4. Обновляет enum типы
-5. Добавляет новые индексы
-6. Мигрирует существующие данные
+Migration:
+1. Renames `key_logs` → `activity_logs`
+2. Adds new fields: `project_id`, `affected_user_id`, `extra_data`
+3. Changes CASCADE → SET NULL for foreign keys
+4. Updates enum types
+5. Adds new indexes
+6. Migrates existing data
 
 ### Manual Migration
 
@@ -306,7 +306,7 @@ function ProjectActivity({ projectId }: { projectId: string }) {
   });
   
   if (loading) {
-    return return <div>Loading...</div>;
+    return <div>Loading...</div>;
   }
   
   return (
@@ -527,4 +527,3 @@ See `backend/tests/test_activity_logging.py` for comprehensive tests (TODO).
 - [Key Logging](Key%20Logging.md) - Original key-only logging system
 - [Database Schema](Project%20Structure.md)
 - [Security Best Practices](Security%20Best%20Practices.md)
-

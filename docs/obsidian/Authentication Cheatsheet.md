@@ -1,8 +1,8 @@
 # Authentication Cheatsheet
 
-> [!tip] Быстрая справка по системе авторизации
+> [!tip] Quick reference for authentication system
 
-## 🚀 Быстрые команды
+## 🚀 Quick Commands
 
 ### Backend
 ```bash
@@ -17,24 +17,24 @@ cd frontend
 yarn dev
 ```
 
-## 📁 Ключевые файлы
+## 📁 Key Files
 
 ### Backend
 ```
 backend/app/
-├── models/user.py              # Модель User
-├── services/user_service.py    # Операции с пользователями
-├── schemas/auth.py             # GraphQL auth типы
-├── schemas/graphql.py          # Корневая схема
+├── models/user.py              # User model
+├── services/user_service.py    # User operations
+├── schemas/auth.py             # GraphQL auth types
+├── schemas/graphql.py          # Root schema
 └── core/
-    ├── security.py             # JWT утилиты
-    └── config.py               # Настройки
+    ├── security.py             # JWT utilities
+    └── config.py               # Settings
 ```
 
 ### Frontend
 ```
 frontend/src/
-├── contexts/AuthContext.tsx    # Состояние авторизации
+├── contexts/AuthContext.tsx    # Auth state
 ├── components/
 │   ├── LoginForm.tsx
 │   ├── RegisterForm.tsx
@@ -43,12 +43,12 @@ frontend/src/
 │   ├── AuthPage.tsx
 │   └── DashboardPage.tsx
 ├── graphql/auth.ts             # Auth queries
-└── lib/apollo.ts               # Apollo с auth
+└── lib/apollo.ts               # Apollo with auth
 ```
 
 ## 🔑 GraphQL API
 
-### Регистрация
+### Registration
 ```graphql
 mutation {
   register(input: {
@@ -62,7 +62,7 @@ mutation {
 }
 ```
 
-### Вход
+### Login
 ```graphql
 mutation {
   login(input: {
@@ -75,7 +75,7 @@ mutation {
 }
 ```
 
-### Текущий пользователь
+### Current User
 ```graphql
 query {
   me {
@@ -87,7 +87,7 @@ query {
 
 ## 🎨 Frontend
 
-### Использование Auth Context
+### Using Auth Context
 ```tsx
 import { useAuth } from '../contexts/AuthContext';
 
@@ -102,7 +102,7 @@ function Component() {
 }
 ```
 
-### Защита маршрутов
+### Route Protection
 ```tsx
 <Route
   path="/protected"
@@ -114,7 +114,7 @@ function Component() {
 />
 ```
 
-## 🔐 Переменные окружения
+## 🔐 Environment Variables
 
 ### Backend (.env)
 ```env
@@ -129,53 +129,53 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 VITE_API_URL=http://localhost:8000
 ```
 
-## 🧪 Тестирование
+## 🧪 Testing
 
 ```bash
-# Все тесты
+# All tests
 pytest
 
-# С подробным выводом
+# With verbose output
 pytest -v
 
-# С coverage
+# With coverage
 pytest --cov=app --cov-report=html
 
-# Конкретный файл
+# Specific file
 pytest tests/test_models.py
 
-# Конкретный тест
+# Specific test
 pytest tests/test_models.py::TestUserModel::test_password_hashing
 ```
 
-### Чек-лист тестирования
+### Testing Checklist
 
-- [ ] Регистрация нового пользователя
-- [ ] Вход с учетными данными
-- [ ] Доступ к защищенному маршруту при авторизации
-- [ ] Редирект на /auth когда не авторизован
-- [ ] Функция logout
-- [ ] Токен сохраняется после обновления страницы
-- [ ] GraphQL query `me` работает с токеном
-- [ ] Неверные учетные данные показывают ошибку
-- [ ] Валидация пароля (мин 6 символов)
-- [ ] Валидация email
+- [ ] Register new user
+- [ ] Login with credentials
+- [ ] Access protected route when authenticated
+- [ ] Redirect to /auth when not authenticated
+- [ ] Logout function
+- [ ] Token persists after page refresh
+- [ ] GraphQL query `me` works with token
+- [ ] Wrong credentials show error
+- [ ] Password validation (min 6 characters)
+- [ ] Email validation
 
-## 🛠️ Частые задачи
+## 🛠️ Common Tasks
 
-### Добавить защищенный query
+### Add Protected Query
 ```python
 # backend/app/schemas/graphql.py
 @strawberry.field
 def my_protected_query(self, info: Info) -> str:
-    # Получить пользователя из контекста
+    # Get user from context
     request = info.context.get("request")
     auth_header = request.headers.get("Authorization")
     # ... verify token ...
     return "Protected data"
 ```
 
-### Добавить защищенный маршрут
+### Add Protected Route
 ```tsx
 // frontend/src/App.tsx
 <Route
@@ -188,47 +188,47 @@ def my_protected_query(self, info: Info) -> str:
 />
 ```
 
-### Проверить права администратора
+### Check Admin Rights
 ```tsx
 const { user } = useAuth();
 
 if (user?.isSuperuser) {
-  // Показать функции администратора
+  // Show admin features
 }
 ```
 
-## 📝 Поля User Model
+## 📝 User Model Fields
 
-| Поле | Тип | Описание |
+| Field | Type | Description |
 |------|-----|----------|
 | `id` | Integer | Primary key |
 | `email` | String | Unique, required |
 | `username` | String | Unique, required |
-| `hashed_password` | String | Никогда не возвращается в API |
+| `hashed_password` | String | Never returned in API |
 | `is_active` | Boolean | Default: true |
 | `is_superuser` | Boolean | Default: false |
-| `created_at` | DateTime | Автоматически |
-| `updated_at` | DateTime | Автоматически |
+| `created_at` | DateTime | Automatic |
+| `updated_at` | DateTime | Automatic |
 
-## 🔄 Поток авторизации
+## 🔄 Auth Flow
 
-1. **Register/Login** → Получить JWT токен
-2. **Сохранить токен** → localStorage (автоматически)
-3. **Делать запросы** → Токен добавляется в headers (автоматически)
-4. **Доступ к защищенным маршрутам** → Токен верифицируется
-5. **Logout** → Токен удаляется из localStorage
+1. **Register/Login** → Get JWT token
+2. **Save token** → localStorage (automatic)
+3. **Make requests** → Token added to headers (automatic)
+4. **Access protected routes** → Token verified
+5. **Logout** → Token removed from localStorage
 
 ## 🚨 Troubleshooting
 
-| Проблема | Решение |
+| Problem | Solution |
 |----------|---------|
-| "Invalid credentials" | Проверьте email/password, убедитесь что пользователь существует |
-| "Unauthorized" | Проверьте наличие токена в localStorage, может истек |
-| Redirect loop | Очистите localStorage: `localStorage.clear()` |
-| CORS errors | Backend разрешает все источники в dev режиме |
-| Токен не работает | Токен истекает через 30 минут, войдите заново |
+| "Invalid credentials" | Check email/password, make sure user exists |
+| "Unauthorized" | Check token presence in localStorage, may be expired |
+| Redirect loop | Clear localStorage: `localStorage.clear()` |
+| CORS errors | Backend allows all origins in dev mode |
+| Token doesn't work | Token expires after 30 minutes, login again |
 
-## 📊 Статистика тестов
+## 📊 Test Statistics
 
 ```
 ✅ 28 passed tests
@@ -239,13 +239,12 @@ if (user?.isSuperuser) {
 Coverage: ~95%
 ```
 
-## 🔗 Связанные документы
+## 🔗 Related Documents
 
-- [[Authentication Setup]] - Полная документация
-- [[Testing Guide]] - Руководство по тестированию
-- [[Quick Start]] - Быстрый старт
+- [[Authentication Setup]] - Complete documentation
+- [[Testing Guide]] - Testing guide
+- [[Quick Start]] - Quick start
 
 ---
 
-*Обновлено: 2025-10-09*
-
+*Updated: 2025-10-09*

@@ -1,17 +1,17 @@
 # Testing Guide
 
-> [!check] Руководство по тестированию системы авторизации
+> [!check] Authentication system testing guide
 
-## Обзор
+## Overview
 
-Комплексный набор тестов для системы авторизации.
+Comprehensive test suite for authentication system.
 
-**Статистика:**
-- ✅ 28 тестов
-- ✅ Покрытие ~95%
-- ✅ Время выполнения ~6 секунд
+**Statistics:**
+- ✅ 28 tests
+- ✅ Coverage ~95%
+- ✅ Execution time ~6 seconds
 
-## Установка
+## Installation
 
 ```bash
 cd backend
@@ -19,114 +19,114 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Зависимости для тестирования:
-- `pytest` - Фреймворк тестирования
-- `pytest-cov` - Покрытие кода
-- `pytest-asyncio` - Поддержка async
+Testing dependencies:
+- `pytest` - Testing framework
+- `pytest-cov` - Code coverage
+- `pytest-asyncio` - Async support
 
-## Запуск тестов
+## Running Tests
 
-### Все тесты
+### All Tests
 ```bash
 pytest
 ```
 
-### С подробным выводом
+### With Verbose Output
 ```bash
 pytest -v
 ```
 
-### С покрытием кода
+### With Code Coverage
 ```bash
 pytest --cov=app --cov-report=html
 ```
 
-HTML отчет будет в `htmlcov/index.html`
+HTML report will be in `htmlcov/index.html`
 
-### Конкретный файл
+### Specific File
 ```bash
 pytest tests/test_models.py
 ```
 
-### Конкретный тест
+### Specific Test
 ```bash
 pytest tests/test_models.py::TestUserModel::test_password_hashing
 ```
 
-### Только быстрые тесты
+### Only Fast Tests
 ```bash
 pytest -m "not slow"
 ```
 
-### Скрипт с покрытием
+### Coverage Script
 ```bash
 ./run_tests.sh
 ```
 
-## Структура тестов
+## Test Structure
 
 ```
 tests/
-├── __init__.py              # Инициализация пакета
-├── conftest.py              # Fixtures и конфигурация pytest
-├── test_models.py           # Тесты модели User
-├── test_services.py         # Тесты UserService
-├── test_security.py         # Тесты JWT и безопасности
-└── README.md                # Документация тестов
+├── __init__.py              # Package initialization
+├── conftest.py              # Fixtures and pytest configuration
+├── test_models.py           # User model tests
+├── test_services.py         # UserService tests
+├── test_security.py         # JWT and security tests
+└── README.md                # Test documentation
 ```
 
-## Покрытие тестов
+## Test Coverage
 
-### test_models.py (10 тестов)
+### test_models.py (10 tests)
 
-#### Создание и управление
-- ✅ `test_user_creation` - Создание пользователя
-- ✅ `test_user_unique_email` - Уникальность email
-- ✅ `test_user_unique_username` - Уникальность username
+#### Creation and Management
+- ✅ `test_user_creation` - User creation
+- ✅ `test_user_unique_email` - Email uniqueness
+- ✅ `test_user_unique_username` - Username uniqueness
 
-#### Пароли
-- ✅ `test_password_hashing` - Хэширование паролей
-- ✅ `test_password_verification_success` - Успешная верификация
-- ✅ `test_password_verification_failure` - Неуспешная верификация
-- ✅ `test_long_password_truncation` - Обрезание до 72 байт
-- ✅ `test_password_with_special_characters` - Спецсимволы
-- ✅ `test_unicode_password` - Unicode пароли
-- ✅ `test_empty_password` - Пустые пароли
+#### Passwords
+- ✅ `test_password_hashing` - Password hashing
+- ✅ `test_password_verification_success` - Successful verification
+- ✅ `test_password_verification_failure` - Failed verification
+- ✅ `test_long_password_truncation` - Truncation to 72 bytes
+- ✅ `test_password_with_special_characters` - Special characters
+- ✅ `test_unicode_password` - Unicode passwords
+- ✅ `test_empty_password` - Empty passwords
 
-### test_services.py (11 тестов)
+### test_services.py (11 tests)
 
-#### CRUD операции
-- ✅ `test_create_user` - Создание через сервис
-- ✅ `test_get_user_by_email` - Поиск по email
-- ✅ `test_get_user_by_email_not_found` - Пользователь не найден
-- ✅ `test_get_user_by_username` - Поиск по username
-- ✅ `test_get_user_by_username_not_found` - Username не найден
-- ✅ `test_get_user_by_id` - Поиск по ID
-- ✅ `test_get_user_by_id_not_found` - ID не найден
+#### CRUD Operations
+- ✅ `test_create_user` - Creation via service
+- ✅ `test_get_user_by_email` - Search by email
+- ✅ `test_get_user_by_email_not_found` - User not found
+- ✅ `test_get_user_by_username` - Search by username
+- ✅ `test_get_user_by_username_not_found` - Username not found
+- ✅ `test_get_user_by_id` - Search by ID
+- ✅ `test_get_user_by_id_not_found` - ID not found
 
-#### Аутентификация
-- ✅ `test_authenticate_user_success` - Успешная аутентификация
-- ✅ `test_authenticate_user_wrong_password` - Неверный пароль
-- ✅ `test_authenticate_user_wrong_email` - Неверный email
-- ✅ `test_authenticate_inactive_user` - Неактивный пользователь
+#### Authentication
+- ✅ `test_authenticate_user_success` - Successful authentication
+- ✅ `test_authenticate_user_wrong_password` - Wrong password
+- ✅ `test_authenticate_user_wrong_email` - Wrong email
+- ✅ `test_authenticate_inactive_user` - Inactive user
 
-### test_security.py (7 тестов)
+### test_security.py (7 tests)
 
-#### JWT токены
-- ✅ `test_create_access_token` - Создание токена
-- ✅ `test_create_access_token_with_expiration` - Кастомное истечение
-- ✅ `test_decode_valid_token` - Декодирование валидного токена
-- ✅ `test_decode_invalid_token` - Невалидный токен
-- ✅ `test_decode_expired_token` - Истекший токен
-- ✅ `test_token_contains_expiration` - Наличие expiration
-- ✅ `test_different_tokens_for_same_data` - Разные токены для одних данных
+#### JWT Tokens
+- ✅ `test_create_access_token` - Token creation
+- ✅ `test_create_access_token_with_expiration` - Custom expiration
+- ✅ `test_decode_valid_token` - Valid token decoding
+- ✅ `test_decode_invalid_token` - Invalid token
+- ✅ `test_decode_expired_token` - Expired token
+- ✅ `test_token_contains_expiration` - Expiration presence
+- ✅ `test_different_tokens_for_same_data` - Different tokens for same data
 
 ## Fixtures
 
 ### Database Fixtures
 
 #### `db_engine`
-Создает тестовый движок БД (SQLite in-memory).
+Creates test DB engine (SQLite in-memory).
 
 ```python
 @pytest.fixture(scope="function")
@@ -138,7 +138,7 @@ def db_engine():
 ```
 
 #### `db_session`
-Создает тестовую сессию БД.
+Creates test DB session.
 
 ```python
 @pytest.fixture(scope="function")
@@ -152,7 +152,7 @@ def db_session(db_engine):
 ### Data Fixtures
 
 #### `sample_user_data`
-Образцовые данные пользователя для тестов.
+Sample user data for tests.
 
 ```python
 @pytest.fixture
@@ -165,7 +165,7 @@ def sample_user_data():
 ```
 
 #### `created_user`
-Созданный пользователь в БД.
+Created user in DB.
 
 ```python
 @pytest.fixture
@@ -181,27 +181,27 @@ def created_user(db_session, sample_user_data):
     return user
 ```
 
-## Написание новых тестов
+## Writing New Tests
 
-### Шаблон теста
+### Test Template
 
 ```python
 def test_feature_name(db_session, sample_user_data):
     """
-    Описание того, что тестирует этот тест.
+    Description of what this test checks.
     """
-    # Arrange - подготовка данных
+    # Arrange - data preparation
     user_data = sample_user_data
     
-    # Act - выполнение действия
+    # Act - execute action
     result = some_function(user_data)
     
-    # Assert - проверка результата
+    # Assert - check result
     assert result is not None
     assert result.email == user_data["email"]
 ```
 
-### Пример теста модели
+### Model Test Example
 
 ```python
 def test_user_creation(db_session, sample_user_data):
@@ -222,7 +222,7 @@ def test_user_creation(db_session, sample_user_data):
     assert user.is_active is True
 ```
 
-### Пример теста сервиса
+### Service Test Example
 
 ```python
 def test_authenticate_user_success(db_session, created_user, sample_user_data):
@@ -239,29 +239,29 @@ def test_authenticate_user_success(db_session, created_user, sample_user_data):
     assert user.id == created_user.id
 ```
 
-## Соглашения
+## Conventions
 
-### Именование
-- Файлы: `test_<feature>.py`
-- Классы: `Test<Feature>`
-- Методы: `test_<action>_<expected_result>`
+### Naming
+- Files: `test_<feature>.py`
+- Classes: `Test<Feature>`
+- Methods: `test_<action>_<expected_result>`
 
-### Структура теста
-1. **Docstring** - описание теста
-2. **Arrange** - подготовка данных
-3. **Act** - выполнение действия
-4. **Assert** - проверка результата
+### Test Structure
+1. **Docstring** - test description
+2. **Arrange** - data preparation
+3. **Act** - execute action
+4. **Assert** - check result
 
-### Документация
-- Всегда добавляйте docstring
-- Опишите что тестируется
-- Укажите ожидаемый результат
+### Documentation
+- Always add docstring
+- Describe what is being tested
+- Specify expected result
 
 ## Continuous Integration
 
 ### Pre-commit
 
-Перед коммитом запускайте тесты:
+Before commit run tests:
 
 ```bash
 pytest
@@ -270,7 +270,7 @@ pytest
 ### CI/CD Pipeline
 
 ```yaml
-# Пример для GitHub Actions
+# Example for GitHub Actions
 - name: Run tests
   run: |
     cd backend
@@ -278,9 +278,9 @@ pytest
     pytest --cov=app --cov-report=xml
 ```
 
-## Покрытие кода
+## Code Coverage
 
-### Текущее покрытие
+### Current Coverage
 
 ```
 Name                                  Stmts   Miss  Cover
@@ -297,7 +297,7 @@ app/schemas/auth.py                      60      2    97%
 TOTAL                                   170      2    99%
 ```
 
-### Просмотр отчета
+### View Report
 
 ```bash
 pytest --cov=app --cov-report=html
@@ -306,52 +306,51 @@ open htmlcov/index.html
 
 ## Troubleshooting
 
-### Проблемы с БД
+### DB Problems
 
 ```python
-# Проблема: Таблица не создается
-# Решение: Убедитесь что импортирован User в conftest.py
-from app.models.user import User  # Важно!
+# Problem: Table not created
+# Solution: Make sure User is imported in conftest.py
+from app.models.user import User  # Important!
 ```
 
-### Проблемы с fixtures
+### Fixture Problems
 
 ```python
-# Проблема: Fixture не найден
-# Решение: Проверьте что conftest.py в правильной папке
+# Problem: Fixture not found
+# Solution: Check that conftest.py is in correct folder
 tests/
-├── conftest.py  # Должен быть здесь
+├── conftest.py  # Should be here
 └── test_models.py
 ```
 
-### Медленные тесты
+### Slow Tests
 
 ```python
-# Пометить медленный тест
+# Mark slow test
 @pytest.mark.slow
 def test_slow_operation():
-    # Долгая операция
+    # Long operation
     pass
 
-# Пропустить медленные тесты
+# Skip slow tests
 pytest -m "not slow"
 ```
 
 ## Best Practices
 
-1. **Изоляция** - Каждый тест независим
-2. **Читаемость** - Понятные названия и docstrings
-3. **Покрытие** - Стремитесь к >90%
-4. **Скорость** - Тесты должны быть быстрыми
-5. **Актуальность** - Обновляйте при изменении кода
+1. **Isolation** - Each test is independent
+2. **Readability** - Clear names and docstrings
+3. **Coverage** - Aim for >90%
+4. **Speed** - Tests should be fast
+5. **Relevance** - Update when code changes
 
-## Связанные документы
+## Related Documents
 
-- [[Authentication Setup]] - Система авторизации
-- [[Authentication Cheatsheet]] - Быстрая справка
-- [[Quick Start]] - Быстрый старт
+- [[Authentication Setup]] - Authentication system
+- [[Authentication Cheatsheet]] - Quick reference
+- [[Quick Start]] - Quick start
 
 ---
 
-*Обновлено: 2025-10-09*
-
+*Updated: 2025-10-09*

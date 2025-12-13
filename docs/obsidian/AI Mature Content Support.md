@@ -91,15 +91,15 @@ After:
 Before:
 ```
 Text: "Go fuck yourself"
-Context: "Добавляй всегда в конце - пиздец"
-Result: ❌ "Иди на хуй" (context ignored)
+Context: "Always add at the end - damn"
+Result: ❌ "Go fuck yourself" (context ignored)
 ```
 
 After:
 ```
 Text: "Go fuck yourself"
-Context: "Добавляй всегда в конце - пиздец"
-Result: ✅ "Иди на хуй - пиздец" (context applied)
+Context: "Always add at the end - damn"
+Result: ✅ "Go fuck yourself - damn" (context applied)
 ```
 
 ## Related Documentation

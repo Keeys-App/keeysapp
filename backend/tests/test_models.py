@@ -86,7 +86,7 @@ class TestUserModel:
         """
         Test password with Unicode characters.
         """
-        password = "пароль123"  # Russian + numbers
+        password = "пароль123"  # Unicode characters + numbers
         hashed = User.get_password_hash(password)
 
         assert hashed is not None

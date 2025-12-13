@@ -1,24 +1,24 @@
 # Blocks
 
-Папка `blocks` содержит небольшие переиспользуемые UI-компоненты, которые можно использовать в разных частях приложения.
+The `blocks` folder contains small reusable UI components that can be used in different parts of the application.
 
-## Принципы
+## Principles
 
-- **Универсальность**: компоненты должны быть достаточно общими для использования в разных контекстах
-- **Небольшой размер**: это мелкие компоненты, не полноценные features
-- **Независимость**: минимальная зависимость от бизнес-логики
-- **Композиция**: легко комбинируются с другими компонентами
+- **Universality**: components should be general enough for use in different contexts
+- **Small size**: these are small components, not full features
+- **Independence**: minimal dependency on business logic
+- **Composition**: easily combined with other components
 
-## Когда использовать `blocks` vs `ui`
+## When to Use `blocks` vs `ui`
 
-- **`ui/`** - базовые UI-примитивы из Shadcn/ui (кнопки, инпуты, диалоги)
-- **`blocks/`** - специфичные для проекта переиспользуемые компоненты (статусы, badges с логикой, etc.)
+- **`ui/`** - basic UI primitives from Shadcn/ui (buttons, inputs, dialogs)
+- **`blocks/`** - project-specific reusable components (statuses, badges with logic, etc.)
 
-## Компоненты
+## Components
 
 ### ProjectStatus
 
-Компонент для отображения статуса проекта с иконкой и текстом.
+Component for displaying project status with icon and text.
 
 ```tsx
 import { ProjectStatus } from '@/components/blocks';
@@ -29,7 +29,7 @@ import { ProjectStatus } from '@/components/blocks';
 
 ### CheckboxCard
 
-Красивая карточка с чекбоксом, заголовком и описанием. При активации подсвечивается синим.
+Beautiful card with checkbox, title and description. Highlights blue when active.
 
 ```tsx
 import { CheckboxCard } from '@/components/blocks';
@@ -42,7 +42,7 @@ import { CheckboxCard } from '@/components/blocks';
   description="Enable plural forms for this key"
 />
 
-// С иконкой, purple темой и подсказкой при disabled (для AI функций)
+// With icon, purple theme and tooltip when disabled (for AI features)
 <CheckboxCard
   id="autopilot"
   checked={autopilot}
@@ -62,7 +62,7 @@ import { CheckboxCard } from '@/components/blocks';
 
 ### ColorPicker
 
-Компонент для выбора цвета из палитры с визуальной индикацией выбранного цвета.
+Component for selecting color from palette with visual indication of selected color.
 
 ```tsx
 import { ColorPicker } from '@/components/blocks';
@@ -75,14 +75,14 @@ import { ColorPicker } from '@/components/blocks';
 
 ### Combobox
 
-Универсальный компонент выпадающего списка с поиском. Можно использовать с любыми данными.
+Universal dropdown component with search. Can be used with any data.
 
 ```tsx
 import { Combobox } from '@/components/blocks';
 
 const options = [
   { value: 'en', label: 'English' },
-  { value: 'ru', label: 'Russian' },
+  { value: 'es', label: 'Spanish' },
 ];
 
 <Combobox 
@@ -96,7 +96,7 @@ const options = [
 
 ### LoadingState
 
-Универсальный компонент для отображения состояния загрузки.
+Universal component for displaying loading state.
 
 ```tsx
 import { LoadingState } from '@/components/blocks';
@@ -107,7 +107,7 @@ import { LoadingState } from '@/components/blocks';
 
 ### ErrorState
 
-Компонент для отображения ошибок с возможностью добавления кнопки возврата.
+Component for displaying errors with option to add back button.
 
 ```tsx
 import { ErrorState } from '@/components/blocks';
@@ -121,7 +121,7 @@ import { ErrorState } from '@/components/blocks';
 
 ### NotFoundState
 
-Компонент для отображения состояния "не найдено" с возможностью добавления кнопки возврата.
+Component for displaying "not found" state with option to add back button.
 
 ```tsx
 import { NotFoundState } from '@/components/blocks';
@@ -132,4 +132,3 @@ import { NotFoundState } from '@/components/blocks';
   backLabel="Back to Dashboard"
 />
 ```
-

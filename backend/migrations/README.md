@@ -1,10 +1,10 @@
-# Migrations / Миграции базы данных
+# Migrations / Database Migrations
 
-Скрипты для миграции схемы базы данных.
+Scripts for database schema migration.
 
-## Использование
+## Usage
 
-Все миграции запускаются из папки `backend`:
+All migrations run from `backend` folder:
 
 ```bash
 cd backend
@@ -12,103 +12,103 @@ source venv/bin/activate
 python migrations/<migration_name>.py
 ```
 
-## Доступные миграции
+## Available Migrations
 
 ### create_projects_tables.py
-Создает таблицы для модуля проектов.
+Creates tables for projects module.
 
 ```bash
 python migrations/create_projects_tables.py
 ```
 
-**Что делает:**
-1. Создает таблицу `projects` (id, public_id, name, description, languages, color, status, owner_id, timestamps)
-2. Создает таблицу `project_members` (id, project_id, user_id, role, created_at)
-3. Устанавливает foreign key constraints
+**What it does:**
+1. Creates `projects` table (id, public_id, name, description, languages, color, status, owner_id, timestamps)
+2. Creates `project_members` table (id, project_id, user_id, role, created_at)
+3. Sets up foreign key constraints
 
-**Когда использовать:**
-- При первой установке модуля проектов
-- Если таблицы существуют, предложит их пересоздать
+**When to use:**
+- On first installation of projects module
+- If tables exist, will offer to recreate them
 
-**⚠️ Внимание:** 
-- Пересоздание таблиц удалит все данные проектов!
+**⚠️ Warning:** 
+- Recreating tables will delete all project data!
 
 ### migrate_add_public_id.py
-Добавляет колонку `public_id` (UUID) в таблицу users.
+Adds `public_id` column (UUID) to users table.
 
 ```bash
 python migrations/migrate_add_public_id.py
 ```
 
-**Что делает:**
-1. Добавляет колонку `public_id` типа UUID
-2. Генерирует UUID для всех существующих пользователей
-3. Делает колонку NOT NULL
-4. Добавляет UNIQUE constraint
-5. Создает индекс для производительности
+**What it does:**
+1. Adds `public_id` column of UUID type
+2. Generates UUIDs for all existing users
+3. Makes column NOT NULL
+4. Adds UNIQUE constraint
+5. Creates index for performance
 
-**Когда использовать:**
-- При переходе с integer ID на UUID
-- Один раз после обновления кода
+**When to use:**
+- When transitioning from integer IDs to UUIDs
+- Once after code update
 
-**⚠️ Внимание:** 
-- Сделайте backup базы данных перед запуском!
-- Скрипт попросит подтверждение
+**⚠️ Warning:** 
+- Make database backup before running!
+- Script will ask for confirmation
 
 ### recreate_tables.py
-Удаляет и пересоздает все таблицы базы данных.
+Drops and recreates all database tables.
 
 ```bash
 python migrations/recreate_tables.py
 ```
 
-**⚠️ ОПАСНО:** Удаляет ВСЕ данные!
+**⚠️ DANGEROUS:** Deletes ALL data!
 
-**Что делает:**
-1. Удаляет все таблицы (`DROP TABLE`)
-2. Создает таблицы заново с актуальной схемой
+**What it does:**
+1. Drops all tables (`DROP TABLE`)
+2. Recreates tables with current schema
 
-**Когда использовать:**
-- В development окружении
-- Когда нужно полностью сбросить БД
-- При критических изменениях схемы
+**When to use:**
+- In development environment
+- When need to completely reset DB
+- For critical schema changes
 
-**Требуется подтверждение:** Нужно ввести `DELETE ALL DATA`
+**Requires confirmation:** Need to enter `DELETE ALL DATA`
 
 ### add_default_language.py
-Добавляет колонку `default_language` в таблицу projects.
+Adds `default_language` column to projects table.
 
 ```bash
 python migrations/add_default_language.py
 ```
 
-**Что делает:**
-1. Добавляет колонку `default_language` типа VARCHAR(10)
-2. Колонка nullable, может быть NULL для существующих проектов
+**What it does:**
+1. Adds `default_language` column of VARCHAR(10) type
+2. Column is nullable, can be NULL for existing projects
 
-**Когда использовать:**
-- При обновлении до версии с поддержкой дефолтного языка
-- Один раз после обновления кода
+**When to use:**
+- When upgrading to version with default language support
+- Once after code update
 
-## История миграций
+## Migration History
 
-| Дата | Миграция | Описание |
+| Date | Migration | Description |
 |------|----------|----------|
-| 2025-10-10 | add_default_language | Добавлен дефолтный язык для проектов |
-| 2025-10-09 | migrate_add_public_id | Добавлен UUID для безопасности |
-| 2025-10-09 | create_projects_tables | Создание модуля проектов |
+| 2025-10-10 | add_default_language | Added default language for projects |
+| 2025-10-09 | migrate_add_public_id | Added UUID for security |
+| 2025-10-09 | create_projects_tables | Created projects module |
 
 ## Best Practices
 
-1. **Backup** - Всегда делайте backup перед миграцией
-2. **Testing** - Тестируйте миграции на копии БД
-3. **Rollback** - Имейте план отката изменений
-4. **Documentation** - Документируйте каждую миграцию
-5. **Production** - Будьте особенно осторожны в продакшене
+1. **Backup** - Always backup before migration
+2. **Testing** - Test migrations on DB copy
+3. **Rollback** - Have rollback plan
+4. **Documentation** - Document each migration
+5. **Production** - Be especially careful in production
 
-## Будущее
+## Future
 
-В будущем рекомендуется перейти на Alembic для автоматических миграций:
+In future recommended to switch to Alembic for automatic migrations:
 
 ```bash
 pip install alembic
@@ -117,5 +117,4 @@ alembic init alembic
 
 ---
 
-*Для утилит управления смотрите папку `scripts/`*
-
+*For management utilities see `scripts/` folder*

@@ -1,97 +1,97 @@
 # Components Structure
 
-Компоненты организованы по модулям согласно принципам **Atomic Design** и правилам проекта.
+Components organized by modules according to **Atomic Design** principles and project rules.
 
-## Структура
+## Structure
 
 ```
 components/
-├── ui/              # Atoms - базовые Shadcn UI компоненты
-├── auth/            # Модуль аутентификации
-├── project/         # Модуль управления проектами
-└── layout/          # Layout компоненты
+├── ui/              # Atoms - basic Shadcn UI components
+├── auth/            # Authentication module
+├── project/         # Project management module
+└── layout/          # Layout components
 ```
 
-## Модули
+## Modules
 
 ### 🎨 UI Components (`ui/`)
-Базовые компоненты Shadcn UI. Устанавливаются через CLI:
+Basic Shadcn UI components. Installed via CLI:
 ```bash
 yarn dlx shadcn@latest add [component-name]
 ```
 
-**Компоненты:**
+**Components:**
 - button, card, input, label, textarea
 - select, dialog, alert, alert-dialog
 - avatar, badge, dropdown-menu
 
 ### 🔐 Auth Module (`auth/`)
-Компоненты для аутентификации пользователей.
+Components for user authentication.
 
-**Компоненты:**
-- `LoginForm` - форма входа
-- `RegisterForm` - форма регистрации
+**Components:**
+- `LoginForm` - login form
+- `RegisterForm` - registration form
 
-**Использование:**
+**Usage:**
 ```tsx
 import { LoginForm, RegisterForm } from '@/components/auth';
 ```
 
 ### 📁 Project Module (`project/`)
-Компоненты для управления проектами локализации.
+Components for localization project management.
 
-**Компоненты:**
-- `ProjectCard` - карточка проекта
-- `ProjectList` - список проектов с управлением
-- `ProjectForm` - универсальная форма для создания/редактирования проекта
-- `CreateProjectCard` - карточка для создания нового проекта
-- `EmptyProjects` - компонент пустого состояния
+**Components:**
+- `ProjectCard` - project card
+- `ProjectList` - project list with management
+- `ProjectForm` - universal form for creating/editing project
+- `CreateProjectCard` - create new project card
+- `EmptyProjects` - empty state component
 
-**Использование:**
+**Usage:**
 ```tsx
 import { ProjectList, ProjectCard, ProjectForm } from '@/components/project';
 
-// ProjectForm используется на страницах CreateProjectPage и EditProjectPage
+// ProjectForm used on CreateProjectPage and EditProjectPage
 <ProjectForm mode="create" />
 <ProjectForm mode="edit" project={project} />
 ```
 
 ### 🏗️ Layout Module (`layout/`)
-Компоненты структуры приложения.
+Application structure components.
 
-**Компоненты:**
-- `Layout` - основной layout с header и навигацией
-- `ProtectedRoute` - защищенный роут (требует авторизации)
+**Components:**
+- `Layout` - main layout with header and navigation
+- `ProtectedRoute` - protected route (requires authentication)
 
-**Использование:**
+**Usage:**
 ```tsx
 import { Layout, ProtectedRoute } from '@/components/layout';
 ```
 
-## Правила импорта
+## Import Rules
 
-### ✅ Правильно
+### ✅ Correct
 ```tsx
-// Используйте alias @ для импортов
+// Use @ alias for imports
 import { LoginForm } from '@/components/auth';
 import { ProjectList } from '@/components/project';
 import { Button } from '@/components/ui/button';
 ```
 
-### ❌ Неправильно
+### ❌ Wrong
 ```tsx
-// Не используйте относительные пути
+// Don't use relative paths
 import { LoginForm } from '../components/auth/LoginForm';
 import { ProjectList } from '../../components/project';
 ```
 
-## Добавление новых компонентов
+## Adding New Components
 
-1. **UI компоненты** - устанавливайте через Shadcn CLI
-2. **Модульные компоненты** - добавляйте в соответствующий модуль
-3. **Новый модуль** - создайте папку с `index.ts` для экспорта
+1. **UI components** - install via Shadcn CLI
+2. **Module components** - add to appropriate module
+3. **New module** - create folder with `index.ts` for exports
 
-### Пример создания нового модуля
+### Example Creating New Module
 
 ```
 components/
@@ -109,10 +109,9 @@ export { SettingsDialog } from './SettingsDialog';
 
 ## Best Practices
 
-- ✅ Используйте **TypeScript** для всех компонентов
-- ✅ Следуйте правилам **ESLint** и **Prettier**
-- ✅ Разделяйте большие компоненты на модули
-- ✅ Используйте **Shadcn UI** для базовых компонентов
-- ✅ Пишите комментарии на **английском**
-- ✅ Применяйте **Atomic Design** pattern
-
+- ✅ Use **TypeScript** for all components
+- ✅ Follow **ESLint** and **Prettier** rules
+- ✅ Split large components into modules
+- ✅ Use **Shadcn UI** for basic components
+- ✅ Write comments in **English**
+- ✅ Apply **Atomic Design** pattern

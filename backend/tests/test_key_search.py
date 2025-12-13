@@ -29,7 +29,7 @@ def test_project(db_session, test_user, test_team):
             "description": "Submit button text",
             "translations": {
                 "en": "Submit",
-                "ru": "Отправить",
+                "fr": "Soumettre",
                 "es": "Enviar"
             }
         },
@@ -38,7 +38,7 @@ def test_project(db_session, test_user, test_team):
             "description": "Cancel button text",
             "translations": {
                 "en": "Cancel",
-                "ru": "Отменить",
+                "fr": "Annuler",
                 "es": "Cancelar"
             }
         },
@@ -47,7 +47,7 @@ def test_project(db_session, test_user, test_team):
             "description": "Admin panel title",
             "translations": {
                 "en": "Administration",
-                "ru": "Администрирование",
+                "fr": "Administration",
                 "es": "Administración"
             }
         },
@@ -56,7 +56,7 @@ def test_project(db_session, test_user, test_team):
             "description": "User greeting message",
             "translations": {
                 "en": "Hello, user!",
-                "ru": "Привет, пользователь!",
+                "fr": "Bonjour, utilisateur!",
                 "es": "¡Hola, usuario!"
             }
         },
@@ -65,7 +65,7 @@ def test_project(db_session, test_user, test_team):
             "description": "Error message for not found",
             "translations": {
                 "en": "Not found",
-                "ru": "Не найдено",
+                "fr": "Non trouvé",
                 "es": "No encontrado"
             }
         }
@@ -134,7 +134,7 @@ class TestKeySearch:
             user_id=test_user.id,
             offset=0,
             limit=50,
-            search="Отправить"
+            search="Soumettre"
         )
         
         assert result is not None
@@ -290,7 +290,7 @@ class TestKeySearch:
             user_id=test_user.id,
             offset=0,
             limit=50,
-            search="Привет"
+            search="Bonjour"
         )
         
         assert result_en is not None

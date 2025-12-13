@@ -249,8 +249,8 @@ export const KeyAi: FC<KeyAiProps> = ({
               zero: "for count = 0",
               one: "for count = 1 (singular)",
               two: "for count = 2 (dual)",
-              few: "for count = 2-4 (e.g. '2 задачи' in Russian)",
-              many: "for count = 5-20 (e.g. '5 задач' in Russian)",
+              few: "for count = 2-4 (e.g. in some languages)",
+              many: "for count = 5-20 (e.g. in some languages)",
               other: "for other counts (default form)",
             };
 
@@ -458,9 +458,9 @@ export const KeyAi: FC<KeyAiProps> = ({
             `4. Adapt grammar for the specific plural form in ${currentLanguage.name}.`,
             ``,
             `Examples:`,
-            `- "{count} task" (one) → "{count} задача" (Russian one)`,
-            `- "{count} tasks" (other) → "{count} задач" (Russian many)`,
-            `- "{count} tasks" (few) → "{count} задачи" (Russian few)`,
+            `- "{count} task" (one) → "{count} tâche" (French one)`,
+            `- "{count} tasks" (other) → "{count} tâches" (French other)`,
+            `- "{count} tasks" (few) → "{count} tareas" (Spanish few)`,
             ``,
             `Return ONLY the translated text for "${editingPluralForm}" form.`,
           ].join("\n");

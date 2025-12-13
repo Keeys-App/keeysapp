@@ -1,22 +1,22 @@
 # Contexts
 
-React Context API для глобального состояния приложения.
+React Context API for global application state.
 
-## Структура
+## Structure
 
 ```
 contexts/
 ├── index.ts          # Barrel export
-├── AuthContext.tsx   # Контекст аутентификации
-└── ThemeContext.tsx  # Контекст темы (light/dark)
+├── AuthContext.tsx   # Authentication context
+└── ThemeContext.tsx  # Theme context (light/dark)
 ```
 
-## Контексты
+## Contexts
 
 ### 🔐 AuthContext
-Управление состоянием аутентификации пользователя.
+User authentication state management.
 
-**Провайдер:**
+**Provider:**
 ```tsx
 import { AuthProvider } from '@/contexts';
 
@@ -25,7 +25,7 @@ import { AuthProvider } from '@/contexts';
 </AuthProvider>
 ```
 
-**Хук:**
+**Hook:**
 ```tsx
 import { useAuth } from '@/contexts';
 
@@ -33,16 +33,16 @@ const { user, isAuthenticated, isLoading, login, logout } = useAuth();
 ```
 
 **API:**
-- `user` - данные текущего пользователя
-- `isAuthenticated` - статус авторизации
-- `isLoading` - загрузка при проверке токена
-- `login(token, user)` - авторизация пользователя
-- `logout()` - выход из системы
+- `user` - current user data
+- `isAuthenticated` - authentication status
+- `isLoading` - loading during token check
+- `login(token, user)` - authorize user
+- `logout()` - logout
 
 ### 🌗 ThemeContext
-Управление темной/светлой темой приложения.
+Application dark/light theme management.
 
-**Провайдер:**
+**Provider:**
 ```tsx
 import { ThemeProvider } from '@/contexts';
 
@@ -51,7 +51,7 @@ import { ThemeProvider } from '@/contexts';
 </ThemeProvider>
 ```
 
-**Хук:**
+**Hook:**
 ```tsx
 import { useTheme } from '@/contexts';
 
@@ -59,24 +59,24 @@ const { theme, toggleTheme } = useTheme();
 ```
 
 **API:**
-- `theme` - текущая тема ('light' | 'dark')
-- `toggleTheme()` - переключение темы
+- `theme` - current theme ('light' | 'dark')
+- `toggleTheme()` - toggle theme
 
-**Особенности:**
-- Сохранение темы в localStorage
-- Автоматическое определение системной темы
-- Применение класса `.dark` к `<html>`
+**Features:**
+- Save theme to localStorage
+- Automatic system theme detection
+- Apply `.dark` class to `<html>`
 
-## Использование
+## Usage
 
 ```tsx
-// Импорт провайдеров
+// Import providers
 import { AuthProvider, ThemeProvider } from '@/contexts';
 
-// Импорт хуков
+// Import hooks
 import { useAuth, useTheme } from '@/contexts';
 
-// Пример использования
+// Usage example
 function App() {
   return (
     <ThemeProvider>
@@ -90,8 +90,7 @@ function App() {
 
 ## Best Practices
 
-- ✅ Используйте контексты для глобального состояния
-- ✅ Локальное состояние держите в компонентах
-- ✅ Создавайте custom хуки для доступа к контекстам
-- ✅ Обрабатывайте ошибки при использовании вне Provider
-
+- ✅ Use contexts for global state
+- ✅ Keep local state in components
+- ✅ Create custom hooks for context access
+- ✅ Handle errors when used outside Provider

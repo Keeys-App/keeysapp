@@ -58,7 +58,7 @@ async def create_key(client, project_id: str) -> str:
             "projectId": project_id,
             "key": f"test.key.{unique_id}",
             "description": "Test key",
-            "translations": {"en": "Test value", "ru": "Тест"}
+            "translations": {"en": "Test value", "es": "Valor de prueba"}
         }
     })
     return result.data["createKey"]["id"]

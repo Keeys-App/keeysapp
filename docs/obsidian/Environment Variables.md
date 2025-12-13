@@ -1,169 +1,169 @@
 # Environment Variables
 
-> [!info] Полное описание всех переменных окружения проекта
+> [!info] Complete description of all project environment variables
 
-## 📋 Обзор
+## 📋 Overview
 
-Все переменные окружения хранятся в файле `.env` в корне папки `backend/`. Используйте `backend/env.example` как шаблон.
+All environment variables are stored in `.env` file in `backend/` root. Use `backend/env.example` as template.
 
-## 🗄️ База данных
+## 🗄️ Database
 
 ### DATABASE_URL
 
-**Описание:** URL подключения к PostgreSQL базе данных
+**Description:** PostgreSQL database connection URL
 
-**Формат:** `postgresql://username:password@host:port/database_name`
+**Format:** `postgresql://username:password@host:port/database_name`
 
-**Примеры:**
+**Examples:**
 ```env
-# Локальная разработка
+# Local development
 DATABASE_URL=postgresql://locales_user:locales_password@localhost:5432/locales_db
 
-# Railway (автоматически)
+# Railway (automatic)
 DATABASE_URL=postgresql://postgres:password@containers-us-west-123.railway.app:5432/railway
 
 # Docker
 DATABASE_URL=postgresql://postgres:postgres@db:5432/locales
 ```
 
-**Обязательная:** ✅ Да
+**Required:** ✅ Yes
 
-**Безопасность:**
-- ⚠️ Никогда не коммитьте `.env` файл в git
-- ⚠️ Не храните пароли в plain text в коде
-- ⚠️ Используйте разные пароли для dev/prod
+**Security:**
+- ⚠️ Never commit `.env` file to git
+- ⚠️ Don't store passwords in plain text in code
+- ⚠️ Use different passwords for dev/prod
 
-## 🔐 Безопасность (JWT)
+## 🔐 Security (JWT)
 
 ### JWT_SECRET_KEY
 
-**Описание:** Секретный ключ для подписи и проверки JWT токенов
+**Description:** Secret key for signing and verifying JWT tokens
 
-**Формат:** Случайная строка длиной 32+ символа
+**Format:** Random string of 32+ characters
 
-**Генерация:**
+**Generation:**
 ```bash
-# Способ 1: Python (рекомендуется)
+# Method 1: Python (recommended)
 python -c "import secrets; print(secrets.token_urlsafe(32))"
 
-# Способ 2: OpenSSL
+# Method 2: OpenSSL
 openssl rand -base64 32
 
-# Способ 3: Python script
+# Method 3: Python script
 python3 << EOF
 import secrets
 print(secrets.token_urlsafe(32))
 EOF
 ```
 
-**Пример:**
+**Example:**
 ```env
 JWT_SECRET_KEY=fN3K_5mP9xQ2wR8tY7uI4oP3lK6jH5gF9dS2aQ1w
 ```
 
-**Обязательная:** ✅ Да
+**Required:** ✅ Yes
 
-**Безопасность:**
-- 🔴 КРИТИЧНО: Используйте разные ключи для dev/prod
-- 🔴 КРИТИЧНО: Никогда не коммитьте реальный ключ в git
-- 🔴 КРИТИЧНО: Меняйте ключ при компрометации (все токены станут невалидными)
-- ✅ Минимум 32 символа
-- ✅ Используйте криптографически стойкий генератор (`secrets`, не `random`)
+**Security:**
+- 🔴 CRITICAL: Use different keys for dev/prod
+- 🔴 CRITICAL: Never commit real key to git
+- 🔴 CRITICAL: Change key on compromise (all tokens become invalid)
+- ✅ Minimum 32 characters
+- ✅ Use cryptographically strong generator (`secrets`, not `random`)
 
 ### JWT_ALGORITHM
 
-**Описание:** Алгоритм шифрования для JWT токенов
+**Description:** Encryption algorithm for JWT tokens
 
-**Формат:** Название алгоритма
+**Format:** Algorithm name
 
-**Значения:**
-- `HS256` - HMAC SHA-256 (рекомендуется, по умолчанию)
+**Values:**
+- `HS256` - HMAC SHA-256 (recommended, default)
 - `HS384` - HMAC SHA-384
 - `HS512` - HMAC SHA-512
-- `RS256` - RSA SHA-256 (требует публичный/приватный ключ)
+- `RS256` - RSA SHA-256 (requires public/private key pair)
 
-**Пример:**
+**Example:**
 ```env
 JWT_ALGORITHM=HS256
 ```
 
-**Обязательная:** ❌ Нет (по умолчанию: `HS256`)
+**Required:** ❌ No (default: `HS256`)
 
-**Рекомендация:** Оставьте `HS256` если не знаете что выбрать
+**Recommendation:** Keep `HS256` if unsure what to choose
 
 ### ACCESS_TOKEN_EXPIRE_MINUTES
 
-**Описание:** Время жизни JWT токена в минутах
+**Description:** JWT token lifetime in minutes
 
-**Формат:** Целое число (минуты)
+**Format:** Integer (minutes)
 
-**Примеры:**
+**Examples:**
 ```env
-# 30 минут (production, высокая безопасность)
+# 30 minutes (production, high security)
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 
-# 7 дней (development, удобство)
+# 7 days (development, convenience)
 ACCESS_TOKEN_EXPIRE_MINUTES=10080
 
-# 1 день
+# 1 day
 ACCESS_TOKEN_EXPIRE_MINUTES=1440
 
-# 1 год (mobile apps)
+# 1 year (mobile apps)
 ACCESS_TOKEN_EXPIRE_MINUTES=525600
 ```
 
-**Конвертация:**
-- 1 час = 60 минут
-- 1 день = 1440 минут (24 * 60)
-- 7 дней = 10080 минут (7 * 24 * 60)
-- 30 дней = 43200 минут (30 * 24 * 60)
-- 1 год = 525600 минут (365 * 24 * 60)
+**Conversion:**
+- 1 hour = 60 minutes
+- 1 day = 1440 minutes (24 * 60)
+- 7 days = 10080 minutes (7 * 24 * 60)
+- 30 days = 43200 minutes (30 * 24 * 60)
+- 1 year = 525600 minutes (365 * 24 * 60)
 
-**Обязательная:** ❌ Нет (по умолчанию: `525600` = 1 год)
+**Required:** ❌ No (default: `525600` = 1 year)
 
-**Рекомендации:**
-- **Development:** 7 дней (10080) - не нужно постоянно логиниться
-- **Production Web:** 30 минут - требует refresh token механизм
-- **Production Mobile:** 30-90 дней - баланс удобства и безопасности
-- **Internal tools:** 1 год - удобство для сотрудников
+**Recommendations:**
+- **Development:** 7 days (10080) - no need to constantly login
+- **Production Web:** 30 minutes - requires refresh token mechanism
+- **Production Mobile:** 30-90 days - balance of convenience and security
+- **Internal tools:** 1 year - convenience for employees
 
-**Компромиссы:**
-- ⬆️ Больше время = удобнее для пользователей, но менее безопасно
-- ⬇️ Меньше время = безопаснее, но требует чаще логиниться
+**Tradeoffs:**
+- ⬆️ Longer time = more convenient for users, but less secure
+- ⬇️ Shorter time = safer, but requires more frequent logins
 
-## 🌍 Окружение
+## 🌍 Environment
 
 ### ENVIRONMENT
 
-**Описание:** Тип окружения приложения
+**Description:** Application environment type
 
-**Формат:** Строка
+**Format:** String
 
-**Значения:**
-- `development` - Разработка (по умолчанию)
-- `production` - Продакшн
-- `staging` - Тестовая среда
-- `testing` - Автоматические тесты
+**Values:**
+- `development` - Development (default)
+- `production` - Production
+- `staging` - Staging environment
+- `testing` - Automated tests
 
-**Пример:**
+**Example:**
 ```env
 ENVIRONMENT=development
 ```
 
-**Обязательная:** ❌ Нет (по умолчанию: `development`)
+**Required:** ❌ No (default: `development`)
 
-**Влияние:**
-- Логирование (более подробное в development)
-- CORS политики (строже в production)
-- Обработка ошибок (детальные в development)
+**Impact:**
+- Logging (more verbose in development)
+- CORS policies (stricter in production)
+- Error handling (detailed in development)
 
 ### DEBUG
 
-**Описание:** Режим отладки
+**Description:** Debug mode
 
-**Формат:** Boolean (`true` / `false`)
+**Format:** Boolean (`true` / `false`)
 
-**Пример:**
+**Example:**
 ```env
 # Development
 DEBUG=true
@@ -172,35 +172,35 @@ DEBUG=true
 DEBUG=false
 ```
 
-**Обязательная:** ❌ Нет (по умолчанию: `true`)
+**Required:** ❌ No (default: `true`)
 
-**Влияние:**
-- ✅ `true`: Подробные ошибки, hot reload, debug логи
-- ❌ `false`: Скрытие деталей ошибок, production оптимизации
+**Impact:**
+- ✅ `true`: Detailed errors, hot reload, debug logs
+- ❌ `false`: Hide error details, production optimizations
 
-## 🚀 Сервер
+## 🚀 Server
 
 ### PORT
 
-**Описание:** Порт для запуска backend сервера
+**Description:** Port for backend server
 
-**Формат:** Целое число
+**Format:** Integer
 
-**Пример:**
+**Example:**
 ```env
 PORT=8000
 ```
 
-**Обязательная:** ❌ Нет (по умолчанию: `8000`)
+**Required:** ❌ No (default: `8000`)
 
-**Примечание:**
-- Railway автоматически устанавливает порт
-- В локальной разработке обычно `8000`
-- Frontend ожидает backend на `8000` (или `VITE_API_URL`)
+**Note:**
+- Railway automatically sets port
+- In local development usually `8000`
+- Frontend expects backend on `8000` (or `VITE_API_URL`)
 
-## 📝 Полный пример .env файла
+## 📝 Complete .env File Example
 
-### Development (локальная разработка)
+### Development (local development)
 
 ```env
 # Database
@@ -209,7 +209,7 @@ DATABASE_URL=postgresql://locales_user:locales_password@localhost:5432/locales_d
 # Security - JWT
 JWT_SECRET_KEY=fN3K_5mP9xQ2wR8tY7uI4oP3lK6jH5gF9dS2aQ1w
 JWT_ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=10080  # 7 дней
+ACCESS_TOKEN_EXPIRE_MINUTES=10080  # 7 days
 
 # Environment
 ENVIRONMENT=development
@@ -220,13 +220,13 @@ PORT=8000
 ### Production
 
 ```env
-# Database (предоставляется Railway)
+# Database (provided by Railway)
 DATABASE_URL=postgresql://postgres:***@containers-us-west-123.railway.app:5432/railway
 
 # Security - JWT
 JWT_SECRET_KEY=***PRODUCTION_SECRET_KEY***
 JWT_ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30  # 30 минут
+ACCESS_TOKEN_EXPIRE_MINUTES=30  # 30 minutes
 
 # Environment
 ENVIRONMENT=production
@@ -234,33 +234,33 @@ DEBUG=false
 PORT=8000
 ```
 
-## 🛠️ Настройка с нуля
+## 🛠️ Setup from Scratch
 
-### Шаг 1: Копируем шаблон
+### Step 1: Copy Template
 
 ```bash
 cd backend
 cp env.example .env
 ```
 
-### Шаг 2: Генерируем JWT_SECRET_KEY
+### Step 2: Generate JWT_SECRET_KEY
 
 ```bash
 python -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
-Скопируйте результат, например:
+Copy result, for example:
 ```
 fN3K_5mP9xQ2wR8tY7uI4oP3lK6jH5gF9dS2aQ1w
 ```
 
-### Шаг 3: Редактируем .env
+### Step 3: Edit .env
 
 ```bash
-nano .env  # или любой другой редактор
+nano .env  # or any other editor
 ```
 
-Заполняем:
+Fill in:
 ```env
 DATABASE_URL=postgresql://locales_user:locales_password@localhost:5432/locales_db
 JWT_SECRET_KEY=fN3K_5mP9xQ2wR8tY7uI4oP3lK6jH5gF9dS2aQ1w
@@ -270,67 +270,67 @@ ENVIRONMENT=development
 DEBUG=true
 ```
 
-### Шаг 4: Проверяем
+### Step 4: Verify
 
 ```bash
-# Активируем venv
+# Activate venv
 source venv/bin/activate
 
-# Запускаем сервер
+# Start server
 python main.py
 ```
 
-Если всё ок, увидите:
+If everything is OK, you'll see:
 ```
 Database URL: postgresql://locales_user:***@localhost:5432/locales_db
 INFO:     Uvicorn running on http://0.0.0.0:8000
 ```
 
-## ⚠️ Важные предупреждения
+## ⚠️ Important Warnings
 
-### Не коммитьте .env
+### Don't Commit .env
 
-**Файл `.gitignore` должен содержать:**
+**`.gitignore` file should contain:**
 ```gitignore
 .env
 .env.local
 .env.*.local
 ```
 
-**Проверка:**
+**Check:**
 ```bash
 git status
-# .env НЕ должен появиться в списке
+# .env should NOT appear in list
 ```
 
-### Разные ключи для окружений
+### Different Keys for Environments
 
-| Окружение | JWT_SECRET_KEY | ACCESS_TOKEN_EXPIRE |
+| Environment | JWT_SECRET_KEY | ACCESS_TOKEN_EXPIRE |
 |-----------|----------------|---------------------|
-| Development | `dev_secret_123` | 10080 (7 дней) |
-| Staging | `staging_secret_456` | 1440 (1 день) |
-| Production | `prod_secret_789` | 30 (30 минут) |
+| Development | `dev_secret_123` | 10080 (7 days) |
+| Staging | `staging_secret_456` | 1440 (1 day) |
+| Production | `prod_secret_789` | 30 (30 minutes) |
 
-### Railway автоматические переменные
+### Railway Automatic Variables
 
-Railway автоматически предоставляет:
-- `DATABASE_URL` - подключение к PostgreSQL
-- `PORT` - порт для сервера
-- `RAILWAY_ENVIRONMENT` - окружение (production/staging)
+Railway automatically provides:
+- `DATABASE_URL` - PostgreSQL connection
+- `PORT` - server port
+- `RAILWAY_ENVIRONMENT` - environment (production/staging)
 
-Вам нужно добавить только:
-- `JWT_SECRET_KEY` ⚠️ ОБЯЗАТЕЛЬНО
-- `JWT_ALGORITHM` (опционально)
-- `ACCESS_TOKEN_EXPIRE_MINUTES` (опционально)
+You only need to add:
+- `JWT_SECRET_KEY` ⚠️ REQUIRED
+- `JWT_ALGORITHM` (optional)
+- `ACCESS_TOKEN_EXPIRE_MINUTES` (optional)
 
-## 🔗 Связанные документы
+## 🔗 Related Documents
 
-- [[Quick Start]] - Быстрый старт с настройкой переменных
-- [[Security Best Practices]] - Безопасность и JWT токены
-- [[Railway Deployment]] - Настройка переменных на Railway
-- [[Authentication Setup]] - Система авторизации
+- [[Quick Start]] - Quick start with variable setup
+- [[Security Best Practices]] - Security and JWT tokens
+- [[Railway Deployment]] - Setting variables on Railway
+- [[Authentication Setup]] - Authentication system
 
-## 📚 Дополнительные ресурсы
+## 📚 Additional Resources
 
 - [PyJWT Documentation](https://pyjwt.readthedocs.io/)
 - [Python secrets module](https://docs.python.org/3/library/secrets.html)
@@ -338,5 +338,4 @@ Railway автоматически предоставляет:
 
 ---
 
-*Обновлено: 2025-10-10*
-
+*Updated: 2025-10-10*

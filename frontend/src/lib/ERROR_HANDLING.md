@@ -2,48 +2,48 @@
 
 ## Overview
 
-Улучшенная система обработки ошибок для отображения понятных сообщений пользователям при сохранении безопасности.
+Improved error handling system for displaying user-friendly messages while maintaining security.
 
-## Функция `getUserFriendlyErrorMessage`
+## `getUserFriendlyErrorMessage` Function
 
-### Основные принципы:
+### Core Principles:
 
-1. **Безопасность прежде всего** - никогда не показывать технические детали (SQL, stack traces, пути к файлам)
-2. **Понятные сообщения** - показывать причину ошибки на языке пользователя
-3. **Логирование** - все технические детали записываются в консоль для разработчиков
+1. **Security first** - never show technical details (SQL, stack traces, file paths)
+2. **Clear messages** - show error reason in user's language
+3. **Logging** - all technical details logged to console for developers
 
-### Типы обрабатываемых ошибок:
+### Types of Handled Errors:
 
 #### Authentication Errors
 ```typescript
 // Backend: AuthenticationError
-// Frontend показывает: "Invalid credentials"
+// Frontend shows: "Invalid credentials"
 ```
 
 #### Validation Errors
 ```typescript
 // Backend: "Email already registered"
-// Frontend показывает: "Email already registered."
+// Frontend shows: "Email already registered."
 
 // Backend: "Password must be at least 8 characters long"
-// Frontend показывает: "Password must be at least 8 characters long."
+// Frontend shows: "Password must be at least 8 characters long."
 ```
 
 #### Authorization Errors
 ```typescript
 // Backend: UnauthorizedError
-// Frontend показывает: "You need to be logged in to perform this action."
+// Frontend shows: "You need to be logged in to perform this action."
 ```
 
 #### Network Errors
 ```typescript
-// Backend недоступен
-// Frontend показывает: "Unable to connect to the server. Please check your internet connection."
+// Backend unavailable
+// Frontend shows: "Unable to connect to the server. Please check your internet connection."
 ```
 
-### Безопасные паттерны ошибок:
+### Safe Error Patterns:
 
-Функция распознает следующие типы сообщений как безопасные для показа пользователям:
+Function recognizes following message types as safe for users:
 
 - `already exists` / `already registered`
 - `not found`
@@ -57,10 +57,10 @@
 - `Authentication required`
 - `Permission denied`
 
-### Примеры использования:
+### Usage Examples:
 
 ```typescript
-// В компоненте
+// In component
 import { getUserFriendlyErrorMessage } from '@/lib/utils';
 
 try {
@@ -74,20 +74,20 @@ try {
 }
 ```
 
-### Очистка сообщений:
+### Message Cleanup:
 
-Функция автоматически:
-- Удаляет технические детали (`Variable $input:`, `input.field:`)
-- Убирает пути к переменным (`$variableName`)
-- Делает первую букву заглавной
-- Добавляет точку в конце, если её нет
+Function automatically:
+- Removes technical details (`Variable $input:`, `input.field:`)
+- Removes variable paths (`$variableName`)
+- Capitalizes first letter
+- Adds period at end if missing
 
-**До очистки:**
+**Before cleanup:**
 ```
 Variable $input: Email already registered
 ```
 
-**После очистки:**
+**After cleanup:**
 ```
 Email already registered.
 ```
@@ -98,41 +98,41 @@ Email already registered.
 
 #### UserAlreadyExistsError
 ```python
-# Пользователь с таким email уже существует
+# User with this email already exists
 raise UserAlreadyExistsError(field="email")
-# Сообщение: "Email already registered"
+# Message: "Email already registered"
 
-# Пользователь с таким username уже существует
+# User with this username already exists
 raise UserAlreadyExistsError(field="username")
-# Сообщение: "Username already taken"
+# Message: "Username already taken"
 ```
 
 #### ValidationError
 ```python
-# Валидация не прошла
+# Validation failed
 raise ValidationError("Password must be at least 8 characters long")
-# Сообщение передается как есть
+# Message passed as-is
 ```
 
 #### AuthenticationError
 ```python
-# Неверные credentials
+# Invalid credentials
 raise AuthenticationError()
-# Сообщение: "Invalid credentials"
+# Message: "Invalid credentials"
 ```
 
 #### UnauthorizedError
 ```python
-# Требуется авторизация
+# Authorization required
 raise UnauthorizedError()
-# Сообщение: "Authentication required. Please log in."
+# Message: "Authentication required. Please log in."
 ```
 
 #### DatabaseError
 ```python
-# Ошибка базы данных - НИКОГДА не показывать детали!
+# Database error - NEVER show details!
 raise DatabaseError()
-# Сообщение: "An error occurred. Please try again later."
+# Message: "An error occurred. Please try again later."
 ```
 
 ## Best Practices
@@ -140,63 +140,63 @@ raise DatabaseError()
 ### ✅ DO:
 
 ```typescript
-// Использовать getUserFriendlyErrorMessage для всех ошибок
+// Use getUserFriendlyErrorMessage for all errors
 const errorMessage = getUserFriendlyErrorMessage(err, 'Fallback message');
 setError(errorMessage);
 
-// Логировать технические детали
+// Log technical details
 console.error('Technical error:', err);
 
-// Показывать конкретные причины из backend
+// Show specific reasons from backend
 // Backend: "Email already registered"
-// Показываем: "Email already registered."
+// Show: "Email already registered."
 ```
 
 ### ❌ DON'T:
 
 ```typescript
-// НЕ показывать сырые ошибки
+// DON'T show raw errors
 setError(err.message); // ❌
 
-// НЕ показывать технические детали
+// DON'T show technical details
 setError(`Database error: ${err.toString()}`); // ❌
 
-// НЕ игнорировать конкретные сообщения
-setError('Something went wrong'); // ❌ если backend дал конкретную причину
+// DON'T ignore specific messages
+setError('Something went wrong'); // ❌ if backend gave specific reason
 ```
 
 ## Testing Error Messages
 
-### Тесты для проверки:
+### Tests to check:
 
-1. **Регистрация с существующим email:**
-   - Ожидается: "Email already registered."
-   - Не должно быть: "Registration failed. Please try again."
+1. **Register with existing email:**
+   - Expected: "Email already registered."
+   - Should not be: "Registration failed. Please try again."
 
-2. **Короткий пароль:**
-   - Ожидается: "Password must be at least 8 characters long."
+2. **Short password:**
+   - Expected: "Password must be at least 8 characters long."
 
-3. **Неверный логин:**
-   - Ожидается: "Invalid credentials."
+3. **Wrong login:**
+   - Expected: "Invalid credentials."
 
-4. **Недоступен сервер:**
-   - Ожидается: "Unable to connect to the server. Please check your internet connection."
+4. **Server unavailable:**
+   - Expected: "Unable to connect to the server. Please check your internet connection."
 
-5. **Нет авторизации:**
-   - Ожидается: "You need to be logged in to perform this action."
+5. **Not authorized:**
+   - Expected: "You need to be logged in to perform this action."
 
 ## Security Considerations
 
-### 🔒 Что НИКОГДА не показывать:
+### 🔒 What to NEVER show:
 
-- SQL запросы и ошибки БД
+- SQL queries and DB errors
 - Stack traces
-- Пути к файлам
-- Названия таблиц и колонок
-- Внутренние идентификаторы
-- Версии библиотек
+- File paths
+- Table and column names
+- Internal identifiers
+- Library versions
 
-### ✅ Что безопасно показывать:
+### ✅ What's safe to show:
 
 - "Email already registered"
 - "Password too short"
@@ -207,15 +207,14 @@ setError('Something went wrong'); // ❌ если backend дал конкрет�
 
 ## Future Improvements
 
-Возможные улучшения:
-- [ ] Поддержка i18n (перевод ошибок)
-- [ ] Более детальные validation errors с указанием поля
-- [ ] Categorization errors (error types)
-- [ ] Retry logic для network errors
-- [ ] Error boundaries для React компонентов
+Possible improvements:
+- [ ] i18n support (error translation)
+- [ ] More detailed validation errors with field indication
+- [ ] Error categorization (error types)
+- [ ] Retry logic for network errors
+- [ ] Error boundaries for React components
 
 ---
 
 **Version:** 1.0  
 **Last Updated:** November 30, 2025
-

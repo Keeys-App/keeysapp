@@ -162,7 +162,7 @@ class TestAIServiceWithContext:
         assert len(result) > 0
         assert reason is None
         # Should include the suffix as instructed
-        assert "test suffix" in result or "тест" in result.lower()
+        assert "test suffix" in result or "prueba" in result.lower()
     
     @pytest.mark.asyncio
     async def test_rephrase_follows_mandatory_context_instructions(self):

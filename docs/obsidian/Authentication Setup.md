@@ -1,17 +1,17 @@
 # Authentication Setup
 
-> [!success] Полная документация системы авторизации
+> [!success] Complete authentication system documentation
 
-## Обзор
+## Overview
 
-Система авторизации использует:
-- **Backend**: JWT токены, bcrypt для хэширования паролей
-- **Frontend**: React Context API, React Router для защищенных маршрутов
-- **GraphQL**: Мутации для регистрации/входа, queries для текущего пользователя
+Authentication system uses:
+- **Backend**: JWT tokens, bcrypt for password hashing
+- **Frontend**: React Context API, React Router for protected routes
+- **GraphQL**: Mutations for registration/login, queries for current user
 
 ## Backend
 
-### Установка зависимостей
+### Installing Dependencies
 
 ```bash
 cd backend
@@ -19,9 +19,9 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Переменные окружения
+### Environment Variables
 
-Создайте `.env` файл в папке `backend`:
+Create `.env` file in `backend` folder:
 
 ```env
 DATABASE_URL=postgresql://user:password@localhost:5432/locales
@@ -30,12 +30,12 @@ ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 ```
 
-> [!warning] Важно
-> Измените `SECRET_KEY` на случайную безопасную строку в продакшене!
+> [!warning] Important
+> Change `SECRET_KEY` to random secure string in production!
 
-### Миграция базы данных
+### Database Migration
 
-Таблица User создается автоматически при запуске приложения. Для ручного создания:
+User table is created automatically on application startup. For manual creation:
 
 ```python
 from app.database import engine
@@ -44,7 +44,7 @@ from app.models.base import Base
 Base.metadata.create_all(bind=engine)
 ```
 
-### Запуск Backend
+### Starting Backend
 
 ```bash
 cd backend
@@ -52,39 +52,39 @@ source venv/bin/activate
 python main.py
 ```
 
-Сервер запустится на `http://localhost:8000`
+Server will start at `http://localhost:8000`
 
 ## Frontend
 
-### Установка зависимостей
+### Installing Dependencies
 
 ```bash
 cd frontend
 yarn install
 ```
 
-### Переменные окружения
+### Environment Variables
 
-Создайте `.env` файл в папке `frontend` (опционально):
+Create `.env` file in `frontend` folder (optional):
 
 ```env
 VITE_API_URL=http://localhost:8000
 ```
 
-### Запуск Frontend
+### Starting Frontend
 
 ```bash
 cd frontend
 yarn dev
 ```
 
-Приложение запустится на `http://localhost:5173`
+Application will start at `http://localhost:5173`
 
-## Функциональность
+## Functionality
 
 ### Backend
 
-#### Модели
+#### Models
 
 **User Model** (`backend/app/models/user.py`):
 - `id` - Integer, primary key
@@ -96,16 +96,16 @@ yarn dev
 - `created_at` - DateTime
 - `updated_at` - DateTime
 
-Методы:
-- `verify_password(plain_password)` - Проверка пароля
-- `get_password_hash(password)` - Хэширование пароля
+Methods:
+- `verify_password(plain_password)` - Password check
+- `get_password_hash(password)` - Password hashing
 
 #### GraphQL API
 
-**Мутации:**
+**Mutations:**
 
 ```graphql
-# Регистрация
+# Registration
 mutation Register($input: RegisterInput!) {
   register(input: $input) {
     accessToken
@@ -120,7 +120,7 @@ mutation Register($input: RegisterInput!) {
   }
 }
 
-# Вход
+# Login
 mutation Login($input: LoginInput!) {
   login(input: $input) {
     accessToken
@@ -139,7 +139,7 @@ mutation Login($input: LoginInput!) {
 **Queries:**
 
 ```graphql
-# Получить текущего пользователя
+# Get current user
 query Me {
   me {
     id
@@ -151,71 +151,71 @@ query Me {
 }
 ```
 
-> [!note] Авторизация
-> Для query `me` требуется заголовок: `Authorization: Bearer <token>`
+> [!note] Authentication
+> Query `me` requires header: `Authorization: Bearer <token>`
 
-#### Безопасность
+#### Security
 
-- JWT токены для авторизации
-- Bcrypt хэширование паролей
-- Автоматическое обрезание паролей до 72 байт (ограничение bcrypt)
-- Истечение токенов (настраивается)
-- Защита эндпоинтов через Authorization header
+- JWT tokens for authentication
+- Bcrypt password hashing
+- Automatic password truncation to 72 bytes (bcrypt limitation)
+- Token expiration (configurable)
+- Endpoint protection via Authorization header
 
 ### Frontend
 
-#### Контексты
+#### Contexts
 
 **AuthContext** (`frontend/src/contexts/AuthContext.tsx`):
-- Управление состоянием авторизации
-- Хранение user и token в localStorage
-- Функции `login` и `logout`
-- Флаг `isAuthenticated`
+- Authentication state management
+- Storing user and token in localStorage
+- `login` and `logout` functions
+- `isAuthenticated` flag
 
-#### Компоненты
+#### Components
 
 **LoginForm** (`frontend/src/components/LoginForm.tsx`):
-- Email и password вход
-- Обработка ошибок
-- Переключение на регистрацию
+- Email and password login
+- Error handling
+- Switch to registration
 
 **RegisterForm** (`frontend/src/components/RegisterForm.tsx`):
-- Email, username и password регистрация
-- Подтверждение пароля
-- Валидация (мин. 6 символов, макс. 72)
-- Обработка ошибок
+- Email, username and password registration
+- Password confirmation
+- Validation (min 6 characters, max 72)
+- Error handling
 
 **ProtectedRoute** (`frontend/src/components/ProtectedRoute.tsx`):
-- Обертка для защищенных страниц
-- Редирект на `/auth` если не авторизован
-- Показ загрузки во время проверки
+- Wrapper for protected pages
+- Redirect to `/auth` if not authenticated
+- Show loading during check
 
-#### Страницы
+#### Pages
 
 **AuthPage** (`frontend/src/pages/AuthPage.tsx`):
-- Страница входа/регистрации
-- Переключение между формами
+- Login/registration page
+- Switch between forms
 
 **DashboardPage** (`frontend/src/pages/DashboardPage.tsx`):
-- Защищенный дашборд
-- Отображение информации о пользователе
-- Функция logout
+- Protected dashboard
+- Display user information
+- Logout function
 
-#### Роутинг
+#### Routing
 
 ```
-/auth         - Страница входа/регистрации
-/             - Защищенный дашборд
-/* (другие)   - Редирект на /
+/auth         - Login/registration page
+/             - Protected dashboard
+/* (others)   - Redirect to /
 ```
 
-## Примеры использования
+## Usage Examples
 
 ### GraphQL Playground
 
-Откройте `http://localhost:8000/graphql`
+Open `http://localhost:8000/graphql`
 
-**Регистрация:**
+**Registration:**
 ```graphql
 mutation {
   register(input: {
@@ -233,7 +233,7 @@ mutation {
 }
 ```
 
-**Вход:**
+**Login:**
 ```graphql
 mutation {
   login(input: {
@@ -248,7 +248,7 @@ mutation {
 }
 ```
 
-**Текущий пользователь:**
+**Current user:**
 ```graphql
 query {
   me {
@@ -259,7 +259,7 @@ query {
 }
 ```
 
-Заголовок:
+Header:
 ```json
 {
   "Authorization": "Bearer YOUR_TOKEN_HERE"
@@ -282,93 +282,92 @@ function Component() {
 }
 ```
 
-## Соображения безопасности
+## Security Considerations
 
-1. **Секретные данные** - Не коммитьте .env файлы
-2. **SECRET_KEY** - Используйте случайную строку в продакшене
-3. **HTTPS** - Всегда используйте HTTPS для передачи токенов
-4. **Истечение токенов** - Настройте подходящее время жизни
-5. **Сложность паролей** - Минимум 6 символов (можно увеличить)
-6. **CORS** - Обновите разрешенные источники в продакшене
+1. **Secrets** - Don't commit .env files
+2. **SECRET_KEY** - Use random string in production
+3. **HTTPS** - Always use HTTPS for token transmission
+4. **Token expiration** - Configure appropriate lifetime
+5. **Password complexity** - Minimum 6 characters (can increase)
+6. **CORS** - Update allowed origins in production
 
-## Структура файлов
+## File Structure
 
 ```
 backend/
 ├── app/
 │   ├── core/
-│   │   ├── config.py           # Настройки
-│   │   └── security.py         # JWT утилиты
+│   │   ├── config.py           # Settings
+│   │   └── security.py         # JWT utilities
 │   ├── models/
-│   │   ├── user.py            # Модель User
+│   │   ├── user.py            # User model
 │   │   └── __init__.py
 │   ├── schemas/
-│   │   ├── auth.py            # GraphQL auth типы
-│   │   └── graphql.py         # Корневая GraphQL схема
+│   │   ├── auth.py            # GraphQL auth types
+│   │   └── graphql.py         # Root GraphQL schema
 │   └── services/
-│       └── user_service.py    # Бизнес-логика пользователей
-└── requirements.txt           # С pyjwt и bcrypt
+│       └── user_service.py    # User business logic
+└── requirements.txt           # With pyjwt and bcrypt
 
 frontend/
 ├── src/
 │   ├── components/
-│   │   ├── LoginForm.tsx      # Форма входа
-│   │   ├── RegisterForm.tsx   # Форма регистрации
-│   │   └── ProtectedRoute.tsx # Защита маршрутов
+│   │   ├── LoginForm.tsx      # Login form
+│   │   ├── RegisterForm.tsx   # Registration form
+│   │   └── ProtectedRoute.tsx # Route protection
 │   ├── contexts/
-│   │   ├── AuthContext.tsx    # Управление авторизацией
-│   │   └── ThemeContext.tsx   # Управление темой
+│   │   ├── AuthContext.tsx    # Auth management
+│   │   └── ThemeContext.tsx   # Theme management
 │   ├── graphql/
 │   │   └── auth.ts            # Auth queries/mutations
 │   ├── pages/
-│   │   ├── AuthPage.tsx       # Страница входа/регистрации
-│   │   └── DashboardPage.tsx  # Защищенный дашборд
+│   │   ├── AuthPage.tsx       # Login/registration page
+│   │   └── DashboardPage.tsx  # Protected dashboard
 │   ├── lib/
-│   │   └── apollo.ts          # Apollo Client с auth
-│   └── App.tsx                # Приложение с роутингом
+│   │   └── apollo.ts          # Apollo Client with auth
+│   └── App.tsx                # Application with routing
 ```
 
-## Следующие шаги
+## Next Steps
 
-1. Добавить восстановление пароля
-2. Реализовать подтверждение email
-3. Добавить OAuth (Google, GitHub)
-4. Реализовать refresh tokens
-5. Добавить управление профилем
-6. Реализовать RBAC (Role-Based Access Control)
-7. Добавить rate limiting для входа
-8. Добавить аудит логирование
+1. Add password recovery
+2. Implement email confirmation
+3. Add OAuth (Google, GitHub)
+4. Implement refresh tokens
+5. Add profile management
+6. Implement RBAC (Role-Based Access Control)
+7. Add rate limiting for login
+8. Add audit logging
 
 ## Troubleshooting
 
 ### Backend
 
-- Проверьте DATABASE_URL
-- Убедитесь что PostgreSQL запущен
-- Проверьте SECRET_KEY в .env
-- Убедитесь что venv активирован
+- Check DATABASE_URL
+- Make sure PostgreSQL is running
+- Check SECRET_KEY in .env
+- Make sure venv is activated
 
 ### Frontend
 
-- Очистите localStorage при проблемах с auth
-- Проверьте API_URL на правильный backend
-- Проверьте CORS на backend
-- Смотрите консоль браузера на ошибки
+- Clear localStorage if auth problems
+- Check API_URL points to correct backend
+- Check CORS on backend
+- Check browser console for errors
 
-### Проблемы авторизации
+### Auth Problems
 
-- Проверьте токен в Authorization header
-- Токен может истечь (по умолчанию 30 минут)
-- Убедитесь что user exists и is_active=True
-- Проверьте правильность пароля
+- Check token in Authorization header
+- Token may be expired (default 30 minutes)
+- Make sure user exists and is_active=True
+- Check password correctness
 
-## Связанные документы
+## Related Documents
 
-- [[Authentication Cheatsheet]] - Быстрая справка
-- [[Testing Guide]] - Тестирование системы
-- [[Quick Start]] - Быстрый старт
+- [[Authentication Cheatsheet]] - Quick reference
+- [[Testing Guide]] - System testing
+- [[Quick Start]] - Quick start
 
 ---
 
-*Обновлено: 2025-10-09*
-
+*Updated: 2025-10-09*

@@ -1,273 +1,268 @@
 # Backend Organization
 
-> [!info] Организация папок и файлов backend
+> [!info] Backend folder and file organization
 
-## 📁 Структура папок
+## 📁 Folder Structure
 
 ```
 backend/
-├── app/                  # Основной код приложения
-├── tests/                # Unit тесты (pytest)
-├── migrations/           # Миграции базы данных
-├── scripts/              # Утилиты управления
-└── integration_tests/    # Интеграционные тесты
+├── app/                  # Main application code
+├── tests/                # Unit tests (pytest)
+├── migrations/           # Database migrations
+├── scripts/              # Management utilities
+└── integration_tests/    # Integration tests
 ```
 
-## 📂 Назначение папок
+## 📂 Folder Purpose
 
-### app/ - Основной код
-Весь production код приложения.
+### app/ - Main Code
+All production application code.
 
-**Подпапки:**
-- `core/` - Ядро (config, security, exceptions)
-- `models/` - SQLAlchemy модели
-- `schemas/` - GraphQL схемы
-- `services/` - Бизнес-логика
-- `routers/` - REST API endpoints (пустая, для будущего)
-- `resolvers/` - GraphQL resolvers (пустая, для будущего)
+**Subfolders:**
+- `core/` - Core (config, security, exceptions)
+- `models/` - SQLAlchemy models
+- `schemas/` - GraphQL schemas
+- `services/` - Business logic
+- `routers/` - REST API endpoints (empty, for future)
+- `resolvers/` - GraphQL resolvers (empty, for future)
 
-### tests/ - Unit тесты
-Автоматические тесты, запускаются через pytest.
+### tests/ - Unit Tests
+Automated tests, run via pytest.
 
-**Содержит:**
-- `conftest.py` - Fixtures для всех тестов
-- `test_*.py` - Тестовые модули
+**Contains:**
+- `conftest.py` - Fixtures for all tests
+- `test_*.py` - Test modules
 
-**Запуск:**
+**Run:**
 ```bash
 pytest
 pytest -v
 pytest --cov=app
 ```
 
-**Статистика:** 51 тест, ~95% coverage, ~7 секунд
+**Statistics:** 51 tests, ~95% coverage, ~7 seconds
 
-### migrations/ - Миграции БД
-Скрипты для изменения схемы базы данных.
+### migrations/ - DB Migrations
+Scripts for database schema changes.
 
-**Файлы:**
-- `auto_migrate.py` - Автоматические миграции (запускаются при старте)
-- `migrate_*.py` - Конкретные миграции
-- `recreate_tables.py` - Полная пересборка БД (удаляет данные)
+**Files:**
+- `auto_migrate.py` - Automatic migrations (run on startup)
+- `migrate_*.py` - Specific migrations
+- `recreate_tables.py` - Complete DB rebuild (deletes data)
 
-**Особенности:**
-- ✅ Автоматический запуск при старте приложения
-- ✅ Идемпотентные (безопасно запускать много раз)
-- ✅ Работают на Railway автоматически
+**Features:**
+- ✅ Automatic run on application startup
+- ✅ Idempotent (safe to run multiple times)
+- ✅ Work on Railway automatically
 
-**Запуск вручную:**
+**Manual run:**
 ```bash
 python migrations/migrate_add_public_id.py
 ```
 
-### scripts/ - Утилиты
-Вспомогательные скрипты для разработки.
+### scripts/ - Utilities
+Helper scripts for development.
 
-**Файлы:**
-- `list_users.py` - Показать всех пользователей
-- `clear_users.py` - Удалить всех пользователей
+**Files:**
+- `list_users.py` - Show all users
+- `clear_users.py` - Delete all users
 
-**Использование:**
+**Usage:**
 ```bash
 python scripts/list_users.py
 python scripts/clear_users.py
 ```
 
-### integration_tests/ - Интеграционные тесты
-Тесты через реальное HTTP API.
+### integration_tests/ - Integration Tests
+Tests via real HTTP API.
 
-**Файлы:**
-- `check_error_safety.py` - Проверка безопасности ошибок
+**Files:**
+- `check_error_safety.py` - Check error safety
 
-**Отличие от unit-тестов:**
-- Требуют запущенный backend
-- Делают реальные HTTP запросы
-- Тестируют end-to-end сценарии
-- Запускаются вручную
+**Difference from unit tests:**
+- Require running backend
+- Make real HTTP requests
+- Test end-to-end scenarios
+- Run manually
 
-**Использование:**
+**Usage:**
 ```bash
-# 1. Запустите backend
+# 1. Start backend
 python main.py
 
-# 2. В другом терминале:
+# 2. In another terminal:
 python integration_tests/check_error_safety.py
 ```
 
-## 🎯 Где что добавлять
+## 🎯 Where to Add What
 
-### Новая модель базы данных
+### New Database Model
 ```
 app/models/my_model.py
 ```
 
-### Новый GraphQL тип
+### New GraphQL Type
 ```
 app/schemas/my_schema.py
 ```
 
-### Новый сервис (бизнес-логика)
+### New Service (business logic)
 ```
 app/services/my_service.py
 ```
 
-### Новый тест
+### New Test
 ```
 tests/test_my_feature.py
 ```
 
-### Новая миграция
+### New Migration
 ```python
-# 1. Создать
+# 1. Create
 migrations/migrate_add_new_field.py
 
-# 2. Добавить в auto_migrate.py
+# 2. Add to auto_migrate.py
 migrations = [
     ("add_public_id", migrate_add_public_id_if_needed),
-    ("add_new_field", migrate_add_new_field),  # Добавить
+    ("add_new_field", migrate_add_new_field),  # Add
 ]
 ```
 
-### Новая утилита
+### New Utility
 ```
 scripts/my_utility.py
 ```
 
-### Новый интеграционный тест
+### New Integration Test
 ```
 integration_tests/test_my_integration.py
 ```
 
-## 📋 Правила организации
+## 📋 Organization Rules
 
-### Именование файлов
+### Naming
+- Modules: `snake_case.py` for all Python files
+- Tests: `test_feature.py` for unit tests
+- Migrations: `migrate_description.py` for migrations
 
-**Модули:**
-- `snake_case.py` для всех Python файлов
-- `test_feature.py` для unit-тестов
-- `migrate_description.py` для миграций
+- Classes: `PascalCase` for classes
+- Test classes: `Test*` for test classes
 
-**Классы:**
-- `PascalCase` для классов
-- `Test*` для тестовых классов
+- Functions: `snake_case` for functions
+- Test functions: `test_*` for test functions
 
-**Функции:**
-- `snake_case` для функций
-- `test_*` для тестовых функций
+### Where NOT to Add Code
 
-### Где НЕ добавлять код
+❌ **Don't add to backend root:**
+- Utilities → `scripts/`
+- Migrations → `migrations/`
+- Tests → `tests/` or `integration_tests/`
 
-❌ **Не добавляйте в корень backend:**
-- Утилиты → `scripts/`
-- Миграции → `migrations/`
-- Тесты → `tests/` или `integration_tests/`
+❌ **Don't mix file types:**
+- Production code → `app/`
+- Tests → `tests/`
+- Utilities → `scripts/`
 
-❌ **Не смешивайте типы файлов:**
-- Production код → `app/`
-- Тесты → `tests/`
-- Утилиты → `scripts/`
+## 🔄 Development Workflow
 
-## 🔄 Workflow разработки
-
-### 1. Изменение модели
+### 1. Model Change
 
 ```bash
-# Редактируйте модель
+# Edit model
 app/models/user.py
 
-# Создайте миграцию
+# Create migration
 migrations/migrate_add_field.py
 
-# Добавьте в auto_migrate.py
+# Add to auto_migrate.py
 
-# Напишите тесты
+# Write tests
 tests/test_new_model_feature.py
 
-# Запустите тесты
+# Run tests
 pytest
 ```
 
-### 2. Новая фича
+### 2. New Feature
 
 ```bash
-# Модель (если нужна)
+# Model (if needed)
 app/models/feature.py
 
-# Сервис
+# Service
 app/services/feature_service.py
 
-# GraphQL схема
+# GraphQL schema
 app/schemas/feature.py
 
-# Тесты
+# Tests
 tests/test_feature.py
 
-# Запустите тесты
+# Run tests
 pytest
 ```
 
-### 3. Утилита для разработки
+### 3. Development Utility
 
 ```bash
-# Создайте скрипт
+# Create script
 scripts/my_tool.py
 
-# Добавьте README в scripts/README.md
+# Add README to scripts/README.md
 
-# Сделайте исполняемым
+# Make executable
 chmod +x scripts/my_tool.py
 ```
 
-## 📊 Статистика кода
+## 📊 Code Statistics
 
-### Структура по папкам
-
-```
-app/              ~500 строк (production код)
-tests/            ~1000 строк (51 тест)
-migrations/       ~200 строк (3 миграции)
-scripts/          ~100 строк (2 утилиты)
-integration_tests/ ~200 строк (1 тест)
-
-Total: ~2000 строк кода
-```
-
-### Покрытие тестами
+### Structure by Folders
 
 ```
-app/models/       100% покрытие
-app/services/     100% покрытие  
-app/core/         95% покрытие
-app/schemas/      90% покрытие
+app/              ~500 lines (production code)
+tests/            ~1000 lines (51 tests)
+migrations/       ~200 lines (3 migrations)
+scripts/          ~100 lines (2 utilities)
+integration_tests/ ~200 lines (1 test)
+
+Total: ~2000 lines of code
+```
+
+### Test Coverage
+
+```
+app/models/       100% coverage
+app/services/     100% coverage  
+app/core/         95% coverage
+app/schemas/      90% coverage
 
 Overall: ~95% coverage
 ```
 
-## 🧹 Поддержание порядка
+## 🧹 Maintaining Order
 
-### Регулярно проверяйте
+### Regular Checks
 
-1. **Нет лишних файлов в корне** backend
-2. **README.md в каждой спецпапке** (scripts, migrations, tests)
-3. **`__init__.py` в каждом пакете Python**
-4. **Тесты для нового кода**
+1. **No extra files in backend root**
+2. **README.md in each special folder** (scripts, migrations, tests)
+3. **`__init__.py` in each Python package**
+4. **Tests for new code**
 
-### При добавлении файла
+### When Adding File
 
-Спросите себя:
-- Это production код? → `app/`
-- Это тест? → `tests/`
-- Это миграция? → `migrations/`
-- Это утилита? → `scripts/`
-- Это интеграционный тест? → `integration_tests/`
+Ask yourself:
+- Is this production code? → `app/`
+- Is this a test? → `tests/`
+- Is this a migration? → `migrations/`
+- Is this a utility? → `scripts/`
+- Is this an integration test? → `integration_tests/`
 
-## 🔗 Связанные документы
+## 🔗 Related Documents
 
-- [[Project Structure]] - Общая структура проекта
-- [[Railway Deployment]] - Деплой и миграции на Railway
-- [[Testing Guide]] - Тестирование
+- [[Project Structure]] - General project structure
+- [[Railway Deployment]] - Deployment and migrations on Railway
+- [[Testing Guide]] - Testing
 
 ---
 
-*Обновлено: 2025-10-09*
-
+*Updated: 2025-10-09*

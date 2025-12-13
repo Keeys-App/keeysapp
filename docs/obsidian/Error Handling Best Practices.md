@@ -42,32 +42,30 @@ Always use simple, actionable messages:
 - ✅ "File format not supported. Please use JSON files."
 - ✅ "Something went wrong. Please contact support if the problem persists."
 
-# Error Handling Best Practices
+## Critical Importance ⚠️
 
-## Критически важно ⚠️
+**NEVER show technical errors to users directly!**
 
-**НИКОГДА не показывайте технические ошибки пользователю напрямую!**
+This is a security violation and poor UX.
 
-Это нарушение безопасности и плохой UX.
+## Error Handling Principles
 
-## Принципы обработки ошибок
-
-### ❌ Неправильно
+### ❌ Wrong
 
 ```typescript
 onError: (error) => {
   toast(`Error: ${error.message}`);
-  // Технические детали попадают к пользователю!
+  // Technical details exposed to user!
 }
 
-// Или
+// Or
 catch (err) => {
   setError(err.message);
-  // SQL ошибки, стектрейсы - все видит пользователь!
+  // SQL errors, stack traces - user sees everything!
 }
 ```
 
-### ✅ Правильно
+### ✅ Correct
 
 ```typescript
 import { getUserFriendlyErrorMessage } from '@/lib/utils';
@@ -81,18 +79,18 @@ onError: (error) => {
 }
 ```
 
-## Функция getUserFriendlyErrorMessage
+## getUserFriendlyErrorMessage Function
 
-Централизованная функция в `lib/utils.ts` для обработки всех ошибок GraphQL.
+Centralized function in `lib/utils.ts` for handling all GraphQL errors.
 
-### Что она делает
+### What It Does
 
-1. **Логирует технические детали** в консоль для разработчиков
-2. **Обрабатывает специфичные коды ошибок** (UNAUTHENTICATED, FORBIDDEN, и т.д.)
-3. **Фильтрует безопасные сообщения** (например "already exists")
-4. **Возвращает fallback** для всех остальных случаев
+1. **Logs technical details** to console for developers
+2. **Handles specific error codes** (UNAUTHENTICATED, FORBIDDEN, etc.)
+3. **Filters safe messages** (e.g., "already exists")
+4. **Returns fallback** for all other cases
 
-### Использование
+### Usage
 
 ```typescript
 import { getUserFriendlyErrorMessage } from '@/lib/utils';
@@ -104,18 +102,18 @@ const message = getUserFriendlyErrorMessage(
 toast.error(message);
 ```
 
-## Что НЕ должно попадать пользователю
+## What Should NOT Reach Users
 
-- ❌ Стектрейсы
-- ❌ SQL запросы/ошибки
-- ❌ Названия таблиц БД
-- ❌ Названия переменных GraphQL
-- ❌ Пути к файлам сервера
-- ❌ Версии библиотек
-- ❌ IP адреса
-- ❌ Любые технические детали реализации
+- ❌ Stack traces
+- ❌ SQL queries/errors
+- ❌ Database table names
+- ❌ GraphQL variable names
+- ❌ Server file paths
+- ❌ Library versions
+- ❌ IP addresses
+- ❌ Any technical implementation details
 
-## Что МОЖНО показывать
+## What CAN Be Shown
 
 - ✅ "Failed to create project"
 - ✅ "Invalid input data"
@@ -123,7 +121,7 @@ toast.error(message);
 - ✅ "Unable to connect to server"
 - ✅ "Please try again later"
 
-## Правила для всех компонентов
+## Rules for All Components
 
 ### 1. Apollo Client Mutations
 
@@ -133,20 +131,20 @@ const [mutation] = useMutation(MUTATION, {
     toast.success('Operation completed successfully');
   },
   onError: (error) => {
-    // ✅ ВСЕГДА используем getUserFriendlyErrorMessage
+    // ✅ ALWAYS use getUserFriendlyErrorMessage
     const message = getUserFriendlyErrorMessage(error, 'Operation failed');
     toast.error(message);
   },
 });
 ```
 
-### 2. Try-Catch блоки
+### 2. Try-Catch Blocks
 
 ```typescript
 try {
   // ... code
 } catch (err) {
-  // ✅ ВСЕГДА обрабатываем через getUserFriendlyErrorMessage
+  // ✅ ALWAYS handle through getUserFriendlyErrorMessage
   const message = getUserFriendlyErrorMessage(
     err as Error, 
     'Operation failed'
@@ -155,21 +153,21 @@ try {
 }
 ```
 
-### 3. Логирование для разработчиков
+### 3. Logging for Developers
 
 ```typescript
-// ✅ Логируем ВСЁ для разработки
+// ✅ Log EVERYTHING for development
 console.error('Technical details:', error);
 console.error('Stack:', error.stack);
 console.error('GraphQL errors:', error.graphQLErrors);
 
-// ❌ Но пользователю показываем только безопасное
+// ❌ But show user only safe messages
 toast.error(getUserFriendlyErrorMessage(error, fallback));
 ```
 
-## Backend: Безопасные сообщения об ошибках
+## Backend: Safe Error Messages
 
-### ✅ Хорошие сообщения от бэкенда
+### ✅ Good Backend Messages
 
 ```python
 raise ValueError("Project with this name already exists")
@@ -177,32 +175,32 @@ raise ValueError("Invalid language code")
 raise PermissionError("You don't have permission to edit this project")
 ```
 
-### ❌ Плохие сообщения от бэкенда
+### ❌ Bad Backend Messages
 
 ```python
-raise Exception(f"Variable '$input' got invalid value...")  # Технические детали
-raise Exception(f"SQL Error: {str(e)}")  # SQL ошибки
-raise Exception(f"Failed at line 145 in service.py")  # Пути к файлам
+raise Exception(f"Variable '$input' got invalid value...")  # Technical details
+raise Exception(f"SQL Error: {str(e)}")  # SQL errors
+raise Exception(f"Failed at line 145 in service.py")  # File paths
 ```
 
-## Проверка перед commit
+## Pre-Commit Check
 
-Перед каждым коммитом проверяйте:
+Before each commit check:
 
 ```bash
-# Поиск прямого использования error.message
+# Search for direct error.message usage
 grep -r "error\.message" frontend/src/components/
 
-# Поиск toast с error
+# Search for toast with error
 grep -r "toast.*error\." frontend/src/components/
 
-# Поиск console.error без getUserFriendlyErrorMessage после
+# Search for console.error without getUserFriendlyErrorMessage after
 grep -r "console\.error" frontend/src/components/
 ```
 
-## Существующие реализации
+## Existing Implementations
 
-Все следующие компоненты уже используют правильную обработку ошибок:
+All following components already use correct error handling:
 
 - ✅ `TranslationEditor.tsx`
 - ✅ `CreateKeyDialog.tsx`
@@ -212,44 +210,43 @@ grep -r "console\.error" frontend/src/components/
 - ✅ `LoginForm.tsx`
 - ✅ `RegisterForm.tsx`
 
-Используйте их как reference при создании новых компонентов.
+Use them as reference when creating new components.
 
-## Тестирование
+## Testing
 
-При тестировании проверяйте:
+When testing check:
 
-1. **Отключите бэкенд** - должно показываться "Unable to connect to server"
-2. **Невалидные данные** - должны показываться понятные сообщения
-3. **Ошибки БД** - НЕ должны показываться технические детали
-4. **GraphQL ошибки** - должны быть обработаны и показаны user-friendly
+1. **Disconnect backend** - should show "Unable to connect to server"
+2. **Invalid data** - should show understandable messages
+3. **DB errors** - should NOT show technical details
+4. **GraphQL errors** - should be handled and shown user-friendly
 
-## Дополнительная безопасность
+## Additional Security
 
 ### Apollo Client errorLink
 
-В `lib/apollo.ts` настроен errorLink, который:
+In `lib/apollo.ts` errorLink is configured to:
 
-1. Автоматически ловит ошибки аутентификации
-2. Очищает токены при 401/403
-3. Редиректит на страницу логина
+1. Automatically catch authentication errors
+2. Clear tokens on 401/403
+3. Redirect to login page
 
-Это дополнительный уровень защиты, но **НЕ заменяет** обработку в компонентах!
+This is additional protection layer, but **DOES NOT replace** component-level handling!
 
-## Контрольный список
+## Checklist
 
-- [ ] Все mutations используют `getUserFriendlyErrorMessage` в `onError`
-- [ ] Все try-catch блоки обрабатывают ошибки через `getUserFriendlyErrorMessage`
-- [ ] Технические ошибки логируются через `console.error` для разработки
-- [ ] Пользователь видит только понятные сообщения
-- [ ] Нет прямого использования `error.message` в toast/alert
-- [ ] Бэкенд не отдает технические детали в сообщениях об ошибках
+- [ ] All mutations use `getUserFriendlyErrorMessage` in `onError`
+- [ ] All try-catch blocks handle errors via `getUserFriendlyErrorMessage`
+- [ ] Technical errors logged via `console.error` for development
+- [ ] User sees only understandable messages
+- [ ] No direct usage of `error.message` in toast/alert
+- [ ] Backend doesn't return technical details in error messages
 
 ---
 
-**Помните:** Каждая техническая ошибка, показанная пользователю - это:
-1. **Вектор атаки** для хакеров
-2. **Плохой UX** для пользователей
-3. **Потенциальная утечка данных**
+**Remember:** Every technical error shown to user is:
+1. **Attack vector** for hackers
+2. **Poor UX** for users
+3. **Potential data leak**
 
-Всегда обрабатывайте ошибки правильно!
-
+Always handle errors correctly!

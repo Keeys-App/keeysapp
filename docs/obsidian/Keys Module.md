@@ -140,7 +140,7 @@ await createKey({
       description: "Submit button label",
       translations: {
         en: "Submit",
-        ru: "Отправить"
+        es: "Enviar"
       }
     }
   }
