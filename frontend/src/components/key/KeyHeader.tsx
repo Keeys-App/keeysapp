@@ -1,16 +1,11 @@
-import { cn } from "@/lib/utils";
-import { Copy, type LucideIcon, Trash2 } from "lucide-react";
-import { Badge, InputGroupButton } from "../ui";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "../ui/tooltip";
-import { useState, type FC } from "react";
-import { useKeyActions } from "@/hooks/useKeyActions";
-import { DeleteKeyDialog } from "./DeleteKeyDialog";
-import type { TranslationKey } from "@/types/translationKey";
+import { cn } from '@/lib/utils';
+import { Copy, type LucideIcon, Trash2 } from 'lucide-react';
+import { Badge, InputGroupButton } from '../ui';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { useState, type FC } from 'react';
+import { useKeyActions } from '@/hooks/useKeyActions';
+import { DeleteKeyDialog } from './DeleteKeyDialog';
+import type { TranslationKey } from '@/types/translationKey';
 
 interface KeyHeaderProps {
   keyName: string;
@@ -25,15 +20,10 @@ interface KeyHeaderProps {
  */
 export function KeyHeader({ keyName, isSelected, keyData, projectId, onKeyDeleted }: KeyHeaderProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  
-  const {
-    isDeleting,
-    isSaving,
-    handleDelete,
-    handleDuplicate,
-  } = useKeyActions({ 
-    keyData, 
-    projectId, 
+
+  const { isDeleting, isSaving, handleDelete, handleDuplicate } = useKeyActions({
+    keyData,
+    projectId,
     onKeyDeleted,
     onDeleteSuccess: () => setIsDeleteDialogOpen(false),
   });
@@ -50,32 +40,15 @@ export function KeyHeader({ keyName, isSelected, keyData, projectId, onKeyDelete
 
   return (
     <>
-      <div className="text-sm break-words sticky bg-background top-0 z-10 py-2 px-4">
-        <div
-          className={cn(
-            "transition-colors relative font-mono",
-            isSelected && "text-primary"
-          )}
-        >
-          {isSelected ? (
-            <div className="w-1 bg-primary rounded absolute top-[3px] bottom-[5px] left-[-9px]" />
-          ) : null}
+      <div className='text-sm break-words sticky bg-background top-0 z-10 py-2 px-4'>
+
+        <div className={cn('transition-colors relative font-mono', isSelected && 'text-primary')}>
           {keyName}
         </div>
-        <div className="mt-3 mb-2 h-6">
-          <div className={cn("group-hover/key:flex gap-2 hidden", isSelected && "flex")}>
-            <Button 
-              tooltip="Delete key" 
-              Icon={Trash2} 
-              onClick={handleDeleteClick}
-              disabled={isSaving}
-            />
-            <Button 
-              tooltip="Duplicate key" 
-              Icon={Copy} 
-              onClick={handleDuplicateClick}
-              disabled={isSaving}
-            />
+        <div className='mt-3 mb-2 h-6'>
+          <div className={cn('group-hover/key:flex gap-2 hidden', isSelected && 'flex')}>
+            <Button tooltip='Delete key' Icon={Trash2} onClick={handleDeleteClick} disabled={isSaving} />
+            <Button tooltip='Duplicate key' Icon={Copy} onClick={handleDuplicateClick} disabled={isSaving} />
           </div>
         </div>
       </div>
@@ -105,12 +78,11 @@ const Button: FC<ButtonProps> = ({ tooltip, Icon, onClick, disabled }: ButtonPro
         <TooltipTrigger asChild>
           <InputGroupButton
             onClick={onClick}
-            variant="outline"
-            className="rounded-full cursor-pointer"
-            size="icon-xs"
-            disabled={disabled}
-          >
-            <Icon className="!h-3.5 !w-3.5" />
+            variant='outline'
+            className='rounded-full cursor-pointer'
+            size='icon-xs'
+            disabled={disabled}>
+            <Icon className='!h-3.5 !w-3.5' />
           </InputGroupButton>
         </TooltipTrigger>
         <TooltipContent>{tooltip}</TooltipContent>

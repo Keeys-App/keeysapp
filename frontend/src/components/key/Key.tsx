@@ -1,11 +1,11 @@
-import { memo, useMemo } from "react";
-import { TranslationEditor } from "./TranslationEditor";
-import { LanguageHeader } from "./LanguageHeader";
-import { KeyHeader } from "./KeyHeader";
-import { KeyFooter } from "./KeyFooter";
-import type { TranslationKey } from "@/types/translationKey";
-import type { Language, LanguageWithLocale } from "@/types/project";
-import { cn } from "@/lib/utils";
+import { memo, useMemo } from 'react';
+import { TranslationEditor } from './TranslationEditor';
+import { LanguageHeader } from './LanguageHeader';
+import { KeyHeader } from './KeyHeader';
+import { KeyFooter } from './KeyFooter';
+import type { TranslationKey } from '@/types/translationKey';
+import type { Language, LanguageWithLocale } from '@/types/project';
+import { cn } from '@/lib/utils';
 
 interface KeyProps {
   keyData: TranslationKey;
@@ -51,10 +51,10 @@ export const Key = memo(
     const sortedLanguages = useMemo(() => {
       return [...projectLanguages].sort((a, b) => {
         // Default language comes first
-        if ("default" in a && a.default) {
+        if ('default' in a && a.default) {
           return -1;
         }
-        if ("default" in b && b.default) {
+        if ('default' in b && b.default) {
           return 1;
         }
         return 0;
@@ -64,30 +64,20 @@ export const Key = memo(
     return (
       <div
         className={cn(
-          "border-b group/key grid grid-cols-[220px_minmax(300px,3fr)] relative transition-colors",
-          !isSelected && "cursor-pointer"
+          'border-b group/key grid grid-cols-[220px_minmax(300px,3fr)] relative transition-colors',
+          !isSelected && 'cursor-pointer',
         )}
-        onClick={handleCancelEditingAndSelect}
-      >
-        <div className="border-r -mr-px relative flex flex-col">
-          <KeyHeader
-            keyName={keyData.key}
-            isSelected={isSelected}
-            keyData={keyData}
-            projectId={projectId}
-          />
-          <KeyFooter
-            description={keyData.description}
-            tags={keyData.tags}
-            isPlural={keyData.isPlural}
-          />
+        onClick={handleCancelEditingAndSelect}>
+        <div className='border-r -mr-px relative flex flex-col'>
+          <KeyHeader keyName={keyData.key} isSelected={isSelected} keyData={keyData} projectId={projectId} />
+          <KeyFooter description={keyData.description} tags={keyData.tags} isPlural={keyData.isPlural} />
+          {isSelected ? <div className='w-1 bg-primary absolute top-0 bottom-0 left-0 z-10' /> : null}
         </div>
-        <div className="flex flex-col">
-          {sortedLanguages.map((language) => (
+        <div className='flex flex-col'>
+          {sortedLanguages.map(language => (
             <div
               key={language.code}
-              className="group grid grid-cols-[120px_1fr] min-w-[500px] even:bg-muted/50 border-b last:-mb-px"
-            >
+              className='group grid grid-cols-[120px_1fr] min-w-[500px] even:bg-muted/50 border-b last:-mb-px'>
               <LanguageHeader
                 language={language}
                 translations={keyData.translations}
@@ -100,7 +90,7 @@ export const Key = memo(
                 projectLanguages={projectLanguages}
                 projectId={projectId}
                 isEditing={editingLanguage === language.code}
-                onEditingChange={(editing) => {
+                onEditingChange={editing => {
                   // Select key when starting/ending editing
                   if (onSelect) {
                     onSelect(keyData);
@@ -132,10 +122,7 @@ export const Key = memo(
     }
 
     // Check if translations changed (including reviewStatus)
-    if (
-      prevProps.keyData.translations.length !==
-      nextProps.keyData.translations.length
-    ) {
+    if (prevProps.keyData.translations.length !== nextProps.keyData.translations.length) {
       return false; // Re-render
     }
 
@@ -154,5 +141,5 @@ export const Key = memo(
     }
 
     return true; // Don't re-render
-  }
+  },
 );

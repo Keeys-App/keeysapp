@@ -10,11 +10,19 @@ Welcome to the Keeys project documentation!
 - [[Project Structure]] - Project structure
 
 ### Main Features
-- [[Teams System]] - **NEW!** Team system and collaboration
+- [[GitHub Localization Agent]] - **🚀 NEW!** AI agent for automatic code localization via GitHub
+- [[Teams System]] - Team system and collaboration
 - [[Keys Module]] - Translation keys management
-- [[Keys Search Feature]] - **NEW!** Key search with tests
+- [[Keys Search Feature]] - Key search with tests
 - [[Universal Activity Logging]] - Logging all actions
 - [[Project Export Import]] - Project export and import
+
+### AI Features
+- [[GitHub Localization Agent]] - **🚀 NEW!** AI-powered code scanning and PR generation
+- [[AI Autopilot Feature]] - AI translation assistance
+- [[AI Setup]] - AI configuration guide
+- [[AI Mature Content Support]] - Handling mature content
+- [[AI Variable Preservation]] - Preserving variables in translations
 
 ### Authentication
 - [[Authentication Setup]] - Complete authentication system documentation
@@ -105,4 +113,4 @@ More details: [[Testing Guide]] | [[Keys Search Feature]]
 
 ---
 
-*Documentation updated: 2025-12-13*
+*Documentation updated: 2024-12-19*
