@@ -723,6 +723,345 @@ User
 
 **Deliverable:** Production-ready feature
 
+---
+
+# 🛠️ Step-by-Step Implementation Guide
+
+## Step 1: GitHub Account Connection
+
+### 1.1 Overview
+
+First, we need to allow users to connect their GitHub accounts to Keeys via OAuth 2.0.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    STEP 1: CONNECT GITHUB                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  User clicks "Connect GitHub"                                   │
+│           │                                                      │
+│           ▼                                                      │
+│  Keeys redirects to GitHub OAuth                                │
+│           │                                                      │
+│           ▼                                                      │
+│  User authorizes Keeys app                                      │
+│           │                                                      │
+│           ▼                                                      │
+│  GitHub redirects back with code                                │
+│           │                                                      │
+│           ▼                                                      │
+│  Keeys exchanges code for access token                          │
+│           │                                                      │
+│           ▼                                                      │
+│  Token encrypted and stored in DB                               │
+│           │                                                      │
+│           ▼                                                      │
+│  User sees "Connected as @username"                             │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 1.2 Prerequisites
+
+Before starting implementation:
+
+1. **Create GitHub OAuth App**
+   - Go to GitHub → Settings → Developer settings → OAuth Apps
+   - Click "New OAuth App"
+   - Fill in:
+     - Application name: `Keeys Localization`
+     - Homepage URL: `https://keeys.app` (or ngrok URL for dev)
+     - Authorization callback URL: `{BACKEND_URL}/api/github/callback`
+   - Save Client ID and Client Secret
+
+2. **Environment Variables**
+   ```
+   GITHUB_CLIENT_ID=Ov23li...
+   GITHUB_CLIENT_SECRET=...
+   GITHUB_CALLBACK_URL=https://xxx.ngrok.io/api/github/callback
+   ```
+
+### 1.3 Backend Tasks
+
+#### Task 1.3.1: Create GitHubConnection Model
+
+Create new model to store OAuth connections.
+
+**File:** `backend/app/models/github_connection.py`
+
+**Fields:**
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| user_id | UUID | FK to users table |
+| access_token | String | Encrypted GitHub token |
+| token_type | String | Usually "bearer" |
+| scope | String | Granted scopes |
+| github_user_id | String | GitHub user ID |
+| github_username | String | GitHub username |
+| github_avatar_url | String | Avatar URL |
+| connected_at | DateTime | When connected |
+| updated_at | DateTime | Last update |
+
+**Relationships:**
+- `user` → User (many-to-one)
+- `repositories` → Repository (one-to-many)
+
+#### Task 1.3.2: Create Migration
+
+**File:** `backend/migrations/create_github_connections.py`
+
+- Create `github_connections` table
+- Add indexes on `user_id` and `github_user_id`
+- Add unique constraint on `(user_id, github_user_id)`
+
+#### Task 1.3.3: Create GitHub Service
+
+**File:** `backend/app/services/github_service.py`
+
+**Methods:**
+| Method | Description |
+|--------|-------------|
+| `get_authorization_url()` | Generate OAuth URL with state |
+| `exchange_code_for_token(code)` | Exchange auth code for access token |
+| `get_user_info(token)` | Fetch GitHub user profile |
+| `encrypt_token(token)` | Encrypt token for storage |
+| `decrypt_token(encrypted)` | Decrypt token for use |
+
+#### Task 1.3.4: Create GitHub Router
+
+**File:** `backend/app/routers/github_router.py`
+
+**Endpoints:**
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/github/auth` | GET | Redirect to GitHub OAuth |
+| `/api/github/callback` | GET | Handle OAuth callback |
+
+#### Task 1.3.5: Create GraphQL Schema
+
+**File:** `backend/app/schemas/github.py`
+
+**Types:**
+- `GitHubConnectionType` — Connection info (id, username, avatar, etc.)
+
+**Queries:**
+- `myGitHubConnections` — List user's GitHub connections
+
+**Mutations:**
+- `disconnectGitHub(connectionId)` — Remove a connection
+
+### 1.4 Frontend Tasks
+
+#### Task 1.4.1: Create GitHub Context
+
+**File:** `frontend/src/contexts/GitHubContext.tsx`
+
+**State:**
+- `connections` — List of GitHubConnection
+- `isConnecting` — Loading state
+- `error` — Error state
+
+**Actions:**
+- `connectGitHub()` — Initiate OAuth flow
+- `disconnectGitHub(id)` — Remove connection
+- `refreshConnections()` — Reload from server
+
+#### Task 1.4.2: Create ConnectGitHubCard Component
+
+**File:** `frontend/src/components/github/ConnectGitHubCard.tsx`
+
+**UI States:**
+
+Not connected:
+```
+┌─────────────────────────────────────────────────┐
+│  🔗 GitHub Integration                          │
+│                                                 │
+│  Connect your GitHub account to enable          │
+│  automatic code localization.                   │
+│                                                 │
+│  ┌─────────────────────────────────────────┐   │
+│  │  🐙 Connect GitHub                       │   │
+│  └─────────────────────────────────────────┘   │
+│                                                 │
+│  We'll request access to:                       │
+│  • Read repository contents                     │
+│  • Create branches and pull requests            │
+│                                                 │
+└─────────────────────────────────────────────────┘
+```
+
+Connected:
+```
+┌─────────────────────────────────────────────────┐
+│  🔗 GitHub Integration                          │
+│                                                 │
+│  ┌─────┐                                        │
+│  │ 👤  │  Connected as @username               │
+│  └─────┘  Connected 2 days ago                 │
+│                                                 │
+│           [Disconnect]                          │
+│                                                 │
+└─────────────────────────────────────────────────┘
+```
+
+#### Task 1.4.3: Create GitHub Settings Page
+
+**File:** `frontend/src/pages/GitHubSettingsPage.tsx`
+
+**Route:** `/project/:id/github`
+
+**Sections:**
+1. GitHub Connection Card
+2. Connected Repositories List (empty for now)
+3. Add Repository Button (disabled for now)
+
+#### Task 1.4.4: Add Navigation
+
+Update sidebar/navigation to include GitHub Agent link.
+
+#### Task 1.4.5: Handle OAuth Callback
+
+**File:** `frontend/src/pages/GitHubCallbackPage.tsx`
+
+**Route:** `/github/callback`
+
+**Flow:**
+1. Extract `code` and `state` from URL
+2. Send to backend
+3. Show success/error
+4. Redirect to GitHub settings page
+
+### 1.5 Testing Checklist
+
+#### Backend Tests
+
+- [ ] `test_github_connection_model.py`
+  - [ ] Create connection
+  - [ ] Encrypt/decrypt token
+  - [ ] Delete cascades properly
+
+- [ ] `test_github_service.py`
+  - [ ] Generate auth URL with state
+  - [ ] Exchange code for token (mock GitHub API)
+  - [ ] Handle invalid code
+  - [ ] Handle expired code
+
+- [ ] `test_github_router.py`
+  - [ ] Auth endpoint redirects correctly
+  - [ ] Callback handles success
+  - [ ] Callback handles errors
+  - [ ] State validation works
+
+- [ ] `test_github_graphql.py`
+  - [ ] Query connections (authenticated)
+  - [ ] Query connections (unauthenticated → error)
+  - [ ] Disconnect mutation works
+  - [ ] Cannot disconnect other user's connection
+
+#### Frontend Tests
+
+- [ ] ConnectGitHubCard renders correctly
+- [ ] Connect button opens OAuth
+- [ ] Disconnect shows confirmation
+- [ ] Loading states work
+- [ ] Error states display properly
+
+### 1.6 Security Considerations
+
+| Concern | Solution |
+|---------|----------|
+| Token storage | Encrypt with Fernet before storing |
+| State parameter | Use random UUID, verify on callback |
+| CSRF protection | State parameter validates request origin |
+| Token exposure | Never send token to frontend |
+| Scope creep | Request minimal required scopes |
+
+### 1.7 Acceptance Criteria
+
+- [ ] User can click "Connect GitHub" and complete OAuth flow
+- [ ] User sees their GitHub username and avatar after connecting
+- [ ] User can disconnect their GitHub account
+- [ ] Multiple users can connect the same GitHub account (different Keeys accounts)
+- [ ] One user can connect multiple GitHub accounts
+- [ ] Tokens are encrypted in database
+- [ ] Invalid/expired tokens are handled gracefully
+- [ ] All operations are logged for audit
+
+### 1.8 Estimated Time
+
+| Task | Time |
+|------|------|
+| Backend model + migration | 2h |
+| GitHub service | 4h |
+| Router + endpoints | 2h |
+| GraphQL schema | 2h |
+| Frontend context | 2h |
+| UI components | 4h |
+| Callback page | 2h |
+| Testing | 4h |
+| **Total** | **~22h (3 days)** |
+
+---
+
+## Step 2: Repository Selection
+
+*Coming after Step 1 is complete...*
+
+### 2.1 Overview
+
+After connecting GitHub, users need to:
+1. Browse their repositories
+2. Select a repository to connect
+3. Configure i18n settings
+
+### 2.2 Backend Tasks
+
+- Create `Repository` model
+- GitHub API: list user repositories
+- GitHub API: get repository details
+- GraphQL: `listGitHubRepos`, `addRepository`
+
+### 2.3 Frontend Tasks
+
+- Repository browser dialog
+- Repository card component
+- i18n framework selector
+- Source file patterns configuration
+
+---
+
+## Step 3: File Scanning with Claude
+
+*Coming after Step 2 is complete...*
+
+---
+
+## Step 4: String Review & Editing
+
+*Coming after Step 3 is complete...*
+
+---
+
+## Step 5: Screenshot Enhancement
+
+*Coming after Step 4 is complete...*
+
+---
+
+## Step 6: Code Transformation
+
+*Coming after Step 5 is complete...*
+
+---
+
+## Step 7: Pull Request Creation
+
+*Coming after Step 6 is complete...*
+
+---
+
 ## 💰 Cost Estimation
 
 ### Claude API Costs
