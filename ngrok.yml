@@ -1,0 +1,14 @@
+version: "3"
+
+agent:
+  authtoken: 21EOp3oO9vVR7ejW2Kkai0XsEDN_5zMmR9i9dYWpfa5mxPu5t
+
+endpoints:
+  - name: keeys-app
+    url: https://ng-mb-app.vaiz.dev
+    upstream:
+      url: http://localhost:3005
+  - name: keeys-api
+    url: https://ng-mb-api.vaiz.dev
+    upstream:
+      url: http://localhost:8000
