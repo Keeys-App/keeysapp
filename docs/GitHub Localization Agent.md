@@ -1,1315 +1,804 @@
 # GitHub Localization Agent
 
 > [!info] Feature Overview
-> AI-powered agent that connects to GitHub repositories, finds hardcoded strings, and automatically creates localization PRs.
+> AI-powered agent that connects to GitHub repositories, analyzes code using Claude AI, finds hardcoded strings, transforms code to use i18n, and automatically creates Pull Requests.
 
 ## 🎯 Vision
 
-Transform any codebase into a properly localized application by:
-1. **Connecting** to GitHub repositories via OAuth
-2. **Scanning** code for hardcoded strings using AST analysis
-3. **Generating** meaningful translation keys automatically
-4. **Transforming** code to use i18n functions
-5. **Creating** Pull Requests with all changes
-6. **Enhancing** context with screenshots for better translations
+### The Problem
+
+Developers often write code with hardcoded strings:
+
+```tsx
+<button>Submit</button>
+<h1>Welcome Back</h1>
+<input placeholder="Enter your email" />
+```
+
+Internationalizing an existing codebase is tedious, error-prone, and time-consuming. Developers must:
+1. Manually find all user-facing strings
+2. Create meaningful key names
+3. Replace strings with i18n function calls
+4. Create translation files
+5. Ensure nothing breaks
+
+### The Solution
+
+**Keeys GitHub Agent** automates the entire process:
+
+1. **Connect** your GitHub repository
+2. **Scan** — Claude AI analyzes your code and finds all strings
+3. **Review** — You approve/edit suggested keys
+4. **Transform** — Claude rewrites code with i18n
+5. **PR** — Agent creates a Pull Request with all changes
+
+```
+┌─────────────┐      ┌─────────────┐      ┌─────────────┐      ┌─────────────┐
+│   GitHub    │ ───▶ │  Claude AI  │ ───▶ │   Review    │ ───▶ │  Pull       │
+│   Repo      │      │  Analysis   │      │   & Edit    │      │  Request    │
+└─────────────┘      └─────────────┘      └─────────────┘      └─────────────┘
+```
 
 ## 🏗️ Architecture
 
-### High-Level Overview
+### Core Principle: Claude Does Everything
+
+Instead of building complex parsers for each language/framework, we leverage Claude's ability to understand and transform code. This gives us:
+
+| Benefit | Description |
+|---------|-------------|
+| **Universal** | Works with any language: React, Vue, Svelte, Angular, Python, etc. |
+| **Context-Aware** | Understands what's user-facing vs technical |
+| **High Quality** | Produces idiomatic, clean code |
+| **Simple Backend** | Minimal code to maintain |
+
+### System Overview
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        KEEYS PLATFORM                                │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  ┌──────────────┐    ┌──────────────────┐    ┌─────────────────┐   │
-│  │   GitHub     │───▶│  Code Analysis   │───▶│  Key Generator  │   │
-│  │  Connector   │    │     Agent        │    │   + i18n Setup  │   │
-│  └──────────────┘    └──────────────────┘    └─────────────────┘   │
-│         │                    │                        │             │
-│         ▼                    ▼                        ▼             │
-│  ┌──────────────┐    ┌──────────────────┐    ┌─────────────────┐   │
-│  │ Repository   │    │   Screenshot     │    │   Translation   │   │
-│  │   Browser    │    │    Analyzer      │    │    + Review     │   │
-│  └──────────────┘    └──────────────────┘    └─────────────────┘   │
-│         │                    │                        │             │
-│         └────────────────────┴────────────────────────┘             │
-│                              │                                       │
-│                              ▼                                       │
-│                    ┌──────────────────┐                             │
-│                    │   PR Generator   │                             │
-│                    │  + Code Commits  │                             │
-│                    └──────────────────┘                             │
-└─────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              KEEYS PLATFORM                                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │                         GitHub Integration Layer                        │ │
+│  │                                                                         │ │
+│  │   ┌──────────────┐   ┌──────────────┐   ┌──────────────────────────┐  │ │
+│  │   │    OAuth     │   │  Repository  │   │     Webhook Handler      │  │ │
+│  │   │    Flow      │   │   Browser    │   │   (PR status updates)    │  │ │
+│  │   └──────────────┘   └──────────────┘   └──────────────────────────┘  │ │
+│  │                                                                         │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                      │                                       │
+│                                      ▼                                       │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │                         Claude AI Agent                                 │ │
+│  │                                                                         │ │
+│  │   ┌──────────────────────────────────────────────────────────────────┐ │ │
+│  │   │                     Single Powerful Prompt                        │ │ │
+│  │   │                                                                   │ │ │
+│  │   │  INPUT:  Source code file                                        │ │ │
+│  │   │  OUTPUT: • Transformed code with i18n                            │ │ │
+│  │   │          • List of found strings with keys                       │ │ │
+│  │   │          • Translation file entries                              │ │ │
+│  │   │          • Change summary                                        │ │ │
+│  │   │                                                                   │ │ │
+│  │   └──────────────────────────────────────────────────────────────────┘ │ │
+│  │                                                                         │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                      │                                       │
+│                                      ▼                                       │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │                         Review & Approval UI                            │ │
+│  │                                                                         │ │
+│  │   • View found strings                    • Upload screenshots         │ │
+│  │   • Edit suggested keys                   • Add context for Claude     │ │
+│  │   • Approve/skip strings                  • Preview changes            │ │
+│  │                                                                         │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                      │                                       │
+│                                      ▼                                       │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │                         PR Generation                                   │ │
+│  │                                                                         │ │
+│  │   • Create feature branch                 • Commit transformed files   │ │
+│  │   • Generate PR description               • Link to Keeys project      │ │
+│  │   • Update translation files              • Track PR status            │ │
+│  │                                                                         │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Component Diagram
+### Data Flow
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         BACKEND SERVICES                             │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  ┌─────────────────────────────────────────────────────────────┐    │
-│  │                    GitHub Service                            │    │
-│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │    │
-│  │  │ OAuth Flow   │  │ API Client   │  │ Webhook Handler  │  │    │
-│  │  └──────────────┘  └──────────────┘  └──────────────────┘  │    │
-│  └─────────────────────────────────────────────────────────────┘    │
-│                                                                      │
-│  ┌─────────────────────────────────────────────────────────────┐    │
-│  │                  Localization Agent                          │    │
-│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │    │
-│  │  │ Code Scanner │  │ Transformer  │  │ PR Generator     │  │    │
-│  │  │ (tree-sitter)│  │ (AST rewrite)│  │ (Git operations) │  │    │
-│  │  └──────────────┘  └──────────────┘  └──────────────────┘  │    │
-│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │    │
-│  │  │ Key Generator│  │ Context AI   │  │ Vision Analyzer  │  │    │
-│  │  │ (GPT-4)      │  │ (GPT-4)      │  │ (GPT-4 Vision)   │  │    │
-│  │  └──────────────┘  └──────────────┘  └──────────────────┘  │    │
-│  └─────────────────────────────────────────────────────────────┘    │
-│                                                                      │
-│  ┌─────────────────────────────────────────────────────────────┐    │
-│  │                   Background Tasks                           │    │
-│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │    │
-│  │  │ Scan Queue   │  │ Transform Q  │  │ Webhook Queue    │  │    │
-│  │  └──────────────┘  └──────────────┘  └──────────────────┘  │    │
-│  └─────────────────────────────────────────────────────────────┘    │
-│                                                                      │
-└─────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              WORKFLOW                                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  STEP 1: CONNECT                                                            │
+│  ════════════════                                                           │
+│  User connects GitHub account via OAuth                                     │
+│  User selects repository to analyze                                         │
+│  User configures i18n framework (react-i18next, vue-i18n, etc.)            │
+│                                                                              │
+│                                    ▼                                         │
+│                                                                              │
+│  STEP 2: SCAN                                                               │
+│  ════════════                                                               │
+│  Agent fetches file list from repository                                    │
+│  Agent filters files by pattern (*.tsx, *.vue, etc.)                        │
+│  For each file:                                                             │
+│    → Send to Claude for analysis                                            │
+│    → Claude returns: found strings + suggested keys + transformed code     │
+│    → Store results in database                                              │
+│                                                                              │
+│                                    ▼                                         │
+│                                                                              │
+│  STEP 3: REVIEW                                                             │
+│  ══════════════                                                             │
+│  User sees list of all found strings                                        │
+│  User can:                                                                  │
+│    → Approve strings (include in PR)                                        │
+│    → Skip strings (exclude from PR)                                         │
+│    → Edit key names                                                         │
+│    → Upload screenshots for better context                                  │
+│    → Request re-analysis with more context                                  │
+│                                                                              │
+│                                    ▼                                         │
+│                                                                              │
+│  STEP 4: TRANSFORM                                                          │
+│  ═════════════════                                                          │
+│  For approved strings:                                                      │
+│    → Claude generates final transformed code                                │
+│    → Generate translation file entries                                      │
+│    → Preview diff before commit                                             │
+│                                                                              │
+│                                    ▼                                         │
+│                                                                              │
+│  STEP 5: CREATE PR                                                          │
+│  ═════════════════                                                          │
+│  Create feature branch (e.g., feat/i18n-auth-module)                        │
+│  Commit all transformed files                                               │
+│  Commit translation files (en.json, etc.)                                   │
+│  Create PR with auto-generated description                                  │
+│  Link PR to Keeys project for translation tracking                          │
+│                                                                              │
+│                                    ▼                                         │
+│                                                                              │
+│  STEP 6: TRANSLATE & MERGE                                                  │
+│  ═════════════════════════                                                  │
+│  Translations sync to Keeys project                                         │
+│  Team translates keys in Keeys UI                                           │
+│  When ready, translations push back to PR                                   │
+│  Developer merges PR                                                        │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## 📊 Database Schema
+## 🤖 Claude AI Agent
 
-### New Models
+### Why Claude?
 
-#### GitHubConnection
-Stores OAuth tokens for GitHub access.
+| Feature | Benefit |
+|---------|---------|
+| **Code Understanding** | Claude excels at reading and writing code |
+| **Context Window** | 200K tokens — can process large files |
+| **Instruction Following** | Reliably outputs structured JSON |
+| **Multi-language** | Understands React, Vue, Angular, Python, etc. |
+| **Quality** | Produces clean, idiomatic code |
 
-```python
-class GitHubConnection(Base):
-    __tablename__ = "github_connections"
-    
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
-    
-    # OAuth tokens (encrypted)
-    access_token: Mapped[str] = mapped_column(nullable=False)
-    refresh_token: Mapped[str] = mapped_column(nullable=True)
-    token_expires_at: Mapped[datetime] = mapped_column(nullable=True)
-    
-    # GitHub user info
-    github_user_id: Mapped[str] = mapped_column(nullable=False)
-    github_username: Mapped[str] = mapped_column(nullable=False)
-    github_avatar_url: Mapped[str] = mapped_column(nullable=True)
-    
-    # Metadata
-    scopes: Mapped[List[str]] = mapped_column(ARRAY(String), default=list)
-    connected_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
-    last_used_at: Mapped[datetime] = mapped_column(nullable=True)
-    
-    # Relationships
-    user: Mapped["User"] = relationship(back_populates="github_connections")
-    repositories: Mapped[List["Repository"]] = relationship(back_populates="connection")
-```
-
-#### Repository
-Connected GitHub repository linked to a Keeys project.
-
-```python
-class Repository(Base):
-    __tablename__ = "repositories"
-    
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    project_id: Mapped[UUID] = mapped_column(ForeignKey("projects.id"), nullable=False)
-    github_connection_id: Mapped[UUID] = mapped_column(
-        ForeignKey("github_connections.id"), nullable=False
-    )
-    
-    # Repository info
-    repo_owner: Mapped[str] = mapped_column(nullable=False)
-    repo_name: Mapped[str] = mapped_column(nullable=False)
-    repo_full_name: Mapped[str] = mapped_column(nullable=False)  # "owner/repo"
-    default_branch: Mapped[str] = mapped_column(default="main")
-    repo_url: Mapped[str] = mapped_column(nullable=False)
-    
-    # i18n configuration
-    i18n_framework: Mapped[str] = mapped_column(nullable=True)  # auto-detected or manual
-    translation_files_path: Mapped[str] = mapped_column(default="src/locales")
-    source_patterns: Mapped[List[str]] = mapped_column(
-        ARRAY(String), 
-        default=["src/**/*.tsx", "src/**/*.ts", "src/**/*.jsx", "src/**/*.js"]
-    )
-    
-    # Scan settings
-    ignore_patterns: Mapped[List[str]] = mapped_column(
-        ARRAY(String),
-        default=["node_modules/**", "dist/**", "*.test.*", "*.spec.*"]
-    )
-    auto_scan_enabled: Mapped[bool] = mapped_column(default=False)
-    
-    # Metadata
-    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
-    last_scan_at: Mapped[datetime] = mapped_column(nullable=True)
-    
-    # Relationships
-    project: Mapped["Project"] = relationship(back_populates="repositories")
-    connection: Mapped["GitHubConnection"] = relationship(back_populates="repositories")
-    scans: Mapped[List["ScanSession"]] = relationship(back_populates="repository")
-```
-
-#### ScanSession
-Track scanning sessions and their results.
-
-```python
-class ScanStatus(str, Enum):
-    PENDING = "PENDING"
-    SCANNING = "SCANNING"
-    ANALYZING = "ANALYZING"
-    COMPLETED = "COMPLETED"
-    FAILED = "FAILED"
-
-class ScanSession(Base):
-    __tablename__ = "scan_sessions"
-    
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    repository_id: Mapped[UUID] = mapped_column(ForeignKey("repositories.id"), nullable=False)
-    
-    # Scan info
-    status: Mapped[ScanStatus] = mapped_column(default=ScanStatus.PENDING)
-    branch: Mapped[str] = mapped_column(nullable=False)
-    commit_sha: Mapped[str] = mapped_column(nullable=True)
-    
-    # Results
-    files_scanned: Mapped[int] = mapped_column(default=0)
-    strings_found: Mapped[int] = mapped_column(default=0)
-    strings_skipped: Mapped[int] = mapped_column(default=0)
-    
-    # Timing
-    started_at: Mapped[datetime] = mapped_column(nullable=True)
-    completed_at: Mapped[datetime] = mapped_column(nullable=True)
-    
-    # Error tracking
-    error_message: Mapped[str] = mapped_column(nullable=True)
-    
-    # Relationships
-    repository: Mapped["Repository"] = relationship(back_populates="scans")
-    found_strings: Mapped[List["FoundString"]] = relationship(back_populates="scan")
-```
-
-#### FoundString
-Individual hardcoded string found during scanning.
-
-```python
-class StringStatus(str, Enum):
-    PENDING = "PENDING"      # Awaiting review
-    APPROVED = "APPROVED"    # Will be included in PR
-    SKIPPED = "SKIPPED"      # Manually skipped
-    EXCLUDED = "EXCLUDED"    # Auto-excluded (version, URL, etc.)
-    COMMITTED = "COMMITTED"  # Already in a PR
-
-class FoundString(Base):
-    __tablename__ = "found_strings"
-    
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    scan_id: Mapped[UUID] = mapped_column(ForeignKey("scan_sessions.id"), nullable=False)
-    
-    # Location
-    file_path: Mapped[str] = mapped_column(nullable=False)
-    line_number: Mapped[int] = mapped_column(nullable=False)
-    column_start: Mapped[int] = mapped_column(nullable=False)
-    column_end: Mapped[int] = mapped_column(nullable=False)
-    
-    # Content
-    original_text: Mapped[str] = mapped_column(nullable=False)
-    context_before: Mapped[str] = mapped_column(nullable=True)  # 2-3 lines before
-    context_after: Mapped[str] = mapped_column(nullable=True)   # 2-3 lines after
-    
-    # Analysis
-    string_type: Mapped[str] = mapped_column(nullable=True)  # button, label, error, etc.
-    component_name: Mapped[str] = mapped_column(nullable=True)
-    suggested_key: Mapped[str] = mapped_column(nullable=True)
-    ai_context: Mapped[str] = mapped_column(nullable=True)  # AI-generated context
-    
-    # Status
-    status: Mapped[StringStatus] = mapped_column(default=StringStatus.PENDING)
-    final_key: Mapped[str] = mapped_column(nullable=True)  # User-approved key name
-    
-    # Relationships
-    scan: Mapped["ScanSession"] = relationship(back_populates="found_strings")
-    screenshots: Mapped[List["Screenshot"]] = relationship(back_populates="found_string")
-```
-
-#### Screenshot
-Screenshots uploaded for context enhancement.
-
-```python
-class Screenshot(Base):
-    __tablename__ = "screenshots"
-    
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    repository_id: Mapped[UUID] = mapped_column(ForeignKey("repositories.id"), nullable=False)
-    found_string_id: Mapped[UUID] = mapped_column(
-        ForeignKey("found_strings.id"), nullable=True
-    )
-    
-    # File info
-    filename: Mapped[str] = mapped_column(nullable=False)
-    file_path: Mapped[str] = mapped_column(nullable=False)  # Storage path
-    file_size: Mapped[int] = mapped_column(nullable=False)
-    mime_type: Mapped[str] = mapped_column(nullable=False)
-    
-    # AI analysis
-    ai_description: Mapped[str] = mapped_column(nullable=True)
-    detected_ui_elements: Mapped[dict] = mapped_column(JSON, nullable=True)
-    
-    # Metadata
-    uploaded_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
-    uploaded_by: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
-    
-    # Relationships
-    repository: Mapped["Repository"] = relationship()
-    found_string: Mapped["FoundString"] = relationship(back_populates="screenshots")
-```
-
-#### PullRequest
-Track created PRs.
-
-```python
-class PRStatus(str, Enum):
-    CREATING = "CREATING"
-    OPEN = "OPEN"
-    MERGED = "MERGED"
-    CLOSED = "CLOSED"
-
-class PullRequest(Base):
-    __tablename__ = "pull_requests"
-    
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    repository_id: Mapped[UUID] = mapped_column(ForeignKey("repositories.id"), nullable=False)
-    
-    # GitHub info
-    github_pr_id: Mapped[int] = mapped_column(nullable=True)
-    github_pr_number: Mapped[int] = mapped_column(nullable=True)
-    github_pr_url: Mapped[str] = mapped_column(nullable=True)
-    
-    # Branch info
-    source_branch: Mapped[str] = mapped_column(nullable=False)
-    target_branch: Mapped[str] = mapped_column(nullable=False)
-    
-    # Content
-    title: Mapped[str] = mapped_column(nullable=False)
-    description: Mapped[str] = mapped_column(nullable=True)
-    
-    # Stats
-    files_changed: Mapped[int] = mapped_column(default=0)
-    keys_added: Mapped[int] = mapped_column(default=0)
-    
-    # Status
-    status: Mapped[PRStatus] = mapped_column(default=PRStatus.CREATING)
-    
-    # Timing
-    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
-    merged_at: Mapped[datetime] = mapped_column(nullable=True)
-    
-    # Relationships
-    repository: Mapped["Repository"] = relationship()
-    included_strings: Mapped[List["FoundString"]] = relationship()
-```
-
-### Entity Relationship Diagram
-
-```
-┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐
-│      User       │       │     Project     │       │      Team       │
-├─────────────────┤       ├─────────────────┤       ├─────────────────┤
-│ id              │       │ id              │       │ id              │
-│ email           │──────▶│ name            │◀──────│ name            │
-│ ...             │       │ team_id         │       │ ...             │
-└────────┬────────┘       └────────┬────────┘       └─────────────────┘
-         │                         │
-         │                         │
-         ▼                         ▼
-┌─────────────────┐       ┌─────────────────┐
-│ GitHubConnection│       │   Repository    │
-├─────────────────┤       ├─────────────────┤
-│ id              │       │ id              │
-│ user_id         │──────▶│ project_id      │
-│ access_token    │       │ github_conn_id  │◀──────┐
-│ github_username │       │ repo_full_name  │       │
-└─────────────────┘       │ i18n_framework  │       │
-                          └────────┬────────┘       │
-                                   │                │
-         ┌─────────────────────────┼────────────────┘
-         │                         │
-         ▼                         ▼
-┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐
-│   ScanSession   │       │   Screenshot    │       │   PullRequest   │
-├─────────────────┤       ├─────────────────┤       ├─────────────────┤
-│ id              │       │ id              │       │ id              │
-│ repository_id   │       │ repository_id   │       │ repository_id   │
-│ status          │       │ found_string_id │       │ github_pr_id    │
-│ strings_found   │       │ ai_description  │       │ status          │
-└────────┬────────┘       └─────────────────┘       └─────────────────┘
-         │                         ▲
-         │                         │
-         ▼                         │
-┌─────────────────┐                │
-│   FoundString   │────────────────┘
-├─────────────────┤
-│ id              │
-│ scan_id         │
-│ original_text   │
-│ suggested_key   │
-│ status          │
-└─────────────────┘
-```
-
-## 🔐 GitHub OAuth Flow
-
-### Setup Requirements
-
-1. **GitHub OAuth App** (Settings → Developer settings → OAuth Apps)
-   - Application name: `Keeys Localization`
-   - Homepage URL: `https://keeys.app` (or ngrok URL for dev)
-   - Authorization callback URL: `https://keeys.app/api/github/callback`
-
-2. **Environment Variables**
-   ```env
-   # GitHub OAuth
-   GITHUB_CLIENT_ID=Iv1.xxxxxxxxxxxx
-   GITHUB_CLIENT_SECRET=xxxxxxxxxxxxxxxxxxxx
-   GITHUB_CALLBACK_URL=https://your-ngrok-url.ngrok.io/api/github/callback
-   
-   # Token encryption
-   GITHUB_TOKEN_ENCRYPTION_KEY=your-32-byte-key-here
-   ```
-
-### OAuth Flow Diagram
-
-```
-┌──────────┐          ┌──────────┐          ┌──────────┐
-│  User    │          │  Keeys   │          │  GitHub  │
-│ Browser  │          │ Backend  │          │   API    │
-└────┬─────┘          └────┬─────┘          └────┬─────┘
-     │                     │                     │
-     │  1. Click "Connect  │                     │
-     │     GitHub"         │                     │
-     │────────────────────▶│                     │
-     │                     │                     │
-     │  2. Redirect to     │                     │
-     │     GitHub OAuth    │                     │
-     │◀────────────────────│                     │
-     │                     │                     │
-     │  3. Authorize App   │                     │
-     │─────────────────────────────────────────▶│
-     │                     │                     │
-     │  4. Redirect with   │                     │
-     │     code            │                     │
-     │◀────────────────────────────────────────│
-     │                     │                     │
-     │  5. Send code to    │                     │
-     │     backend         │                     │
-     │────────────────────▶│                     │
-     │                     │                     │
-     │                     │  6. Exchange code   │
-     │                     │     for tokens      │
-     │                     │────────────────────▶│
-     │                     │                     │
-     │                     │  7. Return tokens   │
-     │                     │◀────────────────────│
-     │                     │                     │
-     │                     │  8. Store encrypted │
-     │                     │     tokens in DB    │
-     │                     │                     │
-     │  9. Success!        │                     │
-     │◀────────────────────│                     │
-     │                     │                     │
-```
-
-### Required Scopes
-
-```python
-GITHUB_SCOPES = [
-    "repo",           # Full control of private repositories
-    "read:user",      # Read user profile data
-    "user:email",     # Access user email addresses
-]
-```
-
-## 🔍 Code Scanner
-
-### Supported Languages & Frameworks
-
-| Language | Parser | i18n Frameworks |
-|----------|--------|-----------------|
-| TypeScript/TSX | tree-sitter-typescript | react-i18next, next-intl |
-| JavaScript/JSX | tree-sitter-javascript | react-i18next, i18next |
-| Vue | tree-sitter-vue | vue-i18n |
-| Svelte | tree-sitter-svelte | svelte-i18n |
-| Python | tree-sitter-python | gettext, babel |
-
-### String Detection Rules
-
-#### What to Extract
-
-```typescript
-// ✅ JSX text content
-<button>Submit</button>
-
-// ✅ String literals in JSX attributes
-<input placeholder="Enter your email" />
-<img alt="User avatar" />
-<button title="Click to submit" />
-<span aria-label="Close dialog" />
-
-// ✅ Template literals with static content
-const message = `Welcome to our app`;
-
-// ✅ String arguments to certain functions
-console.log("User logged in");  // Configurable
-alert("Are you sure?");
-confirm("Delete this item?");
-
-// ✅ Object properties (configurable)
-const errors = {
-  required: "This field is required",
-  invalid: "Invalid email format"
-};
-```
-
-#### What to Skip
-
-```typescript
-// ❌ Import/export paths
-import { Button } from "./Button";
-
-// ❌ CSS class names
-<div className="container flex items-center" />
-
-// ❌ Technical identifiers
-const API_ENDPOINT = "https://api.example.com";
-const eventName = "user_logged_in";
-
-// ❌ Regex patterns
-const pattern = /^[a-z]+$/;
-
-// ❌ Version strings
-const version = "1.2.3";
-
-// ❌ Already localized strings
-<span>{t('common.submit')}</span>
-
-// ❌ Console.log in development (configurable)
-console.log("Debug:", value);
-
-// ❌ Test files
-describe("Button component", () => {});
-```
-
-### AST Analysis Example
-
-```typescript
-// Input code
-function LoginForm() {
-  return (
-    <form>
-      <h1>Welcome Back</h1>
-      <input placeholder="Email address" />
-      <input placeholder="Password" type="password" />
-      <button type="submit">Sign In</button>
-      <a href="/forgot">Forgot password?</a>
-    </form>
-  );
-}
-
-// Scanner output
-[
-  {
-    "text": "Welcome Back",
-    "type": "jsx_text",
-    "file": "src/components/LoginForm.tsx",
-    "line": 4,
-    "component": "LoginForm",
-    "suggested_key": "auth.login.title"
-  },
-  {
-    "text": "Email address",
-    "type": "jsx_attribute",
-    "attribute": "placeholder",
-    "file": "src/components/LoginForm.tsx",
-    "line": 5,
-    "component": "LoginForm",
-    "suggested_key": "auth.login.emailPlaceholder"
-  },
-  // ... etc
-]
-```
-
-## 🤖 AI Key Generator
-
-### Key Naming Strategy
-
-The AI generates meaningful, hierarchical key names based on:
-
-1. **Component context** - Where the string appears
-2. **Element type** - Button, label, error, etc.
-3. **Semantic meaning** - What the string represents
-4. **Project conventions** - Existing key patterns
-
-### Prompt Template
-
-```python
-KEY_GENERATION_PROMPT = """
-You are a localization expert. Generate a meaningful i18n key name for the following string.
-
-Context:
-- File: {file_path}
-- Component: {component_name}
-- Element type: {element_type} (e.g., button, label, placeholder, error)
-- Surrounding code:
-```
-{context_code}
-```
-
-String to localize: "{original_text}"
-
-Existing keys in project (for reference):
-{existing_keys_sample}
-
-Requirements:
-1. Use dot notation: namespace.component.element
-2. Use camelCase for each segment
-3. Be descriptive but concise
-4. Follow existing project conventions if present
-5. Common namespaces: common, auth, errors, validation, nav, etc.
-
-Return ONLY the key name, nothing else.
-"""
-```
-
-### Key Deduplication
-
-```python
-class KeyDeduplicator:
-    """Ensures unique keys and handles duplicates."""
-    
-    def process(self, found_strings: List[FoundString]) -> List[FoundString]:
-        # Group by original text
-        text_groups = defaultdict(list)
-        for fs in found_strings:
-            text_groups[fs.original_text].append(fs)
-        
-        # For identical texts, use same key
-        for text, strings in text_groups.items():
-            if len(strings) > 1:
-                # Use first suggested key for all
-                canonical_key = strings[0].suggested_key
-                for s in strings:
-                    s.final_key = canonical_key
-        
-        return found_strings
-```
-
-## 🔄 Code Transformer
-
-### Transformation Process
+### What Claude Does
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    TRANSFORMATION PIPELINE                       │
+│                     CLAUDE'S RESPONSIBILITIES                    │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│  1. Parse File                                                  │
-│     └─▶ Generate AST from source file                          │
+│  📥 INPUT                                                        │
+│  ──────                                                         │
+│  • Source code file                                             │
+│  • i18n framework configuration                                 │
+│  • Optional: screenshots for UI context                         │
+│  • Optional: existing keys from project                         │
 │                                                                  │
-│  2. Identify Replacements                                       │
-│     └─▶ Map found strings to AST nodes                         │
+│                          ▼                                       │
 │                                                                  │
-│  3. Check Imports                                               │
-│     └─▶ Detect if useTranslation/t is imported                 │
+│  🧠 ANALYSIS                                                     │
+│  ──────────                                                     │
+│  • Parse code structure                                         │
+│  • Identify user-facing strings                                 │
+│  • Distinguish from technical strings (URLs, classes, IDs)      │
+│  • Understand component context                                 │
+│  • Generate semantic key names                                  │
 │                                                                  │
-│  4. Add Hook (if needed)                                        │
-│     └─▶ Add const { t } = useTranslation()                     │
+│                          ▼                                       │
 │                                                                  │
-│  5. Replace Strings                                             │
-│     ├─▶ JSX text: "Hello" → {t('key')}                         │
-│     ├─▶ Attributes: placeholder="x" → placeholder={t('key')}   │
-│     └─▶ Variables: const x = "y" → const x = t('key')          │
-│                                                                  │
-│  6. Add Import (if needed)                                      │
-│     └─▶ import { useTranslation } from 'react-i18next'         │
-│                                                                  │
-│  7. Generate Output                                             │
-│     └─▶ Serialize AST back to code                             │
+│  📤 OUTPUT                                                       │
+│  ────────                                                       │
+│  • Transformed source code                                      │
+│  • List of found strings with metadata                          │
+│  • Translation file entries                                     │
+│  • Summary of changes                                           │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Before & After Example
+### String Classification
 
-**Before:**
-```tsx
-import { useState } from 'react';
+Claude automatically classifies strings:
 
-export function ContactForm() {
-  const [error, setError] = useState('');
-  
-  return (
-    <form>
-      <h2>Contact Us</h2>
-      <input placeholder="Your name" />
-      <input placeholder="Your email" />
-      <textarea placeholder="Your message" />
-      <button type="submit">Send Message</button>
-      {error && <span className="error">{error}</span>}
-    </form>
-  );
-}
+| Category | Examples | Action |
+|----------|----------|--------|
+| **UI Text** | "Submit", "Welcome Back" | ✅ Localize |
+| **Placeholders** | "Enter your email" | ✅ Localize |
+| **Error Messages** | "Invalid password" | ✅ Localize |
+| **Tooltips** | "Click to save" | ✅ Localize |
+| **URLs** | "https://api.com" | ❌ Skip |
+| **CSS Classes** | "flex items-center" | ❌ Skip |
+| **Technical IDs** | "user-avatar-img" | ❌ Skip |
+| **Console Logs** | "Debug: value=" | ❌ Skip |
+| **Already i18n** | "t('key')" | ❌ Skip |
+
+### Key Generation Strategy
+
+Claude generates keys following best practices:
+
 ```
+namespace.component.element
 
-**After:**
-```tsx
-import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-
-export function ContactForm() {
-  const { t } = useTranslation();
-  const [error, setError] = useState('');
-  
-  return (
-    <form>
-      <h2>{t('contact.title')}</h2>
-      <input placeholder={t('contact.namePlaceholder')} />
-      <input placeholder={t('contact.emailPlaceholder')} />
-      <textarea placeholder={t('contact.messagePlaceholder')} />
-      <button type="submit">{t('contact.submitButton')}</button>
-      {error && <span className="error">{error}</span>}
-    </form>
-  );
-}
-```
-
-### Translation File Generation
-
-**en.json:**
-```json
-{
-  "contact": {
-    "title": "Contact Us",
-    "namePlaceholder": "Your name",
-    "emailPlaceholder": "Your email", 
-    "messagePlaceholder": "Your message",
-    "submitButton": "Send Message"
-  }
-}
+Examples:
+─────────
+auth.login.title           → "Welcome Back"
+auth.login.submitButton    → "Sign In"
+auth.login.emailPlaceholder → "Enter your email"
+common.buttons.save        → "Save"
+common.buttons.cancel      → "Cancel"
+errors.validation.required → "This field is required"
 ```
 
 ## 📸 Screenshot Enhancement
 
-### Vision AI Analysis
+Screenshots provide visual context for better analysis.
 
-Screenshots provide visual context for better translations.
-
-```python
-SCREENSHOT_ANALYSIS_PROMPT = """
-Analyze this UI screenshot to provide context for localization.
-
-Identify:
-1. What type of screen/page is this? (login, settings, dashboard, etc.)
-2. What UI elements contain text?
-3. What is the purpose/action of each text element?
-4. Any specific tone or style? (formal, casual, technical)
-5. Target audience hints?
-
-Provide a structured analysis that will help translators understand the context.
-"""
-```
-
-### Context Enhancement Flow
+### How It Works
 
 ```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   Screenshot    │────▶│   GPT-4 Vision  │────▶│ Enhanced Context│
-│   Upload        │     │   Analysis      │     │ for Translation │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-         │                                              │
-         │                                              ▼
-         │                                   ┌─────────────────┐
-         │                                   │ Better Key Names│
-         │                                   │ Better Translations│
-         └──────────────────────────────────▶│ Contextual Notes │
-                                             └─────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                    SCREENSHOT ENHANCEMENT                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  1. User uploads screenshot of the UI                           │
+│                                                                  │
+│     ┌─────────────────────────────────────────┐                 │
+│     │  ┌─────────────────────────────────┐    │                 │
+│     │  │        Welcome Back             │    │                 │
+│     │  │  ┌───────────────────────────┐  │    │                 │
+│     │  │  │ Email address             │  │    │                 │
+│     │  │  └───────────────────────────┘  │    │                 │
+│     │  │  ┌───────────────────────────┐  │    │                 │
+│     │  │  │ ●●●●●●●●                  │  │    │                 │
+│     │  │  └───────────────────────────┘  │    │                 │
+│     │  │  ┌───────────────────────────┐  │    │                 │
+│     │  │  │        Sign In            │  │    │                 │
+│     │  │  └───────────────────────────┘  │    │                 │
+│     │  └─────────────────────────────────┘    │                 │
+│     └─────────────────────────────────────────┘                 │
+│                                                                  │
+│  2. Claude Vision analyzes the screenshot                       │
+│     → Identifies UI components                                  │
+│     → Understands context (login form)                          │
+│     → Maps strings to visual elements                           │
+│                                                                  │
+│  3. Better key names and context                                │
+│     → "Welcome Back" clearly a page title                       │
+│     → "Sign In" is a primary action button                      │
+│     → Better translation hints for translators                  │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-## 📝 PR Generation
+### Benefits
 
-### Branch & Commit Strategy
+- **Better Key Names** — Visual context helps generate meaningful keys
+- **Translation Context** — Translators see where text appears
+- **Fewer Errors** — Less ambiguity about string purpose
+
+## 🔐 GitHub Integration
+
+### OAuth Flow
+
+```
+┌──────────┐          ┌──────────┐          ┌──────────┐
+│   User   │          │  Keeys   │          │  GitHub  │
+│ Browser  │          │ Backend  │          │   API    │
+└────┬─────┘          └────┬─────┘          └────┬─────┘
+     │                     │                     │
+     │ 1. Click "Connect"  │                     │
+     │────────────────────▶│                     │
+     │                     │                     │
+     │ 2. Redirect to      │                     │
+     │    GitHub           │                     │
+     │◀────────────────────│                     │
+     │                     │                     │
+     │ 3. Authorize        │                     │
+     │─────────────────────────────────────────▶│
+     │                     │                     │
+     │ 4. Callback with    │                     │
+     │    code             │                     │
+     │◀────────────────────────────────────────│
+     │                     │                     │
+     │ 5. Exchange code    │                     │
+     │────────────────────▶│                     │
+     │                     │ 6. Get tokens       │
+     │                     │────────────────────▶│
+     │                     │                     │
+     │                     │ 7. Access token     │
+     │                     │◀────────────────────│
+     │                     │                     │
+     │ 8. Connected!       │ 9. Store encrypted  │
+     │◀────────────────────│                     │
+     │                     │                     │
+```
+
+### Required Permissions
+
+| Scope | Purpose |
+|-------|---------|
+| `repo` | Read/write repository content, create branches and PRs |
+| `read:user` | Get user profile information |
+| `user:email` | Access user email for notifications |
+
+### Security Measures
+
+- **Token Encryption** — OAuth tokens encrypted at rest
+- **Minimal Permissions** — Only request necessary scopes
+- **Audit Logging** — All operations logged
+- **Token Refresh** — Automatic token refresh handling
+
+## 📝 Pull Request Generation
+
+### Branch Strategy
 
 ```
 main
   │
-  └── feat/i18n-auth-module
+  └── feat/i18n-{module}-{timestamp}
         │
-        ├── 🔧 chore: add i18n setup and configuration
-        │     - Add react-i18next dependency
-        │     - Create i18n configuration file
-        │     - Add translation file structure
-        │
-        ├── 🌐 feat: localize LoginForm component
-        │     - Extract 5 strings to translation keys
-        │     - Add useTranslation hook
-        │
-        ├── 🌐 feat: localize RegisterForm component
-        │     - Extract 8 strings to translation keys
-        │     - Add useTranslation hook
-        │
-        └── 📝 docs: add localization notes
-              - Document new translation keys
-              - Add context for translators
+        ├── 📄 src/components/LoginForm.tsx
+        ├── 📄 src/components/RegisterForm.tsx
+        ├── 📄 src/components/Header.tsx
+        └── 📄 src/locales/en.json
 ```
 
-### PR Description Template
+### Auto-Generated PR Description
 
 ```markdown
-## 🌐 Localization: {module_name}
+## 🌐 Internationalization: Auth Module
 
-This PR adds internationalization support to the {module_name} module.
+This PR adds i18n support generated by [Keeys](https://keeys.app).
 
-### Changes Summary
+### Summary
+- **Files modified:** 3
+- **Strings localized:** 24
+- **New translation keys:** 24
 
-- **Files modified:** {files_count}
-- **Strings localized:** {strings_count}
-- **New translation keys:** {keys_count}
+### Changes by File
 
-### Modified Files
+| File | Strings | Status |
+|------|---------|--------|
+| `LoginForm.tsx` | 8 | ✅ Ready |
+| `RegisterForm.tsx` | 12 | ✅ Ready |
+| `Header.tsx` | 4 | ✅ Ready |
 
-| File | Strings | Keys Added |
-|------|---------|------------|
-| `src/components/LoginForm.tsx` | 5 | 5 |
-| `src/components/RegisterForm.tsx` | 8 | 8 |
+### Translation Status
 
-### New Translation Keys
+| Language | Progress |
+|----------|----------|
+| 🇺🇸 English | ✅ 24/24 (100%) |
+| 🇷🇺 Russian | ⏳ 0/24 (0%) |
+| 🇩🇪 German | ⏳ 0/24 (0%) |
+
+### New Keys
 
 <details>
-<summary>View all {keys_count} keys</summary>
+<summary>View all 24 keys</summary>
 
-| Key | Default (EN) |
-|-----|--------------|
+| Key | English |
+|-----|---------|
 | `auth.login.title` | Welcome Back |
-| `auth.login.emailPlaceholder` | Email address |
+| `auth.login.subtitle` | Sign in to continue |
 | ... | ... |
 
 </details>
 
-### Translation Status
-
-| Language | Status |
-|----------|--------|
-| 🇺🇸 English | ✅ Complete |
-| 🇷🇺 Russian | ⏳ Pending |
-| 🇩🇪 German | ⏳ Pending |
-
-### How to Review
-
-1. Check that all user-facing strings are properly extracted
-2. Verify key naming follows project conventions
-3. Ensure no hardcoded strings were missed
-4. Review translation file structure
-
 ---
-
 *Generated by [Keeys Localization Agent](https://keeys.app)*
-*Linked Project: [{project_name}]({project_url})*
 ```
 
-## 📡 GraphQL API
+## 💾 Database Schema
 
-### Queries
-
-```graphql
-# Get user's GitHub connections
-query myGitHubConnections {
-  myGitHubConnections {
-    id
-    githubUsername
-    githubAvatarUrl
-    connectedAt
-    repositories {
-      id
-      repoFullName
-    }
-  }
-}
-
-# Get repository details
-query repository($id: ID!) {
-  repository(id: $id) {
-    id
-    repoFullName
-    repoUrl
-    defaultBranch
-    i18nFramework
-    translationFilesPath
-    sourcePatterns
-    lastScanAt
-    project {
-      id
-      name
-    }
-  }
-}
-
-# Get scan results
-query scanSession($id: ID!) {
-  scanSession(id: $id) {
-    id
-    status
-    branch
-    commitSha
-    filesScanned
-    stringsFound
-    startedAt
-    completedAt
-    foundStrings {
-      id
-      originalText
-      filePath
-      lineNumber
-      stringType
-      suggestedKey
-      status
-    }
-  }
-}
-
-# Get repository PRs
-query repositoryPRs($repositoryId: ID!) {
-  repositoryPRs(repositoryId: $repositoryId) {
-    id
-    githubPrNumber
-    githubPrUrl
-    title
-    status
-    filesChanged
-    keysAdded
-    createdAt
-  }
-}
-```
-
-### Mutations
-
-```graphql
-# Start GitHub OAuth flow
-mutation initiateGitHubOAuth {
-  initiateGitHubOAuth {
-    authorizationUrl
-    state
-  }
-}
-
-# Complete OAuth and store connection
-mutation completeGitHubOAuth($code: String!, $state: String!) {
-  completeGitHubOAuth(code: $code, state: $state) {
-    connection {
-      id
-      githubUsername
-    }
-    success
-    error
-  }
-}
-
-# Add repository to project
-mutation addRepository($input: AddRepositoryInput!) {
-  addRepository(input: $input) {
-    repository {
-      id
-      repoFullName
-    }
-    success
-    error
-  }
-}
-
-input AddRepositoryInput {
-  projectId: ID!
-  githubConnectionId: ID!
-  repoOwner: String!
-  repoName: String!
-  i18nFramework: String
-  translationFilesPath: String
-  sourcePatterns: [String!]
-}
-
-# Start code scan
-mutation startScan($repositoryId: ID!, $branch: String) {
-  startScan(repositoryId: $repositoryId, branch: $branch) {
-    scanSession {
-      id
-      status
-    }
-    success
-    error
-  }
-}
-
-# Update found string status
-mutation updateFoundString($id: ID!, $input: UpdateFoundStringInput!) {
-  updateFoundString(id: $id, input: $input) {
-    foundString {
-      id
-      status
-      finalKey
-    }
-    success
-  }
-}
-
-input UpdateFoundStringInput {
-  status: StringStatus
-  finalKey: String
-}
-
-# Upload screenshot for context
-mutation uploadScreenshot($input: UploadScreenshotInput!) {
-  uploadScreenshot(input: $input) {
-    screenshot {
-      id
-      aiDescription
-    }
-    success
-  }
-}
-
-# Create localization PR
-mutation createLocalizationPR($input: CreatePRInput!) {
-  createLocalizationPR(input: $input) {
-    pullRequest {
-      id
-      githubPrNumber
-      githubPrUrl
-    }
-    success
-    error
-  }
-}
-
-input CreatePRInput {
-  repositoryId: ID!
-  foundStringIds: [ID!]!
-  targetBranch: String
-  prTitle: String
-  prDescription: String
-}
-```
-
-### Subscriptions (Future)
-
-```graphql
-# Real-time scan progress
-subscription scanProgress($scanId: ID!) {
-  scanProgress(scanId: $scanId) {
-    status
-    filesScanned
-    stringsFound
-    currentFile
-    progress
-  }
-}
-```
-
-## 🖥️ Frontend Components
-
-### Page Structure
+### New Entities
 
 ```
-/project/:id/github
-├── GitHubIntegrationPage.tsx       # Main page
-├── components/
-│   ├── ConnectGitHubCard.tsx       # OAuth connection UI
-│   ├── RepositoryList.tsx          # List of connected repos
-│   ├── RepositoryCard.tsx          # Individual repo card
-│   ├── AddRepositoryDialog.tsx     # Add new repo modal
-│   ├── ScanResultsPanel.tsx        # Scan results view
-│   ├── FoundStringsList.tsx        # List of found strings
-│   ├── FoundStringRow.tsx          # Individual string row
-│   ├── StringPreviewDialog.tsx     # Preview string in context
-│   ├── ScreenshotUploader.tsx      # Screenshot upload UI
-│   ├── CreatePRDialog.tsx          # PR creation modal
-│   └── PRStatusCard.tsx            # PR tracking card
-└── hooks/
-    ├── useGitHubConnection.ts      # OAuth flow hook
-    ├── useRepositories.ts          # Repository CRUD
-    ├── useScanSession.ts           # Scan operations
-    └── useCreatePR.ts              # PR creation
+┌─────────────────────────────────────────────────────────────────┐
+│                       NEW MODELS                                 │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  GitHubConnection                                               │
+│  ═══════════════                                                │
+│  Stores OAuth tokens for GitHub access                          │
+│  • user_id → links to User                                      │
+│  • access_token (encrypted)                                     │
+│  • github_username                                              │
+│  • connected_at                                                 │
+│                                                                  │
+│  Repository                                                      │
+│  ══════════                                                     │
+│  Connected GitHub repository                                    │
+│  • project_id → links to Keeys Project                          │
+│  • github_connection_id                                         │
+│  • repo_owner, repo_name                                        │
+│  • i18n_framework (react-i18next, vue-i18n, etc.)              │
+│  • source_patterns (["src/**/*.tsx"])                           │
+│                                                                  │
+│  ScanSession                                                     │
+│  ═══════════                                                    │
+│  Tracks a scanning operation                                    │
+│  • repository_id                                                │
+│  • status (pending, scanning, completed, failed)                │
+│  • files_scanned, strings_found                                 │
+│  • started_at, completed_at                                     │
+│                                                                  │
+│  FoundString                                                     │
+│  ═══════════                                                    │
+│  Individual string found during scan                            │
+│  • scan_id                                                      │
+│  • file_path, line_number                                       │
+│  • original_text                                                │
+│  • suggested_key, final_key                                     │
+│  • status (pending, approved, skipped)                          │
+│  • ai_context (Claude's explanation)                            │
+│                                                                  │
+│  Screenshot                                                      │
+│  ══════════                                                     │
+│  Uploaded UI screenshots                                        │
+│  • repository_id                                                │
+│  • file_path (storage)                                          │
+│  • ai_description (Claude Vision analysis)                      │
+│                                                                  │
+│  PullRequest                                                     │
+│  ═══════════                                                    │
+│  Created GitHub PRs                                             │
+│  • repository_id                                                │
+│  • github_pr_number, github_pr_url                              │
+│  • status (creating, open, merged, closed)                      │
+│  • source_branch, target_branch                                 │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-### UI Mockup
+### Entity Relationships
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│  Keeys › My Project › GitHub Integration                    [User] │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  ┌────────────────────────────────────────────────────────────────┐ │
-│  │  🔗 GitHub Connection                                          │ │
-│  │                                                                │ │
-│  │  Connected as: @username                    [Disconnect]       │ │
-│  │  ──────────────────────────────────────────────────────────── │ │
-│  │                                                                │ │
-│  │  📁 Connected Repositories                 [+ Add Repository]  │ │
-│  │                                                                │ │
-│  │  ┌──────────────────────────────────────────────────────────┐ │ │
-│  │  │  📦 myorg/frontend-app                                   │ │ │
-│  │  │  Branch: main │ Framework: react-i18next                 │ │ │
-│  │  │  Last scan: 2h ago │ 47 strings found                    │ │ │
-│  │  │                                                          │ │ │
-│  │  │  [🔍 Scan Now] [📊 View Results] [⚙️ Settings]           │ │ │
-│  │  └──────────────────────────────────────────────────────────┘ │ │
-│  │                                                                │ │
-│  └────────────────────────────────────────────────────────────────┘ │
-│                                                                      │
-│  ┌────────────────────────────────────────────────────────────────┐ │
-│  │  🔎 Scan Results                                    [Refresh]  │ │
-│  │                                                                │ │
-│  │  Status: ✅ Completed │ Files: 24 │ Strings: 47               │ │
-│  │                                                                │ │
-│  │  ┌────┬─────────────────────┬──────────────────┬────────────┐ │ │
-│  │  │ ☑️ │ String              │ Suggested Key    │ File       │ │ │
-│  │  ├────┼─────────────────────┼──────────────────┼────────────┤ │ │
-│  │  │ ☑️ │ "Submit"            │ common.submit    │ Button.tsx │ │ │
-│  │  │ ☑️ │ "Loading..."        │ common.loading   │ Loader.tsx │ │ │
-│  │  │ ☑️ │ "Welcome back!"     │ auth.welcome     │ Login.tsx  │ │ │
-│  │  │ ☐  │ "v1.2.3"            │ [excluded]       │ Footer.tsx │ │ │
-│  │  │ ...│ ...                 │ ...              │ ...        │ │ │
-│  │  └────┴─────────────────────┴──────────────────┴────────────┘ │ │
-│  │                                                                │ │
-│  │  Selected: 45 strings                                         │ │
-│  │                                                                │ │
-│  │  [📸 Add Screenshots] [🚀 Create Pull Request]                │ │
-│  │                                                                │ │
-│  └────────────────────────────────────────────────────────────────┘ │
-│                                                                      │
-│  ┌────────────────────────────────────────────────────────────────┐ │
-│  │  📋 Pull Requests                                              │ │
-│  │                                                                │ │
-│  │  #42 feat: i18n for auth module          🟢 Open    2h ago    │ │
-│  │      +156 -89 │ 8 files │ 23 keys                             │ │
-│  │      [View on GitHub] [Sync Translations]                     │ │
-│  │                                                                │ │
-│  │  #38 feat: i18n for common components    ✅ Merged  3d ago    │ │
-│  │      +89 -45 │ 5 files │ 15 keys                              │ │
-│  │                                                                │ │
-│  └────────────────────────────────────────────────────────────────┘ │
-│                                                                      │
-└─────────────────────────────────────────────────────────────────────┘
+User
+  │
+  ├──▶ GitHubConnection (1:many)
+  │         │
+  │         └──▶ Repository (1:many)
+  │                   │
+  │                   ├──▶ ScanSession (1:many)
+  │                   │         │
+  │                   │         └──▶ FoundString (1:many)
+  │                   │
+  │                   ├──▶ Screenshot (1:many)
+  │                   │
+  │                   └──▶ PullRequest (1:many)
+  │
+  └──▶ Project
+            │
+            └──▶ Repository (1:many, same as above)
+```
+
+## 🖥️ User Interface
+
+### Main Screen
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Keeys › My Project › GitHub Agent                              [User] │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  ┌─────────────────────────────────────────────────────────────────────┐│
+│  │  🔗 GitHub Connection                                               ││
+│  │                                                                     ││
+│  │  ✅ Connected as @username                         [Disconnect]    ││
+│  └─────────────────────────────────────────────────────────────────────┘│
+│                                                                          │
+│  ┌─────────────────────────────────────────────────────────────────────┐│
+│  │  📁 Repositories                              [+ Add Repository]   ││
+│  │                                                                     ││
+│  │  ┌─────────────────────────────────────────────────────────────┐   ││
+│  │  │  📦 myorg/frontend-app                                      │   ││
+│  │  │  Branch: main │ Framework: react-i18next │ Last: 2h ago     │   ││
+│  │  │                                                             │   ││
+│  │  │  ┌──────────┐ ┌──────────────┐ ┌──────────┐               │   ││
+│  │  │  │ 🔍 Scan  │ │ 📊 Results   │ │ ⚙️ Config │               │   ││
+│  │  │  └──────────┘ └──────────────┘ └──────────┘               │   ││
+│  │  └─────────────────────────────────────────────────────────────┘   ││
+│  └─────────────────────────────────────────────────────────────────────┘│
+│                                                                          │
+│  ┌─────────────────────────────────────────────────────────────────────┐│
+│  │  🔎 Scan Results                                                    ││
+│  │                                                                     ││
+│  │  Found 47 strings in 12 files                    [Create PR]       ││
+│  │                                                                     ││
+│  │  ┌────┬─────────────────────┬──────────────────┬──────────────┐   ││
+│  │  │ ✓  │ String              │ Key              │ File         │   ││
+│  │  ├────┼─────────────────────┼──────────────────┼──────────────┤   ││
+│  │  │ ☑️ │ "Welcome Back"      │ auth.login.title │ LoginForm    │   ││
+│  │  │ ☑️ │ "Sign In"           │ auth.login.submit│ LoginForm    │   ││
+│  │  │ ☑️ │ "Email address"     │ auth.login.email │ LoginForm    │   ││
+│  │  │ ☐  │ "v1.2.3"           │ [skip]           │ Footer       │   ││
+│  │  │ ...│ ...                 │ ...              │ ...          │   ││
+│  │  └────┴─────────────────────┴──────────────────┴──────────────┘   ││
+│  │                                                                     ││
+│  │  [📸 Add Screenshots]   [Preview Changes]   [🚀 Create PR]        ││
+│  └─────────────────────────────────────────────────────────────────────┘│
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### String Review Dialog
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Review String                                              [X] │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  Original Text                                                  │
+│  ┌───────────────────────────────────────────────────────────┐ │
+│  │  "Welcome Back"                                           │ │
+│  └───────────────────────────────────────────────────────────┘ │
+│                                                                  │
+│  Location                                                       │
+│  📄 src/components/LoginForm.tsx : line 24                      │
+│                                                                  │
+│  Context (from Claude)                                          │
+│  ┌───────────────────────────────────────────────────────────┐ │
+│  │  Main heading of the login form. Displayed when user      │ │
+│  │  navigates to the login page.                             │ │
+│  └───────────────────────────────────────────────────────────┘ │
+│                                                                  │
+│  Translation Key                                                │
+│  ┌───────────────────────────────────────────────────────────┐ │
+│  │  auth.login.title                                         │ │
+│  └───────────────────────────────────────────────────────────┘ │
+│                                                                  │
+│  Screenshot (optional)                                          │
+│  ┌───────────────────────────────────────────────────────────┐ │
+│  │  [📷 Drop image or click to upload]                       │ │
+│  └───────────────────────────────────────────────────────────┘ │
+│                                                                  │
+│  ┌────────────┐  ┌────────────┐  ┌────────────────────────┐   │
+│  │   Skip     │  │   Cancel   │  │   ✓ Approve & Next     │   │
+│  └────────────┘  └────────────┘  └────────────────────────┘   │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ## 📅 Implementation Phases
 
-### Phase 1: GitHub Integration Foundation (Week 1-2)
+### Phase 1: GitHub Integration (Week 1-2)
+
+**Goal:** Connect GitHub accounts and browse repositories
 
 **Backend:**
-- [ ] Create `GitHubConnection` model
-- [ ] Create `Repository` model
-- [ ] Implement GitHub OAuth service
-- [ ] Add OAuth routes (`/api/github/auth`, `/api/github/callback`)
-- [ ] Implement token encryption/decryption
-- [ ] Add GraphQL queries/mutations for connections
-- [ ] Write unit tests
+- Create `GitHubConnection` model
+- Create `Repository` model
+- Implement OAuth flow (authorize, callback, token storage)
+- Implement GitHub API client (list repos, get files)
+- GraphQL mutations: `connectGitHub`, `addRepository`
 
 **Frontend:**
-- [ ] Create GitHub integration page
-- [ ] Implement OAuth flow UI
-- [ ] Create `ConnectGitHubCard` component
-- [ ] Create `AddRepositoryDialog` component
-- [ ] Add repository list view
+- GitHub connection UI
+- Repository selection dialog
+- Repository list component
+- i18n framework configuration
 
-**DevOps:**
-- [ ] Set up GitHub OAuth App
-- [ ] Configure ngrok for local testing
-- [ ] Add environment variables
+**Deliverable:** Users can connect GitHub and add repositories
 
-### Phase 2: Code Scanner (Week 3-4)
+---
+
+### Phase 2: Claude Agent — Scanning (Week 3-4)
+
+**Goal:** Analyze code and find strings using Claude
 
 **Backend:**
-- [ ] Install tree-sitter and language grammars
-- [ ] Create `ScanSession` model
-- [ ] Create `FoundString` model
-- [ ] Implement `CodeScanner` service
-- [ ] Add string detection rules
-- [ ] Implement false positive filtering
-- [ ] Add background task for scanning
-- [ ] Add GraphQL API for scans
-- [ ] Write unit tests
+- Create `ScanSession` model
+- Create `FoundString` model
+- Implement Claude integration service
+- Create scanning prompt templates
+- Background task for file processing
+- GraphQL: `startScan`, `getScanResults`
 
 **Frontend:**
-- [ ] Create `ScanResultsPanel` component
-- [ ] Create `FoundStringsList` component
-- [ ] Add scan progress indicator
-- [ ] Implement string filtering/search
-- [ ] Add bulk selection UI
+- Scan progress UI
+- Found strings list
+- String filtering and search
 
-### Phase 3: AI Key Generator (Week 5)
+**Deliverable:** Users can scan repos and see found strings
+
+---
+
+### Phase 3: Review & Edit (Week 5)
+
+**Goal:** Users review and approve strings for localization
 
 **Backend:**
-- [ ] Create key generation prompts
-- [ ] Implement `KeyGenerator` service
-- [ ] Add context extraction logic
-- [ ] Implement key deduplication
-- [ ] Integrate with existing AI service
-- [ ] Write unit tests
+- Update `FoundString` with status handling
+- Implement key validation
+- Batch update operations
+- GraphQL: `updateFoundString`, `batchUpdateStrings`
 
 **Frontend:**
-- [ ] Show AI-suggested keys
-- [ ] Allow key editing
-- [ ] Add key validation
-- [ ] Show existing keys for reference
+- String review dialog
+- Inline key editing
+- Bulk actions (approve all, skip all)
+- Diff preview
 
-### Phase 4: Code Transformer (Week 6-7)
+**Deliverable:** Users can review and approve strings
+
+---
+
+### Phase 4: Screenshot Enhancement (Week 6)
+
+**Goal:** Use screenshots to improve context
 
 **Backend:**
-- [ ] Implement `CodeTransformer` service
-- [ ] Add import injection logic
-- [ ] Add hook injection logic
-- [ ] Implement string replacement
-- [ ] Generate translation files
-- [ ] Add preview mode
-- [ ] Write unit tests
+- Create `Screenshot` model
+- File upload handling
+- Claude Vision integration
+- Context enhancement logic
 
 **Frontend:**
-- [ ] Create diff preview dialog
-- [ ] Show before/after comparison
-- [ ] Allow selective changes
-- [ ] Add translation file preview
+- Screenshot upload component
+- Image preview
+- AI analysis display
 
-### Phase 5: PR Workflow (Week 8)
+**Deliverable:** Users can upload screenshots for better context
+
+---
+
+### Phase 5: Code Transformation (Week 7-8)
+
+**Goal:** Generate transformed code using Claude
 
 **Backend:**
-- [ ] Create `PullRequest` model
-- [ ] Implement `PRGenerator` service
-- [ ] Add Git operations (branch, commit)
-- [ ] Implement PR creation via GitHub API
-- [ ] Add PR description generator
-- [ ] Set up webhook handling
-- [ ] Write unit tests
+- Transformation prompt templates
+- Code generation service
+- Translation file generation
+- File diff generation
 
 **Frontend:**
-- [ ] Create `CreatePRDialog` component
-- [ ] Add PR configuration options
-- [ ] Create `PRStatusCard` component
-- [ ] Add PR sync functionality
+- Transformation preview
+- Side-by-side diff view
+- Translation file preview
 
-### Phase 6: Screenshot Enhancement (Week 9)
+**Deliverable:** Users can preview transformed code
+
+---
+
+### Phase 6: PR Generation (Week 9)
+
+**Goal:** Create Pull Requests with changes
 
 **Backend:**
-- [ ] Create `Screenshot` model
-- [ ] Implement file upload handling
-- [ ] Add GPT-4 Vision integration
-- [ ] Implement context enhancement
-- [ ] Write unit tests
+- Create `PullRequest` model
+- Git operations (branch, commit)
+- GitHub PR API integration
+- PR description generation
+- Webhook handler for PR status
 
 **Frontend:**
-- [ ] Create `ScreenshotUploader` component
-- [ ] Add drag-and-drop support
-- [ ] Show AI analysis results
-- [ ] Link screenshots to strings
+- Create PR dialog
+- PR configuration options
+- PR status tracking
+- Link to GitHub
 
-### Phase 7: Polish & Testing (Week 10)
+**Deliverable:** Users can create PRs with localized code
 
-- [ ] End-to-end testing
-- [ ] Performance optimization
-- [ ] Error handling improvements
-- [ ] Documentation
-- [ ] User guide
+---
 
-## 🔧 Technical Considerations
+### Phase 7: Integration & Polish (Week 10)
 
-### Security
+**Goal:** End-to-end testing and polish
 
-1. **Token Storage**
-   - Encrypt GitHub tokens at rest using Fernet
-   - Never log tokens
-   - Implement token refresh flow
+**Tasks:**
+- Integration testing
+- Error handling improvements
+- Performance optimization
+- Documentation
+- User onboarding flow
 
-2. **Repository Access**
-   - Validate user has access to repository
-   - Respect GitHub permissions
-   - Audit log all operations
+**Deliverable:** Production-ready feature
 
-3. **Code Handling**
-   - Clone to temporary directories
-   - Clean up after operations
-   - Never store full code in DB
+## 💰 Cost Estimation
 
-### Performance
+### Claude API Costs
 
-1. **Scanning**
-   - Use streaming for large repos
-   - Implement pagination for results
-   - Cache parsed ASTs
+| Model | Input | Output |
+|-------|-------|--------|
+| Claude Sonnet | $3/1M tokens | $15/1M tokens |
+| Claude Opus | $15/1M tokens | $75/1M tokens |
 
-2. **Background Jobs**
-   - Use async tasks for long operations
-   - Implement progress tracking
-   - Add timeout handling
+### Typical Usage
 
-### Error Handling
+| Operation | Tokens | Cost (Sonnet) |
+|-----------|--------|---------------|
+| Scan 1 file | ~2,500 | ~$0.03 |
+| Scan 100 files | ~250,000 | ~$3 |
+| Screenshot analysis | ~1,500 | ~$0.02 |
+| Full repo scan (500 files) | ~1,250,000 | ~$15 |
 
-1. **GitHub API**
-   - Handle rate limiting
-   - Graceful degradation
-   - User-friendly error messages
+### Cost Optimization
 
-2. **Parsing**
-   - Handle malformed code
-   - Skip unparseable files
-   - Report issues clearly
+- **File filtering** — Only scan relevant files (*.tsx, not *.test.tsx)
+- **Caching** — Cache results, don't rescan unchanged files
+- **Batching** — Send multiple small files in one request
+- **Model selection** — Use Sonnet for scanning, Opus only for complex cases
 
-## 📚 Dependencies
+## 🔐 Security Considerations
 
-### Backend (Python)
+### Data Protection
 
-```txt
-# GitHub
-PyGithub>=2.1.0
-httpx>=0.25.0
-cryptography>=41.0.0  # Token encryption
+| Concern | Mitigation |
+|---------|------------|
+| OAuth tokens | Encrypted at rest (Fernet) |
+| Source code | Never stored permanently, processed in memory |
+| API keys | Environment variables only |
+| User data | Standard Keeys security practices |
 
-# Code Parsing
-tree-sitter>=0.20.0
-tree-sitter-javascript>=0.20.0
-tree-sitter-typescript>=0.20.0
+### GitHub Permissions
 
-# Git Operations
-GitPython>=3.1.0
+- Request minimal necessary scopes
+- Users can revoke access anytime
+- Clear permission explanation in UI
 
-# Background Tasks (optional)
-celery>=5.3.0
-redis>=5.0.0
-```
+### Audit Trail
 
-### Frontend (npm)
+- Log all GitHub operations
+- Track who initiated scans/PRs
+- Maintain activity history
 
-```json
-{
-  "dependencies": {
-    "@octokit/rest": "^20.0.0"  // Optional: client-side GitHub API
-  }
-}
-```
+## 📚 Supported Frameworks
+
+### Currently Planned
+
+| Framework | Language | i18n Library |
+|-----------|----------|--------------|
+| React | TypeScript/JavaScript | react-i18next |
+| Next.js | TypeScript/JavaScript | next-intl |
+| Vue | TypeScript/JavaScript | vue-i18n |
+| Svelte | TypeScript/JavaScript | svelte-i18n |
+| Angular | TypeScript | @ngx-translate |
+
+### Future (Claude supports, just need prompts)
+
+- Python (gettext, babel)
+- Ruby on Rails (i18n gem)
+- Swift (NSLocalizedString)
+- Kotlin (Android strings.xml)
+- Flutter (intl)
 
 ## 🔗 Related Documentation
 
-- [[AI Autopilot Feature]] - Existing AI integration
-- [[Project Export Import]] - File handling patterns
-- [[Authentication Setup]] - OAuth patterns
-- [[Security Best Practices]] - Security guidelines
+- [[AI Autopilot Feature]] — Existing AI translation features
+- [[Project Export Import]] — File handling patterns
+- [[Authentication Setup]] — OAuth implementation reference
+- [[Security Best Practices]] — Security guidelines
 
 ---
 
 *Document created: 2024-12-19*
 *Last updated: 2024-12-19*
-
