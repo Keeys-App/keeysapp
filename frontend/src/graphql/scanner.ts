@@ -148,25 +148,28 @@ export const CONVERT_FOUND_STRINGS_TO_KEYS_MUTATION = gql`
 `;
 
 // TypeScript types
-export enum ScanStatus {
-  PENDING = 'PENDING',
-  SCANNING = 'SCANNING',
-  COMPLETED = 'COMPLETED',
-  FAILED = 'FAILED',
-  CANCELLED = 'CANCELLED',
-}
+export const ScanStatus = {
+  PENDING: 'PENDING',
+  SCANNING: 'SCANNING',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED',
+  CANCELLED: 'CANCELLED',
+} as const;
+export type ScanStatus = (typeof ScanStatus)[keyof typeof ScanStatus];
 
-export enum AIProvider {
-  OPENAI = 'OPENAI',
-  ANTHROPIC = 'ANTHROPIC',
-}
+export const AIProvider = {
+  OPENAI: 'OPENAI',
+  ANTHROPIC: 'ANTHROPIC',
+} as const;
+export type AIProvider = (typeof AIProvider)[keyof typeof AIProvider];
 
-export enum FoundStringStatus {
-  PENDING = 'PENDING',
-  APPROVED = 'APPROVED',
-  SKIPPED = 'SKIPPED',
-  CONVERTED = 'CONVERTED',
-}
+export const FoundStringStatus = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  SKIPPED: 'SKIPPED',
+  CONVERTED: 'CONVERTED',
+} as const;
+export type FoundStringStatus = (typeof FoundStringStatus)[keyof typeof FoundStringStatus];
 
 export interface FoundString {
   id: string;
