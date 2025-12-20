@@ -8,6 +8,11 @@ from .key import Key, Translation
 from .key_log import KeyLog, KeyActionType  # Legacy - will be removed
 from .activity_log import ActivityLog, ActionType
 from .password_reset_token import PasswordResetToken
+from .github_connection import GitHubConnection
+from .repository import Repository
+from .scan_session import ScanSession, ScanStatus, AIProvider
+from .found_string import FoundString, FoundStringStatus
+from .token_usage import TokenUsage, OperationType
 
 __all__ = [
     "Base", 
@@ -25,5 +30,14 @@ __all__ = [
     "KeyActionType",  # Legacy
     "ActivityLog", 
     "ActionType",
-    "PasswordResetToken"
+    "PasswordResetToken",
+    "GitHubConnection",
+    "Repository",
+    "ScanSession",
+    "ScanStatus",
+    "AIProvider",
+    "FoundString",
+    "FoundStringStatus",
+    "TokenUsage",
+    "OperationType",
 ]

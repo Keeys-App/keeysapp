@@ -1,22 +1,31 @@
 import { type FC, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useQuery } from '@apollo/client';
 import { GET_PROJECTS, type Project } from '@/graphql/projects';
+import { PROJECT_REPOSITORY_QUERY } from '@/graphql/github';
 import { ProjectForm } from '@/components/project';
 import { LoadingState, ErrorState, NotFoundState } from '@/components/blocks';
 import { useBreadcrumbs } from '@/contexts';
 import { PATHS } from '@/constants/paths';
+import { ConnectRepositoryCard, ScanRepositoryCard } from '@/components/github';
 
 export const EditProjectPage: FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const { setBreadcrumbs } = useBreadcrumbs();
 
   const { data, loading, error } = useQuery(GET_PROJECTS);
+  
+  // Query for repository connection status
+  const { data: repoData } = useQuery(PROJECT_REPOSITORY_QUERY, {
+    variables: { projectId: id },
+    skip: !id,
+  });
 
   const project = data?.projects?.find((p: Project) => {
     return p.id === id;
   });
+  
+  const hasRepository = !!repoData?.projectRepository;
 
   useEffect(() => {
     if (project) {
@@ -46,6 +55,30 @@ export const EditProjectPage: FC = () => {
     return <NotFoundState message="Project not found" />;
   }
 
-  return <ProjectForm mode="edit" project={project} />;
+  const teamId = project.team?.id;
+
+  return (
+    <div className="container max-w-2xl py-8 space-y-6">
+      <ProjectForm mode="edit" project={project} />
+      
+      {/* GitHub Repository Integration */}
+      {id && teamId ? (
+        <ConnectRepositoryCard 
+          projectId={id}
+          teamId={teamId}
+          canManage={project.canEdit}
+        />
+      ) : null}
+      
+      {/* Repository Scanner */}
+      {id && hasRepository ? (
+        <ScanRepositoryCard
+          projectId={id}
+          hasRepository={hasRepository}
+          canManage={project.canEdit}
+        />
+      ) : null}
+    </div>
+  );
 };
 

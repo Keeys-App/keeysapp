@@ -13,6 +13,10 @@ export const CreateProjectPage: FC = () => {
     ]);
   }, [setBreadcrumbs]);
 
-  return <ProjectForm mode="create" />;
+  return (
+    <div className="container max-w-2xl py-8">
+      <ProjectForm mode="create" />
+    </div>
+  );
 };
 

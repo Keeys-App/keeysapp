@@ -26,6 +26,8 @@ class Team(Base):
     members = relationship("TeamMember", back_populates="team", cascade="all, delete-orphan")
     invitations = relationship("TeamInvitation", back_populates="team", cascade="all, delete-orphan")
     projects = relationship("Project", back_populates="team")
+    github_connections = relationship("GitHubConnection", back_populates="team", cascade="all, delete-orphan")
+    token_usages = relationship("TokenUsage", back_populates="team", cascade="all, delete-orphan")
 
 
 class TeamMember(Base):

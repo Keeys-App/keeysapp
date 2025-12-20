@@ -36,6 +36,7 @@ class Key(Base):
     project = relationship("Project", back_populates="keys")
     translations = relationship("Translation", back_populates="key", cascade="all, delete-orphan")
     logs = relationship("KeyLog", back_populates="key", cascade="all, delete-orphan")
+    found_strings = relationship("FoundString", back_populates="key")
 
     # Ensure key uniqueness within a project
     __table_args__ = (

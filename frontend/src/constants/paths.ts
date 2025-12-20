@@ -23,5 +23,7 @@ export const PATHS = {
   PROJECT_EDIT: '/project/:id/edit',
   EXPORT: '/project/:id/export',
   IMPORT: '/project/:id/import',
+  // GitHub integration
+  GITHUB_CALLBACK: '/github/callback',
 } as const;
 

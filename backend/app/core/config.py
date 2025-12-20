@@ -30,6 +30,13 @@ class Settings(BaseSettings):
     openai_temperature: float = 1.0
     openai_timeout: int = 120
     
+    # Anthropic
+    anthropic_api_key: Optional[str] = None
+    anthropic_model: str = "claude-haiku-4-5"
+    
+    # Scanner defaults
+    scanner_default_provider: str = "anthropic"  # or "openai"
+    
     # Brevo (Email)
     brevo_api_key: Optional[str] = None
     brevo_sender_email: str = "noreply@example.com"
@@ -37,6 +44,15 @@ class Settings(BaseSettings):
     
     # Application URL (for email links)
     app_url: str = "http://localhost:3000"
+    
+    # GitHub App
+    github_client_id: Optional[str] = None
+    github_client_secret: Optional[str] = None
+    github_callback_url: str = "http://localhost:8000/api/github/callback"
+    github_app_slug: Optional[str] = None  # App name from URL: github.com/apps/{slug}
+    
+    # Token encryption key for storing GitHub tokens (Fernet key)
+    token_encryption_key: Optional[str] = None
     
     class Config:
         env_file = ".env"

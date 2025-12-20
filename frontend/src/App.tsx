@@ -19,6 +19,7 @@ import { InvitePage } from '@/pages/InvitePage';
 import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage';
 import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
 import { ProfilePage } from '@/pages/ProfilePage';
+import { GitHubCallbackPage } from '@/pages/GitHubCallbackPage';
 import { PATHS } from '@/constants/paths';
 import { Toaster } from '@/components/ui/sonner';
 
@@ -37,6 +38,15 @@ function App() {
           <Route element={<AuthLayout />}>
             <Route path={PATHS.INVITE} element={<InvitePage />} />
           </Route>
+          {/* GitHub OAuth callback - requires auth */}
+          <Route
+            path={PATHS.GITHUB_CALLBACK}
+            element={
+              <ProtectedRoute>
+                <GitHubCallbackPage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path={PATHS.ONBOARDING}
             element={

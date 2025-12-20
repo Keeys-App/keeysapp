@@ -42,6 +42,11 @@ class User(Base):
     project_access = relationship("ProjectAccess", foreign_keys="[ProjectAccess.user_id]", back_populates="user", cascade="all, delete-orphan")
     # Legacy relationship kept for compatibility during migration
     project_memberships = relationship("ProjectMember", back_populates="user", cascade="all, delete-orphan")
+    # GitHub connections (accounts connected by this user)
+    connected_github_accounts = relationship("GitHubConnection", back_populates="connected_by")
+    # Scanner relationships
+    scan_sessions = relationship("ScanSession", back_populates="started_by_user")
+    token_usages = relationship("TokenUsage", back_populates="user")
 
     def verify_password(self, plain_password: str) -> bool:
         """
