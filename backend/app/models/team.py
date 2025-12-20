@@ -3,7 +3,14 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
+import enum
 from app.models.base import Base
+
+
+class AIProviderType(str, enum.Enum):
+    """Enum for AI provider types."""
+    OPENAI = "OPENAI"
+    ANTHROPIC = "ANTHROPIC"
 
 
 class Team(Base):
@@ -18,6 +25,11 @@ class Team(Base):
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    
+    # AI Settings - global LLM configuration for all team features
+    ai_provider = Column(String(20), nullable=True, default=None)  # OPENAI or ANTHROPIC
+    ai_model = Column(String(100), nullable=True, default=None)  # e.g., gpt-4o-mini, claude-haiku-4-5
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

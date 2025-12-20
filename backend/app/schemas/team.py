@@ -1,4 +1,5 @@
 import strawberry
+import enum
 from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
 from strawberry.types import Info
@@ -77,6 +78,13 @@ class PendingInviteType:
     created_at: datetime
 
 
+@strawberry.enum
+class AIProviderEnum(str, enum.Enum):
+    """Enum for AI provider types in GraphQL."""
+    OPENAI = "OPENAI"
+    ANTHROPIC = "ANTHROPIC"
+
+
 @strawberry.type
 class TeamType:
     """
@@ -91,6 +99,9 @@ class TeamType:
     invitations: List[TeamInvitationType]  # Pending invitations
     can_manage: bool  # Whether current user can manage the team
     members_count: int
+    # AI Settings - global LLM configuration
+    ai_provider: Optional[str]  # OPENAI or ANTHROPIC
+    ai_model: Optional[str]  # e.g., gpt-4o-mini, claude-haiku-4-5
     created_at: datetime
     updated_at: Optional[datetime]
 
@@ -141,6 +152,16 @@ class RemoveTeamMemberInput:
     """
     team_id: str  # UUID
     user_id: str  # UUID
+
+
+@strawberry.input
+class UpdateTeamAISettingsInput:
+    """
+    Input type for updating a team's AI settings.
+    """
+    team_id: str  # UUID
+    ai_provider: Optional[str] = None  # OPENAI or ANTHROPIC
+    ai_model: Optional[str] = None  # e.g., gpt-4o-mini, claude-haiku-4-5
 
 
 async def get_current_user_id(info: Info) -> Optional[int]:
@@ -274,6 +295,8 @@ def build_team_type(team, current_user_id: int) -> TeamType:
         invitations=invitations,
         can_manage=can_manage,
         members_count=len(members) + len(invitations),  # Include invited users in count
+        ai_provider=team.ai_provider,
+        ai_model=team.ai_model,
         created_at=team.created_at,
         updated_at=team.updated_at
     )
@@ -942,4 +965,65 @@ class TeamMutation:
                 handle_database_exception(e, "resending invitation")
             except Exception as e:
                 handle_database_exception(e, "resending invitation")
+
+    @strawberry.mutation
+    async def update_team_ai_settings(
+        self, input: UpdateTeamAISettingsInput, info: Info
+    ) -> Optional[TeamType]:
+        """
+        Update a team's AI settings (provider and model).
+        
+        Args:
+            input: AI settings update input
+            info: GraphQL info object
+            
+        Returns:
+            Updated team or None
+            
+        Raises:
+            UnauthorizedError: If user is not authenticated or not authorized
+        """
+        current_user_id = await get_current_user_id(info)
+        if not current_user_id:
+            raise UnauthorizedError("User must be authenticated to update team AI settings")
+        
+        async with AsyncSessionLocal() as db:
+            try:
+                # Get team and check access
+                team = await TeamService.get_team_by_public_id(db, input.team_id)
+                if not team:
+                    return None
+                
+                # Check if user can manage the team
+                can_manage = team.owner_id == current_user_id
+                if not can_manage:
+                    for member in team.members:
+                        if member.user_id == current_user_id and member.role == "admin":
+                            can_manage = True
+                            break
+                
+                if not can_manage:
+                    raise UnauthorizedError("You don't have permission to update team AI settings")
+                
+                # Validate provider if provided
+                valid_providers = ["OPENAI", "ANTHROPIC"]
+                if input.ai_provider and input.ai_provider not in valid_providers:
+                    raise ValueError(f"Invalid AI provider. Must be one of: {', '.join(valid_providers)}")
+                
+                # Update team AI settings
+                if input.ai_provider is not None:
+                    team.ai_provider = input.ai_provider if input.ai_provider else None
+                if input.ai_model is not None:
+                    team.ai_model = input.ai_model if input.ai_model else None
+                
+                await db.commit()
+                await db.refresh(team)
+                
+                return build_team_type(team, current_user_id)
+            except (UnauthorizedError, ValueError):
+                raise
+            except (IntegrityError, OperationalError) as e:
+                handle_database_exception(e, "updating team AI settings")
+            except Exception as e:
+                handle_database_exception(e, "updating team AI settings")
 

@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     
     # OpenAI
     openai_api_key: Optional[str] = None
-    openai_text_model: str = "gpt-4o-mini"
+    openai_text_model: str = "gpt-5-mini-2025-08-07"
     openai_max_tokens: int = 4000
     openai_temperature: float = 1.0
     openai_timeout: int = 120

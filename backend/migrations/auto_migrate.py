@@ -1120,6 +1120,48 @@ def migrate_create_repositories_if_needed():
         return False
 
 
+def migrate_add_team_ai_settings_if_needed():
+    """
+    Add ai_provider and ai_model columns to teams table.
+    These columns store global LLM configuration for all team features.
+    Safe to run multiple times.
+    """
+    try:
+        ai_provider_exists = check_column_exists('teams', 'ai_provider')
+        ai_model_exists = check_column_exists('teams', 'ai_model')
+        
+        if ai_provider_exists and ai_model_exists:
+            logger.info("✅ Migration: AI settings columns already exist in teams table, skipping")
+            return True
+        
+        logger.info("🔄 Migration: Adding AI settings columns to teams table")
+        
+        with engine.connect() as connection:
+            # Add ai_provider column if not exists
+            if not ai_provider_exists:
+                connection.execute(text("""
+                    ALTER TABLE teams 
+                    ADD COLUMN ai_provider VARCHAR(20) DEFAULT NULL
+                """))
+                logger.info("Added ai_provider column to teams table")
+            
+            # Add ai_model column if not exists
+            if not ai_model_exists:
+                connection.execute(text("""
+                    ALTER TABLE teams 
+                    ADD COLUMN ai_model VARCHAR(100) DEFAULT NULL
+                """))
+                logger.info("Added ai_model column to teams table")
+            
+            connection.commit()
+            logger.info("✅ Migration: AI settings columns added successfully")
+            return True
+            
+    except Exception as e:
+        logger.error(f"❌ Migration failed: {type(e).__name__}: {str(e)}")
+        return False
+
+
 def migrate_create_scan_tables_if_needed():
     """
     Create scan_sessions, found_strings, and token_usages tables if they don't exist.
@@ -1317,6 +1359,7 @@ def run_all_migrations():
         ("create_github_connections", migrate_create_github_connections_if_needed),
         ("create_repositories", migrate_create_repositories_if_needed),
         ("create_scan_tables", migrate_create_scan_tables_if_needed),
+        ("add_team_ai_settings", migrate_add_team_ai_settings_if_needed),
         # Add more migrations here as needed
     ]
     

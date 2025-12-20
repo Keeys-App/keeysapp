@@ -1,12 +1,20 @@
 import { useEffect, useState, type FC } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client';
+import { Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useBreadcrumbs } from '@/contexts/BreadcrumbContext';
 import { useSaving, useSavingStore } from '@/stores';
 import { toast } from 'sonner';
@@ -14,8 +22,17 @@ import {
   GET_TEAM,
   UPDATE_TEAM,
   GET_TEAMS,
+  UPDATE_TEAM_AI_SETTINGS,
+  GET_AVAILABLE_AI_MODELS,
 } from '@/graphql/teams';
-import type { GetTeamResponse, UpdateTeamInput, UpdateTeamResponse } from '@/graphql/teams';
+import type {
+  GetTeamResponse,
+  UpdateTeamInput,
+  UpdateTeamResponse,
+  UpdateTeamAISettingsInput,
+  UpdateTeamAISettingsResponse,
+  GetAvailableAIModelsResponse,
+} from '@/graphql/teams';
 import { ConnectGitHubCard } from '@/components/github';
 
 export const EditTeamPage: FC = () => {
@@ -28,6 +45,8 @@ export const EditTeamPage: FC = () => {
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [aiProvider, setAiProvider] = useState<string>('');
+  const [aiModel, setAiModel] = useState<string>('');
 
   // Handle GitHub App installation callback
   useEffect(() => {
@@ -57,6 +76,10 @@ export const EditTeamPage: FC = () => {
     skip: !id,
   });
 
+  const { data: aiModelsData } = useQuery<GetAvailableAIModelsResponse>(
+    GET_AVAILABLE_AI_MODELS
+  );
+
   const [updateTeam] = useMutation<UpdateTeamResponse>(UPDATE_TEAM, {
     refetchQueries: [
       { query: GET_TEAMS },
@@ -64,12 +87,30 @@ export const EditTeamPage: FC = () => {
     ],
   });
 
+  const [updateAiSettings] = useMutation<UpdateTeamAISettingsResponse>(
+    UPDATE_TEAM_AI_SETTINGS,
+    {
+      refetchQueries: [
+        { query: GET_TEAMS },
+        { query: GET_TEAM, variables: { id } },
+      ],
+    }
+  );
+
   const team = data?.team;
+  const availableProviders = aiModelsData?.availableAiModels || [];
+
+  // Get models for selected provider
+  const modelsForProvider = availableProviders.find(
+    (p) => p.provider === aiProvider
+  )?.models || [];
 
   useEffect(() => {
     if (team) {
       setName(team.name);
       setDescription(team.description || '');
+      setAiProvider(team.aiProvider || '');
+      setAiModel(team.aiModel || '');
       setBreadcrumbs([
         { label: 'Teams', href: '/teams' },
         { label: team.name, href: `/team/${team.id}` },
@@ -77,6 +118,14 @@ export const EditTeamPage: FC = () => {
       ]);
     }
   }, [team, setBreadcrumbs]);
+
+  // Reset model when provider changes
+  useEffect(() => {
+    if (aiProvider && team && aiProvider !== team.aiProvider) {
+      // When provider changes, reset model
+      setAiModel('');
+    }
+  }, [aiProvider, team]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,6 +155,29 @@ export const EditTeamPage: FC = () => {
         }
       },
       'Updating team...'
+    );
+  };
+
+  const handleSaveAiSettings = async () => {
+    if (!id) {
+      return;
+    }
+
+    await withSaving(
+      async () => {
+        const input: UpdateTeamAISettingsInput = {
+          teamId: id,
+          aiProvider: aiProvider || undefined,
+          aiModel: aiModel || undefined,
+        };
+
+        const result = await updateAiSettings({ variables: { input } });
+
+        if (result.data?.updateTeamAiSettings) {
+          toast('AI settings updated successfully');
+        }
+      },
+      'Updating AI settings...'
     );
   };
 
@@ -203,6 +275,81 @@ export const EditTeamPage: FC = () => {
               </Button>
             </div>
           </form>
+        </CardContent>
+      </Card>
+
+      {/* AI Settings Card */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Bot className="h-5 w-5" />
+            <CardTitle>AI Settings</CardTitle>
+          </div>
+          <CardDescription>
+            Configure the AI model used for translations and other AI features
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="aiProvider">AI Provider</Label>
+            <Select
+              value={aiProvider || '__default__'}
+              onValueChange={(value) => {
+                setAiProvider(value === '__default__' ? '' : value);
+              }}
+              disabled={isSaving}
+            >
+              <SelectTrigger id="aiProvider">
+                <SelectValue placeholder="Select AI provider" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__default__">Use default</SelectItem>
+                {availableProviders.map((provider) => (
+                  <SelectItem key={provider.provider} value={provider.provider}>
+                    {provider.provider}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="aiModel">AI Model</Label>
+            <Select
+              value={aiModel || '__default__'}
+              onValueChange={(value) => {
+                setAiModel(value === '__default__' ? '' : value);
+              }}
+              disabled={isSaving || !aiProvider}
+            >
+              <SelectTrigger id="aiModel">
+                <SelectValue
+                  placeholder={
+                    aiProvider
+                      ? 'Select model'
+                      : 'Select a provider first'
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__default__">Use default</SelectItem>
+                {modelsForProvider.map((model) => (
+                  <SelectItem key={model.id} value={model.id}>
+                    {model.name} - {model.description}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex justify-end">
+            <Button
+              onClick={handleSaveAiSettings}
+              disabled={isSaving}
+            >
+              Save AI Settings
+            </Button>
+          </div>
         </CardContent>
       </Card>
 

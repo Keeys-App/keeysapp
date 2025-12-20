@@ -38,6 +38,8 @@ export const TEAM_FRAGMENT = gql`
     }
     canManage
     membersCount
+    aiProvider
+    aiModel
     createdAt
     updatedAt
   }
@@ -154,6 +156,8 @@ export interface Team {
   invitations: TeamInvitation[];
   canManage: boolean;
   membersCount: number;
+  aiProvider?: string;
+  aiModel?: string;
   createdAt: string;
   updatedAt?: string;
 }
@@ -316,5 +320,56 @@ export interface DeclineInviteResponse {
 
 export interface ResendInviteResponse {
   resendInvite: boolean;
+}
+
+// === AI Settings ===
+
+// Mutation to update team AI settings
+export const UPDATE_TEAM_AI_SETTINGS = gql`
+  ${TEAM_FRAGMENT}
+  mutation UpdateTeamAISettings($input: UpdateTeamAISettingsInput!) {
+    updateTeamAiSettings(input: $input) {
+      ...TeamFields
+    }
+  }
+`;
+
+// Query to get available AI models
+export const GET_AVAILABLE_AI_MODELS = gql`
+  query GetAvailableAIModels {
+    availableAiModels {
+      provider
+      models {
+        id
+        name
+        description
+      }
+    }
+  }
+`;
+
+export interface UpdateTeamAISettingsInput {
+  teamId: string;
+  aiProvider?: string;
+  aiModel?: string;
+}
+
+export interface UpdateTeamAISettingsResponse {
+  updateTeamAiSettings: Team | null;
+}
+
+export interface AIModel {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export interface AIProviderModels {
+  provider: string;
+  models: AIModel[];
+}
+
+export interface GetAvailableAIModelsResponse {
+  availableAiModels: AIProviderModels[];
 }
 

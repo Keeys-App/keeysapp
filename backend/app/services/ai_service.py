@@ -1,39 +1,151 @@
 """
-AI Service for translation assistance using OpenAI API
+AI Service for translation assistance using OpenAI and Anthropic APIs
 """
 from typing import Optional
 import logging
 import json
+import httpx
 from openai import AsyncOpenAI, OpenAIError
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
 
+# Available models for each provider
+AVAILABLE_MODELS = {
+    "OPENAI": [
+        {"id": "gpt-5.2-2025-12-11", "name": "GPT-5.2", "description": "Best for coding and agentic tasks"},
+        {"id": "gpt-5-mini-2025-08-07", "name": "GPT-5 Mini", "description": "Faster, cost-efficient for well-defined tasks"},
+        {"id": "gpt-5-nano-2025-08-07", "name": "GPT-5 Nano", "description": "Fastest, most cost-efficient"},
+    ],
+    "ANTHROPIC": [
+        {"id": "claude-opus-4-5", "name": "Claude Opus 4.5", "description": "Premium model with maximum intelligence"},
+        {"id": "claude-sonnet-4-5", "name": "Claude Sonnet 4.5", "description": "Smart model for complex agents and coding"},
+        {"id": "claude-haiku-4-5", "name": "Claude Haiku 4.5", "description": "Fastest with near-frontier intelligence"},
+    ],
+}
+
+
+def get_available_models():
+    """Return available models for all providers."""
+    return AVAILABLE_MODELS
+
+
 class AIService:
     """Service for AI-powered translation operations"""
+    
+    ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
 
     def __init__(self):
-        """Initialize OpenAI client"""
+        """Initialize API clients"""
+        # OpenAI client
         if not settings.openai_api_key:
             logger.warning("OpenAI API key not configured")
-            self.client = None
+            self.openai_client = None
         else:
-            self.client = AsyncOpenAI(
+            self.openai_client = AsyncOpenAI(
                 api_key=settings.openai_api_key,
                 timeout=settings.openai_timeout
             )
+        
+        # Anthropic API key
+        if not settings.anthropic_api_key:
+            logger.warning("Anthropic API key not configured")
+            self.anthropic_api_key = None
+        else:
+            self.anthropic_api_key = settings.anthropic_api_key
 
-    def _is_available(self) -> bool:
-        """Check if AI service is available"""
-        return self.client is not None
+    def _is_available(self, provider: Optional[str] = None) -> bool:
+        """Check if AI service is available for given provider"""
+        if provider == "ANTHROPIC":
+            return self.anthropic_api_key is not None
+        # Default to OpenAI
+        return self.openai_client is not None
+    
+    def _get_default_model(self, provider: str) -> str:
+        """Get default model for a provider"""
+        if provider == "ANTHROPIC":
+            return settings.anthropic_model
+        return settings.openai_text_model
+    
+    async def _call_anthropic(
+        self,
+        system_content: str,
+        user_content: str,
+        model: str,
+    ) -> str:
+        """Call Anthropic API and return response text."""
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                self.ANTHROPIC_API_URL,
+                headers={
+                    "x-api-key": self.anthropic_api_key,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": model,
+                    "max_tokens": settings.openai_max_tokens,
+                    "system": system_content,
+                    "messages": [{"role": "user", "content": user_content}],
+                },
+                timeout=settings.openai_timeout,
+            )
+            
+            if response.status_code != 200:
+                logger.error(f"Anthropic API error: {response.status_code} - {response.text}")
+                raise Exception("AI request failed")
+            
+            data = response.json()
+            content = data.get("content", [])
+            if not content:
+                raise Exception("Empty response from Anthropic")
+            
+            return content[0].get("text", "").strip()
+    
+    async def _call_openai(
+        self,
+        system_content: str,
+        user_content: str,
+        model: str,
+        temperature: float = 1.0,
+        json_mode: bool = True,
+    ) -> str:
+        """Call OpenAI API and return response text."""
+        response = await self.openai_client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_content},
+                {"role": "user", "content": user_content}
+            ],
+            max_tokens=settings.openai_max_tokens,
+            temperature=temperature,
+            response_format={"type": "json_object"} if json_mode else None,
+        )
+        return response.choices[0].message.content.strip()
+    
+    async def _call_ai(
+        self,
+        system_content: str,
+        user_content: str,
+        provider: str,
+        model: str,
+        temperature: float = 1.0,
+    ) -> str:
+        """Universal AI call method that handles both providers."""
+        if provider == "ANTHROPIC":
+            return await self._call_anthropic(system_content, user_content, model)
+        else:
+            return await self._call_openai(system_content, user_content, model, temperature)
 
     async def translate(
         self,
         text: str,
         target_language: str,
         source_language: Optional[str] = None,
-        context: Optional[str] = None
+        context: Optional[str] = None,
+        provider: Optional[str] = None,
+        model: Optional[str] = None,
     ) -> tuple[str, Optional[str]]:
         """
         Translate text to target language
@@ -43,6 +155,8 @@ class AIService:
             target_language: Target language name (e.g., "Spanish", "French")
             source_language: Optional source language name
             context: Optional context about the text
+            provider: AI provider to use (OPENAI or ANTHROPIC)
+            model: Specific model to use
             
         Returns:
             Tuple of (translated_text, reason_if_failed)
@@ -52,8 +166,12 @@ class AIService:
         Raises:
             Exception: If AI service is not available or API error occurs
         """
-        if not self._is_available():
-            raise Exception("AI service is not configured")
+        # Determine provider and model
+        use_provider = provider or "OPENAI"
+        use_model = model or self._get_default_model(use_provider)
+        
+        if not self._is_available(use_provider):
+            raise Exception(f"AI service ({use_provider}) is not configured")
 
         try:
             # Build prompt
@@ -80,9 +198,9 @@ class AIService:
             )
             prompt_parts.append(f"\nText to translate:\n{text}")
             
-            prompt = "\n".join(prompt_parts)
+            user_content = "\n".join(prompt_parts)
 
-            logger.info(f"Requesting translation to {target_language} (context: {bool(context)})")
+            logger.info(f"Requesting translation to {target_language} via {use_provider}/{use_model} (context: {bool(context)})")
             
             # Build system message with JSON response format
             system_content = (
@@ -118,20 +236,24 @@ class AIService:
             if context:
                 system_content += f"\n\n⚠️ CRITICAL: User provided mandatory context:\n{context}\nYou MUST follow these instructions in your translation."
             
-            response = await self.client.chat.completions.create(
-                model=settings.openai_text_model,
-                messages=[
-                    {"role": "system", "content": system_content},
-                    {"role": "user", "content": prompt}
-                ],
-                max_tokens=settings.openai_max_tokens,
+            response_text = await self._call_ai(
+                system_content=system_content,
+                user_content=user_content,
+                provider=use_provider,
+                model=use_model,
                 temperature=settings.openai_temperature,
-                response_format={"type": "json_object"}
             )
 
-            # Parse JSON response
-            response_text = response.choices[0].message.content.strip()
             logger.debug(f"AI translate response: {response_text[:500]}")
+            
+            # Strip markdown code blocks if present (Anthropic sometimes adds them)
+            if response_text.startswith("```json"):
+                response_text = response_text[7:]
+            elif response_text.startswith("```"):
+                response_text = response_text[3:]
+            if response_text.endswith("```"):
+                response_text = response_text[:-3]
+            response_text = response_text.strip()
             
             try:
                 response_data = json.loads(response_text)
@@ -164,7 +286,9 @@ class AIService:
         self,
         text: str,
         language: str,
-        context: Optional[str] = None
+        context: Optional[str] = None,
+        provider: Optional[str] = None,
+        model: Optional[str] = None,
     ) -> tuple[str, Optional[str]]:
         """
         Rephrase text while maintaining meaning
@@ -173,14 +297,19 @@ class AIService:
             text: Text to rephrase
             language: Language of the text
             context: Optional context
+            provider: AI provider to use (OPENAI or ANTHROPIC)
+            model: Specific model to use
             
         Returns:
             Tuple of (rephrased_text, reason_if_failed)
             - If successful: (rephrased, None)
             - If failed: ("", reason)
         """
-        if not self._is_available():
-            raise Exception("AI service is not configured")
+        use_provider = provider or "OPENAI"
+        use_model = model or self._get_default_model(use_provider)
+        
+        if not self._is_available(use_provider):
+            raise Exception(f"AI service ({use_provider}) is not configured")
 
         try:
             prompt_parts = [
@@ -200,9 +329,9 @@ class AIService:
             )
             prompt_parts.append(f"\nText to rephrase:\n{text}")
             
-            prompt = "\n".join(prompt_parts)
+            user_content = "\n".join(prompt_parts)
 
-            logger.info(f"Requesting rephrase for {language} text (context: {bool(context)})")
+            logger.info(f"Requesting rephrase for {language} text via {use_provider}/{use_model} (context: {bool(context)})")
             
             # Build system message with JSON response format
             system_content = (
@@ -235,19 +364,23 @@ class AIService:
             if context:
                 system_content += f"\n\n⚠️ CRITICAL: User provided mandatory context:\n{context}\nYou MUST follow these instructions in your rephrasing."
             
-            response = await self.client.chat.completions.create(
-                model=settings.openai_text_model,
-                messages=[
-                    {"role": "system", "content": system_content},
-                    {"role": "user", "content": prompt}
-                ],
-                max_tokens=settings.openai_max_tokens,
+            response_text = await self._call_ai(
+                system_content=system_content,
+                user_content=user_content,
+                provider=use_provider,
+                model=use_model,
                 temperature=settings.openai_temperature,
-                response_format={"type": "json_object"}
             )
 
-            # Parse JSON response
-            response_text = response.choices[0].message.content.strip()
+            # Strip markdown code blocks if present
+            if response_text.startswith("```json"):
+                response_text = response_text[7:]
+            elif response_text.startswith("```"):
+                response_text = response_text[3:]
+            if response_text.endswith("```"):
+                response_text = response_text[:-3]
+            response_text = response_text.strip()
+            
             response_data = json.loads(response_text)
             
             if not response_data.get("success", False):
@@ -273,7 +406,9 @@ class AIService:
         self,
         text: str,
         language: str,
-        context: Optional[str] = None
+        context: Optional[str] = None,
+        provider: Optional[str] = None,
+        model: Optional[str] = None,
     ) -> tuple[str, Optional[str]]:
         """
         Shorten text while preserving key meaning
@@ -282,14 +417,19 @@ class AIService:
             text: Text to shorten
             language: Language of the text
             context: Optional context
+            provider: AI provider to use (OPENAI or ANTHROPIC)
+            model: Specific model to use
             
         Returns:
             Tuple of (shortened_text, reason_if_failed)
             - If successful: (shortened, None)
             - If failed: ("", reason)
         """
-        if not self._is_available():
-            raise Exception("AI service is not configured")
+        use_provider = provider or "OPENAI"
+        use_model = model or self._get_default_model(use_provider)
+        
+        if not self._is_available(use_provider):
+            raise Exception(f"AI service ({use_provider}) is not configured")
 
         try:
             prompt_parts = [
@@ -309,9 +449,9 @@ class AIService:
             )
             prompt_parts.append(f"\nText to shorten:\n{text}")
             
-            prompt = "\n".join(prompt_parts)
+            user_content = "\n".join(prompt_parts)
 
-            logger.info(f"Requesting shorten for {language} text (context: {bool(context)})")
+            logger.info(f"Requesting shorten for {language} text via {use_provider}/{use_model} (context: {bool(context)})")
             
             # Build system message with JSON response format
             system_content = (
@@ -345,19 +485,23 @@ class AIService:
             if context:
                 system_content += f"\n\n⚠️ CRITICAL: User provided mandatory context:\n{context}\nYou MUST follow these instructions in your shortened version."
             
-            response = await self.client.chat.completions.create(
-                model=settings.openai_text_model,
-                messages=[
-                    {"role": "system", "content": system_content},
-                    {"role": "user", "content": prompt}
-                ],
-                max_tokens=settings.openai_max_tokens,
+            response_text = await self._call_ai(
+                system_content=system_content,
+                user_content=user_content,
+                provider=use_provider,
+                model=use_model,
                 temperature=settings.openai_temperature,
-                response_format={"type": "json_object"}
             )
 
-            # Parse JSON response
-            response_text = response.choices[0].message.content.strip()
+            # Strip markdown code blocks if present
+            if response_text.startswith("```json"):
+                response_text = response_text[7:]
+            elif response_text.startswith("```"):
+                response_text = response_text[3:]
+            if response_text.endswith("```"):
+                response_text = response_text[:-3]
+            response_text = response_text.strip()
+            
             response_data = json.loads(response_text)
             
             if not response_data.get("success", False):
@@ -384,7 +528,9 @@ class AIService:
         text: str,
         language: str,
         context: Optional[str] = None,
-        count: int = 3
+        count: int = 3,
+        provider: Optional[str] = None,
+        model: Optional[str] = None,
     ) -> tuple[list[str], Optional[str]]:
         """
         Generate alternative variants of the text
@@ -394,14 +540,19 @@ class AIService:
             language: Language of the text
             context: Optional context
             count: Number of variants to generate (default: 3)
+            provider: AI provider to use (OPENAI or ANTHROPIC)
+            model: Specific model to use
             
         Returns:
             Tuple of (variants_list, reason_if_failed)
             - If successful: ([variants], None)
             - If failed: ([], reason)
         """
-        if not self._is_available():
-            raise Exception("AI service is not configured")
+        use_provider = provider or "OPENAI"
+        use_model = model or self._get_default_model(use_provider)
+        
+        if not self._is_available(use_provider):
+            raise Exception(f"AI service ({use_provider}) is not configured")
 
         try:
             prompt_parts = [
@@ -421,9 +572,9 @@ class AIService:
             )
             prompt_parts.append(f"\nText:\n{text}")
             
-            prompt = "\n".join(prompt_parts)
+            user_content = "\n".join(prompt_parts)
 
-            logger.info(f"Requesting {count} variants for {language} text (context: {bool(context)})")
+            logger.info(f"Requesting {count} variants for {language} text via {use_provider}/{use_model} (context: {bool(context)})")
             
             # Build system message with JSON response format
             system_content = (
@@ -456,19 +607,23 @@ class AIService:
             if context:
                 system_content += f"\n\n⚠️ CRITICAL: User provided mandatory context:\n{context}\nYou MUST follow these instructions in ALL variants you generate."
             
-            response = await self.client.chat.completions.create(
-                model=settings.openai_text_model,
-                messages=[
-                    {"role": "system", "content": system_content},
-                    {"role": "user", "content": prompt}
-                ],
-                max_tokens=settings.openai_max_tokens,
+            response_text = await self._call_ai(
+                system_content=system_content,
+                user_content=user_content,
+                provider=use_provider,
+                model=use_model,
                 temperature=1.2,  # Higher temperature for more variety
-                response_format={"type": "json_object"}
             )
 
-            # Parse JSON response
-            response_text = response.choices[0].message.content.strip()
+            # Strip markdown code blocks if present
+            if response_text.startswith("```json"):
+                response_text = response_text[7:]
+            elif response_text.startswith("```"):
+                response_text = response_text[3:]
+            if response_text.endswith("```"):
+                response_text = response_text[:-3]
+            response_text = response_text.strip()
+            
             response_data = json.loads(response_text)
             
             if not response_data.get("success", False):

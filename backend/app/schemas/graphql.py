@@ -15,7 +15,7 @@ from app.schemas.project import ProjectQuery, ProjectMutation, ProjectType, Avai
 from app.schemas.team import TeamQuery, TeamMutation, TeamType, InviteInfoType, PendingInviteType
 from app.schemas.project_access import ProjectAccessMutation
 from app.schemas.key import KeyQuery, KeyMutation, KeyType, KeysConnection, ActivityLogType
-from app.schemas.ai import AIMutation
+from app.schemas.ai import AIQuery, AIMutation, AIProviderModels
 from app.schemas.github import (
     GitHubQuery,
     GitHubMutation,
@@ -87,6 +87,9 @@ class Query:
     scan_session: Optional[ScanSessionType] = strawberry.field(resolver=ScannerQuery.scan_session)
     project_scan_sessions: List[ScanSessionType] = strawberry.field(resolver=ScannerQuery.project_scan_sessions)
     team_token_usage: TokenUsageStatsType = strawberry.field(resolver=ScannerQuery.team_token_usage)
+    
+    # AI
+    available_ai_models: List[AIProviderModels] = strawberry.field(resolver=AIQuery.available_ai_models)
 
 
 @strawberry.type
@@ -116,6 +119,7 @@ class Mutation:
     accept_invite = strawberry.field(resolver=TeamMutation.accept_invite)
     decline_invite = strawberry.field(resolver=TeamMutation.decline_invite)
     resend_invite = strawberry.field(resolver=TeamMutation.resend_invite)
+    update_team_ai_settings = strawberry.field(resolver=TeamMutation.update_team_ai_settings)
     
     # Include project mutations
     create_project = strawberry.field(resolver=ProjectMutation.create_project)
