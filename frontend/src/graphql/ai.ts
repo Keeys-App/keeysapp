@@ -64,18 +64,21 @@ export interface TranslateInput {
   targetLanguage: string;
   sourceLanguage?: string;
   context?: string;
+  teamId?: string;
 }
 
 export interface RephraseInput {
   text: string;
   language: string;
   context?: string;
+  teamId?: string;
 }
 
 export interface ShortenInput {
   text: string;
   language: string;
   context?: string;
+  teamId?: string;
 }
 
 export interface SuggestVariantsInput {
@@ -83,6 +86,7 @@ export interface SuggestVariantsInput {
   language: string;
   context?: string;
   count?: number;
+  teamId?: string;
 }
 
 export interface AiTranslateData {

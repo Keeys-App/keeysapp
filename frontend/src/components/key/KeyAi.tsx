@@ -96,6 +96,8 @@ interface KeyAiProps {
   defaultLanguageValue?: string;
   /** All project languages for autotranslate feature */
   projectLanguages?: Language[];
+  /** Team ID for AI settings */
+  teamId?: string;
 }
 
 /**
@@ -110,6 +112,7 @@ export const KeyAi: FC<KeyAiProps> = ({
   defaultLanguage,
   defaultLanguageValue,
   projectLanguages = [],
+  teamId,
 }) => {
   const withSaving = useSaving();
   const { isSaving } = useSavingStore();
@@ -282,6 +285,7 @@ export const KeyAi: FC<KeyAiProps> = ({
                       targetLanguage: lang.name,
                       sourceLanguage: defaultLanguage.name,
                       context: formContext,
+                      teamId,
                     },
                   },
                 });
@@ -309,6 +313,7 @@ export const KeyAi: FC<KeyAiProps> = ({
                   targetLanguage: lang.name,
                   sourceLanguage: defaultLanguage.name,
                   context: customContext || currentKey.description || undefined,
+                  teamId,
                 },
               },
             });
@@ -477,6 +482,7 @@ export const KeyAi: FC<KeyAiProps> = ({
               targetLanguage: currentLanguage.name,
               sourceLanguage: defaultLanguage.name,
               context: translationContext || undefined,
+              teamId,
             },
           },
         });
@@ -542,6 +548,7 @@ export const KeyAi: FC<KeyAiProps> = ({
               text: currentText,
               language: currentLanguage.name,
               context: rephraseContext || undefined,
+              teamId,
             },
           },
         });
@@ -607,6 +614,7 @@ export const KeyAi: FC<KeyAiProps> = ({
               text: currentText,
               language: currentLanguage.name,
               context: shortenContext || undefined,
+              teamId,
             },
           },
         });
@@ -673,6 +681,7 @@ export const KeyAi: FC<KeyAiProps> = ({
               language: currentLanguage.name,
               context: variantsContext || undefined,
               count: 3,
+              teamId,
             },
           },
         });

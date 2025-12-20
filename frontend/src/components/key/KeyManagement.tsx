@@ -18,6 +18,7 @@ interface KeyManagementProps {
   defaultLanguage?: Language | null;
   defaultLanguageValue?: string;
   projectLanguages?: Language[];
+  teamId?: string;
 }
 
 const ACTIVE_TAB_STORAGE_KEY = "keyManagementActiveTab";
@@ -37,6 +38,7 @@ export const KeyManagement: FC<KeyManagementProps> = ({
   defaultLanguage,
   defaultLanguageValue,
   projectLanguages = [],
+  teamId,
 }) => {
   // Load saved tab from localStorage or default to "ai"
   const [activeTab, setActiveTab] = useState<string>(() => {
@@ -71,6 +73,7 @@ export const KeyManagement: FC<KeyManagementProps> = ({
           defaultLanguage={defaultLanguage}
           defaultLanguageValue={defaultLanguageValue}
           projectLanguages={projectLanguages}
+          teamId={teamId}
         />
       </TabsContent>
 

@@ -18,6 +18,7 @@ interface KeysAsidePanelProps {
   defaultLanguage?: Language | null;
   defaultLanguageValue?: string;
   projectLanguages?: Language[];
+  teamId?: string;
 }
 
 /**
@@ -37,6 +38,7 @@ export const KeysAsidePanel: FC<KeysAsidePanelProps> = ({
   defaultLanguage,
   defaultLanguageValue,
   projectLanguages = [],
+  teamId,
 }) => {
   let content: React.ReactNode | null = null;
   let title = "Suggestions";
@@ -55,6 +57,7 @@ export const KeysAsidePanel: FC<KeysAsidePanelProps> = ({
         defaultLanguage={defaultLanguage}
         defaultLanguageValue={defaultLanguageValue}
         projectLanguages={projectLanguages}
+        teamId={teamId}
       />
     );
   } else if (!selectedKeyId && totalKeys > 0) {

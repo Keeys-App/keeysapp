@@ -182,6 +182,7 @@ export const ProjectKeysPage: FC = () => {
             defaultLanguage={defaultLanguage}
             defaultLanguageValue={defaultTranslation?.value}
             projectLanguages={projectLanguages}
+            teamId={project.team?.id}
           />
         ) : null}
       </div>
