@@ -14,9 +14,11 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { BreadcrumbProvider } from './contexts';
 import { init } from '@plausible-analytics/tracker';
 
-init({
-  domain: 'app.keeys.app',
-});
+if (import.meta.env.MODE === 'production') {
+  init({
+    domain: 'app.keeys.app',
+  });
+}
 
 function AppWithProviders() {
   return (

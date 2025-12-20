@@ -448,8 +448,9 @@ class GitHubService:
                         params={
                             "per_page": per_page,
                             "page": page,
-                            "sort": "updated",
-                            "direction": "desc",
+                            "sort": "full_name",
+                            "direction": "asc",
+                            "visibility": "all",  # public, private, all
                             "affiliation": "owner,collaborator,organization_member",
                         },
                         headers={
@@ -461,7 +462,7 @@ class GitHubService:
                     )
                     
                     if response.status_code != 200:
-                        logger.error(f"GitHub API error: {response.status_code}")
+                        logger.error(f"GitHub API error: {response.status_code} - {response.text}")
                         break
                     
                     data = response.json()
@@ -481,19 +482,113 @@ class GitHubService:
                             html_url=repo.get("html_url", ""),
                         ))
                     
+                    logger.info(f"Fetched page {page} with {len(data)} repos, total: {len(repos)}")
+                    
                     # Check if there are more pages
-                    if len(data) < per_page:
+                    # Note: GitHub may return less than per_page even if more pages exist
+                    if len(data) == 0:
                         break
                     
                     page += 1
                     
-                    # Safety limit
-                    if page > 10:
+                    # Safety limit - increased to 50 pages (5000 repos max)
+                    if page > 50:
+                        logger.warning("Hit page limit of 50, some repos may not be shown")
                         break
+                
+                logger.info(f"Total repositories fetched: {len(repos)}")
             
             return repos
         except Exception as e:
             logger.error(f"Failed to list repositories: {type(e).__name__}")
+            return []
+    
+    @staticmethod
+    async def search_repositories(access_token: str, query: str) -> list[GitHubRepoInfo]:
+        """
+        Search for repositories by filtering /user/repos locally.
+        GitHub Search API doesn't find private repos, so we fetch all and filter.
+        
+        Args:
+            access_token: GitHub access token
+            query: Search query (filters by full_name, name, or owner)
+            
+        Returns:
+            List of repository information matching the query
+        """
+        query_lower = query.lower().strip()
+        if not query_lower:
+            return []
+        
+        repos: list[GitHubRepoInfo] = []
+        page = 1
+        per_page = 100
+        
+        try:
+            async with httpx.AsyncClient() as client:
+                while True:
+                    response = await client.get(
+                        f"{GITHUB_API_URL}/user/repos",
+                        params={
+                            "per_page": per_page,
+                            "page": page,
+                            "sort": "full_name",
+                            "direction": "asc",
+                            "visibility": "all",
+                            "affiliation": "owner,collaborator,organization_member",
+                        },
+                        headers={
+                            "Authorization": f"Bearer {access_token}",
+                            "Accept": "application/vnd.github+json",
+                            "X-GitHub-Api-Version": "2022-11-28",
+                        },
+                        timeout=30.0,
+                    )
+                    
+                    if response.status_code != 200:
+                        logger.error(f"GitHub API error: {response.status_code} - {response.text}")
+                        break
+                    
+                    data = response.json()
+                    
+                    if not data:
+                        break
+                    
+                    for repo in data:
+                        full_name = repo["full_name"].lower()
+                        name = repo["name"].lower()
+                        owner = repo["owner"]["login"].lower()
+                        
+                        # Match if query is found in full_name, name, or owner
+                        if query_lower in full_name or query_lower in name or query_lower in owner:
+                            repos.append(GitHubRepoInfo(
+                                id=str(repo["id"]),
+                                full_name=repo["full_name"],
+                                name=repo["name"],
+                                owner=repo["owner"]["login"],
+                                default_branch=repo.get("default_branch", "main"),
+                                private=repo.get("private", False),
+                                description=repo.get("description"),
+                                html_url=repo.get("html_url", ""),
+                            ))
+                    
+                    logger.info(f"Search page {page}: checked {len(data)} repos, matched {len(repos)} so far for query '{query}'")
+                    
+                    if len(data) == 0:
+                        break
+                    
+                    page += 1
+                    
+                    # Limit pages to prevent long waits
+                    if page > 20:
+                        logger.warning(f"Hit page limit of 20 during search for '{query}'")
+                        break
+                
+                logger.info(f"Search complete: found {len(repos)} repos matching '{query}'")
+            
+            return repos
+        except Exception as e:
+            logger.error(f"Failed to search repositories: {type(e).__name__}: {str(e)}")
             return []
     
     @staticmethod

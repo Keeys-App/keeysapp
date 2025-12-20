@@ -68,6 +68,7 @@ class Query:
     team_github_connections: List[GitHubConnectionType] = strawberry.field(resolver=GitHubQuery.team_github_connections)
     github_connection: Optional[GitHubConnectionType] = strawberry.field(resolver=GitHubQuery.github_connection)
     available_github_repositories: List[GitHubRepoType] = strawberry.field(resolver=GitHubQuery.available_github_repositories)
+    search_github_repositories: List[GitHubRepoType] = strawberry.field(resolver=GitHubQuery.search_github_repositories)
     project_repository: Optional[RepositoryType] = strawberry.field(resolver=GitHubQuery.project_repository)
 
 

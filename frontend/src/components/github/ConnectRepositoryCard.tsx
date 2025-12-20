@@ -1,7 +1,8 @@
 import { useState, type FC, useEffect } from 'react';
-import { useMutation, useQuery } from '@apollo/client';
-import { Github, Trash2, ExternalLink, Check, Lock, Globe, GitBranch } from 'lucide-react';
+import { useMutation, useQuery, useLazyQuery } from '@apollo/client';
+import { Github, Trash2, ExternalLink, Check, Lock, Globe, GitBranch, ChevronsUpDown, Search } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import {
   Card,
   CardContent,
@@ -28,11 +29,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   PROJECT_REPOSITORY_QUERY,
-  AVAILABLE_GITHUB_REPOS_QUERY,
+  SEARCH_GITHUB_REPOS_QUERY,
   TEAM_GITHUB_CONNECTIONS_QUERY,
   CONNECT_REPOSITORY_MUTATION,
   DISCONNECT_REPOSITORY_MUTATION,
@@ -55,7 +69,10 @@ export const ConnectRepositoryCard: FC<ConnectRepositoryCardProps> = ({
   className,
 }) => {
   const [selectedRepoId, setSelectedRepoId] = useState<string>('');
+  const [selectedRepo, setSelectedRepo] = useState<GitHubRepo | null>(null);
   const [selectedConnectionId, setSelectedConnectionId] = useState<string>('');
+  const [repoComboboxOpen, setRepoComboboxOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Query for connected repository
   const { data: repoData, loading: repoLoading, refetch: refetchRepo } = useQuery<{ 
@@ -73,14 +90,25 @@ export const ConnectRepositoryCard: FC<ConnectRepositoryCardProps> = ({
     fetchPolicy: 'cache-and-network',
   });
 
-  // Query for available repositories
-  const { data: reposData, loading: reposLoading } = useQuery<{ 
-    availableGithubRepositories: GitHubRepo[] 
-  }>(AVAILABLE_GITHUB_REPOS_QUERY, {
-    variables: { teamId },
-    fetchPolicy: 'cache-and-network',
-    skip: !connectionsData?.teamGithubConnections?.length,
+  // Lazy query for searching repositories
+  const [searchRepos, { data: searchData, loading: searchLoading }] = useLazyQuery<{
+    searchGithubRepositories: GitHubRepo[]
+  }>(SEARCH_GITHUB_REPOS_QUERY, {
+    fetchPolicy: 'network-only',
   });
+
+  // Debounced search
+  useEffect(() => {
+    if (searchQuery.length >= 2) {
+      const timer = setTimeout(() => {
+        searchRepos({ variables: { teamId, query: searchQuery } });
+      }, 300);
+      return () => {
+        return clearTimeout(timer);
+      };
+    }
+    return undefined;
+  }, [searchQuery, teamId, searchRepos]);
 
   // Connect mutation
   const [connectRepository, { data: connectData, error: connectError, loading: connectLoading }] = useMutation<{
@@ -94,7 +122,7 @@ export const ConnectRepositoryCard: FC<ConnectRepositoryCardProps> = ({
 
   const connectedRepo = repoData?.projectRepository;
   const connections = connectionsData?.teamGithubConnections ?? [];
-  const availableRepos = reposData?.availableGithubRepositories ?? [];
+  const searchResults = searchData?.searchGithubRepositories ?? [];
 
   // Auto-select first connection if only one
   useEffect(() => {
@@ -173,7 +201,7 @@ export const ConnectRepositoryCard: FC<ConnectRepositoryCardProps> = ({
     });
   };
 
-  const isLoading = repoLoading || connectionsLoading || reposLoading;
+  const isLoading = repoLoading || connectionsLoading;
 
   if (isLoading) {
     return (
@@ -325,29 +353,87 @@ export const ConnectRepositoryCard: FC<ConnectRepositoryCardProps> = ({
             
             <div className="space-y-2">
               <label className="text-sm font-medium">Repository</label>
-              <Select
-                value={selectedRepoId}
-                onValueChange={setSelectedRepoId}
-                disabled={!selectedConnectionId}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={selectedConnectionId ? "Select repository" : "Select a GitHub account first"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableRepos.map((repo) => (
-                    <SelectItem key={repo.id} value={repo.id}>
+              <Popover open={repoComboboxOpen} onOpenChange={setRepoComboboxOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={repoComboboxOpen}
+                    className="w-full justify-between"
+                    disabled={!selectedConnectionId}
+                  >
+                    {selectedRepo ? (
                       <div className="flex items-center gap-2">
-                        {repo.private ? (
+                        {selectedRepo.private ? (
                           <Lock className="h-3 w-3 text-muted-foreground" />
                         ) : (
                           <Globe className="h-3 w-3 text-muted-foreground" />
                         )}
-                        <span>{repo.fullName}</span>
+                        <span>{selectedRepo.fullName}</span>
                       </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                    ) : (
+                      <span className="text-muted-foreground">
+                        {selectedConnectionId ? "Search repositories..." : "Select a GitHub account first"}
+                      </span>
+                    )}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[400px] p-0" align="start">
+                  <Command shouldFilter={false}>
+                    <CommandInput 
+                      placeholder="Search repository..." 
+                      value={searchQuery}
+                      onValueChange={setSearchQuery}
+                    />
+                    <CommandList>
+                      <CommandEmpty>
+                        {searchLoading ? (
+                          <div className="flex items-center justify-center gap-2 py-2">
+                            <Search className="h-4 w-4 animate-pulse" />
+                            <span>Searching...</span>
+                          </div>
+                        ) : searchQuery.length >= 2 ? (
+                          "No repository found."
+                        ) : (
+                          "Type at least 2 characters to search..."
+                        )}
+                      </CommandEmpty>
+                      <CommandGroup>
+                        {searchResults.map((repo) => (
+                          <CommandItem
+                            key={repo.id}
+                            value={repo.fullName}
+                            onSelect={() => {
+                              if (repo.id === selectedRepoId) {
+                                setSelectedRepoId('');
+                                setSelectedRepo(null);
+                              } else {
+                                setSelectedRepoId(repo.id);
+                                setSelectedRepo(repo);
+                              }
+                              setRepoComboboxOpen(false);
+                            }}
+                          >
+                            {repo.private ? (
+                              <Lock className="h-3 w-3 text-muted-foreground" />
+                            ) : (
+                              <Globe className="h-3 w-3 text-muted-foreground" />
+                            )}
+                            <span>{repo.fullName}</span>
+                            <Check
+                              className={cn(
+                                "ml-auto h-4 w-4",
+                                selectedRepoId === repo.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
 
             <Button
@@ -368,4 +454,3 @@ export const ConnectRepositoryCard: FC<ConnectRepositoryCardProps> = ({
     </Card>
   );
 };
-

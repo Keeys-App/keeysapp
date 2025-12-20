@@ -271,6 +271,72 @@ class GitHubQuery:
             return None
     
     @strawberry.field
+    async def search_github_repositories(
+        self,
+        info: Info,
+        team_id: str,
+        query: str,
+    ) -> List[GitHubRepoType]:
+        """
+        Search for repositories using GitHub Search API.
+        Use this when a repo is not found in the main list.
+        
+        Args:
+            info: GraphQL info object
+            team_id: Public UUID of the team
+            query: Search query
+            
+        Returns:
+            List of matching repositories
+        """
+        try:
+            if not query or len(query) < 2:
+                return []
+            
+            user_id = await get_current_user_id(info)
+            
+            async with AsyncSessionLocal() as db:
+                # Get team and verify access
+                team = await TeamService.get_team_by_public_id(db, team_id)
+                if not team:
+                    return []
+                
+                # Check if user has access to team
+                has_access = await TeamService.check_user_team_access(db, team.id, user_id)
+                if not has_access and team.owner_id != user_id:
+                    return []
+                
+                # Get first GitHub connection for the team
+                connections = await GitHubService.get_connections_by_team(db, team.id)
+                
+                if not connections:
+                    return []
+                
+                # Use first connection for search
+                conn = connections[0]
+                access_token = GitHubService.get_decrypted_token(conn)
+                repos = await GitHubService.search_repositories(access_token, query)
+                
+                return [
+                    GitHubRepoType(
+                        id=repo["id"],
+                        full_name=repo["full_name"],
+                        name=repo["name"],
+                        owner=repo["owner"],
+                        default_branch=repo["default_branch"],
+                        private=repo["private"],
+                        description=repo["description"],
+                        html_url=repo["html_url"],
+                    )
+                    for repo in repos
+                ]
+        except AuthenticationError:
+            raise
+        except Exception as e:
+            logger.error(f"Error searching repositories: {type(e).__name__}")
+            return []
+    
+    @strawberry.field
     async def team_github_connections(
         self,
         info: Info,

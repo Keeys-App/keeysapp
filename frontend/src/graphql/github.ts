@@ -71,6 +71,22 @@ export const AVAILABLE_GITHUB_REPOS_QUERY = gql`
   }
 `;
 
+// Query to search repositories via GitHub Search API
+export const SEARCH_GITHUB_REPOS_QUERY = gql`
+  query SearchGitHubRepositories($teamId: String!, $query: String!) {
+    searchGithubRepositories(teamId: $teamId, query: $query) {
+      id
+      fullName
+      name
+      owner
+      defaultBranch
+      private
+      description
+      htmlUrl
+    }
+  }
+`;
+
 // Query to get repository linked to a project
 export const PROJECT_REPOSITORY_QUERY = gql`
   query ProjectRepository($projectId: String!) {
