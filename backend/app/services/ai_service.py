@@ -141,6 +141,9 @@ class AIService:
         json_mode: bool = True,
     ) -> tuple[str, TokenUsageInfo]:
         """Call OpenAI API and return response text with token usage."""
+        # GPT-5 models only support temperature=1.0
+        actual_temperature = 1.0 if "gpt-5" in model.lower() else temperature
+        
         response = await self.openai_client.chat.completions.create(
             model=model,
             messages=[
@@ -148,7 +151,7 @@ class AIService:
                 {"role": "user", "content": user_content}
             ],
             max_completion_tokens=settings.openai_max_tokens,
-            temperature=temperature,
+            temperature=actual_temperature,
             response_format={"type": "json_object"} if json_mode else None,
         )
         usage = response.usage
@@ -771,6 +774,9 @@ class AIService:
         model: str,
     ) -> AnalysisResult:
         """Call OpenAI API for file analysis."""
+        # GPT-5 models only support temperature=1.0
+        temperature = 1.0 if "gpt-5" in model.lower() else 0.3
+        
         response = await self.openai_client.chat.completions.create(
             model=model,
             messages=[
@@ -778,7 +784,7 @@ class AIService:
                 {"role": "user", "content": user_prompt}
             ],
             max_completion_tokens=4096,
-            temperature=0.3,
+            temperature=temperature,
             response_format={"type": "json_object"},
         )
         

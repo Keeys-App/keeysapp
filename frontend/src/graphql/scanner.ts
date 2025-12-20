@@ -79,9 +79,10 @@ export const TEAM_TOKEN_USAGE_QUERY = gql`
 `;
 
 // Mutation to start a repository scan
+// Note: AI settings are taken from Team configuration on backend
 export const START_REPOSITORY_SCAN_MUTATION = gql`
-  mutation StartRepositoryScan($projectId: String!, $aiProvider: String, $aiModel: String) {
-    startRepositoryScan(projectId: $projectId, aiProvider: $aiProvider, aiModel: $aiModel) {
+  mutation StartRepositoryScan($projectId: String!) {
+    startRepositoryScan(projectId: $projectId) {
       success
       message
       scanSession {

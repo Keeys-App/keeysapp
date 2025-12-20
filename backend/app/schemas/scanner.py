@@ -21,6 +21,7 @@ from app.services.github_service import GitHubService
 from app.services.project_service import ProjectService
 from app.services.team_service import TeamService
 from app.schemas.github import get_current_user_id
+from app.schemas.ai import get_team_ai_settings
 from app.core.exceptions import AuthenticationError
 
 logger = logging.getLogger(__name__)
@@ -367,17 +368,14 @@ class ScannerMutation:
         self,
         info: Info,
         project_id: str,
-        ai_provider: Optional[str] = None,
-        ai_model: Optional[str] = None,
     ) -> StartScanResult:
         """
         Start scanning a repository for hardcoded strings.
+        AI settings are taken from the Team configuration.
         
         Args:
             info: GraphQL info object
             project_id: Public UUID of the project
-            ai_provider: Optional AI provider (OPENAI or ANTHROPIC)
-            ai_model: Optional specific model to use
             
         Returns:
             Result with scan session info
@@ -409,6 +407,17 @@ class ScannerMutation:
                         message="No repository connected to this project",
                     )
                 
+                # Get AI settings from Team (NEVER from frontend!)
+                team = await TeamService.get_team_by_id(db, project.team_id)
+                if not team:
+                    return StartScanResult(
+                        success=False,
+                        message="Team not found",
+                    )
+                
+                ai_provider = team.ai_provider
+                ai_model = team.ai_model
+                
                 # Create scan session
                 session = await ScannerService.start_scan(
                     db=db,
@@ -419,8 +428,6 @@ class ScannerMutation:
                 )
                 
                 # Start background processing
-                # Note: In production, you'd use Celery or similar task queue
-                # For now, we use asyncio.create_task
                 team_id = project.team_id
                 
                 async def run_scan():

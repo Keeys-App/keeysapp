@@ -41,6 +41,57 @@ except Exception as e:
 
 ---
 
+## ⚠️ RULE #2: AI SETTINGS MUST COME FROM TEAM, NEVER FROM FRONTEND!
+
+**CRITICAL SECURITY RULE!**
+
+AI configuration (provider, model) must ALWAYS be fetched from the Team entity on the backend. 
+NEVER accept these parameters from frontend requests - this is a security vulnerability!
+
+### ❌ FORBIDDEN:
+```python
+# GraphQL mutation accepting AI settings from frontend
+async def start_scan(
+    self,
+    info: Info,
+    project_id: str,
+    ai_provider: Optional[str] = None,  # ❌ NEVER!
+    ai_model: Optional[str] = None,     # ❌ NEVER!
+) -> Result:
+```
+
+### ✅ REQUIRED:
+```python
+# Always get AI settings from Team on backend
+async def start_scan(
+    self,
+    info: Info,
+    project_id: str,
+) -> Result:
+    # Get project's team
+    team = await TeamService.get_team_by_id(db, project.team_id)
+    
+    # Use AI settings from Team (NEVER from frontend!)
+    ai_provider = team.ai_provider
+    ai_model = team.ai_model
+```
+
+### Why this matters:
+- Users cannot override AI settings they shouldn't have access to
+- Prevents billing manipulation by switching to more expensive models
+- Ensures consistent AI behavior across team
+- Single source of truth for AI configuration
+
+### Implementation pattern:
+Use `get_team_ai_settings()` from `app.schemas.ai` to fetch AI settings:
+```python
+from app.schemas.ai import get_team_ai_settings
+
+ai_provider, ai_model = await get_team_ai_settings(team_public_id)
+```
+
+---
+
 ## Other Project Rules
 
 See `/docs/obsidian/` for detailed documentation on:
