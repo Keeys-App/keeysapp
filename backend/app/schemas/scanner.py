@@ -618,7 +618,11 @@ class ScannerMutation:
                     )
                 
                 # Get project for default language
-                project = await ProjectService.get_project_by_id(db, repository.project_id)
+                from app.models.project import Project
+                result = await db.execute(
+                    select(Project).where(Project.id == repository.project_id)
+                )
+                project = result.scalar_one_or_none()
                 default_language = project.default_language or "en" if project else "en"
                 
                 # Convert strings
