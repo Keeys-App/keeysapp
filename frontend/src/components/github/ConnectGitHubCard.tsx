@@ -1,6 +1,6 @@
 import { type FC, useEffect } from 'react';
 import { useMutation, useQuery } from '@apollo/client';
-import { Github, Trash2, ExternalLink, Check, User } from 'lucide-react';
+import { Github, Trash2, ExternalLink, Check, User, AlertTriangle, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Card,
@@ -23,11 +23,14 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   TEAM_GITHUB_CONNECTIONS_QUERY,
   GET_GITHUB_AUTH_URL_MUTATION,
   DISCONNECT_GITHUB_MUTATION,
+  GITHUB_APP_INFO_QUERY,
   type GitHubConnection,
+  type GitHubAppInfo,
 } from '@/graphql/github';
 
 interface ConnectGitHubCardProps {
@@ -49,6 +52,15 @@ export const ConnectGitHubCard: FC<ConnectGitHubCardProps> = ({
     }
   );
 
+  const { data: appInfoData, loading: appInfoLoading } = useQuery<{ githubAppInfo: GitHubAppInfo }>(
+    GITHUB_APP_INFO_QUERY,
+    {
+      variables: { teamId },
+      fetchPolicy: 'cache-and-network',
+      skip: !data?.teamGithubConnections?.length,
+    }
+  );
+
   const [getAuthUrl, { loading: authLoading }] = useMutation<{
     getGithubAuthUrl: { authorizationUrl: string; state: string };
   }>(GET_GITHUB_AUTH_URL_MUTATION);
@@ -58,6 +70,7 @@ export const ConnectGitHubCard: FC<ConnectGitHubCardProps> = ({
   }>(DISCONNECT_GITHUB_MUTATION);
 
   const connections = data?.teamGithubConnections ?? [];
+  const appInfo = appInfoData?.githubAppInfo;
 
   useEffect(() => {
     if (disconnectData?.disconnectGithub) {
@@ -216,6 +229,42 @@ export const ConnectGitHubCard: FC<ConnectGitHubCardProps> = ({
               </div>
             ))}
             
+            {/* Installation warning */}
+            {!appInfoLoading && appInfo && !appInfo.hasInstallation && appInfo.installationUrl ? (
+              <Alert variant="default" className="border-yellow-500/50 bg-yellow-500/10">
+                <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                <AlertDescription className="flex flex-col gap-3">
+                  <span>
+                    GitHub App is not installed. Install it to access private repositories.
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    asChild
+                    className="w-fit"
+                  >
+                    <a href={appInfo.installationUrl} target="_blank" rel="noopener noreferrer">
+                      <Settings className="mr-2 h-4 w-4" />
+                      Install GitHub App
+                    </a>
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            ) : null}
+
+            {/* Show installation info if exists */}
+            {appInfo?.hasInstallation ? (
+              <div className="text-sm text-muted-foreground">
+                <span className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  App installed on: {appInfo.installations.map((i) => i.accountLogin).join(', ')}
+                  {appInfo.installations[0]?.repositorySelection === 'selected' ? (
+                    <span className="text-yellow-600"> (selected repos only)</span>
+                  ) : null}
+                </span>
+              </div>
+            ) : null}
+            
             {canManage ? (
               <Button
                 variant="outline"
@@ -232,23 +281,28 @@ export const ConnectGitHubCard: FC<ConnectGitHubCardProps> = ({
           <div className="space-y-4">
             {canManage ? (
               <>
-                <div className="text-sm text-muted-foreground">
-                  <p className="mb-2">We will request access to:</p>
-                  <ul className="list-disc list-inside space-y-1">
-                    <li>Read repository contents</li>
-                    <li>Create branches and pull requests</li>
-                    <li>Read your email (for notifications)</li>
-                  </ul>
+                <div className="text-sm text-muted-foreground space-y-3">
+                  <p className="font-medium">Two steps to connect:</p>
+                  <ol className="list-decimal list-inside space-y-2">
+                    <li>
+                      <strong>Install GitHub App</strong> — choose which repositories to allow access
+                    </li>
+                    <li>
+                      <strong>Authorize</strong> — grant permission to act on your behalf
+                    </li>
+                  </ol>
                 </div>
                 
-                <Button
-                  onClick={handleConnect}
-                  disabled={authLoading}
-                  className="w-full"
-                >
-                  <Github className="mr-2 h-4 w-4" />
-                  Connect GitHub
-                </Button>
+                <div className="flex flex-col gap-2">
+                  <Button
+                    onClick={handleConnect}
+                    disabled={authLoading}
+                    className="w-full"
+                  >
+                    <Github className="mr-2 h-4 w-4" />
+                    Connect GitHub
+                  </Button>
+                </div>
               </>
             ) : (
               <p className="text-sm text-muted-foreground">

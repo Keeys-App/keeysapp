@@ -9,7 +9,7 @@ from typing import Optional
 import logging
 
 from app.database import async_get_db
-from app.services.github_service import GitHubService
+from app.services.github_service import GitHubService, oauth_states
 from app.services.user_service import UserService
 from app.services.team_service import TeamService
 from app.core.security import decode_access_token
@@ -19,33 +19,57 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/github", tags=["github"])
 
-# In-memory state storage (for production, use Redis or database)
-# Format: {state: {"user_public_id": str, "team_public_id": str}}
-_oauth_states: dict[str, dict[str, str]] = {}
-
 
 @router.get("/callback")
 async def github_callback(
-    code: str = Query(..., description="Authorization code from GitHub"),
-    state: str = Query(..., description="State parameter for CSRF protection"),
+    code: Optional[str] = Query(None, description="Authorization code from GitHub"),
+    state: Optional[str] = Query(None, description="State parameter for CSRF protection"),
+    installation_id: Optional[str] = Query(None, description="Installation ID for GitHub App"),
+    setup_action: Optional[str] = Query(None, description="Setup action (install, update, delete)"),
     db: AsyncSession = Depends(async_get_db),
 ):
     """
-    Handle GitHub OAuth callback.
+    Handle GitHub OAuth/App Installation callback.
     
-    Exchanges authorization code for access token and creates/updates
-    the GitHub connection for the team.
+    For OAuth: Exchanges authorization code for access token.
+    For App Installation: Handles installation of GitHub App.
     
     Args:
-        code: Authorization code from GitHub
+        code: Authorization code from GitHub OAuth
         state: State parameter for CSRF verification
+        installation_id: GitHub App installation ID (for App flow)
+        setup_action: Action performed (install, update, delete)
         db: Database session
         
     Returns:
         Redirect to frontend with success/error
     """
+    logger.info(f"GitHub callback: code={bool(code)}, state={state}, installation_id={installation_id}, setup_action={setup_action}")
+    
+    # If this is just an installation without OAuth code, redirect to start OAuth
+    if installation_id and not code:
+        logger.info(f"GitHub App installed (id={installation_id}, action={setup_action}), but no OAuth code. App is installed!")
+        # The app is installed, but we need OAuth token. 
+        # For now, just redirect with success - user can reconnect to get token
+        if state:
+            state_data = oauth_states.get(state)
+            if state_data:
+                team_public_id = state_data.get("team_public_id", "")
+                oauth_states.pop(state, None)
+                success_url = f"{settings.app_url}/team/{team_public_id}/settings?installed=true"
+                return RedirectResponse(url=success_url)
+        # No state - just redirect to home
+        return RedirectResponse(url=f"{settings.app_url}?github_installed=true")
+    
+    if not code or not state:
+        logger.warning("Missing code or state in callback")
+        error_url = f"{settings.app_url}/github/callback?error=missing_params"
+        return RedirectResponse(url=error_url)
+    
+    logger.info(f"Looking for state '{state}' in {len(oauth_states)} stored states")
+    
     # Verify state parameter
-    state_data = _oauth_states.pop(state, None)
+    state_data = oauth_states.pop(state, None)
     
     if not state_data:
         logger.warning(f"Invalid OAuth state: {state}")

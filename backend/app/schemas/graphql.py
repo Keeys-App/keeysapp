@@ -24,6 +24,7 @@ from app.schemas.github import (
     RepositoryType,
     ConnectRepositoryResult,
     GitHubDisconnectResult,
+    GitHubAppInfoType,
 )
 
 
@@ -67,6 +68,7 @@ class Query:
     # GitHub integration
     team_github_connections: List[GitHubConnectionType] = strawberry.field(resolver=GitHubQuery.team_github_connections)
     github_connection: Optional[GitHubConnectionType] = strawberry.field(resolver=GitHubQuery.github_connection)
+    github_app_info: GitHubAppInfoType = strawberry.field(resolver=GitHubQuery.github_app_info)
     available_github_repositories: List[GitHubRepoType] = strawberry.field(resolver=GitHubQuery.available_github_repositories)
     search_github_repositories: List[GitHubRepoType] = strawberry.field(resolver=GitHubQuery.search_github_repositories)
     project_repository: Optional[RepositoryType] = strawberry.field(resolver=GitHubQuery.project_repository)

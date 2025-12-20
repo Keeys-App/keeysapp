@@ -55,6 +55,22 @@ export const DISCONNECT_GITHUB_MUTATION = gql`
   }
 `;
 
+// Query to get GitHub App installation info
+export const GITHUB_APP_INFO_QUERY = gql`
+  query GitHubAppInfo($teamId: String!) {
+    githubAppInfo(teamId: $teamId) {
+      installationUrl
+      hasInstallation
+      installations {
+        id
+        accountLogin
+        accountType
+        repositorySelection
+      }
+    }
+  }
+`;
+
 // Query to get available repositories from team's GitHub connections
 export const AVAILABLE_GITHUB_REPOS_QUERY = gql`
   query AvailableGitHubRepositories($teamId: String!) {
@@ -170,6 +186,19 @@ export interface Repository {
   localePath: string | null;
   githubUsername: string | null;
   connectedAt: string;
+}
+
+export interface GitHubInstallation {
+  id: string;
+  accountLogin: string;
+  accountType: string;
+  repositorySelection: string;
+}
+
+export interface GitHubAppInfo {
+  installationUrl: string | null;
+  hasInstallation: boolean;
+  installations: GitHubInstallation[];
 }
 
 export interface GitHubAuthUrlResult {

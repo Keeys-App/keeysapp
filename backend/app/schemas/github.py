@@ -92,6 +92,27 @@ class GitHubDisconnectResult:
 
 
 @strawberry.type
+class GitHubInstallationType:
+    """
+    GraphQL type for GitHub App installation.
+    """
+    id: str
+    account_login: str
+    account_type: str  # "User" or "Organization"
+    repository_selection: str  # "all" or "selected"
+
+
+@strawberry.type
+class GitHubAppInfoType:
+    """
+    GraphQL type for GitHub App information.
+    """
+    installation_url: Optional[str]
+    installations: List[GitHubInstallationType]
+    has_installation: bool
+
+
+@strawberry.type
 class GitHubRepoType:
     """
     GraphQL type for GitHub repository information.
@@ -139,6 +160,74 @@ class GitHubQuery:
     """
     GraphQL queries for GitHub integration.
     """
+    
+    @strawberry.field
+    async def github_app_info(
+        self,
+        info: Info,
+        team_id: str,
+    ) -> GitHubAppInfoType:
+        """
+        Get GitHub App installation info for the team.
+        
+        Args:
+            info: GraphQL info object
+            team_id: Public UUID of the team
+            
+        Returns:
+            GitHub App information including installation URL and status
+        """
+        try:
+            user_id = await get_current_user_id(info)
+            
+            async with AsyncSessionLocal() as db:
+                # Get team and verify access
+                team = await TeamService.get_team_by_public_id(db, team_id)
+                if not team:
+                    return GitHubAppInfoType(
+                        installation_url=GitHubService.get_app_installation_url(),
+                        installations=[],
+                        has_installation=False,
+                    )
+                
+                # Get GitHub connections for this team
+                connections = await GitHubService.get_connections_by_team(db, team.id)
+                
+                if not connections:
+                    return GitHubAppInfoType(
+                        installation_url=GitHubService.get_app_installation_url(),
+                        installations=[],
+                        has_installation=False,
+                    )
+                
+                # Check installations using the first connection's token
+                access_token = GitHubService.get_decrypted_token(connections[0])
+                raw_installations = await GitHubService.get_user_installations(access_token)
+                
+                installations = [
+                    GitHubInstallationType(
+                        id=str(inst.get("id", "")),
+                        account_login=inst.get("account", {}).get("login", ""),
+                        account_type=inst.get("account", {}).get("type", "User"),
+                        repository_selection=inst.get("repository_selection", "selected"),
+                    )
+                    for inst in raw_installations
+                ]
+                
+                return GitHubAppInfoType(
+                    installation_url=GitHubService.get_app_installation_url(),
+                    installations=installations,
+                    has_installation=len(installations) > 0,
+                )
+        except AuthenticationError:
+            raise
+        except Exception as e:
+            logger.error(f"Error getting GitHub App info: {type(e).__name__}")
+            return GitHubAppInfoType(
+                installation_url=GitHubService.get_app_installation_url(),
+                installations=[],
+                has_installation=False,
+            )
     
     @strawberry.field
     async def available_github_repositories(
@@ -519,11 +608,13 @@ class GitHubMutation:
             auth_url = GitHubService.get_authorization_url(state)
             
             # Store state -> user+team mapping (shared with router)
-            from app.routers.github_router import _oauth_states
-            _oauth_states[state] = {
+            from app.services.github_service import oauth_states
+            oauth_states[state] = {
                 "user_public_id": user_public_id,
                 "team_public_id": team_id,
             }
+            
+            logger.info(f"Stored OAuth state '{state}' for user {user_public_id}, team {team_id}. Total states: {len(oauth_states)}")
             
             return GitHubAuthUrlResult(
                 authorization_url=auth_url,

@@ -19,10 +19,15 @@ from app.models.repository import Repository
 
 logger = logging.getLogger(__name__)
 
+# Shared OAuth state storage (for production, use Redis or database)
+# Format: {state: {"user_public_id": str, "team_public_id": str}}
+oauth_states: dict[str, dict[str, str]] = {}
+
 # GitHub OAuth URLs
 GITHUB_AUTHORIZE_URL = "https://github.com/login/oauth/authorize"
 GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token"
 GITHUB_API_URL = "https://api.github.com"
+GITHUB_APP_INSTALL_URL = "https://github.com/apps"
 
 # Required scopes for repository access
 GITHUB_SCOPES = "repo read:user user:email"
@@ -130,6 +135,9 @@ class GitHubService:
         """
         Generate GitHub OAuth authorization URL.
         
+        For GitHub Apps, this uses the same OAuth flow but the App's
+        client_id/secret. The installed App determines which repos are accessible.
+        
         Args:
             state: State parameter for CSRF protection
             
@@ -147,6 +155,55 @@ class GitHubService:
         }
         
         return f"{GITHUB_AUTHORIZE_URL}?{urlencode(params)}"
+    
+    @staticmethod
+    def get_app_installation_url() -> Optional[str]:
+        """
+        Get GitHub App installation URL for manual installation.
+        
+        Returns:
+            Installation URL or None if app slug not configured
+        """
+        if not settings.github_app_slug:
+            return None
+        return f"{GITHUB_APP_INSTALL_URL}/{settings.github_app_slug}/installations/new"
+    
+    @staticmethod
+    async def get_user_installations(access_token: str) -> list[dict]:
+        """
+        Get list of GitHub App installations for the authenticated user.
+        
+        Args:
+            access_token: GitHub user access token
+            
+        Returns:
+            List of installation objects
+        """
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    f"{GITHUB_API_URL}/user/installations",
+                    headers={
+                        "Authorization": f"Bearer {access_token}",
+                        "Accept": "application/vnd.github+json",
+                        "X-GitHub-Api-Version": "2022-11-28",
+                    },
+                    timeout=30.0,
+                )
+                
+                logger.info(f"GET /user/installations: status={response.status_code}")
+                
+                if response.status_code != 200:
+                    logger.error(f"Failed to get installations: {response.status_code} - {response.text}")
+                    return []
+                
+                data = response.json()
+                installations = data.get("installations", [])
+                logger.info(f"Found {len(installations)} installations: {[i.get('account', {}).get('login') for i in installations]}")
+                return installations
+        except Exception as e:
+            logger.error(f"Error getting installations: {type(e).__name__}: {str(e)}")
+            return []
     
     @staticmethod
     async def exchange_code_for_token(code: str) -> Optional[GitHubTokenInfo]:

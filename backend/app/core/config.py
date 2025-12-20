@@ -38,10 +38,11 @@ class Settings(BaseSettings):
     # Application URL (for email links)
     app_url: str = "http://localhost:3000"
     
-    # GitHub OAuth
+    # GitHub App
     github_client_id: Optional[str] = None
     github_client_secret: Optional[str] = None
     github_callback_url: str = "http://localhost:8000/api/github/callback"
+    github_app_slug: Optional[str] = None  # App name from URL: github.com/apps/{slug}
     
     # Token encryption key for storing GitHub tokens (Fernet key)
     token_encryption_key: Optional[str] = None
