@@ -61,7 +61,7 @@ export const ProjectScannerPage: FC = () => {
   }
 
   return (
-    <div className="container max-w-4xl py-8">
+    <div className="container py-8">
       <ProjectSettingsTabs projectId={id || ''} hasRepository={hasRepository} />
       
       <ScanRepositoryCard
