@@ -141,7 +141,7 @@ class AIService:
                 {"role": "system", "content": system_content},
                 {"role": "user", "content": user_content}
             ],
-            max_tokens=settings.openai_max_tokens,
+            max_completion_tokens=settings.openai_max_tokens,
             temperature=temperature,
             response_format={"type": "json_object"} if json_mode else None,
         )
@@ -635,7 +635,7 @@ class AIService:
                 user_content=user_content,
                 provider=use_provider,
                 model=use_model,
-                temperature=1.2,  # Higher temperature for more variety
+                temperature=1.0,  # GPT-5 models only support temperature=1
             )
 
             # Strip markdown code blocks if present
@@ -667,6 +667,271 @@ class AIService:
         except Exception as e:
             logger.error(f"Variant generation error: {type(e).__name__}: {str(e)}")
             raise Exception("Variant generation failed. Please try again.")
+
+    async def analyze_file_for_strings(
+        self,
+        file_content: str,
+        file_path: str,
+        i18n_framework: Optional[str] = None,
+        existing_keys: Optional[list[str]] = None,
+        provider: Optional[str] = None,
+        model: Optional[str] = None,
+    ) -> AnalysisResult:
+        """
+        Analyze a source file to find hardcoded strings that need localization.
+        
+        Args:
+            file_content: Content of the source file
+            file_path: Path to the file (for context)
+            i18n_framework: Optional i18n framework name (react-i18next, vue-i18n, etc.)
+            existing_keys: Optional list of existing translation keys to avoid duplicates
+            provider: AI provider to use (OPENAI or ANTHROPIC)
+            model: Specific model to use
+            
+        Returns:
+            AnalysisResult with found strings and token usage
+        """
+        use_provider = provider or "OPENAI"
+        use_model = model or self._get_default_model(use_provider)
+        
+        if not self._is_available(use_provider):
+            raise Exception(f"AI service ({use_provider}) is not configured")
+        
+        # Build the system prompt
+        system_prompt = self._build_analysis_system_prompt(i18n_framework, existing_keys)
+        
+        # Build the user prompt
+        user_prompt = self._build_analysis_user_prompt(file_content, file_path)
+        
+        try:
+            if use_provider == "ANTHROPIC":
+                return await self._analyze_with_anthropic(system_prompt, user_prompt, use_model)
+            else:
+                return await self._analyze_with_openai(system_prompt, user_prompt, use_model)
+        except Exception as e:
+            logger.error(f"Analysis error ({use_provider}): {type(e).__name__}: {str(e)}")
+            raise Exception("Failed to analyze file. Please try again.")
+
+    async def _analyze_with_anthropic(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        model: str,
+    ) -> AnalysisResult:
+        """Call Anthropic API for file analysis."""
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                self.ANTHROPIC_API_URL,
+                headers={
+                    "x-api-key": self.anthropic_api_key,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": model,
+                    "max_tokens": 4096,
+                    "system": system_prompt,
+                    "messages": [{"role": "user", "content": user_prompt}],
+                },
+                timeout=120.0,
+            )
+            
+            if response.status_code != 200:
+                logger.error(f"Anthropic API error: {response.status_code} - {response.text}")
+                raise Exception("AI request failed")
+            
+            data = response.json()
+            
+            # Extract token usage
+            usage = data.get("usage", {})
+            token_usage: TokenUsageInfo = {
+                "input_tokens": usage.get("input_tokens", 0),
+                "output_tokens": usage.get("output_tokens", 0),
+                "total_tokens": usage.get("input_tokens", 0) + usage.get("output_tokens", 0),
+            }
+            
+            # Extract content
+            content = data.get("content", [])
+            if not content:
+                return {"strings": [], "token_usage": token_usage}
+            
+            response_text = content[0].get("text", "")
+            return self._parse_analysis_response(response_text, token_usage)
+
+    async def _analyze_with_openai(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        model: str,
+    ) -> AnalysisResult:
+        """Call OpenAI API for file analysis."""
+        response = await self.openai_client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            max_completion_tokens=4096,
+            temperature=0.3,
+            response_format={"type": "json_object"},
+        )
+        
+        response_text = response.choices[0].message.content.strip()
+        
+        # Extract token usage
+        usage = response.usage
+        token_usage: TokenUsageInfo = {
+            "input_tokens": usage.prompt_tokens if usage else 0,
+            "output_tokens": usage.completion_tokens if usage else 0,
+            "total_tokens": usage.total_tokens if usage else 0,
+        }
+        
+        return self._parse_analysis_response(response_text, token_usage)
+
+    def _parse_analysis_response(
+        self,
+        response_text: str,
+        token_usage: TokenUsageInfo,
+    ) -> AnalysisResult:
+        """Parse the AI response and extract found strings."""
+        # Strip markdown code blocks if present
+        response_text = response_text.strip()
+        if response_text.startswith("```json"):
+            response_text = response_text[7:]
+        elif response_text.startswith("```"):
+            response_text = response_text[3:]
+        if response_text.endswith("```"):
+            response_text = response_text[:-3]
+        response_text = response_text.strip()
+        
+        try:
+            result = json.loads(response_text)
+            
+            # Handle both formats: {"strings": [...]} and direct array [...]
+            if isinstance(result, list):
+                strings = result
+            elif isinstance(result, dict):
+                strings = result.get("strings", [])
+            else:
+                strings = []
+            
+            # Validate and normalize strings
+            validated_strings: list[FoundStringInfo] = []
+            for s in strings:
+                if isinstance(s, dict) and "text" in s and "suggested_key" in s:
+                    validated_strings.append({
+                        "text": str(s.get("text", "")),
+                        "line": int(s.get("line", 0)),
+                        "suggested_key": str(s.get("suggested_key", "")),
+                        "context": str(s.get("context", "")),
+                        "confidence": float(s.get("confidence", 0.8)),
+                    })
+            
+            return {"strings": validated_strings, "token_usage": token_usage}
+            
+        except json.JSONDecodeError:
+            logger.error(f"Failed to parse JSON response: {response_text[:500]}")
+            return {"strings": [], "token_usage": token_usage}
+
+    def _build_analysis_system_prompt(
+        self,
+        i18n_framework: Optional[str] = None,
+        existing_keys: Optional[list[str]] = None,
+    ) -> str:
+        """Build the system prompt for file analysis."""
+        framework_context = ""
+        if i18n_framework:
+            framework_context = f"""
+The project uses {i18n_framework} for internationalization.
+When generating keys, follow the conventions typical for {i18n_framework}.
+"""
+        
+        existing_keys_context = ""
+        if existing_keys:
+            keys_sample = existing_keys[:50]  # Limit to avoid huge prompts
+            existing_keys_context = f"""
+Existing translation keys in the project (sample):
+{', '.join(keys_sample)}
+
+Try to follow the existing naming conventions and avoid duplicating these keys.
+"""
+        
+        return f"""You are an expert code analyzer specializing in internationalization (i18n).
+Your task is to analyze source code files and identify user-facing strings that should be localized.
+
+{framework_context}
+{existing_keys_context}
+
+RULES FOR IDENTIFYING STRINGS TO LOCALIZE:
+1. INCLUDE (should be localized):
+   - UI text: button labels, headings, descriptions, placeholders
+   - Error messages shown to users
+   - Tooltips and help text
+   - Form labels and validation messages
+   - Navigation items and menu text
+   - Notification and toast messages
+
+2. EXCLUDE (do NOT localize):
+   - Technical strings: URLs, API endpoints, file paths
+   - CSS class names and IDs
+   - Console.log messages and debug output
+   - Variable names and code identifiers
+   - Strings already wrapped in i18n functions (t(), $t(), etc.)
+   - HTML attributes like "type", "name", "id"
+   - Empty strings or whitespace-only strings
+   - Single characters or punctuation
+
+KEY NAMING CONVENTIONS:
+- Use dot notation: namespace.component.element
+- Keep keys descriptive but concise
+- Use lowercase with camelCase for multi-word parts
+- Examples:
+  - auth.login.title -> "Welcome Back"
+  - auth.login.submitButton -> "Sign In"
+  - common.buttons.save -> "Save"
+  - errors.validation.required -> "This field is required"
+
+RESPONSE FORMAT:
+You MUST respond with valid JSON only, no other text. Use this exact format:
+{{
+  "strings": [
+    {{
+      "text": "The exact string found in code",
+      "line": 24,
+      "suggested_key": "namespace.component.element",
+      "context": "Brief description of where/how this string is used",
+      "confidence": 0.95
+    }}
+  ]
+}}
+
+If no strings need localization, return: {{"strings": []}}
+"""
+
+    def _build_analysis_user_prompt(self, file_content: str, file_path: str) -> str:
+        """Build the user prompt for file analysis."""
+        # Determine file type from path
+        file_type = "unknown"
+        if file_path.endswith((".tsx", ".jsx")):
+            file_type = "React component"
+        elif file_path.endswith(".vue"):
+            file_type = "Vue component"
+        elif file_path.endswith(".svelte"):
+            file_type = "Svelte component"
+        elif file_path.endswith((".ts", ".js")):
+            file_type = "JavaScript/TypeScript"
+        elif file_path.endswith(".py"):
+            file_type = "Python"
+        
+        return f"""Analyze this {file_type} file and find all user-facing strings that need localization.
+
+File path: {file_path}
+
+```
+{file_content}
+```
+
+Remember: Return ONLY valid JSON with the found strings. Do not include any explanations or markdown formatting."""
 
 
 # Global instance

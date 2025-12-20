@@ -12,7 +12,7 @@ from arq.connections import RedisSettings
 from redis.asyncio import Redis
 
 from app.core.config import settings
-from app.services.anthropic_service import anthropic_service, AnalysisResult
+from app.services.ai_service import ai_service, AnalysisResult
 
 # Configure ALL logging to stdout (Railway shows stderr as red)
 # Remove all existing handlers and redirect everything to stdout
@@ -82,6 +82,8 @@ async def analyze_file_task(
     file_content: str,
     scan_session_id: int,
     i18n_framework: Optional[str] = None,
+    ai_provider: Optional[str] = None,
+    ai_model: Optional[str] = None,
 ) -> dict[str, Any]:
     """
     Analyze a single file for hardcoded strings.
@@ -92,6 +94,8 @@ async def analyze_file_task(
         file_content: Content of the file
         scan_session_id: ID of the scan session
         i18n_framework: Optional i18n framework name
+        ai_provider: AI provider to use (OPENAI or ANTHROPIC)
+        ai_model: Specific AI model to use
         
     Returns:
         Dictionary with analysis results:
@@ -102,13 +106,15 @@ async def analyze_file_task(
         - success: bool
         - error: optional error message
     """
-    logger.info(f"Analyzing file: {file_path} for session {scan_session_id}")
+    logger.info(f"Analyzing file: {file_path} for session {scan_session_id} with {ai_provider}/{ai_model}")
     
     try:
-        result: AnalysisResult = await anthropic_service.analyze_file_for_strings(
+        result: AnalysisResult = await ai_service.analyze_file_for_strings(
             file_content=file_content,
             file_path=file_path,
             i18n_framework=i18n_framework,
+            provider=ai_provider,
+            model=ai_model,
         )
         
         logger.info(

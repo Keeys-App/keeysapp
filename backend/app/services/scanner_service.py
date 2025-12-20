@@ -284,13 +284,15 @@ class ScannerService:
                     if not content or len(content) > 100000:  # 100KB limit
                         continue
                     
-                    # Enqueue job
+                    # Enqueue job with provider and model from session
                     job = await redis_pool.enqueue_job(
                         "analyze_file_task",
                         file_path,
                         content,
                         scan_session_id,
                         repository.i18n_framework,
+                        session.ai_provider.value,  # Pass provider
+                        session.ai_model,  # Pass model
                     )
                     jobs.append((file_path, job))
                     
