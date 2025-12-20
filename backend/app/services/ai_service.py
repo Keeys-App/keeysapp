@@ -1,7 +1,7 @@
 """
 AI Service for translation assistance using OpenAI and Anthropic APIs
 """
-from typing import Optional
+from typing import Optional, TypedDict
 import logging
 import json
 import httpx
@@ -9,6 +9,29 @@ from openai import AsyncOpenAI, OpenAIError
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+
+# Type definitions for code analysis
+class TokenUsageInfo(TypedDict):
+    """Type definition for token usage information."""
+    input_tokens: int
+    output_tokens: int
+    total_tokens: int
+
+
+class FoundStringInfo(TypedDict):
+    """Type definition for a found string in code."""
+    text: str
+    line: int
+    suggested_key: str
+    context: str
+    confidence: float
+
+
+class AnalysisResult(TypedDict):
+    """Type definition for file analysis result."""
+    strings: list[FoundStringInfo]
+    token_usage: TokenUsageInfo
 
 
 # Available models for each provider

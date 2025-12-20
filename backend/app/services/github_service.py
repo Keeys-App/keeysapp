@@ -793,7 +793,7 @@ class GitHubService:
             return True
         
         return False
-    
+
     @staticmethod
     async def get_repository_tree(
         access_token: str,
