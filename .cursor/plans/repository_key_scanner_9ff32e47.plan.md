@@ -4,31 +4,31 @@ overview: Реализация фичи автоматического скан�
 todos:
   - id: models
     content: Create ScanSession, FoundString, and TokenUsage models with migration
-    status: pending
+    status: completed
   - id: anthropic
     content: Add Anthropic AI service with Claude integration
-    status: pending
+    status: completed
   - id: github-api
     content: Extend GitHub service with file tree and content methods
-    status: pending
+    status: completed
   - id: scanner-service
     content: Implement scanner service with background task processing
-    status: pending
+    status: completed
   - id: token-tracking
     content: Add token usage tracking to AI services
-    status: pending
+    status: completed
   - id: graphql-schema
     content: Add GraphQL types, queries and mutations for scanner
-    status: pending
+    status: completed
   - id: frontend-graphql
     content: Add GraphQL queries/mutations to frontend
-    status: pending
+    status: completed
   - id: scan-components
     content: Create scan button, progress card and results table components
-    status: pending
+    status: completed
   - id: integration
     content: Integrate scanner into ConnectRepositoryCard
-    status: pending
+    status: completed
 ---
 
 # Repository Key Scanner - Plan
@@ -69,6 +69,8 @@ sequenceDiagram
     GraphQL-->>Frontend: ScanSession with FoundStrings
     Frontend-->>User: Display results
 ```
+
+
 
 ## Data Models
 
@@ -135,9 +137,9 @@ sequenceDiagram
 
 - File: [`backend/app/services/token_usage_service.py`](backend/app/services/token_usage_service.py)
 - Methods:
-  - `record_usage()` - записать использование токенов после вызова AI
-  - `get_team_usage()` - получить статистику по команде за период
-  - `get_scan_usage()` - получить расход токенов по сессии сканирования
+- `record_usage()` - записать использование токенов после вызова AI
+- `get_team_usage()` - получить статистику по команде за период
+- `get_scan_usage()` - получить расход токенов по сессии сканирования
 
 ### 4. Anthropic AI Service
 
@@ -157,8 +159,8 @@ sequenceDiagram
 ### 6. Add GitHub API Methods
 
 - Extend [`backend/app/services/github_service.py`](backend/app/services/github_service.py):
-  - `get_repository_tree()` - получить дерево файлов
-  - `get_file_content()` - получить содержимое файла
+- `get_repository_tree()` - получить дерево файлов
+- `get_file_content()` - получить содержимое файла
 
 ### 7. GraphQL Schema
 
@@ -207,6 +209,8 @@ Prompt для анализа файла должен:
 ```
 
 
+
+
 ## Config Changes
 
 Add to [`backend/app/core/config.py`](backend/app/core/config.py):
@@ -219,6 +223,8 @@ anthropic_model: str = "claude-3-sonnet-20240229"
 # Scanner defaults
 scanner_default_provider: str = "anthropic"  # or "openai"
 ```
+
+
 
 ## Token Usage Tracking
 
@@ -243,7 +249,3 @@ await token_usage_service.record_usage(
 
 - OpenAI: `response.usage.prompt_tokens`, `response.usage.completion_tokens`
 - Anthropic: `response.usage.input_tokens`, `response.usage.output_tokens`
-
-## File Filtering
-
-По умолчанию сканировать файлы:

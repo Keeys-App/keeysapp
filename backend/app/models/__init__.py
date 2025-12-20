@@ -10,6 +10,9 @@ from .activity_log import ActivityLog, ActionType
 from .password_reset_token import PasswordResetToken
 from .github_connection import GitHubConnection
 from .repository import Repository
+from .scan_session import ScanSession, ScanStatus, AIProvider
+from .found_string import FoundString, FoundStringStatus
+from .token_usage import TokenUsage, OperationType
 
 __all__ = [
     "Base", 
@@ -30,4 +33,11 @@ __all__ = [
     "PasswordResetToken",
     "GitHubConnection",
     "Repository",
+    "ScanSession",
+    "ScanStatus",
+    "AIProvider",
+    "FoundString",
+    "FoundStringStatus",
+    "TokenUsage",
+    "OperationType",
 ]

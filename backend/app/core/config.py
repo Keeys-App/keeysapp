@@ -30,6 +30,13 @@ class Settings(BaseSettings):
     openai_temperature: float = 1.0
     openai_timeout: int = 120
     
+    # Anthropic
+    anthropic_api_key: Optional[str] = None
+    anthropic_model: str = "claude-haiku-4-5"
+    
+    # Scanner defaults
+    scanner_default_provider: str = "anthropic"  # or "openai"
+    
     # Brevo (Email)
     brevo_api_key: Optional[str] = None
     brevo_sender_email: str = "noreply@example.com"

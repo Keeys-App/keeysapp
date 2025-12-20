@@ -1120,6 +1120,174 @@ def migrate_create_repositories_if_needed():
         return False
 
 
+def migrate_create_scan_tables_if_needed():
+    """
+    Create scan_sessions, found_strings, and token_usages tables if they don't exist.
+    These tables support the repository scanning feature.
+    Safe to run multiple times.
+    """
+    try:
+        inspector = inspect(engine)
+        existing_tables = inspector.get_table_names()
+        
+        with engine.connect() as connection:
+            # Create ScanStatus enum if not exists
+            result = connection.execute(text("""
+                SELECT EXISTS (
+                    SELECT 1 FROM pg_type WHERE typname = 'scanstatus'
+                );
+            """))
+            if not result.scalar():
+                logger.info("Creating ScanStatus enum type...")
+                connection.execute(text("""
+                    CREATE TYPE scanstatus AS ENUM (
+                        'PENDING', 'SCANNING', 'COMPLETED', 'FAILED', 'CANCELLED'
+                    )
+                """))
+                connection.commit()
+            
+            # Create AIProvider enum if not exists
+            result = connection.execute(text("""
+                SELECT EXISTS (
+                    SELECT 1 FROM pg_type WHERE typname = 'aiprovider'
+                );
+            """))
+            if not result.scalar():
+                logger.info("Creating AIProvider enum type...")
+                connection.execute(text("""
+                    CREATE TYPE aiprovider AS ENUM ('OPENAI', 'ANTHROPIC')
+                """))
+                connection.commit()
+            
+            # Create FoundStringStatus enum if not exists
+            result = connection.execute(text("""
+                SELECT EXISTS (
+                    SELECT 1 FROM pg_type WHERE typname = 'foundstringstatus'
+                );
+            """))
+            if not result.scalar():
+                logger.info("Creating FoundStringStatus enum type...")
+                connection.execute(text("""
+                    CREATE TYPE foundstringstatus AS ENUM (
+                        'PENDING', 'APPROVED', 'SKIPPED', 'CONVERTED'
+                    )
+                """))
+                connection.commit()
+            
+            # Create OperationType enum if not exists
+            result = connection.execute(text("""
+                SELECT EXISTS (
+                    SELECT 1 FROM pg_type WHERE typname = 'operationtype'
+                );
+            """))
+            if not result.scalar():
+                logger.info("Creating OperationType enum type...")
+                connection.execute(text("""
+                    CREATE TYPE operationtype AS ENUM (
+                        'SCAN_FILE', 'TRANSLATE', 'REPHRASE', 'SHORTEN', 'VARIANTS'
+                    )
+                """))
+                connection.commit()
+            
+            # Create scan_sessions table
+            if 'scan_sessions' not in existing_tables:
+                logger.info("🔄 Migration: Creating scan_sessions table")
+                connection.execute(text("""
+                    CREATE TABLE scan_sessions (
+                        id SERIAL PRIMARY KEY,
+                        public_id UUID UNIQUE NOT NULL DEFAULT gen_random_uuid(),
+                        repository_id INTEGER NOT NULL REFERENCES repositories(id) ON DELETE CASCADE,
+                        started_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                        status scanstatus NOT NULL DEFAULT 'PENDING',
+                        ai_provider aiprovider NOT NULL DEFAULT 'ANTHROPIC',
+                        ai_model VARCHAR(100) NOT NULL DEFAULT 'claude-haiku-4-5',
+                        files_total INTEGER NOT NULL DEFAULT 0,
+                        files_scanned INTEGER NOT NULL DEFAULT 0,
+                        strings_found INTEGER NOT NULL DEFAULT 0,
+                        error_message TEXT,
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                        started_at TIMESTAMP WITH TIME ZONE,
+                        completed_at TIMESTAMP WITH TIME ZONE
+                    );
+                    
+                    CREATE UNIQUE INDEX idx_scan_sessions_public_id ON scan_sessions(public_id);
+                    CREATE INDEX idx_scan_sessions_repository_id ON scan_sessions(repository_id);
+                    CREATE INDEX idx_scan_sessions_status ON scan_sessions(status);
+                    CREATE INDEX idx_scan_sessions_started_by ON scan_sessions(started_by_user_id);
+                """))
+                connection.commit()
+                logger.info("✅ scan_sessions table created")
+            else:
+                logger.info("✅ scan_sessions table already exists")
+            
+            # Create found_strings table
+            if 'found_strings' not in existing_tables:
+                logger.info("🔄 Migration: Creating found_strings table")
+                connection.execute(text("""
+                    CREATE TABLE found_strings (
+                        id SERIAL PRIMARY KEY,
+                        public_id UUID UNIQUE NOT NULL DEFAULT gen_random_uuid(),
+                        scan_session_id INTEGER NOT NULL REFERENCES scan_sessions(id) ON DELETE CASCADE,
+                        file_path VARCHAR(1000) NOT NULL,
+                        line_number INTEGER,
+                        original_text TEXT NOT NULL,
+                        suggested_key VARCHAR(500) NOT NULL,
+                        context TEXT,
+                        confidence INTEGER NOT NULL DEFAULT 100,
+                        status foundstringstatus NOT NULL DEFAULT 'PENDING',
+                        key_id INTEGER REFERENCES keys(id) ON DELETE SET NULL,
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP WITH TIME ZONE
+                    );
+                    
+                    CREATE UNIQUE INDEX idx_found_strings_public_id ON found_strings(public_id);
+                    CREATE INDEX idx_found_strings_scan_session_id ON found_strings(scan_session_id);
+                    CREATE INDEX idx_found_strings_status ON found_strings(status);
+                    CREATE INDEX idx_found_strings_key_id ON found_strings(key_id);
+                """))
+                connection.commit()
+                logger.info("✅ found_strings table created")
+            else:
+                logger.info("✅ found_strings table already exists")
+            
+            # Create token_usages table
+            if 'token_usages' not in existing_tables:
+                logger.info("🔄 Migration: Creating token_usages table")
+                connection.execute(text("""
+                    CREATE TABLE token_usages (
+                        id SERIAL PRIMARY KEY,
+                        team_id INTEGER NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+                        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                        operation_type operationtype NOT NULL,
+                        provider aiprovider NOT NULL,
+                        model VARCHAR(100) NOT NULL,
+                        input_tokens INTEGER NOT NULL DEFAULT 0,
+                        output_tokens INTEGER NOT NULL DEFAULT 0,
+                        total_tokens INTEGER NOT NULL DEFAULT 0,
+                        scan_session_id INTEGER REFERENCES scan_sessions(id) ON DELETE SET NULL,
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                    );
+                    
+                    CREATE INDEX idx_token_usages_team_id ON token_usages(team_id);
+                    CREATE INDEX idx_token_usages_user_id ON token_usages(user_id);
+                    CREATE INDEX idx_token_usages_operation_type ON token_usages(operation_type);
+                    CREATE INDEX idx_token_usages_provider ON token_usages(provider);
+                    CREATE INDEX idx_token_usages_scan_session_id ON token_usages(scan_session_id);
+                    CREATE INDEX idx_token_usages_created_at ON token_usages(created_at);
+                """))
+                connection.commit()
+                logger.info("✅ token_usages table created")
+            else:
+                logger.info("✅ token_usages table already exists")
+            
+            logger.info("✅ Migration: Scan tables created successfully")
+            return True
+        
+    except Exception as e:
+        logger.error(f"❌ Migration failed: {type(e).__name__}: {str(e)}")
+        return False
+
+
 def run_all_migrations():
     """
     Run all pending migrations.
@@ -1148,6 +1316,7 @@ def run_all_migrations():
         ("add_is_plural_to_keys", migrate_add_is_plural_to_keys_if_needed),
         ("create_github_connections", migrate_create_github_connections_if_needed),
         ("create_repositories", migrate_create_repositories_if_needed),
+        ("create_scan_tables", migrate_create_scan_tables_if_needed),
         # Add more migrations here as needed
     ]
     

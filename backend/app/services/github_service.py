@@ -793,3 +793,204 @@ class GitHubService:
             return True
         
         return False
+    
+    @staticmethod
+    async def get_repository_tree(
+        access_token: str,
+        owner: str,
+        repo: str,
+        branch: str = "main",
+        recursive: bool = True,
+    ) -> list[dict]:
+        """
+        Get the file tree of a repository.
+        
+        Args:
+            access_token: GitHub access token
+            owner: Repository owner
+            repo: Repository name
+            branch: Branch name (default: main)
+            recursive: Whether to get recursive tree (default: True)
+            
+        Returns:
+            List of tree entries with path, type, sha, etc.
+        """
+        try:
+            async with httpx.AsyncClient() as client:
+                # First, get the branch's commit SHA
+                branch_response = await client.get(
+                    f"{GITHUB_API_URL}/repos/{owner}/{repo}/branches/{branch}",
+                    headers={
+                        "Authorization": f"Bearer {access_token}",
+                        "Accept": "application/vnd.github+json",
+                        "X-GitHub-Api-Version": "2022-11-28",
+                    },
+                    timeout=30.0,
+                )
+                
+                if branch_response.status_code != 200:
+                    logger.error(f"Failed to get branch info: {branch_response.status_code}")
+                    return []
+                
+                branch_data = branch_response.json()
+                tree_sha = branch_data.get("commit", {}).get("commit", {}).get("tree", {}).get("sha")
+                
+                if not tree_sha:
+                    logger.error("Could not get tree SHA from branch")
+                    return []
+                
+                # Get the tree
+                params = {"recursive": "1"} if recursive else {}
+                tree_response = await client.get(
+                    f"{GITHUB_API_URL}/repos/{owner}/{repo}/git/trees/{tree_sha}",
+                    params=params,
+                    headers={
+                        "Authorization": f"Bearer {access_token}",
+                        "Accept": "application/vnd.github+json",
+                        "X-GitHub-Api-Version": "2022-11-28",
+                    },
+                    timeout=60.0,
+                )
+                
+                if tree_response.status_code != 200:
+                    logger.error(f"Failed to get tree: {tree_response.status_code}")
+                    return []
+                
+                tree_data = tree_response.json()
+                tree = tree_data.get("tree", [])
+                
+                logger.info(f"Got repository tree with {len(tree)} entries")
+                return tree
+                
+        except Exception as e:
+            logger.error(f"Failed to get repository tree: {type(e).__name__}: {str(e)}")
+            return []
+    
+    @staticmethod
+    async def get_file_content(
+        access_token: str,
+        owner: str,
+        repo: str,
+        path: str,
+        branch: str = "main",
+    ) -> Optional[str]:
+        """
+        Get the content of a file from a repository.
+        
+        Args:
+            access_token: GitHub access token
+            owner: Repository owner
+            repo: Repository name
+            path: Path to the file
+            branch: Branch name (default: main)
+            
+        Returns:
+            File content as string, or None if failed
+        """
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    f"{GITHUB_API_URL}/repos/{owner}/{repo}/contents/{path}",
+                    params={"ref": branch},
+                    headers={
+                        "Authorization": f"Bearer {access_token}",
+                        "Accept": "application/vnd.github+json",
+                        "X-GitHub-Api-Version": "2022-11-28",
+                    },
+                    timeout=30.0,
+                )
+                
+                if response.status_code != 200:
+                    logger.error(f"Failed to get file content: {response.status_code} - {path}")
+                    return None
+                
+                data = response.json()
+                
+                # Check if it's a file (not directory)
+                if data.get("type") != "file":
+                    logger.warning(f"Path is not a file: {path}")
+                    return None
+                
+                # Content is base64 encoded
+                import base64
+                content_b64 = data.get("content", "")
+                
+                if not content_b64:
+                    return ""
+                
+                # Decode base64 content
+                try:
+                    content = base64.b64decode(content_b64).decode("utf-8")
+                    return content
+                except Exception as e:
+                    logger.error(f"Failed to decode file content: {type(e).__name__}")
+                    return None
+                
+        except Exception as e:
+            logger.error(f"Failed to get file content: {type(e).__name__}: {str(e)}")
+            return None
+    
+    @staticmethod
+    def filter_files_by_patterns(
+        tree: list[dict],
+        include_patterns: Optional[list[str]] = None,
+        exclude_patterns: Optional[list[str]] = None,
+    ) -> list[dict]:
+        """
+        Filter repository tree entries by file patterns.
+        
+        Args:
+            tree: List of tree entries from get_repository_tree
+            include_patterns: List of patterns to include (e.g., ["*.tsx", "*.vue"])
+            exclude_patterns: List of patterns to exclude (e.g., ["*.test.*", "node_modules/*"])
+            
+        Returns:
+            Filtered list of tree entries (files only, not directories)
+        """
+        import fnmatch
+        
+        # Default patterns if not specified
+        if include_patterns is None:
+            include_patterns = ["*.tsx", "*.jsx", "*.vue", "*.svelte", "*.ts", "*.js"]
+        
+        if exclude_patterns is None:
+            exclude_patterns = [
+                "*.test.*", "*.spec.*", "*.stories.*",
+                "node_modules/*", "dist/*", "build/*", ".next/*",
+                "*.d.ts", "*.config.*", "*.min.*",
+                "__tests__/*", "__mocks__/*",
+            ]
+        
+        filtered = []
+        
+        for entry in tree:
+            # Only process files (blob type)
+            if entry.get("type") != "blob":
+                continue
+            
+            path = entry.get("path", "")
+            
+            # Check exclude patterns first
+            excluded = False
+            for pattern in exclude_patterns:
+                if fnmatch.fnmatch(path, pattern) or fnmatch.fnmatch(path, f"**/{pattern}"):
+                    excluded = True
+                    break
+            
+            if excluded:
+                continue
+            
+            # Check include patterns
+            included = False
+            for pattern in include_patterns:
+                # Get just the filename for extension matching
+                filename = path.split("/")[-1]
+                if fnmatch.fnmatch(filename, pattern):
+                    included = True
+                    break
+            
+            if included:
+                filtered.append(entry)
+        
+        logger.info(f"Filtered {len(tree)} entries to {len(filtered)} files")
+        return filtered

@@ -48,6 +48,7 @@ class Repository(Base):
     # Relationships
     project = relationship("Project", back_populates="repositories")
     github_connection = relationship("GitHubConnection", back_populates="repositories")
+    scan_sessions = relationship("ScanSession", back_populates="repository", cascade="all, delete-orphan")
     
     def __repr__(self) -> str:
         return f"<Repository(id={self.id}, repo={self.repo_owner}/{self.repo_name}, project_id={self.project_id})>"

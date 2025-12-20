@@ -26,6 +26,16 @@ from app.schemas.github import (
     GitHubDisconnectResult,
     GitHubAppInfoType,
 )
+from app.schemas.scanner import (
+    ScannerQuery,
+    ScannerMutation,
+    ScanSessionType,
+    FoundStringType,
+    TokenUsageStatsType,
+    StartScanResult,
+    UpdateFoundStringResult,
+    ConvertStringsResult,
+)
 
 
 @strawberry.type
@@ -72,6 +82,11 @@ class Query:
     available_github_repositories: List[GitHubRepoType] = strawberry.field(resolver=GitHubQuery.available_github_repositories)
     search_github_repositories: List[GitHubRepoType] = strawberry.field(resolver=GitHubQuery.search_github_repositories)
     project_repository: Optional[RepositoryType] = strawberry.field(resolver=GitHubQuery.project_repository)
+    
+    # Scanner
+    scan_session: Optional[ScanSessionType] = strawberry.field(resolver=ScannerQuery.scan_session)
+    project_scan_sessions: List[ScanSessionType] = strawberry.field(resolver=ScannerQuery.project_scan_sessions)
+    team_token_usage: TokenUsageStatsType = strawberry.field(resolver=ScannerQuery.team_token_usage)
 
 
 @strawberry.type
@@ -137,6 +152,12 @@ class Mutation:
     disconnect_github = strawberry.field(resolver=GitHubMutation.disconnect_github)
     connect_repository: ConnectRepositoryResult = strawberry.field(resolver=GitHubMutation.connect_repository)
     disconnect_repository: GitHubDisconnectResult = strawberry.field(resolver=GitHubMutation.disconnect_repository)
+    
+    # Include Scanner mutations
+    start_repository_scan: StartScanResult = strawberry.field(resolver=ScannerMutation.start_repository_scan)
+    cancel_scan: StartScanResult = strawberry.field(resolver=ScannerMutation.cancel_scan)
+    update_found_string_status: UpdateFoundStringResult = strawberry.field(resolver=ScannerMutation.update_found_string_status)
+    convert_found_strings_to_keys: ConvertStringsResult = strawberry.field(resolver=ScannerMutation.convert_found_strings_to_keys)
 
 
 schema = strawberry.Schema(
