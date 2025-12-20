@@ -5,6 +5,7 @@ Run with: arq worker.WorkerSettings
 """
 import asyncio
 import logging
+import sys
 from typing import Optional, Any
 from arq import create_pool
 from arq.connections import RedisSettings
@@ -13,7 +14,10 @@ from redis.asyncio import Redis
 from app.core.config import settings
 from app.services.anthropic_service import anthropic_service, AnalysisResult
 
-logging.basicConfig(level=logging.INFO)
+# Configure logging to stdout (Railway shows stderr as red)
+handler = logging.StreamHandler(sys.stdout)
+handler.setFormatter(logging.Formatter('%(levelname)s:%(name)s:%(message)s'))
+logging.basicConfig(level=logging.INFO, handlers=[handler])
 logger = logging.getLogger(__name__)
 
 

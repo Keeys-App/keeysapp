@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import uvicorn
 import os
+import sys
 import logging
 from strawberry.fastapi import GraphQLRouter
 
@@ -12,11 +13,10 @@ from app.schemas.graphql import schema
 from app.routers.project_router import router as project_router
 from app.routers.github_router import router as github_router
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(levelname)s:%(name)s:%(message)s'
-)
+# Configure logging to stdout (Railway shows stderr as red)
+handler = logging.StreamHandler(sys.stdout)
+handler.setFormatter(logging.Formatter('%(levelname)s:%(name)s:%(message)s'))
+logging.basicConfig(level=logging.INFO, handlers=[handler])
 # Uncomment to debug SQL queries:
 # logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 
