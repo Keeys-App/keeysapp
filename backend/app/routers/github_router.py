@@ -46,20 +46,25 @@ async def github_callback(
     """
     logger.info(f"GitHub callback: code={bool(code)}, state={state}, installation_id={installation_id}, setup_action={setup_action}")
     
-    # If this is just an installation without OAuth code, redirect to start OAuth
-    if installation_id and not code:
-        logger.info(f"GitHub App installed (id={installation_id}, action={setup_action}), but no OAuth code. App is installed!")
-        # The app is installed, but we need OAuth token. 
-        # For now, just redirect with success - user can reconnect to get token
-        if state:
-            state_data = oauth_states.get(state)
-            if state_data:
-                team_public_id = state_data.get("team_public_id", "")
-                oauth_states.pop(state, None)
-                success_url = f"{settings.app_url}/team/{team_public_id}/settings?installed=true"
-                return RedirectResponse(url=success_url)
-        # No state - just redirect to home
-        return RedirectResponse(url=f"{settings.app_url}?github_installed=true")
+    # If this is an App installation callback (after user installed the App)
+    if installation_id and setup_action:
+        logger.info(f"GitHub App {setup_action} (id={installation_id})")
+        
+        # State here is team_public_id (we passed it when redirecting to install)
+        team_public_id = state if state else ""
+        
+        if setup_action == "install":
+            # App was just installed - redirect to team settings with success
+            success_url = f"{settings.app_url}/team/{team_public_id}/settings?github_installed=true"
+            logger.info(f"App installed, redirecting to: {success_url}")
+            return RedirectResponse(url=success_url)
+        elif setup_action == "update":
+            # App permissions updated
+            success_url = f"{settings.app_url}/team/{team_public_id}/settings?github_updated=true"
+            return RedirectResponse(url=success_url)
+        else:
+            # Other action (e.g., uninstall)
+            return RedirectResponse(url=f"{settings.app_url}?github_action={setup_action}")
     
     if not code or not state:
         logger.warning("Missing code or state in callback")
@@ -132,6 +137,22 @@ async def github_callback(
         )
         
         logger.info(f"GitHub connection created/updated for team {team.name}: {user_info['login']}")
+        
+        # Check if GitHub App is installed
+        installations = await GitHubService.get_user_installations(token_info["access_token"])
+        logger.info(f"User has {len(installations)} GitHub App installations")
+        
+        if not installations:
+            # No installations - redirect to install GitHub App
+            install_url = GitHubService.get_app_installation_url()
+            logger.info(f"Install URL: {install_url} (GITHUB_APP_SLUG={settings.github_app_slug})")
+            if install_url:
+                logger.info(f"No GitHub App installation found, redirecting to install: {install_url}")
+                # Add state to return after installation
+                install_url_with_state = f"{install_url}?state={team_public_id}"
+                return RedirectResponse(url=install_url_with_state)
+            else:
+                logger.warning("GITHUB_APP_SLUG not configured, skipping installation redirect")
         
         # Redirect to frontend with success
         success_url = f"{settings.app_url}/github/callback?success=true&username={user_info['login']}&team={team_public_id}"

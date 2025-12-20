@@ -723,12 +723,20 @@ class GitHubMutation:
             user_id = await get_current_user_id(info)
             
             async with AsyncSessionLocal() as db:
-                # Get project and verify access
-                project = await ProjectService.get_project_by_public_id(db, project_id, user_id)
+                # Get project
+                project = await ProjectService.get_project_by_public_id(db, project_id)
                 if not project:
                     return ConnectRepositoryResult(
                         success=False,
                         message="Project not found",
+                    )
+                
+                # Verify user has access to project
+                has_access = await ProjectService.check_project_access(db, project.id, user_id)
+                if not has_access:
+                    return ConnectRepositoryResult(
+                        success=False,
+                        message="Access denied",
                     )
                 
                 # Get GitHub connection
@@ -750,7 +758,9 @@ class GitHubMutation:
                 access_token = GitHubService.get_decrypted_token(connection)
                 repos = await GitHubService.list_user_repositories(access_token)
                 
-                # Find the repository
+                logger.info(f"Looking for repo with id={github_repo_id} in {len(repos)} repos")
+                
+                # Find the repository (GitHubRepoInfo is TypedDict, access as dict)
                 repo_info = None
                 for repo in repos:
                     if repo["id"] == github_repo_id:
@@ -758,10 +768,13 @@ class GitHubMutation:
                         break
                 
                 if not repo_info:
+                    logger.warning(f"Repository {github_repo_id} not found in user repos")
                     return ConnectRepositoryResult(
                         success=False,
                         message="Repository not found or not accessible",
                     )
+                
+                logger.info(f"Found repo: {repo_info['full_name']}")
                 
                 # Connect repository
                 repository = await GitHubService.connect_repository(
@@ -791,7 +804,9 @@ class GitHubMutation:
         except AuthenticationError:
             raise
         except Exception as e:
-            logger.error(f"Error connecting repository: {type(e).__name__}")
+            import traceback
+            logger.error(f"Error connecting repository: {type(e).__name__}: {str(e)}")
+            logger.error(traceback.format_exc())
             return ConnectRepositoryResult(
                 success=False,
                 message="Failed to connect repository. Please try again.",

@@ -724,7 +724,7 @@ class GitHubService:
         existing = result.scalar_one_or_none()
         
         if existing:
-            # Update existing repository
+            # Update existing repository (repo_info is TypedDict)
             existing.github_connection_id = github_connection_id
             existing.github_repo_id = repo_info["id"]
             existing.repo_owner = repo_info["owner"]
@@ -744,7 +744,7 @@ class GitHubService:
             logger.info(f"Updated repository {repo_info['full_name']} for project {project_id}")
             return existing
         
-        # Create new repository
+        # Create new repository (repo_info is TypedDict)
         repository = Repository(
             project_id=project_id,
             github_connection_id=github_connection_id,

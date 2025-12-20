@@ -1,5 +1,5 @@
 import { useEffect, useState, type FC } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,12 +21,36 @@ import { ConnectGitHubCard } from '@/components/github';
 export const EditTeamPage: FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { setBreadcrumbs } = useBreadcrumbs();
   const withSaving = useSaving();
   const { isSaving } = useSavingStore();
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+
+  // Handle GitHub App installation callback
+  useEffect(() => {
+    const githubInstalled = searchParams.get('github_installed');
+    const githubUpdated = searchParams.get('github_updated');
+    
+    if (githubInstalled === 'true') {
+      toast('GitHub App installed!', {
+        description: 'You can now access your repositories.',
+      });
+      // Remove query param
+      searchParams.delete('github_installed');
+      setSearchParams(searchParams, { replace: true });
+    }
+    
+    if (githubUpdated === 'true') {
+      toast('GitHub App updated', {
+        description: 'Repository access has been updated.',
+      });
+      searchParams.delete('github_updated');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const { data, loading } = useQuery<GetTeamResponse>(GET_TEAM, {
     variables: { id },
