@@ -526,6 +526,10 @@ class TeamQuery:
                     ActionType.MEMBER_REMOVE,
                     ActionType.MEMBER_ROLE_CHANGE,
                     ActionType.TEAM_INVITE,
+                    # Scan actions
+                    ActionType.SCAN_START,
+                    ActionType.SCAN_COMPLETE,
+                    ActionType.SCAN_FAILED,
                 ]
                 
                 # Get all logs for this team (team_id) or its projects (project_id)

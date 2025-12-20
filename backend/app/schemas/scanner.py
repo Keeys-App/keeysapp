@@ -15,6 +15,7 @@ from app.database import AsyncSessionLocal
 from app.models.scan_session import ScanSession, ScanStatus
 from app.models.found_string import FoundString, FoundStringStatus
 from app.models.repository import Repository
+from app.models.activity_log import ActivityLog, ActionType
 from app.services.scanner_service import ScannerService
 from app.services.token_usage_service import TokenUsageService
 from app.services.github_service import GitHubService
@@ -430,6 +431,22 @@ class ScannerMutation:
                     ai_provider=ai_provider,
                     ai_model=ai_model,
                 )
+                
+                # Log scan start activity
+                scan_start_log = ActivityLog(
+                    team_id=project.team_id,
+                    project_id=project.id,
+                    user_id=user_id,
+                    action=ActionType.SCAN_START,
+                    extra_data={
+                        "repository": repository.full_name,
+                        "ai_provider": ai_provider,
+                        "ai_model": ai_model,
+                        "scan_session_id": str(session.public_id),
+                    }
+                )
+                db.add(scan_start_log)
+                await db.commit()
                 
                 # Start background processing
                 team_id = project.team_id

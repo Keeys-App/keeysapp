@@ -51,6 +51,11 @@ class ActionType(str, enum.Enum):
     REVIEW_APPROVE = "REVIEW_APPROVE"
     REVIEW_REJECT = "REVIEW_REJECT"
     REVIEW_DELETE = "REVIEW_DELETE"
+    
+    # Scan actions
+    SCAN_START = "SCAN_START"
+    SCAN_COMPLETE = "SCAN_COMPLETE"
+    SCAN_FAILED = "SCAN_FAILED"
 
 
 class ActivityLog(Base):

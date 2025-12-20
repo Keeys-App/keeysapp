@@ -21,6 +21,7 @@ from app.models.github_connection import GitHubConnection
 from app.models.key import Key, Translation
 from app.models.user import User
 from app.models.project import Project
+from app.models.activity_log import ActivityLog, ActionType
 from app.services.github_service import GitHubService
 from app.services.token_usage_service import TokenUsageService
 from app.services.email_service import send_scan_completed_email_background
@@ -425,6 +426,27 @@ class ScannerService:
             
             logger.info(f"Scan {scan_session_id} completed: {total_strings} strings found in {files_processed} files")
             
+            # Log scan completion activity
+            proj_result = await db.execute(
+                select(Project).where(Project.id == repository.project_id)
+            )
+            project = proj_result.scalar_one_or_none()
+            if project:
+                scan_complete_log = ActivityLog(
+                    team_id=project.team_id,
+                    project_id=project.id,
+                    user_id=session.started_by_user_id,
+                    action=ActionType.SCAN_COMPLETE,
+                    extra_data={
+                        "repository": repository.full_name,
+                        "files_scanned": files_processed,
+                        "strings_found": total_strings,
+                        "scan_session_id": str(session.public_id),
+                    }
+                )
+                db.add(scan_complete_log)
+                await db.commit()
+            
             # Send email notification to user who started the scan
             await ScannerService._send_completion_email(
                 db=db,
@@ -465,6 +487,34 @@ class ScannerService:
         session.completed_at = datetime.now(timezone.utc)
         await db.commit()
         logger.error(f"Scan {session.id} failed: {error_message}")
+        
+        # Log scan failure activity
+        try:
+            result = await db.execute(
+                select(Repository).where(Repository.id == session.repository_id)
+            )
+            repository = result.scalar_one_or_none()
+            if repository:
+                proj_result = await db.execute(
+                    select(Project).where(Project.id == repository.project_id)
+                )
+                project = proj_result.scalar_one_or_none()
+                if project:
+                    scan_failed_log = ActivityLog(
+                        team_id=project.team_id,
+                        project_id=project.id,
+                        user_id=session.started_by_user_id,
+                        action=ActionType.SCAN_FAILED,
+                        extra_data={
+                            "repository": repository.full_name,
+                            "error": error_message,
+                            "scan_session_id": str(session.public_id),
+                        }
+                    )
+                    db.add(scan_failed_log)
+                    await db.commit()
+        except Exception as e:
+            logger.warning(f"Failed to log scan failure: {type(e).__name__}: {str(e)}")
     
     @staticmethod
     async def _send_completion_email(

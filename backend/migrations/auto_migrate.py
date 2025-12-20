@@ -1359,6 +1359,47 @@ def migrate_add_processed_files_if_needed():
         return False
 
 
+def migrate_add_scan_action_types_if_needed():
+    """
+    Add SCAN_START, SCAN_COMPLETE, SCAN_FAILED action types to actiontype enum.
+    Safe to run multiple times.
+    """
+    try:
+        logger.info("🔄 Migration: Adding scan action types to actiontype enum")
+        
+        scan_actions = ['SCAN_START', 'SCAN_COMPLETE', 'SCAN_FAILED']
+        
+        with engine.connect() as connection:
+            for action_type in scan_actions:
+                # Check if enum value exists
+                result = connection.execute(text("""
+                    SELECT EXISTS (
+                        SELECT 1 
+                        FROM pg_type t 
+                        JOIN pg_enum e ON t.oid = e.enumtypid 
+                        WHERE t.typname = 'actiontype' 
+                        AND e.enumlabel = :action_type
+                    )
+                """), {"action_type": action_type})
+                exists = result.scalar()
+                
+                if exists:
+                    logger.info(f"✅ Migration: {action_type} already exists, skipping")
+                else:
+                    logger.info(f"Adding {action_type} to actiontype enum...")
+                    connection.execute(
+                        text(f"ALTER TYPE actiontype ADD VALUE '{action_type}'")
+                    )
+                    connection.commit()
+                    logger.info(f"✅ Migration: {action_type} added successfully")
+            
+            return True
+        
+    except Exception as e:
+        logger.error(f"❌ Migration failed: {str(e)}")
+        return False
+
+
 def run_all_migrations():
     """
     Run all pending migrations.
@@ -1390,6 +1431,7 @@ def run_all_migrations():
         ("create_scan_tables", migrate_create_scan_tables_if_needed),
         ("add_team_ai_settings", migrate_add_team_ai_settings_if_needed),
         ("add_processed_files", migrate_add_processed_files_if_needed),
+        ("add_scan_action_types", migrate_add_scan_action_types_if_needed),
         # Add more migrations here as needed
     ]
     

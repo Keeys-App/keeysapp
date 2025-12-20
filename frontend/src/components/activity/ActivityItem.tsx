@@ -17,12 +17,14 @@ import {
   Users,
   UserPlus,
   UserMinus,
-  Settings,
   Palette,
   Flag,
   Globe,
   FileUp,
   Mail,
+  Scan,
+  CheckCircle,
+  XCircle,
 } from 'lucide-react';
 import type { ActivityLog } from '@/types/activity';
 import {
@@ -79,6 +81,10 @@ const actionLabels: Record<string, string> = {
   REVIEW_APPROVE: 'Approved',
   REVIEW_REJECT: 'Rejected',
   REVIEW_DELETE: 'Review revoked',
+  // Scan actions
+  SCAN_START: 'Scan started',
+  SCAN_COMPLETE: 'Scan completed',
+  SCAN_FAILED: 'Scan failed',
 };
 
 const actionIcons: Record<string, typeof History> = {
@@ -119,6 +125,10 @@ const actionIcons: Record<string, typeof History> = {
   REVIEW_APPROVE: MessageSquareHeart,
   REVIEW_REJECT: MessageSquareX,
   REVIEW_DELETE: MessageSquareOff,
+  // Scan actions
+  SCAN_START: Scan,
+  SCAN_COMPLETE: CheckCircle,
+  SCAN_FAILED: XCircle,
 };
 
 const actionColors: Record<string, string> = {
@@ -159,6 +169,10 @@ const actionColors: Record<string, string> = {
   REVIEW_APPROVE: 'bg-green-500/10 text-green-600',
   REVIEW_REJECT: 'bg-red-500/10 text-red-600',
   REVIEW_DELETE: 'bg-gray-500/10 text-gray-600',
+  // Scan actions
+  SCAN_START: 'bg-sky-500/10 text-sky-600',
+  SCAN_COMPLETE: 'bg-green-500/10 text-green-600',
+  SCAN_FAILED: 'bg-red-500/10 text-red-600',
 };
 
 /**
@@ -217,8 +231,27 @@ export const ActivityItem: FC<ActivityItemProps> = ({ log, isLast, showProject =
 
         {/* Action details */}
         <div className="text-sm text-muted-foreground space-y-1">
-          {/* Batch import action */}
-          {log.action === 'KEYS_BATCH_IMPORT' && log.extraData ? (
+          {/* Scan actions */}
+          {(log.action === 'SCAN_START' || log.action === 'SCAN_COMPLETE' || log.action === 'SCAN_FAILED') && log.extraData ? (
+            <div className="text-xs space-y-0.5">
+              {log.extraData.repository ? (
+                <div>Repository: <span className="font-medium">{log.extraData.repository}</span></div>
+              ) : null}
+              {log.action === 'SCAN_COMPLETE' ? (
+                <>
+                  {log.extraData.files_scanned !== undefined ? (
+                    <div>Files scanned: <span className="font-medium">{log.extraData.files_scanned}</span></div>
+                  ) : null}
+                  {log.extraData.strings_found !== undefined ? (
+                    <div>Strings found: <span className="font-medium">{log.extraData.strings_found}</span></div>
+                  ) : null}
+                </>
+              ) : null}
+              {log.action === 'SCAN_FAILED' && log.extraData.error ? (
+                <div className="text-red-600">Error: {log.extraData.error}</div>
+              ) : null}
+            </div>
+          ) : log.action === 'KEYS_BATCH_IMPORT' && log.extraData ? (
             <BatchImportContent
               extraData={log.extraData}
               language={log.language || undefined}
