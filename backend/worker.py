@@ -14,10 +14,22 @@ from redis.asyncio import Redis
 from app.core.config import settings
 from app.services.anthropic_service import anthropic_service, AnalysisResult
 
-# Configure logging to stdout (Railway shows stderr as red)
-handler = logging.StreamHandler(sys.stdout)
-handler.setFormatter(logging.Formatter('%(levelname)s:%(name)s:%(message)s'))
-logging.basicConfig(level=logging.INFO, handlers=[handler])
+# Configure ALL logging to stdout (Railway shows stderr as red)
+# Remove all existing handlers and redirect everything to stdout
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.INFO)
+for handler in root_logger.handlers[:]:
+    root_logger.removeHandler(handler)
+stdout_handler = logging.StreamHandler(sys.stdout)
+stdout_handler.setFormatter(logging.Formatter('%(levelname)s:%(name)s:%(message)s'))
+root_logger.addHandler(stdout_handler)
+
+# Also configure arq logger specifically
+logging.getLogger('arq').handlers = []
+logging.getLogger('arq').addHandler(stdout_handler)
+logging.getLogger('arq.worker').handlers = []
+logging.getLogger('arq.worker').addHandler(stdout_handler)
+
 logger = logging.getLogger(__name__)
 
 

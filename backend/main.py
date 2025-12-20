@@ -13,10 +13,14 @@ from app.schemas.graphql import schema
 from app.routers.project_router import router as project_router
 from app.routers.github_router import router as github_router
 
-# Configure logging to stdout (Railway shows stderr as red)
-handler = logging.StreamHandler(sys.stdout)
-handler.setFormatter(logging.Formatter('%(levelname)s:%(name)s:%(message)s'))
-logging.basicConfig(level=logging.INFO, handlers=[handler])
+# Configure ALL logging to stdout (Railway shows stderr as red)
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.INFO)
+for handler in root_logger.handlers[:]:
+    root_logger.removeHandler(handler)
+stdout_handler = logging.StreamHandler(sys.stdout)
+stdout_handler.setFormatter(logging.Formatter('%(levelname)s:%(name)s:%(message)s'))
+root_logger.addHandler(stdout_handler)
 # Uncomment to debug SQL queries:
 # logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 
