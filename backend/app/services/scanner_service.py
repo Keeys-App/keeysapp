@@ -76,6 +76,48 @@ class ScannerService:
     """Service for scanning repositories to find hardcoded strings."""
     
     @staticmethod
+    async def cleanup_stale_scans(db: AsyncSession, timeout_minutes: int = 30) -> int:
+        """
+        Mark stale scanning sessions as failed.
+        
+        This should be called on application startup to clean up scans
+        that were interrupted by worker restart.
+        
+        Args:
+            db: Database session
+            timeout_minutes: Minutes after which a SCANNING session is considered stale
+            
+        Returns:
+            Number of scans cleaned up
+        """
+        from datetime import timedelta
+        
+        cutoff_time = datetime.utcnow() - timedelta(minutes=timeout_minutes)
+        
+        # Find stale scans (SCANNING or PENDING for too long)
+        result = await db.execute(
+            select(ScanSession).where(
+                ScanSession.status.in_([ScanStatus.SCANNING, ScanStatus.PENDING]),
+                ScanSession.started_at < cutoff_time
+            )
+        )
+        stale_sessions = list(result.scalars().all())
+        
+        count = 0
+        for session in stale_sessions:
+            session.status = ScanStatus.FAILED
+            session.error_message = "Scan interrupted (worker restart). Please start a new scan."
+            session.completed_at = datetime.utcnow()
+            count += 1
+            logger.warning(f"Marked stale scan {session.id} as FAILED")
+        
+        if count > 0:
+            await db.commit()
+            logger.info(f"Cleaned up {count} stale scan sessions")
+        
+        return count
+    
+    @staticmethod
     async def start_scan(
         db: AsyncSession,
         repository_id: int,

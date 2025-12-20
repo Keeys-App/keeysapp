@@ -38,6 +38,17 @@ async def lifespan(app: FastAPI):
     run_all_migrations()
     print("✅ Migrations complete")
     
+    # Cleanup stale scans (in case of previous crash/restart)
+    print("🧹 Cleaning up stale scans...")
+    from app.database import AsyncSessionLocal
+    from app.services.scanner_service import ScannerService
+    async with AsyncSessionLocal() as db:
+        cleaned = await ScannerService.cleanup_stale_scans(db, timeout_minutes=5)
+        if cleaned > 0:
+            print(f"⚠️  Cleaned up {cleaned} stale scan(s)")
+        else:
+            print("✅ No stale scans found")
+    
     print("✅ Application startup complete!")
     
     yield

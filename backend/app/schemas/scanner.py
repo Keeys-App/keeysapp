@@ -190,6 +190,20 @@ class ScannerQuery:
                 if not session:
                     return None
                 
+                # Check if scan is stale (SCANNING but no update for 5+ minutes)
+                if session.status in [ScanStatus.SCANNING, ScanStatus.PENDING]:
+                    from datetime import datetime, timedelta
+                    stale_threshold = datetime.utcnow() - timedelta(minutes=5)
+                    check_time = session.started_at or session.created_at
+                    
+                    if check_time and check_time < stale_threshold:
+                        # Mark as failed - worker likely crashed
+                        session.status = ScanStatus.FAILED
+                        session.error_message = "Scan interrupted (worker unavailable). Please start a new scan."
+                        session.completed_at = datetime.utcnow()
+                        await db.commit()
+                        logger.warning(f"Marked stale scan {session.id} as FAILED during query")
+                
                 # Get repository to check access (use repository_id, not lazy relationship)
                 result = await db.execute(
                     select(Repository).where(Repository.id == session.repository_id)
