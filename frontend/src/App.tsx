@@ -13,6 +13,8 @@ import { ProjectPage } from '@/pages/ProjectPage';
 import { ProjectKeysPage } from '@/pages/ProjectKeysPage';
 import { CreateProjectPage } from '@/pages/CreateProjectPage';
 import { EditProjectPage } from '@/pages/EditProjectPage';
+import { ProjectRepositoryPage } from '@/pages/ProjectRepositoryPage';
+import { ProjectScannerPage } from '@/pages/ProjectScannerPage';
 import { ExportPage } from '@/pages/ExportPage';
 import { ImportPage } from '@/pages/ImportPage';
 import { InvitePage } from '@/pages/InvitePage';
@@ -71,6 +73,8 @@ function App() {
             <Route path={PATHS.TEAM_EDIT} element={<EditTeamPage />} />
             <Route path={PATHS.PROJECT_CREATE} element={<CreateProjectPage />} />
             <Route path={PATHS.PROJECT_EDIT} element={<EditProjectPage />} />
+            <Route path={PATHS.PROJECT_REPOSITORY} element={<ProjectRepositoryPage />} />
+            <Route path={PATHS.PROJECT_SCANNER} element={<ProjectScannerPage />} />
             <Route path={PATHS.PROJECT} element={<ProjectPage />} />
             <Route path={PATHS.PROJECT_KEYS} element={<ProjectKeysPage />} />
             <Route path={PATHS.EXPORT} element={<ExportPage />} />

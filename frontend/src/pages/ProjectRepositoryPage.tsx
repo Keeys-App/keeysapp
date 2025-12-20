@@ -3,12 +3,13 @@ import { useParams } from 'react-router-dom';
 import { useQuery } from '@apollo/client';
 import { GET_PROJECTS, type Project } from '@/graphql/projects';
 import { PROJECT_REPOSITORY_QUERY } from '@/graphql/github';
-import { ProjectForm, ProjectSettingsTabs } from '@/components/project';
+import { ProjectSettingsTabs } from '@/components/project';
+import { ConnectRepositoryCard } from '@/components/github';
 import { LoadingState, ErrorState, NotFoundState } from '@/components/blocks';
 import { useBreadcrumbs } from '@/contexts';
 import { PATHS } from '@/constants/paths';
 
-export const EditProjectPage: FC = () => {
+export const ProjectRepositoryPage: FC = () => {
   const { id } = useParams<{ id: string }>();
   const { setBreadcrumbs } = useBreadcrumbs();
 
@@ -25,19 +26,20 @@ export const EditProjectPage: FC = () => {
   });
   
   const hasRepository = !!repoData?.projectRepository;
+  const teamId = project?.team?.id;
 
   useEffect(() => {
     if (project) {
       setBreadcrumbs([
         { label: 'Dashboard', href: PATHS.DASHBOARD },
         { label: project.name, href: PATHS.PROJECT.replace(':id', id || '') },
-        { label: 'Settings' },
+        { label: 'Repository' },
       ]);
     } else {
       setBreadcrumbs([
         { label: 'Dashboard', href: PATHS.DASHBOARD },
         { label: 'Project' },
-        { label: 'Settings' },
+        { label: 'Repository' },
       ]);
     }
   }, [project, setBreadcrumbs, id]);
@@ -57,7 +59,15 @@ export const EditProjectPage: FC = () => {
   return (
     <div className="container max-w-2xl py-8">
       <ProjectSettingsTabs projectId={id || ''} hasRepository={hasRepository} />
-      <ProjectForm mode="edit" project={project} />
+      
+      {id && teamId ? (
+        <ConnectRepositoryCard 
+          projectId={id}
+          teamId={teamId}
+          canManage={project.canEdit}
+        />
+      ) : null}
     </div>
   );
 };
+

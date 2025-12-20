@@ -5,4 +5,5 @@ export { ProjectForm } from './ProjectForm';
 export { EmptyProjects } from './EmptyProjects';
 export { LanguageConfigEditor } from './LanguageConfigEditor';
 export { ImportProjectDialog } from './ImportProjectDialog';
+export { ProjectSettingsTabs } from './ProjectSettingsTabs';
 
