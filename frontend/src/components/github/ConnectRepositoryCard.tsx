@@ -113,12 +113,16 @@ export const ConnectRepositoryCard: FC<ConnectRepositoryCardProps> = ({
   // Connect mutation
   const [connectRepository, { data: connectData, error: connectError, loading: connectLoading }] = useMutation<{
     connectRepository: { success: boolean; message: string; repository: Repository | null };
-  }>(CONNECT_REPOSITORY_MUTATION);
+  }>(CONNECT_REPOSITORY_MUTATION, {
+    refetchQueries: [{ query: PROJECT_REPOSITORY_QUERY, variables: { projectId } }],
+  });
 
   // Disconnect mutation
   const [disconnectRepository, { data: disconnectData, error: disconnectError, loading: disconnectLoading }] = useMutation<{
     disconnectRepository: { success: boolean; message: string };
-  }>(DISCONNECT_REPOSITORY_MUTATION);
+  }>(DISCONNECT_REPOSITORY_MUTATION, {
+    refetchQueries: [{ query: PROJECT_REPOSITORY_QUERY, variables: { projectId } }],
+  });
 
   const connectedRepo = repoData?.projectRepository;
   const connections = connectionsData?.teamGithubConnections ?? [];

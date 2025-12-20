@@ -319,8 +319,13 @@ class GitHubQuery:
             
             async with AsyncSessionLocal() as db:
                 # Get project
-                project = await ProjectService.get_project_by_public_id(db, project_id, user_id)
+                project = await ProjectService.get_project_by_public_id(db, project_id)
                 if not project:
+                    return None
+                
+                # Verify user has access
+                has_access = await ProjectService.check_project_access(db, project.id, user_id)
+                if not has_access:
                     return None
                 
                 # Get repository
@@ -356,7 +361,9 @@ class GitHubQuery:
         except AuthenticationError:
             raise
         except Exception as e:
-            logger.error(f"Error fetching project repository: {type(e).__name__}")
+            import traceback
+            logger.error(f"Error fetching project repository: {type(e).__name__}: {str(e)}")
+            logger.error(traceback.format_exc())
             return None
     
     @strawberry.field
@@ -832,12 +839,20 @@ class GitHubMutation:
             user_id = await get_current_user_id(info)
             
             async with AsyncSessionLocal() as db:
-                # Get project and verify access
-                project = await ProjectService.get_project_by_public_id(db, project_id, user_id)
+                # Get project
+                project = await ProjectService.get_project_by_public_id(db, project_id)
                 if not project:
                     return GitHubDisconnectResult(
                         success=False,
                         message="Project not found",
+                    )
+                
+                # Verify user has access
+                has_access = await ProjectService.check_project_access(db, project.id, user_id)
+                if not has_access:
+                    return GitHubDisconnectResult(
+                        success=False,
+                        message="Access denied",
                     )
                 
                 # Get repository
@@ -864,7 +879,9 @@ class GitHubMutation:
         except AuthenticationError:
             raise
         except Exception as e:
-            logger.error(f"Error disconnecting repository: {type(e).__name__}")
+            import traceback
+            logger.error(f"Error disconnecting repository: {type(e).__name__}: {str(e)}")
+            logger.error(traceback.format_exc())
             return GitHubDisconnectResult(
                 success=False,
                 message="Failed to disconnect repository. Please try again.",
