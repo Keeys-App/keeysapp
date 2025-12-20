@@ -93,13 +93,11 @@ export const ScanRepositoryCard: FC<ScanRepositoryCardProps> = ({
   const sessions = sessionsData?.projectScanSessions ?? [];
   const currentScan = currentScanData?.scanSession ?? (sessions.length > 0 ? sessions[0] : null);
   
-  // Auto-select most recent scan and poll if scanning
+  // Auto-select most recent scan on load (any status)
   useEffect(() => {
     if (sessions.length > 0 && !currentScanId) {
-      const latestScan = sessions[0];
-      if (latestScan.status === ScanStatus.SCANNING || latestScan.status === ScanStatus.PENDING) {
-        setCurrentScanId(latestScan.id);
-      }
+      // Always select the latest scan to load its details
+      setCurrentScanId(sessions[0].id);
     }
   }, [sessions, currentScanId]);
   
@@ -343,6 +341,7 @@ export const ScanRepositoryCard: FC<ScanRepositoryCardProps> = ({
                                   size="icon"
                                   className="h-7 w-7"
                                   onClick={() => { handleUpdateStatus(fs.id, FoundStringStatus.APPROVED); }}
+                                  title="Approve"
                                 >
                                   <Check className="h-4 w-4 text-green-500" />
                                 </Button>
@@ -351,6 +350,7 @@ export const ScanRepositoryCard: FC<ScanRepositoryCardProps> = ({
                                   size="icon"
                                   className="h-7 w-7"
                                   onClick={() => { handleUpdateStatus(fs.id, FoundStringStatus.SKIPPED); }}
+                                  title="Skip"
                                 >
                                   <X className="h-4 w-4 text-red-500" />
                                 </Button>

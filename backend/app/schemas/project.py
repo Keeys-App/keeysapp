@@ -278,7 +278,21 @@ async def build_project_type(project, current_user_id: int, stats: Optional[dict
         ))
     
     # Check if current user can edit
+    # 1. User is project owner
     can_edit = project.owner_id == current_user_id
+    
+    # 2. User is team owner
+    if not can_edit and project.team:
+        can_edit = project.team.owner_id == current_user_id
+    
+    # 3. User is team admin
+    if not can_edit and project.team and hasattr(project.team, 'members'):
+        for member in project.team.members:
+            if member.user_id == current_user_id and member.role in ("admin", "owner"):
+                can_edit = True
+                break
+    
+    # 4. User has admin access to this specific project
     if not can_edit:
         for access in project.access_members:
             if access.user_id == current_user_id and access.role == "admin":

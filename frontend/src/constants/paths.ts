@@ -21,6 +21,8 @@ export const PATHS = {
   PROJECT_KEYS: '/project/:id/keys',
   PROJECT_CREATE: '/project/create',
   PROJECT_EDIT: '/project/:id/edit',
+  PROJECT_REPOSITORY: '/project/:id/repository',
+  PROJECT_SCANNER: '/project/:id/scanner',
   EXPORT: '/project/:id/export',
   IMPORT: '/project/:id/import',
   // GitHub integration
