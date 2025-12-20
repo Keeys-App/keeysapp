@@ -47,7 +47,7 @@ export const ConnectGitHubCard: FC<ConnectGitHubCardProps> = ({
   const { data, loading, refetch } = useQuery<{ teamGithubConnections: GitHubConnection[] }>(
     TEAM_GITHUB_CONNECTIONS_QUERY,
     {
-      variables: { teamId },
+      variables: { teamId, validate: true },
       fetchPolicy: 'cache-and-network',
     }
   );
@@ -167,10 +167,20 @@ export const ConnectGitHubCard: FC<ConnectGitHubCardProps> = ({
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-medium">@{connection.githubUsername}</span>
-                      <Check className="h-4 w-4 text-green-500" />
+                      {connection.isValid === false ? (
+                        <span title="Token expired or revoked">
+                          <AlertTriangle className="h-4 w-4 text-destructive" />
+                        </span>
+                      ) : (
+                        <Check className="h-4 w-4 text-green-500" />
+                      )}
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <span>Connected {formatDate(connection.connectedAt)}</span>
+                      {connection.isValid === false ? (
+                        <span className="text-destructive font-medium">Token expired - please reconnect</span>
+                      ) : (
+                        <span>Connected {formatDate(connection.connectedAt)}</span>
+                      )}
                       {connection.connectedByUsername ? (
                         <>
                           <span>•</span>

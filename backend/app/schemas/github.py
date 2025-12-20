@@ -71,6 +71,7 @@ class GitHubConnectionType:
     scope: Optional[str]
     connected_at: datetime
     connected_by_username: Optional[str]  # Username of who connected it
+    is_valid: Optional[bool] = None  # Token validity status (checked on demand)
 
 
 @strawberry.type
@@ -437,6 +438,7 @@ class GitHubQuery:
         self,
         info: Info,
         team_id: str,
+        validate: bool = False,
     ) -> List[GitHubConnectionType]:
         """
         Get all GitHub connections for a team.
@@ -444,6 +446,7 @@ class GitHubQuery:
         Args:
             info: GraphQL info object
             team_id: Public UUID of the team
+            validate: Whether to validate token validity (slower, makes API calls)
             
         Returns:
             List of GitHub connections
@@ -473,6 +476,12 @@ class GitHubQuery:
                         if connected_by_user:
                             connected_by_username = connected_by_user.username
                     
+                    # Validate token if requested
+                    is_valid = None
+                    if validate:
+                        access_token = GitHubService.decrypt_token(conn.access_token)
+                        is_valid = await GitHubService.validate_token(access_token)
+                    
                     result.append(GitHubConnectionType(
                         id=str(conn.public_id),
                         github_username=conn.github_username,
@@ -481,6 +490,7 @@ class GitHubQuery:
                         scope=conn.scope,
                         connected_at=conn.connected_at,
                         connected_by_username=connected_by_username,
+                        is_valid=is_valid,
                     ))
                 
                 return result

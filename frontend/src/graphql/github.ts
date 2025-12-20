@@ -7,8 +7,8 @@ import { gql } from '@apollo/client';
 
 // Query to get all GitHub connections for a team
 export const TEAM_GITHUB_CONNECTIONS_QUERY = gql`
-  query TeamGitHubConnections($teamId: String!) {
-    teamGithubConnections(teamId: $teamId) {
+  query TeamGitHubConnections($teamId: String!, $validate: Boolean) {
+    teamGithubConnections(teamId: $teamId, validate: $validate) {
       id
       githubUsername
       githubAvatarUrl
@@ -16,6 +16,7 @@ export const TEAM_GITHUB_CONNECTIONS_QUERY = gql`
       scope
       connectedAt
       connectedByUsername
+      isValid
     }
   }
 `;
@@ -161,6 +162,7 @@ export interface GitHubConnection {
   scope: string | null;
   connectedAt: string;
   connectedByUsername: string | null;
+  isValid: boolean | null;
 }
 
 export interface GitHubRepo {

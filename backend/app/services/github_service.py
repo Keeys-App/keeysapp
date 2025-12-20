@@ -317,6 +317,33 @@ class GitHubService:
             return None
     
     @staticmethod
+    async def validate_token(access_token: str) -> bool:
+        """
+        Validate if a GitHub access token is still valid.
+        
+        Args:
+            access_token: GitHub access token to validate
+            
+        Returns:
+            True if token is valid, False otherwise
+        """
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    f"{GITHUB_API_URL}/user",
+                    headers={
+                        "Authorization": f"Bearer {access_token}",
+                        "Accept": "application/vnd.github+json",
+                        "X-GitHub-Api-Version": "2022-11-28",
+                    },
+                    timeout=10.0,
+                )
+                return response.status_code == 200
+        except Exception as e:
+            logger.error(f"Failed to validate token: {type(e).__name__}")
+            return False
+    
+    @staticmethod
     async def create_connection(
         db: AsyncSession,
         team_id: int,
