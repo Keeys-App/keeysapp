@@ -8,6 +8,7 @@ export { ProfilePage } from './ProfilePage';
 export { TeamsPage } from './TeamsPage';
 export { TeamPage } from './TeamPage';
 export { TeamLogsPage } from './TeamLogsPage';
+export { TeamUsagePage } from './TeamUsagePage';
 export { CreateTeamPage } from './CreateTeamPage';
 export { EditTeamPage } from './EditTeamPage';
 export { ProjectPage } from './ProjectPage';

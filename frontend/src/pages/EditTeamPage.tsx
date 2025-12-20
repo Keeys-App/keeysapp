@@ -1,7 +1,7 @@
 import { useEffect, useState, type FC } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client';
-import { Bot } from 'lucide-react';
+import { Bot, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -34,6 +34,7 @@ import type {
   GetAvailableAIModelsResponse,
 } from '@/graphql/teams';
 import { ConnectGitHubCard } from '@/components/github';
+import { PATHS } from '@/constants/paths';
 
 export const EditTeamPage: FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -342,7 +343,16 @@ export const EditTeamPage: FC = () => {
             </Select>
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex justify-between items-center">
+            <Button
+              variant="outline"
+              asChild
+            >
+              <Link to={PATHS.TEAM_USAGE.replace(':id', id || '')}>
+                <BarChart3 className="h-4 w-4 mr-2" />
+                View Token Usage
+              </Link>
+            </Button>
             <Button
               onClick={handleSaveAiSettings}
               disabled={isSaving}

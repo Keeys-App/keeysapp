@@ -19,8 +19,11 @@ from app.models.found_string import FoundString, FoundStringStatus
 from app.models.repository import Repository
 from app.models.github_connection import GitHubConnection
 from app.models.key import Key, Translation
+from app.models.user import User
+from app.models.project import Project
 from app.services.github_service import GitHubService
 from app.services.token_usage_service import TokenUsageService
+from app.services.email_service import send_scan_completed_email_background
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -330,6 +333,16 @@ class ScannerService:
             await db.commit()
             
             logger.info(f"Scan {scan_session_id} completed: {total_strings} strings found in {files_processed} files")
+            
+            # Send email notification to user who started the scan
+            await ScannerService._send_completion_email(
+                db=db,
+                session=session,
+                repository=repository,
+                files_scanned=files_processed,
+                strings_found=total_strings,
+            )
+            
             return True
             
         except Exception as e:
@@ -361,6 +374,58 @@ class ScannerService:
         session.completed_at = datetime.utcnow()
         await db.commit()
         logger.error(f"Scan {session.id} failed: {error_message}")
+    
+    @staticmethod
+    async def _send_completion_email(
+        db: AsyncSession,
+        session: ScanSession,
+        repository: Repository,
+        files_scanned: int,
+        strings_found: int,
+    ):
+        """Send email notification when scan completes."""
+        try:
+            # Get user who started the scan
+            if not session.started_by_user_id:
+                logger.warning(f"No user ID for scan {session.id}, skipping email")
+                return
+            
+            result = await db.execute(
+                select(User).where(User.id == session.started_by_user_id)
+            )
+            user = result.scalar_one_or_none()
+            
+            if not user or not user.email:
+                logger.warning(f"User not found for scan {session.id}, skipping email")
+                return
+            
+            # Get project name
+            result = await db.execute(
+                select(Project).where(Project.id == repository.project_id)
+            )
+            project = result.scalar_one_or_none()
+            project_name = project.name if project else "Unknown Project"
+            
+            # Build scan URL
+            project_public_id = str(project.public_id) if project else ""
+            scan_url = f"{settings.app_url}/project/{project_public_id}/scanner"
+            
+            # Send email in background thread
+            send_scan_completed_email_background(
+                email=user.email,
+                username=user.username or user.email,
+                project_name=project_name,
+                files_scanned=files_scanned,
+                strings_found=strings_found,
+                status=session.status.value,
+                scan_url=scan_url,
+            )
+            
+            logger.info(f"Scan completion email queued for {user.email}")
+            
+        except Exception as e:
+            # Don't fail the scan if email fails
+            logger.error(f"Failed to send scan completion email: {type(e).__name__}: {str(e)}")
     
     @staticmethod
     async def cancel_scan(db: AsyncSession, scan_session_id: int) -> bool:

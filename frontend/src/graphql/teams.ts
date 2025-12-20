@@ -373,3 +373,48 @@ export interface GetAvailableAIModelsResponse {
   availableAiModels: AIProviderModels[];
 }
 
+// === Token Usage ===
+
+// Query to get team token usage statistics
+export const GET_TEAM_TOKEN_USAGE = gql`
+  query GetTeamTokenUsage($teamId: String!, $days: Int!) {
+    teamTokenUsage(teamId: $teamId, days: $days) {
+      totalInputTokens
+      totalOutputTokens
+      totalTokens
+      operationsCount
+      byOperation {
+        name
+        tokens
+      }
+      byProvider {
+        name
+        tokens
+      }
+      byModel {
+        name
+        tokens
+      }
+    }
+  }
+`;
+
+export interface TokenUsageBreakdownItem {
+  name: string;
+  tokens: number;
+}
+
+export interface TokenUsageStats {
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalTokens: number;
+  operationsCount: number;
+  byOperation: TokenUsageBreakdownItem[];
+  byProvider: TokenUsageBreakdownItem[];
+  byModel: TokenUsageBreakdownItem[];
+}
+
+export interface GetTeamTokenUsageResponse {
+  teamTokenUsage: TokenUsageStats;
+}
+

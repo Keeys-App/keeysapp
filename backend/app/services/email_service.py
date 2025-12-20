@@ -187,6 +187,59 @@ class EmailService:
             html_content=template.html_content
         )
     
+    def send_scan_completed_email(
+        self,
+        email: str,
+        username: str,
+        project_name: str,
+        files_scanned: int,
+        strings_found: int,
+        status: str,
+        scan_url: str
+    ) -> bool:
+        """
+        Send scan completed notification email.
+        
+        Args:
+            email: User's email address
+            username: User's username
+            project_name: Name of the scanned project
+            files_scanned: Number of files scanned
+            strings_found: Number of strings found
+            status: Scan status (COMPLETED, FAILED, etc.)
+            scan_url: URL to view scan results
+            
+        Returns:
+            True if email was sent successfully, False otherwise
+        """
+        if not self.is_configured:
+            logger.warning(f"Email service not configured. Skipping scan completed email to {email}")
+            return False
+        
+        # Render template with variables
+        template_service = EmailTemplateService.get_instance()
+        template = template_service.render("scan_completed", {
+            "username": username,
+            "project_name": project_name,
+            "files_scanned": files_scanned,
+            "strings_found": strings_found,
+            "status": status,
+            "scan_url": scan_url,
+            "app_name": settings.brevo_sender_name,
+        })
+        
+        if not template:
+            logger.error(f"Failed to render scan completed email template for {email}")
+            return False
+        
+        return self._send_email(
+            to_email=email,
+            to_name=username,
+            subject=template.subject,
+            text_content=template.text_content,
+            html_content=template.html_content
+        )
+    
     def _send_email(
         self,
         to_email: str,
@@ -341,4 +394,45 @@ def send_password_reset_email_background(
     thread = threading.Thread(target=_send, daemon=True)
     thread.start()
     logger.info(f"Password reset email background thread started for {email}")
+
+
+def send_scan_completed_email_background(
+    email: str,
+    username: str,
+    project_name: str,
+    files_scanned: int,
+    strings_found: int,
+    status: str,
+    scan_url: str
+) -> None:
+    """
+    Send scan completed notification in a background thread (fire and forget).
+    
+    Args:
+        email: User's email address
+        username: User's username
+        project_name: Name of the scanned project
+        files_scanned: Number of files scanned
+        strings_found: Number of strings found
+        status: Scan status (COMPLETED, FAILED, etc.)
+        scan_url: URL to view scan results
+    """
+    def _send():
+        try:
+            EmailService.get_instance().send_scan_completed_email(
+                email=email,
+                username=username,
+                project_name=project_name,
+                files_scanned=files_scanned,
+                strings_found=strings_found,
+                status=status,
+                scan_url=scan_url
+            )
+        except Exception as e:
+            # Log but never crash - this is background task
+            logger.error(f"Background scan completed email send failed for {email}: {type(e).__name__}")
+    
+    thread = threading.Thread(target=_send, daemon=True)
+    thread.start()
+    logger.info(f"Scan completed email background thread started for {email}")
 

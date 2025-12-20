@@ -15,6 +15,7 @@ export const PATHS = {
   TEAMS: '/teams',
   TEAM: '/team/:id',
   TEAM_LOGS: '/team/:id/logs',
+  TEAM_USAGE: '/team/:id/usage',
   TEAM_CREATE: '/team/create',
   TEAM_EDIT: '/team/:id/edit',
   PROJECT: '/project/:id',

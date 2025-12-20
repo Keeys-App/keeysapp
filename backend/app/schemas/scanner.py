@@ -85,12 +85,22 @@ class ScanSessionType:
 
 
 @strawberry.type
+class TokenUsageBreakdownItem:
+    """GraphQL type for token usage breakdown by category."""
+    name: str
+    tokens: int
+
+
+@strawberry.type
 class TokenUsageStatsType:
     """GraphQL type for token usage statistics."""
     total_input_tokens: int
     total_output_tokens: int
     total_tokens: int
     operations_count: int
+    by_operation: List[TokenUsageBreakdownItem]
+    by_provider: List[TokenUsageBreakdownItem]
+    by_model: List[TokenUsageBreakdownItem]
 
 
 @strawberry.type
@@ -281,6 +291,9 @@ class ScannerQuery:
                         total_output_tokens=0,
                         total_tokens=0,
                         operations_count=0,
+                        by_operation=[],
+                        by_provider=[],
+                        by_model=[],
                     )
                 
                 has_access = await TeamService.check_user_team_access(db, team.id, user_id)
@@ -290,6 +303,9 @@ class ScannerQuery:
                         total_output_tokens=0,
                         total_tokens=0,
                         operations_count=0,
+                        by_operation=[],
+                        by_provider=[],
+                        by_model=[],
                     )
                 
                 stats = await TokenUsageService.get_team_usage(db, team.id, days)
@@ -299,6 +315,18 @@ class ScannerQuery:
                     total_output_tokens=stats["total_output_tokens"],
                     total_tokens=stats["total_tokens"],
                     operations_count=stats["operations_count"],
+                    by_operation=[
+                        TokenUsageBreakdownItem(name=k, tokens=v) 
+                        for k, v in stats["by_operation"].items()
+                    ],
+                    by_provider=[
+                        TokenUsageBreakdownItem(name=k, tokens=v) 
+                        for k, v in stats["by_provider"].items()
+                    ],
+                    by_model=[
+                        TokenUsageBreakdownItem(name=k, tokens=v) 
+                        for k, v in stats["by_model"].items()
+                    ],
                 )
                 
         except AuthenticationError:
@@ -310,6 +338,9 @@ class ScannerQuery:
                 total_output_tokens=0,
                 total_tokens=0,
                 operations_count=0,
+                by_operation=[],
+                by_provider=[],
+                by_model=[],
             )
 
 
