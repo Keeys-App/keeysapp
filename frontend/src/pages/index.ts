@@ -16,4 +16,5 @@ export { CreateProjectPage } from './CreateProjectPage';
 export { EditProjectPage } from './EditProjectPage';
 export { ExportPage } from './ExportPage';
 export { ImportPage } from './ImportPage';
+export { GitHubCallbackPage } from './GitHubCallbackPage';
 

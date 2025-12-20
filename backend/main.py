@@ -10,6 +10,7 @@ from app.database import async_engine, engine
 from app.models.base import Base
 from app.schemas.graphql import schema
 from app.routers.project_router import router as project_router
+from app.routers.github_router import router as github_router
 
 # Configure logging
 logging.basicConfig(
@@ -76,6 +77,7 @@ app.include_router(graphql_app, prefix="/graphql")
 
 # REST API routers
 app.include_router(project_router)
+app.include_router(github_router)
 
 
 @app.get("/")

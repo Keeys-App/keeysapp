@@ -33,6 +33,7 @@ class Project(Base):
     owner = relationship("User", back_populates="owned_projects")
     access_members = relationship("ProjectAccess", back_populates="project", cascade="all, delete-orphan")
     keys = relationship("Key", back_populates="project", cascade="all, delete-orphan")
+    repositories = relationship("Repository", back_populates="project", cascade="all, delete-orphan")
     # Legacy relationship kept for compatibility during migration
     members = relationship("ProjectMember", back_populates="project", cascade="all, delete-orphan")
 

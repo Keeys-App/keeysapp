@@ -38,6 +38,14 @@ class Settings(BaseSettings):
     # Application URL (for email links)
     app_url: str = "http://localhost:3000"
     
+    # GitHub OAuth
+    github_client_id: Optional[str] = None
+    github_client_secret: Optional[str] = None
+    github_callback_url: str = "http://localhost:8000/api/github/callback"
+    
+    # Token encryption key for storing GitHub tokens (Fernet key)
+    token_encryption_key: Optional[str] = None
+    
     class Config:
         env_file = ".env"
         case_sensitive = False

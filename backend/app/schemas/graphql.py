@@ -16,6 +16,15 @@ from app.schemas.team import TeamQuery, TeamMutation, TeamType, InviteInfoType, 
 from app.schemas.project_access import ProjectAccessMutation
 from app.schemas.key import KeyQuery, KeyMutation, KeyType, KeysConnection, ActivityLogType
 from app.schemas.ai import AIMutation
+from app.schemas.github import (
+    GitHubQuery,
+    GitHubMutation,
+    GitHubConnectionType,
+    GitHubRepoType,
+    RepositoryType,
+    ConnectRepositoryResult,
+    GitHubDisconnectResult,
+)
 
 
 @strawberry.type
@@ -54,6 +63,12 @@ class Query:
     # Activity logs
     key_logs: List[ActivityLogType] = strawberry.field(resolver=KeyQuery.key_logs)
     project_activity: List[ActivityLogType] = strawberry.field(resolver=KeyQuery.project_activity)
+    
+    # GitHub integration
+    team_github_connections: List[GitHubConnectionType] = strawberry.field(resolver=GitHubQuery.team_github_connections)
+    github_connection: Optional[GitHubConnectionType] = strawberry.field(resolver=GitHubQuery.github_connection)
+    available_github_repositories: List[GitHubRepoType] = strawberry.field(resolver=GitHubQuery.available_github_repositories)
+    project_repository: Optional[RepositoryType] = strawberry.field(resolver=GitHubQuery.project_repository)
 
 
 @strawberry.type
@@ -113,6 +128,12 @@ class Mutation:
     ai_rephrase = strawberry.field(resolver=AIMutation.ai_rephrase)
     ai_shorten = strawberry.field(resolver=AIMutation.ai_shorten)
     ai_suggest_variants = strawberry.field(resolver=AIMutation.ai_suggest_variants)
+    
+    # Include GitHub mutations
+    get_github_auth_url = strawberry.field(resolver=GitHubMutation.get_github_auth_url)
+    disconnect_github = strawberry.field(resolver=GitHubMutation.disconnect_github)
+    connect_repository: ConnectRepositoryResult = strawberry.field(resolver=GitHubMutation.connect_repository)
+    disconnect_repository: GitHubDisconnectResult = strawberry.field(resolver=GitHubMutation.disconnect_repository)
 
 
 schema = strawberry.Schema(

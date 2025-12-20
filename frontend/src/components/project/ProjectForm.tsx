@@ -346,7 +346,6 @@ export const ProjectForm: FC<ProjectFormProps> = ({
   };
 
   return (
-    <div className="container max-w-2xl py-8">
       <Card>
         <CardHeader>
           <CardTitle>
@@ -495,6 +494,5 @@ export const ProjectForm: FC<ProjectFormProps> = ({
           </form>
         </CardContent>
       </Card>
-    </div>
   );
 };

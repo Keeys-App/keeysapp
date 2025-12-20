@@ -8,6 +8,8 @@ from .key import Key, Translation
 from .key_log import KeyLog, KeyActionType  # Legacy - will be removed
 from .activity_log import ActivityLog, ActionType
 from .password_reset_token import PasswordResetToken
+from .github_connection import GitHubConnection
+from .repository import Repository
 
 __all__ = [
     "Base", 
@@ -25,5 +27,7 @@ __all__ = [
     "KeyActionType",  # Legacy
     "ActivityLog", 
     "ActionType",
-    "PasswordResetToken"
+    "PasswordResetToken",
+    "GitHubConnection",
+    "Repository",
 ]

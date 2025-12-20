@@ -1016,6 +1016,110 @@ def migrate_add_is_plural_to_keys_if_needed():
         return False
 
 
+def migrate_create_github_connections_if_needed():
+    """
+    Create github_connections table if it doesn't exist.
+    GitHub connections are linked to Teams (not Users).
+    Safe to run multiple times.
+    """
+    try:
+        inspector = inspect(engine)
+        existing_tables = inspector.get_table_names()
+        
+        if 'github_connections' in existing_tables:
+            logger.info("✅ Migration: github_connections table already exists, skipping")
+            return True
+        
+        logger.info("🔄 Migration: Creating github_connections table")
+        
+        with engine.connect() as connection:
+            connection.execute(text("""
+                CREATE TABLE github_connections (
+                    id SERIAL PRIMARY KEY,
+                    public_id UUID UNIQUE NOT NULL DEFAULT gen_random_uuid(),
+                    team_id INTEGER NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+                    connected_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                    access_token TEXT NOT NULL,
+                    token_type VARCHAR(50) DEFAULT 'bearer',
+                    scope VARCHAR(500),
+                    github_user_id VARCHAR(50) NOT NULL,
+                    github_username VARCHAR(255) NOT NULL,
+                    github_avatar_url VARCHAR(500),
+                    github_email VARCHAR(255),
+                    connected_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP WITH TIME ZONE
+                );
+                
+                CREATE UNIQUE INDEX idx_github_connections_public_id ON github_connections(public_id);
+                CREATE INDEX idx_github_connections_team_id ON github_connections(team_id);
+                CREATE INDEX idx_github_connections_connected_by ON github_connections(connected_by_user_id);
+                CREATE INDEX idx_github_connections_github_user_id ON github_connections(github_user_id);
+                
+                -- Unique constraint: one team can have only one connection per GitHub account
+                CREATE UNIQUE INDEX idx_github_connections_team_github ON github_connections(team_id, github_user_id);
+            """))
+            connection.commit()
+            
+            logger.info("✅ Migration: github_connections table created successfully")
+            return True
+        
+    except Exception as e:
+        logger.error(f"❌ Migration failed: {type(e).__name__}: {str(e)}")
+        return False
+
+
+def migrate_create_repositories_if_needed():
+    """
+    Create repositories table if it doesn't exist.
+    Repositories link GitHub repos to projects for localization.
+    Safe to run multiple times.
+    """
+    try:
+        inspector = inspect(engine)
+        existing_tables = inspector.get_table_names()
+        
+        if 'repositories' in existing_tables:
+            logger.info("✅ Migration: repositories table already exists, skipping")
+            return True
+        
+        logger.info("🔄 Migration: Creating repositories table")
+        
+        with engine.connect() as connection:
+            connection.execute(text("""
+                CREATE TABLE repositories (
+                    id SERIAL PRIMARY KEY,
+                    public_id UUID UNIQUE NOT NULL DEFAULT gen_random_uuid(),
+                    project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+                    github_connection_id INTEGER REFERENCES github_connections(id) ON DELETE SET NULL,
+                    github_repo_id VARCHAR(50) NOT NULL,
+                    repo_owner VARCHAR(255) NOT NULL,
+                    repo_name VARCHAR(255) NOT NULL,
+                    default_branch VARCHAR(255) DEFAULT 'main',
+                    i18n_framework VARCHAR(50),
+                    source_patterns JSON DEFAULT '[]',
+                    locale_path VARCHAR(500),
+                    connected_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP WITH TIME ZONE
+                );
+                
+                CREATE UNIQUE INDEX idx_repositories_public_id ON repositories(public_id);
+                CREATE INDEX idx_repositories_project_id ON repositories(project_id);
+                CREATE INDEX idx_repositories_github_connection_id ON repositories(github_connection_id);
+                CREATE INDEX idx_repositories_github_repo_id ON repositories(github_repo_id);
+                
+                -- One project can have only one repository linked
+                CREATE UNIQUE INDEX idx_repositories_project ON repositories(project_id);
+            """))
+            connection.commit()
+            
+            logger.info("✅ Migration: repositories table created successfully")
+            return True
+        
+    except Exception as e:
+        logger.error(f"❌ Migration failed: {type(e).__name__}: {str(e)}")
+        return False
+
+
 def run_all_migrations():
     """
     Run all pending migrations.
@@ -1042,6 +1146,8 @@ def run_all_migrations():
         ("create_password_reset_tokens", migrate_create_password_reset_tokens_if_needed),
         ("add_keys_batch_import_action_type", migrate_add_keys_batch_import_action_type_if_needed),
         ("add_is_plural_to_keys", migrate_add_is_plural_to_keys_if_needed),
+        ("create_github_connections", migrate_create_github_connections_if_needed),
+        ("create_repositories", migrate_create_repositories_if_needed),
         # Add more migrations here as needed
     ]
     

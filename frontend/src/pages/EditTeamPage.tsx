@@ -16,6 +16,7 @@ import {
   GET_TEAMS,
 } from '@/graphql/teams';
 import type { GetTeamResponse, UpdateTeamInput, UpdateTeamResponse } from '@/graphql/teams';
+import { ConnectGitHubCard } from '@/components/github';
 
 export const EditTeamPage: FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -123,10 +124,11 @@ export const EditTeamPage: FC = () => {
   }
 
   return (
-    <div className="flex h-full items-center justify-center p-6">
-      <Card className="w-full max-w-2xl">
+    <div className="container max-w-2xl py-8 space-y-6">
+      {/* Team Settings Card */}
+      <Card>
         <CardHeader>
-          <CardTitle>Edit Team</CardTitle>
+          <CardTitle>Team Settings</CardTitle>
           <CardDescription>
             Update your team's name and description
           </CardDescription>
@@ -179,6 +181,11 @@ export const EditTeamPage: FC = () => {
           </form>
         </CardContent>
       </Card>
+
+      {/* GitHub Integration Card */}
+      {id ? (
+        <ConnectGitHubCard teamId={id} canManage={true} />
+      ) : null}
     </div>
   );
 };

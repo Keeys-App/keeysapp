@@ -249,6 +249,52 @@ class TeamService:
         return True
 
     @staticmethod
+    async def get_team_by_id(db: AsyncSession, team_id: int) -> Optional[Team]:
+        """
+        Get a team by its internal ID.
+        
+        Args:
+            db: Database session
+            team_id: Internal ID of the team
+            
+        Returns:
+            Team or None
+        """
+        result = await db.execute(
+            select(Team)
+            .options(
+                joinedload(Team.owner),
+                selectinload(Team.members).joinedload(TeamMember.user),
+            )
+            .where(Team.id == team_id)
+        )
+        return result.unique().scalar_one_or_none()
+    
+    @staticmethod
+    async def check_user_team_role(db: AsyncSession, team_id: int, user_id: int, role: str) -> bool:
+        """
+        Check if user has a specific role in a team.
+        
+        Args:
+            db: Database session
+            team_id: Internal team ID
+            user_id: User ID
+            role: Role to check (admin, editor, viewer, translator, reviewer)
+            
+        Returns:
+            True if user has the role, False otherwise
+        """
+        result = await db.execute(
+            select(TeamMember).where(
+                TeamMember.team_id == team_id,
+                TeamMember.user_id == user_id,
+                TeamMember.role == role
+            )
+        )
+        member = result.scalar_one_or_none()
+        return member is not None
+
+    @staticmethod
     async def check_user_team_access(db: AsyncSession, team_id: int, user_id: int) -> bool:
         """
         Check if user has access to a team (owner or member).
