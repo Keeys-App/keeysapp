@@ -96,8 +96,8 @@ class AIService:
         system_content: str,
         user_content: str,
         model: str,
-    ) -> str:
-        """Call Anthropic API and return response text."""
+    ) -> tuple[str, TokenUsageInfo]:
+        """Call Anthropic API and return response text with token usage."""
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 self.ANTHROPIC_API_URL,
@@ -120,11 +120,17 @@ class AIService:
                 raise Exception("AI request failed")
             
             data = response.json()
+            usage = data.get("usage", {})
+            token_usage: TokenUsageInfo = {
+                "input_tokens": usage.get("input_tokens", 0),
+                "output_tokens": usage.get("output_tokens", 0),
+                "total_tokens": usage.get("input_tokens", 0) + usage.get("output_tokens", 0),
+            }
             content = data.get("content", [])
             if not content:
                 raise Exception("Empty response from Anthropic")
             
-            return content[0].get("text", "").strip()
+            return content[0].get("text", "").strip(), token_usage
     
     async def _call_openai(
         self,
@@ -133,8 +139,8 @@ class AIService:
         model: str,
         temperature: float = 1.0,
         json_mode: bool = True,
-    ) -> str:
-        """Call OpenAI API and return response text."""
+    ) -> tuple[str, TokenUsageInfo]:
+        """Call OpenAI API and return response text with token usage."""
         response = await self.openai_client.chat.completions.create(
             model=model,
             messages=[
@@ -145,7 +151,13 @@ class AIService:
             temperature=temperature,
             response_format={"type": "json_object"} if json_mode else None,
         )
-        return response.choices[0].message.content.strip()
+        usage = response.usage
+        token_usage: TokenUsageInfo = {
+            "input_tokens": usage.prompt_tokens if usage else 0,
+            "output_tokens": usage.completion_tokens if usage else 0,
+            "total_tokens": usage.total_tokens if usage else 0,
+        }
+        return response.choices[0].message.content.strip(), token_usage
     
     async def _call_ai(
         self,
@@ -154,7 +166,7 @@ class AIService:
         provider: str,
         model: str,
         temperature: float = 1.0,
-    ) -> str:
+    ) -> tuple[str, TokenUsageInfo]:
         """Universal AI call method that handles both providers."""
         if provider == "ANTHROPIC":
             return await self._call_anthropic(system_content, user_content, model)
@@ -169,7 +181,7 @@ class AIService:
         context: Optional[str] = None,
         provider: Optional[str] = None,
         model: Optional[str] = None,
-    ) -> tuple[str, Optional[str]]:
+    ) -> tuple[str, Optional[str], str, str, TokenUsageInfo]:
         """
         Translate text to target language
         
@@ -182,9 +194,9 @@ class AIService:
             model: Specific model to use
             
         Returns:
-            Tuple of (translated_text, reason_if_failed)
-            - If successful: (translation, None)
-            - If failed: ("", reason)
+            Tuple of (translated_text, reason_if_failed, used_provider, used_model, token_usage)
+            - If successful: (translation, None, provider, model, token_usage)
+            - If failed: ("", reason, provider, model, token_usage)
             
         Raises:
             Exception: If AI service is not available or API error occurs
@@ -259,7 +271,7 @@ class AIService:
             if context:
                 system_content += f"\n\n⚠️ CRITICAL: User provided mandatory context:\n{context}\nYou MUST follow these instructions in your translation."
             
-            response_text = await self._call_ai(
+            response_text, token_usage = await self._call_ai(
                 system_content=system_content,
                 user_content=user_content,
                 provider=use_provider,
@@ -287,14 +299,14 @@ class AIService:
             if not response_data.get("success", False):
                 reason = response_data.get("reason", "Unable to process this text")
                 logger.warning(f"AI could not translate: {reason}")
-                return ("", reason)
+                return ("", reason, use_provider, use_model, token_usage)
             
             translation = response_data.get("result", "").strip()
             if not translation:
-                return ("", "Translation result is empty")
+                return ("", "Translation result is empty", use_provider, use_model, token_usage)
             
             logger.info("Translation completed successfully")
-            return (translation, None)
+            return (translation, None, use_provider, use_model, token_usage)
 
         except OpenAIError as e:
             logger.error(f"OpenAI API error: {str(e)}")
@@ -312,7 +324,7 @@ class AIService:
         context: Optional[str] = None,
         provider: Optional[str] = None,
         model: Optional[str] = None,
-    ) -> tuple[str, Optional[str]]:
+    ) -> tuple[str, Optional[str], str, str, TokenUsageInfo]:
         """
         Rephrase text while maintaining meaning
         
@@ -324,9 +336,7 @@ class AIService:
             model: Specific model to use
             
         Returns:
-            Tuple of (rephrased_text, reason_if_failed)
-            - If successful: (rephrased, None)
-            - If failed: ("", reason)
+            Tuple of (rephrased_text, reason_if_failed, provider, model, token_usage)
         """
         use_provider = provider or "OPENAI"
         use_model = model or self._get_default_model(use_provider)
@@ -387,7 +397,7 @@ class AIService:
             if context:
                 system_content += f"\n\n⚠️ CRITICAL: User provided mandatory context:\n{context}\nYou MUST follow these instructions in your rephrasing."
             
-            response_text = await self._call_ai(
+            response_text, token_usage = await self._call_ai(
                 system_content=system_content,
                 user_content=user_content,
                 provider=use_provider,
@@ -409,14 +419,14 @@ class AIService:
             if not response_data.get("success", False):
                 reason = response_data.get("reason", "Unable to process this text")
                 logger.warning(f"AI could not rephrase: {reason}")
-                return ("", reason)
+                return ("", reason, use_provider, use_model, token_usage)
             
             rephrased = response_data.get("result", "").strip()
             if not rephrased:
-                return ("", "Rephrase result is empty")
+                return ("", "Rephrase result is empty", use_provider, use_model, token_usage)
             
             logger.info("Rephrase completed successfully")
-            return (rephrased, None)
+            return (rephrased, None, use_provider, use_model, token_usage)
 
         except OpenAIError as e:
             logger.error(f"OpenAI API error: {str(e)}")
@@ -432,7 +442,7 @@ class AIService:
         context: Optional[str] = None,
         provider: Optional[str] = None,
         model: Optional[str] = None,
-    ) -> tuple[str, Optional[str]]:
+    ) -> tuple[str, Optional[str], str, str, TokenUsageInfo]:
         """
         Shorten text while preserving key meaning
         
@@ -444,9 +454,7 @@ class AIService:
             model: Specific model to use
             
         Returns:
-            Tuple of (shortened_text, reason_if_failed)
-            - If successful: (shortened, None)
-            - If failed: ("", reason)
+            Tuple of (shortened_text, reason_if_failed, provider, model, token_usage)
         """
         use_provider = provider or "OPENAI"
         use_model = model or self._get_default_model(use_provider)
@@ -508,7 +516,7 @@ class AIService:
             if context:
                 system_content += f"\n\n⚠️ CRITICAL: User provided mandatory context:\n{context}\nYou MUST follow these instructions in your shortened version."
             
-            response_text = await self._call_ai(
+            response_text, token_usage = await self._call_ai(
                 system_content=system_content,
                 user_content=user_content,
                 provider=use_provider,
@@ -530,14 +538,14 @@ class AIService:
             if not response_data.get("success", False):
                 reason = response_data.get("reason", "Unable to process this text")
                 logger.warning(f"AI could not shorten: {reason}")
-                return ("", reason)
+                return ("", reason, use_provider, use_model, token_usage)
             
             shortened = response_data.get("result", "").strip()
             if not shortened:
-                return ("", "Shorten result is empty")
+                return ("", "Shorten result is empty", use_provider, use_model, token_usage)
             
             logger.info("Shorten completed successfully")
-            return (shortened, None)
+            return (shortened, None, use_provider, use_model, token_usage)
 
         except OpenAIError as e:
             logger.error(f"OpenAI API error: {str(e)}")
@@ -554,7 +562,7 @@ class AIService:
         count: int = 3,
         provider: Optional[str] = None,
         model: Optional[str] = None,
-    ) -> tuple[list[str], Optional[str]]:
+    ) -> tuple[list[str], Optional[str], str, str, TokenUsageInfo]:
         """
         Generate alternative variants of the text
         
@@ -567,9 +575,7 @@ class AIService:
             model: Specific model to use
             
         Returns:
-            Tuple of (variants_list, reason_if_failed)
-            - If successful: ([variants], None)
-            - If failed: ([], reason)
+            Tuple of (variants_list, reason_if_failed, provider, model, token_usage)
         """
         use_provider = provider or "OPENAI"
         use_model = model or self._get_default_model(use_provider)
@@ -630,7 +636,7 @@ class AIService:
             if context:
                 system_content += f"\n\n⚠️ CRITICAL: User provided mandatory context:\n{context}\nYou MUST follow these instructions in ALL variants you generate."
             
-            response_text = await self._call_ai(
+            response_text, token_usage = await self._call_ai(
                 system_content=system_content,
                 user_content=user_content,
                 provider=use_provider,
@@ -652,14 +658,14 @@ class AIService:
             if not response_data.get("success", False):
                 reason = response_data.get("reason", "Unable to process this text")
                 logger.warning(f"AI could not generate variants: {reason}")
-                return ([], reason)
+                return ([], reason, use_provider, use_model, token_usage)
             
             variants = response_data.get("variants", [])
             if not variants or len(variants) == 0:
-                return ([], "No variants generated")
+                return ([], "No variants generated", use_provider, use_model, token_usage)
             
             logger.info(f"Generated {len(variants)} variants successfully")
-            return (variants[:count], None)  # Ensure we don't return more than requested
+            return (variants[:count], None, use_provider, use_model, token_usage)
 
         except OpenAIError as e:
             logger.error(f"OpenAI API error: {str(e)}")

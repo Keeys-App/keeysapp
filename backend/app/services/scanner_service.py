@@ -106,7 +106,7 @@ class ScannerService:
         count = 0
         for session in stale_sessions:
             session.status = ScanStatus.FAILED
-            session.error_message = "Scan interrupted (worker restart). Please start a new scan."
+            session.error_message = "Scan interrupted. Please start a new scan."
             session.completed_at = datetime.utcnow()
             count += 1
             logger.warning(f"Marked stale scan {session.id} as FAILED")

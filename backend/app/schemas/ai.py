@@ -6,6 +6,7 @@ from typing import Optional, List
 from strawberry.types import Info
 from sqlalchemy import select
 from app.services.ai_service import ai_service, get_available_models
+from app.services.token_usage_service import TokenUsageService
 from app.schemas.project import get_current_user_id
 from app.database import AsyncSessionLocal
 from app.services.team_service import TeamService
@@ -166,11 +167,17 @@ class AIMutation:
             # Get team AI settings if team_id provided
             ai_provider = None
             ai_model = None
+            team_internal_id = None
             if input.team_id:
                 ai_provider, ai_model = await get_team_ai_settings(input.team_id)
+                # Get team internal id for token tracking
+                async with AsyncSessionLocal() as db:
+                    team = await TeamService.get_team_by_public_id(db, input.team_id)
+                    if team:
+                        team_internal_id = team.id
 
             # Perform translation
-            translated_text, reason = await ai_service.translate(
+            translated_text, reason, used_provider, used_model, token_usage = await ai_service.translate(
                 text=input.text,
                 target_language=input.target_language,
                 source_language=input.source_language,
@@ -178,6 +185,20 @@ class AIMutation:
                 provider=ai_provider,
                 model=ai_model,
             )
+
+            # Record token usage if team_id provided
+            if team_internal_id and token_usage.get("total_tokens", 0) > 0:
+                async with AsyncSessionLocal() as db:
+                    await TokenUsageService.record_usage(
+                        db=db,
+                        team_id=team_internal_id,
+                        user_id=user_id,
+                        operation_type="TRANSLATE",
+                        provider=used_provider,
+                        model=used_model,
+                        input_tokens=token_usage.get("input_tokens", 0),
+                        output_tokens=token_usage.get("output_tokens", 0),
+                    )
 
             if reason:
                 # AI couldn't process the text
@@ -226,17 +247,36 @@ class AIMutation:
             # Get team AI settings if team_id provided
             ai_provider = None
             ai_model = None
+            team_internal_id = None
             if input.team_id:
                 ai_provider, ai_model = await get_team_ai_settings(input.team_id)
+                async with AsyncSessionLocal() as db:
+                    team = await TeamService.get_team_by_public_id(db, input.team_id)
+                    if team:
+                        team_internal_id = team.id
 
             # Perform rephrase
-            rephrased_text, reason = await ai_service.rephrase(
+            rephrased_text, reason, used_provider, used_model, token_usage = await ai_service.rephrase(
                 text=input.text,
                 language=input.language,
                 context=input.context,
                 provider=ai_provider,
                 model=ai_model,
             )
+
+            # Record token usage if team_id provided
+            if team_internal_id and token_usage.get("total_tokens", 0) > 0:
+                async with AsyncSessionLocal() as db:
+                    await TokenUsageService.record_usage(
+                        db=db,
+                        team_id=team_internal_id,
+                        user_id=user_id,
+                        operation_type="REPHRASE",
+                        provider=used_provider,
+                        model=used_model,
+                        input_tokens=token_usage.get("input_tokens", 0),
+                        output_tokens=token_usage.get("output_tokens", 0),
+                    )
 
             if reason:
                 # AI couldn't process the text
@@ -285,17 +325,36 @@ class AIMutation:
             # Get team AI settings if team_id provided
             ai_provider = None
             ai_model = None
+            team_internal_id = None
             if input.team_id:
                 ai_provider, ai_model = await get_team_ai_settings(input.team_id)
+                async with AsyncSessionLocal() as db:
+                    team = await TeamService.get_team_by_public_id(db, input.team_id)
+                    if team:
+                        team_internal_id = team.id
 
             # Perform shorten
-            shortened_text, reason = await ai_service.shorten(
+            shortened_text, reason, used_provider, used_model, token_usage = await ai_service.shorten(
                 text=input.text,
                 language=input.language,
                 context=input.context,
                 provider=ai_provider,
                 model=ai_model,
             )
+
+            # Record token usage if team_id provided
+            if team_internal_id and token_usage.get("total_tokens", 0) > 0:
+                async with AsyncSessionLocal() as db:
+                    await TokenUsageService.record_usage(
+                        db=db,
+                        team_id=team_internal_id,
+                        user_id=user_id,
+                        operation_type="SHORTEN",
+                        provider=used_provider,
+                        model=used_model,
+                        input_tokens=token_usage.get("input_tokens", 0),
+                        output_tokens=token_usage.get("output_tokens", 0),
+                    )
 
             if reason:
                 # AI couldn't process the text
@@ -344,11 +403,16 @@ class AIMutation:
             # Get team AI settings if team_id provided
             ai_provider = None
             ai_model = None
+            team_internal_id = None
             if input.team_id:
                 ai_provider, ai_model = await get_team_ai_settings(input.team_id)
+                async with AsyncSessionLocal() as db:
+                    team = await TeamService.get_team_by_public_id(db, input.team_id)
+                    if team:
+                        team_internal_id = team.id
 
             # Generate variants
-            variants, reason = await ai_service.suggest_variants(
+            variants, reason, used_provider, used_model, token_usage = await ai_service.suggest_variants(
                 text=input.text,
                 language=input.language,
                 context=input.context,
@@ -356,6 +420,20 @@ class AIMutation:
                 provider=ai_provider,
                 model=ai_model,
             )
+
+            # Record token usage if team_id provided
+            if team_internal_id and token_usage.get("total_tokens", 0) > 0:
+                async with AsyncSessionLocal() as db:
+                    await TokenUsageService.record_usage(
+                        db=db,
+                        team_id=team_internal_id,
+                        user_id=user_id,
+                        operation_type="VARIANTS",
+                        provider=used_provider,
+                        model=used_model,
+                        input_tokens=token_usage.get("input_tokens", 0),
+                        output_tokens=token_usage.get("output_tokens", 0),
+                    )
 
             if reason:
                 # AI couldn't process the text
