@@ -191,24 +191,8 @@ class ScannerQuery:
                 if not session:
                     return None
                 
-                # Check if scan is stale (SCANNING but no update for 5+ minutes)
-                if session.status in [ScanStatus.SCANNING, ScanStatus.PENDING]:
-                    from datetime import datetime, timedelta, timezone
-                    now_utc = datetime.now(timezone.utc)
-                    stale_threshold = now_utc - timedelta(minutes=5)
-                    check_time = session.started_at or session.created_at
-                    
-                    # Make check_time timezone-aware if it's naive
-                    if check_time and check_time.tzinfo is None:
-                        check_time = check_time.replace(tzinfo=timezone.utc)
-                    
-                    if check_time and check_time < stale_threshold:
-                        # Mark as failed - worker likely crashed
-                        session.status = ScanStatus.FAILED
-                        session.error_message = "Scan interrupted (worker unavailable). Please start a new scan."
-                        session.completed_at = now_utc
-                        await db.commit()
-                        logger.warning(f"Marked stale scan {session.id} as FAILED during query")
+                # Note: Stale scan detection is handled by resume_interrupted_scans on server startup
+                # We don't auto-fail scans during queries because long scans are normal
                 
                 # Get repository to check access (use repository_id, not lazy relationship)
                 result = await db.execute(
@@ -517,6 +501,28 @@ class ScannerMutation:
                 
                 if cancelled:
                     await db.refresh(session)
+                    
+                    # Log scan cancelled activity
+                    if repository:
+                        from app.models.project import Project
+                        proj_result = await db.execute(
+                            select(Project).where(Project.id == repository.project_id)
+                        )
+                        project = proj_result.scalar_one_or_none()
+                        if project:
+                            scan_cancelled_log = ActivityLog(
+                                team_id=project.team_id,
+                                project_id=project.id,
+                                user_id=user_id,
+                                action=ActionType.SCAN_CANCELLED,
+                                extra_data={
+                                    "repository": repository.full_name,
+                                    "scan_session_id": str(session.public_id),
+                                }
+                            )
+                            db.add(scan_cancelled_log)
+                            await db.commit()
+                    
                     return StartScanResult(
                         success=True,
                         message="Scan cancelled",

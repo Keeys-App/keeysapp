@@ -85,6 +85,7 @@ const actionLabels: Record<string, string> = {
   SCAN_START: 'Scan started',
   SCAN_COMPLETE: 'Scan completed',
   SCAN_FAILED: 'Scan failed',
+  SCAN_CANCELLED: 'Scan cancelled',
 };
 
 const actionIcons: Record<string, typeof History> = {
@@ -129,6 +130,7 @@ const actionIcons: Record<string, typeof History> = {
   SCAN_START: Scan,
   SCAN_COMPLETE: CheckCircle,
   SCAN_FAILED: XCircle,
+  SCAN_CANCELLED: XCircle,
 };
 
 const actionColors: Record<string, string> = {
@@ -173,6 +175,7 @@ const actionColors: Record<string, string> = {
   SCAN_START: 'bg-sky-500/10 text-sky-600',
   SCAN_COMPLETE: 'bg-green-500/10 text-green-600',
   SCAN_FAILED: 'bg-red-500/10 text-red-600',
+  SCAN_CANCELLED: 'bg-orange-500/10 text-orange-600',
 };
 
 /**
@@ -232,7 +235,7 @@ export const ActivityItem: FC<ActivityItemProps> = ({ log, isLast, showProject =
         {/* Action details */}
         <div className="text-sm text-muted-foreground space-y-1">
           {/* Scan actions */}
-          {(log.action === 'SCAN_START' || log.action === 'SCAN_COMPLETE' || log.action === 'SCAN_FAILED') && log.extraData ? (
+          {(log.action === 'SCAN_START' || log.action === 'SCAN_COMPLETE' || log.action === 'SCAN_FAILED' || log.action === 'SCAN_CANCELLED') && log.extraData ? (
             <div className="text-xs space-y-0.5">
               {log.extraData.repository ? (
                 <div>Repository: <span className="font-medium">{log.extraData.repository}</span></div>

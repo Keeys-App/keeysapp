@@ -530,6 +530,7 @@ class TeamQuery:
                     ActionType.SCAN_START,
                     ActionType.SCAN_COMPLETE,
                     ActionType.SCAN_FAILED,
+                    ActionType.SCAN_CANCELLED,
                 ]
                 
                 # Get all logs for this team (team_id) or its projects (project_id)

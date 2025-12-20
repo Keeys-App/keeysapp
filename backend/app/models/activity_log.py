@@ -56,6 +56,7 @@ class ActionType(str, enum.Enum):
     SCAN_START = "SCAN_START"
     SCAN_COMPLETE = "SCAN_COMPLETE"
     SCAN_FAILED = "SCAN_FAILED"
+    SCAN_CANCELLED = "SCAN_CANCELLED"
 
 
 class ActivityLog(Base):

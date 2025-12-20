@@ -69,6 +69,12 @@ class ActionTypeEnum(str, enum.Enum):
     REVIEW_APPROVE = "REVIEW_APPROVE"
     REVIEW_REJECT = "REVIEW_REJECT"
     REVIEW_DELETE = "REVIEW_DELETE"
+    
+    # Scan actions
+    SCAN_START = "SCAN_START"
+    SCAN_COMPLETE = "SCAN_COMPLETE"
+    SCAN_FAILED = "SCAN_FAILED"
+    SCAN_CANCELLED = "SCAN_CANCELLED"
 
 
 # Keep legacy enum for backward compatibility (optional)
@@ -349,6 +355,12 @@ def build_activity_log_type(log) -> ActivityLogType:
         "REVIEW_APPROVE": ActionTypeEnum.REVIEW_APPROVE,
         "REVIEW_REJECT": ActionTypeEnum.REVIEW_REJECT,
         "REVIEW_DELETE": ActionTypeEnum.REVIEW_DELETE,
+        
+        # Scan actions
+        "SCAN_START": ActionTypeEnum.SCAN_START,
+        "SCAN_COMPLETE": ActionTypeEnum.SCAN_COMPLETE,
+        "SCAN_FAILED": ActionTypeEnum.SCAN_FAILED,
+        "SCAN_CANCELLED": ActionTypeEnum.SCAN_CANCELLED,
     }
     
     # Build user info if available

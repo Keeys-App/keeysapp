@@ -1367,7 +1367,7 @@ def migrate_add_scan_action_types_if_needed():
     try:
         logger.info("🔄 Migration: Adding scan action types to actiontype enum")
         
-        scan_actions = ['SCAN_START', 'SCAN_COMPLETE', 'SCAN_FAILED']
+        scan_actions = ['SCAN_START', 'SCAN_COMPLETE', 'SCAN_FAILED', 'SCAN_CANCELLED']
         
         with engine.connect() as connection:
             for action_type in scan_actions:
