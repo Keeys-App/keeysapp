@@ -1330,6 +1330,35 @@ def migrate_create_scan_tables_if_needed():
         return False
 
 
+def migrate_add_processed_files_if_needed():
+    """
+    Add processed_files column to scan_sessions table.
+    This column tracks which files have been processed to allow scan resume after restart.
+    Safe to run multiple times.
+    """
+    try:
+        # Check if column already exists
+        if check_column_exists('scan_sessions', 'processed_files'):
+            logger.info("✅ Migration: processed_files column already exists, skipping")
+            return True
+        
+        logger.info("🔄 Migration: Adding processed_files column to scan_sessions table")
+        
+        with engine.connect() as connection:
+            connection.execute(text("""
+                ALTER TABLE scan_sessions 
+                ADD COLUMN processed_files JSONB NOT NULL DEFAULT '[]'
+            """))
+            connection.commit()
+            
+            logger.info("✅ Migration: processed_files column added successfully")
+            return True
+            
+    except Exception as e:
+        logger.error(f"❌ Migration failed: {type(e).__name__}: {str(e)}")
+        return False
+
+
 def run_all_migrations():
     """
     Run all pending migrations.
@@ -1360,6 +1389,7 @@ def run_all_migrations():
         ("create_repositories", migrate_create_repositories_if_needed),
         ("create_scan_tables", migrate_create_scan_tables_if_needed),
         ("add_team_ai_settings", migrate_add_team_ai_settings_if_needed),
+        ("add_processed_files", migrate_add_processed_files_if_needed),
         # Add more migrations here as needed
     ]
     

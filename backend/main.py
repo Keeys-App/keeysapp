@@ -42,16 +42,32 @@ async def lifespan(app: FastAPI):
     run_all_migrations()
     print("✅ Migrations complete")
     
-    # Cleanup stale scans (in case of previous crash/restart)
-    print("🧹 Cleaning up stale scans...")
+    # Resume interrupted scans or cleanup very old ones
+    print("🔄 Checking for interrupted scans...")
     from app.database import AsyncSessionLocal
     from app.services.scanner_service import ScannerService
+    import asyncio as startup_asyncio
+    
     async with AsyncSessionLocal() as db:
-        cleaned = await ScannerService.cleanup_stale_scans(db, timeout_minutes=5)
+        # First cleanup very old scans (> 60 minutes)
+        cleaned = await ScannerService.cleanup_stale_scans(db, timeout_minutes=60)
         if cleaned > 0:
-            print(f"⚠️  Cleaned up {cleaned} stale scan(s)")
+            print(f"⚠️  Cleaned up {cleaned} very old stale scan(s)")
+        
+        # Get interrupted scans to resume
+        interrupted = await ScannerService.get_interrupted_scans(db)
+        if interrupted:
+            print(f"🔄 Found {len(interrupted)} interrupted scan(s), resuming...")
+            for scan_id, team_id in interrupted:
+                # Resume scan in background task
+                async def resume_scan(sid: int, tid: int):
+                    async with AsyncSessionLocal() as scan_db:
+                        await ScannerService.process_scan(scan_db, sid, tid)
+                
+                startup_asyncio.create_task(resume_scan(scan_id, team_id))
+                print(f"  → Resumed scan {scan_id}")
         else:
-            print("✅ No stale scans found")
+            print("✅ No interrupted scans found")
     
     print("✅ Application startup complete!")
     

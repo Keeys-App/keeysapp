@@ -12,7 +12,7 @@ import logging
 from sqlalchemy import select
 
 from app.database import AsyncSessionLocal
-from app.models.scan_session import ScanSession, ScanStatus, AIProvider
+from app.models.scan_session import ScanSession, ScanStatus
 from app.models.found_string import FoundString, FoundStringStatus
 from app.models.repository import Repository
 from app.services.scanner_service import ScannerService
@@ -21,7 +21,6 @@ from app.services.github_service import GitHubService
 from app.services.project_service import ProjectService
 from app.services.team_service import TeamService
 from app.schemas.github import get_current_user_id
-from app.schemas.ai import get_team_ai_settings
 from app.core.exceptions import AuthenticationError
 
 logger = logging.getLogger(__name__)
@@ -193,15 +192,20 @@ class ScannerQuery:
                 
                 # Check if scan is stale (SCANNING but no update for 5+ minutes)
                 if session.status in [ScanStatus.SCANNING, ScanStatus.PENDING]:
-                    from datetime import datetime, timedelta
-                    stale_threshold = datetime.utcnow() - timedelta(minutes=5)
+                    from datetime import datetime, timedelta, timezone
+                    now_utc = datetime.now(timezone.utc)
+                    stale_threshold = now_utc - timedelta(minutes=5)
                     check_time = session.started_at or session.created_at
+                    
+                    # Make check_time timezone-aware if it's naive
+                    if check_time and check_time.tzinfo is None:
+                        check_time = check_time.replace(tzinfo=timezone.utc)
                     
                     if check_time and check_time < stale_threshold:
                         # Mark as failed - worker likely crashed
                         session.status = ScanStatus.FAILED
                         session.error_message = "Scan interrupted (worker unavailable). Please start a new scan."
-                        session.completed_at = datetime.utcnow()
+                        session.completed_at = now_utc
                         await db.commit()
                         logger.warning(f"Marked stale scan {session.id} as FAILED during query")
                 

@@ -4,7 +4,7 @@ ScanSession model for tracking repository scanning operations.
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Enum as SQLEnum
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 import uuid
 import enum
 
@@ -54,6 +54,9 @@ class ScanSession(Base):
     files_total = Column(Integer, default=0, nullable=False)
     files_scanned = Column(Integer, default=0, nullable=False)
     strings_found = Column(Integer, default=0, nullable=False)
+    
+    # List of processed file paths (for resume after restart)
+    processed_files = Column(JSONB, default=list, nullable=False, server_default='[]')
     
     # Error handling
     error_message = Column(Text, nullable=True)

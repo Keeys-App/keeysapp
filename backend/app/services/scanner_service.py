@@ -5,12 +5,12 @@ Uses arq (Redis queue) for background processing.
 """
 import asyncio
 import logging
-from typing import Optional, Any
-from datetime import datetime
+from typing import Optional
+from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update
+from sqlalchemy import select
 from arq import create_pool
 from arq.connections import RedisSettings
 
@@ -78,10 +78,7 @@ class ScannerService:
     @staticmethod
     async def cleanup_stale_scans(db: AsyncSession, timeout_minutes: int = 30) -> int:
         """
-        Mark stale scanning sessions as failed.
-        
-        This should be called on application startup to clean up scans
-        that were interrupted by worker restart.
+        Mark very old scanning sessions as failed.
         
         Args:
             db: Database session
@@ -92,9 +89,9 @@ class ScannerService:
         """
         from datetime import timedelta
         
-        cutoff_time = datetime.utcnow() - timedelta(minutes=timeout_minutes)
+        cutoff_time = datetime.now(timezone.utc) - timedelta(minutes=timeout_minutes)
         
-        # Find stale scans (SCANNING or PENDING for too long)
+        # Find very old stale scans (SCANNING or PENDING for too long - likely stuck)
         result = await db.execute(
             select(ScanSession).where(
                 ScanSession.status.in_([ScanStatus.SCANNING, ScanStatus.PENDING]),
@@ -107,7 +104,7 @@ class ScannerService:
         for session in stale_sessions:
             session.status = ScanStatus.FAILED
             session.error_message = "Scan interrupted. Please start a new scan."
-            session.completed_at = datetime.utcnow()
+            session.completed_at = datetime.now(timezone.utc)
             count += 1
             logger.warning(f"Marked stale scan {session.id} as FAILED")
         
@@ -116,6 +113,37 @@ class ScannerService:
             logger.info(f"Cleaned up {count} stale scan sessions")
         
         return count
+    
+    @staticmethod
+    async def get_interrupted_scans(db: AsyncSession) -> list[tuple[int, int]]:
+        """
+        Get list of interrupted scans that need to be resumed.
+        
+        Returns:
+            List of tuples (scan_session_id, team_id)
+        """
+        # Find scans that are SCANNING but were started before the server restart
+        # These are scans that were interrupted
+        result = await db.execute(
+            select(ScanSession, Repository)
+            .join(Repository, ScanSession.repository_id == Repository.id)
+            .where(ScanSession.status == ScanStatus.SCANNING)
+        )
+        rows = result.all()
+        
+        interrupted = []
+        for session, repository in rows:
+            # Get project to find team_id
+            from app.models.project import Project
+            proj_result = await db.execute(
+                select(Project).where(Project.id == repository.project_id)
+            )
+            project = proj_result.scalar_one_or_none()
+            if project:
+                interrupted.append((session.id, project.team_id))
+                logger.info(f"Found interrupted scan {session.id} for team {project.team_id}")
+        
+        return interrupted
     
     @staticmethod
     async def start_scan(
@@ -203,7 +231,7 @@ class ScannerService:
             
             # Update status to scanning
             session.status = ScanStatus.SCANNING
-            session.started_at = datetime.utcnow()
+            session.started_at = datetime.now(timezone.utc)
             await db.commit()
             
             # Get repository info
@@ -261,10 +289,21 @@ class ScannerService:
                 await ScannerService._fail_scan(db, session, "Failed to connect to job queue")
                 return False
             
-            # Enqueue jobs for all files
+            # Get already processed files (for resume after restart)
+            already_processed = set(session.processed_files or [])
+            if already_processed:
+                logger.info(f"Resuming scan {scan_session_id}: {len(already_processed)} files already processed")
+            
+            # Enqueue jobs for files that haven't been processed yet
             jobs = []
+            skipped_count = 0
             for file_entry in files:
                 file_path = file_entry.get("path", "")
+                
+                # Skip already processed files (for resume)
+                if file_path in already_processed:
+                    skipped_count += 1
+                    continue
                 
                 try:
                     # Get file content
@@ -299,6 +338,9 @@ class ScannerService:
                 except Exception as e:
                     logger.error(f"Error enqueueing job for {file_path}: {type(e).__name__}: {str(e)}")
                     continue
+            
+            if skipped_count > 0:
+                logger.info(f"Skipped {skipped_count} already processed files")
             
             logger.info(f"Enqueued {len(jobs)} jobs for scan session {scan_session_id}")
             
@@ -353,6 +395,11 @@ class ScannerService:
                         
                         total_strings += len(strings)
                         
+                    # Mark file as processed (for resume)
+                    if session.processed_files is None:
+                        session.processed_files = []
+                    session.processed_files = session.processed_files + [file_path]
+                        
                 except asyncio.TimeoutError:
                     logger.error(f"Job timeout for {file_path}")
                 except Exception as e:
@@ -362,7 +409,7 @@ class ScannerService:
                 
                 # Update progress periodically (every 5 files)
                 if files_processed % 5 == 0:
-                    session.files_scanned = files_processed
+                    session.files_scanned = len(session.processed_files or [])
                     session.strings_found = total_strings
                     await db.commit()
             
@@ -371,8 +418,8 @@ class ScannerService:
             
             # Mark as completed
             session.status = ScanStatus.COMPLETED
-            session.completed_at = datetime.utcnow()
-            session.files_scanned = files_processed
+            session.completed_at = datetime.now(timezone.utc)
+            session.files_scanned = len(session.processed_files or [])
             session.strings_found = total_strings
             await db.commit()
             
@@ -415,7 +462,7 @@ class ScannerService:
         """Mark a scan session as failed."""
         session.status = ScanStatus.FAILED
         session.error_message = error_message
-        session.completed_at = datetime.utcnow()
+        session.completed_at = datetime.now(timezone.utc)
         await db.commit()
         logger.error(f"Scan {session.id} failed: {error_message}")
     
@@ -495,7 +542,7 @@ class ScannerService:
             return False
         
         session.status = ScanStatus.CANCELLED
-        session.completed_at = datetime.utcnow()
+        session.completed_at = datetime.now(timezone.utc)
         await db.commit()
         
         logger.info(f"Scan {scan_session_id} cancelled")
