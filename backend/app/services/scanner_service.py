@@ -1,15 +1,18 @@
 """
 Scanner Service for repository code analysis.
 Handles the scanning of repositories to find hardcoded strings.
+Uses arq (Redis queue) for background processing.
 """
 import asyncio
 import logging
-from typing import Optional
+from typing import Optional, Any
 from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
+from arq import create_pool
+from arq.connections import RedisSettings
 
 from app.models.scan_session import ScanSession, ScanStatus, AIProvider
 from app.models.found_string import FoundString, FoundStringStatus
@@ -17,11 +20,53 @@ from app.models.repository import Repository
 from app.models.github_connection import GitHubConnection
 from app.models.key import Key, Translation
 from app.services.github_service import GitHubService
-from app.services.anthropic_service import anthropic_service
 from app.services.token_usage_service import TokenUsageService
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+
+def _get_redis_settings() -> RedisSettings:
+    """Parse Redis URL and return RedisSettings."""
+    url = settings.redis_url
+    
+    # Parse redis://host:port or redis://user:pass@host:port/db
+    if url.startswith("redis://"):
+        url = url[8:]
+    
+    # Handle authentication
+    if "@" in url:
+        auth, host_part = url.rsplit("@", 1)
+        if ":" in auth:
+            password = auth.split(":", 1)[1]
+        else:
+            password = None
+    else:
+        host_part = url
+        password = None
+    
+    # Handle database number
+    if "/" in host_part:
+        host_port, db = host_part.rsplit("/", 1)
+        database = int(db) if db else 0
+    else:
+        host_port = host_part
+        database = 0
+    
+    # Handle port
+    if ":" in host_port:
+        host, port = host_port.rsplit(":", 1)
+        port = int(port)
+    else:
+        host = host_port
+        port = 6379
+    
+    return RedisSettings(
+        host=host,
+        port=port,
+        password=password,
+        database=database,
+    )
 
 
 class ScannerService:
@@ -90,8 +135,7 @@ class ScannerService:
         team_id: int,
     ) -> bool:
         """
-        Process a scan session - this is the main scanning logic.
-        Should be called as a background task.
+        Process a scan session using arq queue for parallel file analysis.
         
         Args:
             db: Database session
@@ -164,18 +208,17 @@ class ScannerService:
             
             logger.info(f"Scanning {len(files)} files in repository {repository.full_name}")
             
-            # Get existing keys for context
-            existing_keys = await ScannerService._get_existing_keys(db, repository.project_id)
+            # Connect to Redis and create job pool
+            try:
+                redis_pool = await create_pool(_get_redis_settings())
+            except Exception as e:
+                logger.error(f"Failed to connect to Redis: {type(e).__name__}: {str(e)}")
+                await ScannerService._fail_scan(db, session, "Failed to connect to job queue")
+                return False
             
-            # Process each file
-            total_strings = 0
-            for i, file_entry in enumerate(files):
-                # Check if scan was cancelled
-                await db.refresh(session)
-                if session.status == ScanStatus.CANCELLED:
-                    logger.info(f"Scan {scan_session_id} was cancelled")
-                    return False
-                
+            # Enqueue jobs for all files
+            jobs = []
+            for file_entry in files:
                 file_path = file_entry.get("path", "")
                 
                 try:
@@ -196,35 +239,97 @@ class ScannerService:
                     if not content or len(content) > 100000:  # 100KB limit
                         continue
                     
-                    # Analyze file for strings
-                    strings_count = await ScannerService._analyze_file(
-                        db=db,
-                        session=session,
-                        team_id=team_id,
-                        file_path=file_path,
-                        file_content=content,
-                        i18n_framework=repository.i18n_framework,
-                        existing_keys=existing_keys,
+                    # Enqueue job
+                    job = await redis_pool.enqueue_job(
+                        "analyze_file_task",
+                        file_path,
+                        content,
+                        scan_session_id,
+                        repository.i18n_framework,
                     )
-                    
-                    total_strings += strings_count
+                    jobs.append((file_path, job))
                     
                 except Exception as e:
-                    logger.error(f"Error processing file {file_path}: {type(e).__name__}: {str(e)}")
+                    logger.error(f"Error enqueueing job for {file_path}: {type(e).__name__}: {str(e)}")
                     continue
+            
+            logger.info(f"Enqueued {len(jobs)} jobs for scan session {scan_session_id}")
+            
+            # Wait for results and process them
+            total_strings = 0
+            files_processed = 0
+            
+            for file_path, job in jobs:
+                # Check if scan was cancelled
+                await db.refresh(session)
+                if session.status == ScanStatus.CANCELLED:
+                    logger.info(f"Scan {scan_session_id} was cancelled")
+                    # Cancel remaining jobs (they will timeout)
+                    await redis_pool.close()
+                    return False
                 
-                # Update progress
-                session.files_scanned = i + 1
-                session.strings_found = total_strings
-                await db.commit()
+                try:
+                    # Wait for job result with timeout
+                    result = await job.result(timeout=settings.scanner_job_timeout)
+                    
+                    if result and result.get("success"):
+                        strings = result.get("strings", [])
+                        token_usage = result.get("token_usage", {})
+                        
+                        # Record token usage
+                        if token_usage and token_usage.get("total_tokens", 0) > 0:
+                            await TokenUsageService.record_usage(
+                                db=db,
+                                team_id=team_id,
+                                user_id=session.started_by_user_id,
+                                operation_type="SCAN_FILE",
+                                provider=session.ai_provider.value,
+                                model=session.ai_model,
+                                input_tokens=token_usage.get("input_tokens", 0),
+                                output_tokens=token_usage.get("output_tokens", 0),
+                                scan_session_id=session.id,
+                            )
+                        
+                        # Save found strings
+                        for string_info in strings:
+                            found_string = FoundString(
+                                scan_session_id=session.id,
+                                file_path=file_path,
+                                line_number=string_info.get("line"),
+                                original_text=string_info.get("text", ""),
+                                suggested_key=string_info.get("suggested_key", ""),
+                                context=string_info.get("context", ""),
+                                confidence=int(string_info.get("confidence", 0.8) * 100),
+                                status=FoundStringStatus.PENDING,
+                            )
+                            db.add(found_string)
+                        
+                        total_strings += len(strings)
+                        
+                except asyncio.TimeoutError:
+                    logger.error(f"Job timeout for {file_path}")
+                except Exception as e:
+                    logger.error(f"Error getting job result for {file_path}: {type(e).__name__}: {str(e)}")
+                
+                files_processed += 1
+                
+                # Update progress periodically (every 5 files)
+                if files_processed % 5 == 0:
+                    session.files_scanned = files_processed
+                    session.strings_found = total_strings
+                    await db.commit()
+            
+            # Close Redis pool
+            await redis_pool.close()
             
             # Mark as completed
             session.status = ScanStatus.COMPLETED
             session.completed_at = datetime.utcnow()
+            session.files_scanned = files_processed
             session.strings_found = total_strings
             await db.commit()
             
-            logger.info(f"Scan {scan_session_id} completed: {total_strings} strings found in {len(files)} files")
+            logger.info(f"Scan {scan_session_id} completed: {total_strings} strings found in {files_processed} files")
             return True
             
         except Exception as e:
@@ -239,74 +344,6 @@ class ScannerService:
             except Exception:
                 pass
             return False
-    
-    @staticmethod
-    async def _analyze_file(
-        db: AsyncSession,
-        session: ScanSession,
-        team_id: int,
-        file_path: str,
-        file_content: str,
-        i18n_framework: Optional[str],
-        existing_keys: list[str],
-    ) -> int:
-        """
-        Analyze a single file for hardcoded strings.
-        
-        Returns:
-            Number of strings found
-        """
-        try:
-            # Use Anthropic for analysis (for now, only Anthropic is implemented)
-            if session.ai_provider != AIProvider.ANTHROPIC:
-                logger.warning(f"Only Anthropic is currently supported, using Anthropic instead of {session.ai_provider}")
-            
-            result = await anthropic_service.analyze_file_for_strings(
-                file_content=file_content,
-                file_path=file_path,
-                i18n_framework=i18n_framework,
-                existing_keys=existing_keys,
-                model=session.ai_model,
-            )
-            
-            strings = result.get("strings", [])
-            token_usage = result.get("token_usage", {})
-            
-            # Record token usage
-            if token_usage:
-                await TokenUsageService.record_usage(
-                    db=db,
-                    team_id=team_id,
-                    user_id=session.started_by_user_id,
-                    operation_type="SCAN_FILE",
-                    provider=session.ai_provider.value,
-                    model=session.ai_model,
-                    input_tokens=token_usage.get("input_tokens", 0),
-                    output_tokens=token_usage.get("output_tokens", 0),
-                    scan_session_id=session.id,
-                )
-            
-            # Save found strings
-            for string_info in strings:
-                found_string = FoundString(
-                    scan_session_id=session.id,
-                    file_path=file_path,
-                    line_number=string_info.get("line"),
-                    original_text=string_info.get("text", ""),
-                    suggested_key=string_info.get("suggested_key", ""),
-                    context=string_info.get("context", ""),
-                    confidence=int(string_info.get("confidence", 0.8) * 100),
-                    status=FoundStringStatus.PENDING,
-                )
-                db.add(found_string)
-            
-            await db.commit()
-            
-            return len(strings)
-            
-        except Exception as e:
-            logger.error(f"Error analyzing file {file_path}: {type(e).__name__}: {str(e)}")
-            return 0
     
     @staticmethod
     async def _get_existing_keys(db: AsyncSession, project_id: int) -> list[str]:
@@ -495,4 +532,3 @@ class ScannerService:
         
         logger.info(f"Created {created_count} keys from scan session {scan_session_id}")
         return created_count
-

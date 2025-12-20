@@ -1062,6 +1062,117 @@ After connecting GitHub, users need to:
 
 ---
 
+## 🔧 Setup & Deployment
+
+### Requirements
+
+| Component | Purpose |
+|-----------|---------|
+| **Redis** | Job queue for background file analysis |
+| **arq** | Async Redis queue library (Python) |
+
+### Architecture: Background Job Processing
+
+File scanning uses a distributed job queue for parallel processing:
+
+```
+┌─────────────────┐     ┌─────────────┐     ┌─────────────────┐
+│  FastAPI        │     │             │     │  arq Worker     │
+│  (main process) │     │    Redis    │     │  (separate      │
+│                 │     │   (queue)   │     │   process)      │
+├─────────────────┤     ├─────────────┤     ├─────────────────┤
+│                 │     │             │     │                 │
+│  startScan()    │────▶│  Job Queue  │◀────│  analyze_file() │
+│                 │     │             │     │                 │
+│  Collects       │◀────│  Results    │─────│  Claude API     │
+│  results        │     │             │     │                 │
+│                 │     │             │     │                 │
+│  Writes to DB   │     │             │     │  Returns:       │
+│  (strings,      │     │             │     │  - strings[]    │
+│   token usage)  │     │             │     │  - token_usage  │
+│                 │     │             │     │                 │
+└─────────────────┘     └─────────────┘     └─────────────────┘
+```
+
+### Environment Variables
+
+Add to your `.env`:
+
+```env
+# Redis (for background job queue)
+REDIS_URL=redis://localhost:6379
+
+# Scanner configuration
+SCANNER_MAX_CONCURRENT_JOBS=5
+SCANNER_JOB_TIMEOUT=300
+```
+
+### Running Locally
+
+**Terminal 1 — Backend API:**
+```bash
+cd backend
+source venv/bin/activate
+python main.py
+```
+
+**Terminal 2 — Worker:**
+```bash
+cd backend
+source venv/bin/activate
+arq worker.WorkerSettings
+```
+
+### Railway Deployment
+
+Deploy **two services** from the same repository:
+
+#### Service 1: API
+- **Root Directory:** `backend`
+- **Start Command:** `python main.py`
+- **Environment:** Add all env vars
+
+#### Service 2: Worker
+- **Root Directory:** `backend`
+- **Start Command:** `arq worker.WorkerSettings`
+- **Environment:** Same env vars as API
+
+#### Service 3: Redis
+- Add Redis from Railway marketplace
+- Copy `REDIS_URL` to both services
+
+```
+┌─────────────────────────────────────────────────────┐
+│                    Railway Project                   │
+├─────────────────────────────────────────────────────┤
+│                                                      │
+│  ┌──────────┐  ┌──────────┐  ┌──────────────────┐  │
+│  │   API    │  │  Worker  │  │      Redis       │  │
+│  │ Service  │  │ Service  │  │     (addon)      │  │
+│  │          │  │          │  │                  │  │
+│  │ python   │  │ arq      │  │ redis://...      │  │
+│  │ main.py  │  │ worker   │  │                  │  │
+│  └────┬─────┘  └────┬─────┘  └────────┬─────────┘  │
+│       │             │                 │            │
+│       └─────────────┴────────────────►│            │
+│                   REDIS_URL                        │
+│                                                      │
+└─────────────────────────────────────────────────────┘
+```
+
+### Scaling Workers
+
+Need more throughput? Scale horizontally:
+
+```bash
+# Run multiple workers
+arq worker.WorkerSettings --workers 3
+```
+
+Or deploy multiple worker instances on Railway.
+
+---
+
 ## 💰 Cost Estimation
 
 ### Claude API Costs
@@ -1140,4 +1251,4 @@ After connecting GitHub, users need to:
 ---
 
 *Document created: 2024-12-19*
-*Last updated: 2024-12-19*
+*Last updated: 2024-12-20*

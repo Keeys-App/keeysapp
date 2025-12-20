@@ -54,6 +54,11 @@ class Settings(BaseSettings):
     # Token encryption key for storing GitHub tokens (Fernet key)
     token_encryption_key: Optional[str] = None
     
+    # Redis (for arq task queue)
+    redis_url: str = "redis://localhost:6379"
+    scanner_max_concurrent_jobs: int = 5
+    scanner_job_timeout: int = 300  # seconds
+    
     class Config:
         env_file = ".env"
         case_sensitive = False
