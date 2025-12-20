@@ -139,7 +139,14 @@ class AnthropicService:
                 # Parse JSON response
                 try:
                     result = json.loads(response_text)
-                    strings = result.get("strings", [])
+                    
+                    # Handle both formats: {"strings": [...]} and direct array [...]
+                    if isinstance(result, list):
+                        strings = result
+                    elif isinstance(result, dict):
+                        strings = result.get("strings", [])
+                    else:
+                        strings = []
                     
                     # Validate and normalize strings
                     validated_strings: list[FoundStringInfo] = []
