@@ -11,6 +11,7 @@ interface CallbackResult {
   status: CallbackStatus;
   message: string;
   username?: string;
+  teamId?: string;
 }
 
 export const GitHubCallbackPage: FC = () => {
@@ -32,14 +33,8 @@ export const GitHubCallbackPage: FC = () => {
         status: 'success',
         message: `Successfully connected to GitHub${username ? ` as @${username}` : ''}!`,
         username: username ?? undefined,
+        teamId: teamId ?? undefined,
       });
-      
-      // If we have teamId, redirect to team page after short delay
-      if (teamId) {
-        setTimeout(() => {
-          navigate(`/team/${teamId}`, { replace: true });
-        }, 2000);
-      }
     } else if (error) {
       const errorMessages: Record<string, string> = {
         invalid_state: 'Invalid request. Please try again.',
@@ -60,7 +55,11 @@ export const GitHubCallbackPage: FC = () => {
   }, [searchParams, navigate]);
 
   const handleContinue = () => {
-    navigate(PATHS.DASHBOARD, { replace: true });
+    if (result.teamId) {
+      navigate(PATHS.TEAM_EDIT.replace(':id', result.teamId), { replace: true });
+    } else {
+      navigate(PATHS.DASHBOARD, { replace: true });
+    }
   };
 
   const handleRetry = () => {
@@ -100,7 +99,7 @@ export const GitHubCallbackPage: FC = () => {
           
           {result.status === 'success' ? (
             <Button onClick={handleContinue} className="w-full">
-              Continue to Dashboard
+              {result.teamId ? 'Continue to Team Settings' : 'Continue to Dashboard'}
             </Button>
           ) : result.status === 'error' ? (
             <div className="flex gap-2">

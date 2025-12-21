@@ -50,6 +50,9 @@ class ScanSession(Base):
     ai_provider = Column(SQLEnum(AIProvider), nullable=False, default=AIProvider.ANTHROPIC)
     ai_model = Column(String(100), nullable=False, default="claude-haiku-4-5")
     
+    # Scan path (optional directory to limit scan scope)
+    scan_path = Column(String(500), nullable=True)
+    
     # Progress tracking
     files_total = Column(Integer, default=0, nullable=False)
     files_scanned = Column(Integer, default=0, nullable=False)

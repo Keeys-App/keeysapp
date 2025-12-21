@@ -12,9 +12,10 @@ import logging
 from sqlalchemy import select
 
 from app.database import AsyncSessionLocal
-from app.models.scan_session import ScanSession, ScanStatus
+from app.models.scan_session import ScanSession
 from app.models.found_string import FoundString, FoundStringStatus
 from app.models.repository import Repository
+from app.models.github_connection import GitHubConnection
 from app.models.activity_log import ActivityLog, ActionType
 from app.services.scanner_service import ScannerService
 from app.services.token_usage_service import TokenUsageService
@@ -75,6 +76,7 @@ class ScanSessionType:
     status: ScanStatusEnum
     ai_provider: AIProviderEnum
     ai_model: str
+    scan_path: Optional[str]  # Directory to scan (None = entire repo)
     files_total: int
     files_scanned: int
     strings_found: int
@@ -83,6 +85,13 @@ class ScanSessionType:
     started_at: Optional[datetime]
     completed_at: Optional[datetime]
     found_strings: List[FoundStringType]
+
+
+@strawberry.type
+class RepositoryDirectoryType:
+    """GraphQL type for repository directory."""
+    path: str
+    name: str
 
 
 @strawberry.type
@@ -151,6 +160,7 @@ def _session_to_type(session: ScanSession, found_strings: List[FoundString] = No
         status=ScanStatusEnum(session.status.value),
         ai_provider=AIProviderEnum(session.ai_provider.value),
         ai_model=session.ai_model,
+        scan_path=session.scan_path,
         files_total=session.files_total,
         files_scanned=session.files_scanned,
         strings_found=session.strings_found,
@@ -346,6 +356,106 @@ class ScannerQuery:
                 by_provider=[],
                 by_model=[],
             )
+    
+    @strawberry.field
+    async def repository_directories(
+        self,
+        info: Info,
+        project_id: str,
+        prefix: Optional[str] = None,
+    ) -> List[RepositoryDirectoryType]:
+        """
+        Get list of directories from a repository.
+        Used for directory picker with autocomplete.
+        
+        Args:
+            info: GraphQL info object
+            project_id: Public UUID of the project
+            prefix: Optional prefix to filter directories
+            
+        Returns:
+            List of directories matching prefix
+        """
+        try:
+            user_id = await get_current_user_id(info)
+            
+            async with AsyncSessionLocal() as db:
+                # Get project and check access
+                project = await ProjectService.get_project_by_public_id(db, project_id)
+                if not project:
+                    return []
+                
+                has_access = await ProjectService.check_project_access(db, project.id, user_id)
+                if not has_access:
+                    return []
+                
+                # Get repository
+                repository = await GitHubService.get_repository_by_project(db, project.id)
+                if not repository:
+                    return []
+                
+                # Get GitHub connection
+                result = await db.execute(
+                    select(GitHubConnection).where(
+                        GitHubConnection.id == repository.github_connection_id
+                    )
+                )
+                connection = result.scalar_one_or_none()
+                if not connection:
+                    return []
+                
+                # Get access token (with auto-refresh)
+                access_token = await GitHubService.get_valid_access_token(db, connection)
+                if not access_token:
+                    logger.warning(f"Token expired and refresh failed for connection {connection.id}")
+                    return []
+                
+                # Get repository tree
+                tree = await GitHubService.get_repository_tree(
+                    access_token=access_token,
+                    owner=repository.repo_owner,
+                    repo=repository.repo_name,
+                    branch=repository.default_branch or "main",
+                )
+                
+                if not tree:
+                    return []
+                
+                # Filter directories only
+                directories: List[RepositoryDirectoryType] = []
+                seen_paths = set()
+                
+                for entry in tree:
+                    if entry.get("type") == "tree":  # tree = directory in GitHub API
+                        path = entry.get("path", "")
+                        if path and path not in seen_paths:
+                            # Filter by prefix if provided
+                            if prefix:
+                                # Match if path starts with prefix or contains prefix
+                                prefix_lower = prefix.lower()
+                                if not (path.lower().startswith(prefix_lower) or 
+                                       prefix_lower in path.lower()):
+                                    continue
+                            
+                            seen_paths.add(path)
+                            # Get directory name (last part of path)
+                            name = path.split("/")[-1] if "/" in path else path
+                            directories.append(RepositoryDirectoryType(
+                                path=path,
+                                name=name,
+                            ))
+                
+                # Sort by path
+                directories.sort(key=lambda d: d.path)
+                
+                # Limit results to prevent huge responses
+                return directories[:100]
+                
+        except AuthenticationError:
+            raise
+        except Exception as e:
+            logger.error(f"Error fetching repository directories: {type(e).__name__}: {str(e)}")
+            return []
 
 
 @strawberry.type
@@ -357,6 +467,7 @@ class ScannerMutation:
         self,
         info: Info,
         project_id: str,
+        scan_path: Optional[str] = None,
     ) -> StartScanResult:
         """
         Start scanning a repository for hardcoded strings.
@@ -365,6 +476,7 @@ class ScannerMutation:
         Args:
             info: GraphQL info object
             project_id: Public UUID of the project
+            scan_path: Optional directory path to limit scan scope
             
         Returns:
             Result with scan session info
@@ -407,6 +519,54 @@ class ScannerMutation:
                 ai_provider = team.ai_provider
                 ai_model = team.ai_model
                 
+                # Validate scan_path if provided
+                if scan_path:
+                    # Normalize path (remove leading/trailing slashes)
+                    scan_path = scan_path.strip("/")
+                    
+                    if scan_path:
+                        # Get GitHub connection
+                        conn_result = await db.execute(
+                            select(GitHubConnection).where(
+                                GitHubConnection.id == repository.github_connection_id
+                            )
+                        )
+                        connection = conn_result.scalar_one_or_none()
+                        if not connection:
+                            return StartScanResult(
+                                success=False,
+                                message="GitHub connection not found",
+                            )
+                        
+                        # Verify directory exists (with auto-refresh)
+                        access_token = await GitHubService.get_valid_access_token(db, connection)
+                        if not access_token:
+                            return StartScanResult(
+                                success=False,
+                                message="GitHub token expired. Please reconnect your account.",
+                            )
+                        tree = await GitHubService.get_repository_tree(
+                            access_token=access_token,
+                            owner=repository.repo_owner,
+                            repo=repository.repo_name,
+                            branch=repository.default_branch or "main",
+                        )
+                        
+                        if tree:
+                            # Check if directory exists in tree
+                            dir_exists = any(
+                                entry.get("type") == "tree" and entry.get("path") == scan_path
+                                for entry in tree
+                            )
+                            if not dir_exists:
+                                return StartScanResult(
+                                    success=False,
+                                    message=f"Directory '{scan_path}' not found in repository",
+                                )
+                    else:
+                        # Empty after strip means scan entire repo
+                        scan_path = None
+                
                 # Create scan session
                 session = await ScannerService.start_scan(
                     db=db,
@@ -414,6 +574,7 @@ class ScannerMutation:
                     user_id=user_id,
                     ai_provider=ai_provider,
                     ai_model=ai_model,
+                    scan_path=scan_path,
                 )
                 
                 # Log scan start activity
@@ -427,6 +588,7 @@ class ScannerMutation:
                         "ai_provider": ai_provider,
                         "ai_model": ai_model,
                         "scan_session_id": str(session.public_id),
+                        "scan_path": scan_path,
                     }
                 )
                 db.add(scan_start_log)

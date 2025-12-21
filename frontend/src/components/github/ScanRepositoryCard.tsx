@@ -11,6 +11,7 @@ import {
   ChevronUp,
   Check,
   X,
+  FolderOpen,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -49,6 +50,7 @@ import {
   ScanStatus,
   FoundStringStatus,
 } from '@/graphql/scanner';
+import { DirectoryPicker } from './DirectoryPicker';
 
 interface ScanRepositoryCardProps {
   projectId: string;
@@ -65,6 +67,8 @@ export const ScanRepositoryCard: FC<ScanRepositoryCardProps> = ({
 }) => {
   const [currentScanId, setCurrentScanId] = useState<string | null>(null);
   const [isResultsOpen, setIsResultsOpen] = useState(false);
+  const [scanPath, setScanPath] = useState<string>('');
+  const [scanPathError, setScanPathError] = useState<string | null>(null);
   
   // Query for scan sessions
   const { data: sessionsData, loading: sessionsLoading, refetch: refetchSessions } = useQuery<{
@@ -115,19 +119,33 @@ export const ScanRepositoryCard: FC<ScanRepositoryCardProps> = ({
   }, [currentScan?.status, startPolling, stopPolling]);
   
   const handleStartScan = async () => {
+    // Clear previous error
+    setScanPathError(null);
+    
     try {
       const result = await startScan({
-        variables: { projectId },
+        variables: { 
+          projectId,
+          scanPath: scanPath.trim() || null,
+        },
       });
       
       const { success, message, scanSession } = result.data?.startRepositoryScan ?? {};
       
       if (success && scanSession) {
         setCurrentScanId(scanSession.id);
-        toast('Scan started', { description: 'Scanning repository for hardcoded strings...' });
+        const scanDescription = scanPath 
+          ? `Scanning directory "${scanPath}" for hardcoded strings...`
+          : 'Scanning repository for hardcoded strings...';
+        toast('Scan started', { description: scanDescription });
         refetchSessions();
       } else {
-        toast('Failed to start scan', { description: message });
+        // Check if error is about directory not found
+        if (message?.includes('not found in repository')) {
+          setScanPathError(message);
+        } else {
+          toast('Failed to start scan', { description: message });
+        }
       }
     } catch (error) {
       toast('Error', { description: 'Failed to start scan. Please try again.' });
@@ -384,20 +402,42 @@ export const ScanRepositoryCard: FC<ScanRepositoryCardProps> = ({
           </div>
         ) : null}
         
-        {/* Empty State / Start Button */}
+        {/* Directory Selection and Start Button */}
         {!isScanning && canManage ? (
-          <Button 
-            onClick={handleStartScan} 
-            disabled={startingScan || sessionsLoading}
-            className="w-full"
-          >
-            {startingScan ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Search className="mr-2 h-4 w-4" />
-            )}
-            {currentScan ? 'Start New Scan' : 'Find Keys'}
-          </Button>
+          <div className="space-y-4">
+            {/* Directory Picker */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Scan Directory</span>
+              </div>
+              <DirectoryPicker
+                projectId={projectId}
+                value={scanPath}
+                onChange={(value) => {
+                  setScanPath(value);
+                  setScanPathError(null);
+                }}
+                error={scanPathError}
+                placeholder="Enter directory path or select from list"
+                disabled={startingScan || sessionsLoading}
+              />
+            </div>
+            
+            {/* Start Button */}
+            <Button 
+              onClick={handleStartScan} 
+              disabled={startingScan || sessionsLoading}
+              className="w-full"
+            >
+              {startingScan ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Search className="mr-2 h-4 w-4" />
+              )}
+              {currentScan ? 'Start New Scan' : 'Find Keys'}
+            </Button>
+          </div>
         ) : null}
       </CardContent>
     </Card>

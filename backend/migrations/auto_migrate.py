@@ -1359,6 +1359,35 @@ def migrate_add_processed_files_if_needed():
         return False
 
 
+def migrate_add_scan_path_if_needed():
+    """
+    Add scan_path column to scan_sessions table.
+    This column specifies the directory to scan (None = entire repo).
+    Safe to run multiple times.
+    """
+    try:
+        # Check if column already exists
+        if check_column_exists('scan_sessions', 'scan_path'):
+            logger.info("✅ Migration: scan_path column already exists, skipping")
+            return True
+        
+        logger.info("🔄 Migration: Adding scan_path column to scan_sessions table")
+        
+        with engine.connect() as connection:
+            connection.execute(text("""
+                ALTER TABLE scan_sessions 
+                ADD COLUMN scan_path VARCHAR(500)
+            """))
+            connection.commit()
+            
+            logger.info("✅ Migration: scan_path column added successfully")
+            return True
+            
+    except Exception as e:
+        logger.error(f"❌ Migration failed: {type(e).__name__}: {str(e)}")
+        return False
+
+
 def migrate_add_scan_action_types_if_needed():
     """
     Add SCAN_START, SCAN_COMPLETE, SCAN_FAILED action types to actiontype enum.
@@ -1400,6 +1429,52 @@ def migrate_add_scan_action_types_if_needed():
         return False
 
 
+def migrate_add_github_refresh_token_if_needed():
+    """
+    Add refresh_token and token_expires_at columns to github_connections table.
+    Required for GitHub OAuth Apps with expiring tokens enabled.
+    Safe to run multiple times.
+    """
+    try:
+        inspector = inspect(engine)
+        
+        if 'github_connections' not in inspector.get_table_names():
+            logger.info("✅ Migration: github_connections table doesn't exist, skipping refresh_token migration")
+            return True
+        
+        columns = {col['name'] for col in inspector.get_columns('github_connections')}
+        
+        if 'refresh_token' in columns and 'token_expires_at' in columns:
+            logger.info("✅ Migration: refresh_token and token_expires_at columns already exist, skipping")
+            return True
+        
+        logger.info("🔄 Migration: Adding refresh_token and token_expires_at columns to github_connections")
+        
+        with engine.connect() as connection:
+            if 'refresh_token' not in columns:
+                connection.execute(text("""
+                    ALTER TABLE github_connections 
+                    ADD COLUMN refresh_token TEXT;
+                """))
+                logger.info("  Added refresh_token column")
+            
+            if 'token_expires_at' not in columns:
+                connection.execute(text("""
+                    ALTER TABLE github_connections 
+                    ADD COLUMN token_expires_at TIMESTAMP WITH TIME ZONE;
+                """))
+                logger.info("  Added token_expires_at column")
+            
+            connection.commit()
+            
+            logger.info("✅ Migration: refresh_token and token_expires_at columns added successfully")
+            return True
+        
+    except Exception as e:
+        logger.error(f"❌ Migration failed: {type(e).__name__}: {str(e)}")
+        return False
+
+
 def run_all_migrations():
     """
     Run all pending migrations.
@@ -1432,6 +1507,8 @@ def run_all_migrations():
         ("add_team_ai_settings", migrate_add_team_ai_settings_if_needed),
         ("add_processed_files", migrate_add_processed_files_if_needed),
         ("add_scan_action_types", migrate_add_scan_action_types_if_needed),
+        ("add_scan_path", migrate_add_scan_path_if_needed),
+        ("add_github_refresh_token", migrate_add_github_refresh_token_if_needed),
         # Add more migrations here as needed
     ]
     

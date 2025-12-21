@@ -78,11 +78,21 @@ export const TEAM_TOKEN_USAGE_QUERY = gql`
   }
 `;
 
+// Query to get repository directories for autocomplete
+export const REPOSITORY_DIRECTORIES_QUERY = gql`
+  query RepositoryDirectories($projectId: String!, $prefix: String) {
+    repositoryDirectories(projectId: $projectId, prefix: $prefix) {
+      path
+      name
+    }
+  }
+`;
+
 // Mutation to start a repository scan
 // Note: AI settings are taken from Team configuration on backend
 export const START_REPOSITORY_SCAN_MUTATION = gql`
-  mutation StartRepositoryScan($projectId: String!) {
-    startRepositoryScan(projectId: $projectId) {
+  mutation StartRepositoryScan($projectId: String!, $scanPath: String) {
+    startRepositoryScan(projectId: $projectId, scanPath: $scanPath) {
       success
       message
       scanSession {
@@ -90,6 +100,7 @@ export const START_REPOSITORY_SCAN_MUTATION = gql`
         status
         aiProvider
         aiModel
+        scanPath
         filesTotal
         filesScanned
         stringsFound
@@ -190,6 +201,7 @@ export interface ScanSession {
   status: ScanStatus;
   aiProvider: AIProvider;
   aiModel: string;
+  scanPath: string | null;
   filesTotal: number;
   filesScanned: number;
   stringsFound: number;
@@ -198,6 +210,11 @@ export interface ScanSession {
   startedAt: string | null;
   completedAt: string | null;
   foundStrings: FoundString[];
+}
+
+export interface RepositoryDirectory {
+  path: string;
+  name: string;
 }
 
 export interface TokenUsageStats {

@@ -33,6 +33,8 @@ class GitHubConnection(Base):
     
     # GitHub OAuth data
     access_token = Column(Text, nullable=False)  # Encrypted token
+    refresh_token = Column(Text, nullable=True)  # Encrypted refresh token (for expiring tokens)
+    token_expires_at = Column(DateTime(timezone=True), nullable=True)  # When access_token expires
     token_type = Column(String(50), default="bearer")
     scope = Column(String(500))  # Granted scopes
     

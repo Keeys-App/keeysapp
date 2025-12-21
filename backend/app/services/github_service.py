@@ -5,12 +5,13 @@ GitHub connections are linked to Teams, not individual Users.
 import secrets
 import logging
 import httpx
+from datetime import datetime, timedelta, timezone
 from typing import Optional, TypedDict
 from urllib.parse import urlencode
 from cryptography.fernet import Fernet
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, update
 from uuid import UUID
 
 from app.core.config import settings
@@ -41,11 +42,13 @@ class GitHubUserInfo(TypedDict):
     email: Optional[str]
 
 
-class GitHubTokenInfo(TypedDict):
+class GitHubTokenInfo(TypedDict, total=False):
     """Type definition for GitHub token information."""
-    access_token: str
-    token_type: str
-    scope: str
+    access_token: str  # Required
+    token_type: str  # Required
+    scope: str  # Required
+    refresh_token: Optional[str]  # Present if token expiration is enabled
+    expires_in: Optional[int]  # Seconds until access_token expires
 
 
 class GitHubRepoInfo(TypedDict):
@@ -246,11 +249,22 @@ class GitHubService:
                     logger.error(f"GitHub OAuth error: {data.get('error_description', data.get('error'))}")
                     return None
                 
-                return GitHubTokenInfo(
-                    access_token=data["access_token"],
-                    token_type=data.get("token_type", "bearer"),
-                    scope=data.get("scope", ""),
-                )
+                token_info: GitHubTokenInfo = {
+                    "access_token": data["access_token"],
+                    "token_type": data.get("token_type", "bearer"),
+                    "scope": data.get("scope", ""),
+                }
+                
+                # Include refresh_token and expires_in if present (expiring tokens enabled)
+                if "refresh_token" in data:
+                    token_info["refresh_token"] = data["refresh_token"]
+                    logger.info("GitHub OAuth returned refresh_token (expiring tokens enabled)")
+                
+                if "expires_in" in data:
+                    token_info["expires_in"] = int(data["expires_in"])
+                    logger.info(f"GitHub token expires in {data['expires_in']} seconds")
+                
+                return token_info
         except Exception as e:
             logger.error(f"Failed to exchange code for token: {type(e).__name__}")
             return None
@@ -344,6 +358,136 @@ class GitHubService:
             return False
     
     @staticmethod
+    async def refresh_access_token(refresh_token: str) -> Optional[GitHubTokenInfo]:
+        """
+        Refresh an expired access token using the refresh token.
+        
+        Args:
+            refresh_token: Refresh token from GitHub OAuth
+            
+        Returns:
+            New token information or None if refresh failed
+        """
+        if not settings.github_client_id or not settings.github_client_secret:
+            logger.error("GitHub OAuth not configured")
+            return None
+        
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    GITHUB_TOKEN_URL,
+                    data={
+                        "client_id": settings.github_client_id,
+                        "client_secret": settings.github_client_secret,
+                        "grant_type": "refresh_token",
+                        "refresh_token": refresh_token,
+                    },
+                    headers={
+                        "Accept": "application/json",
+                    },
+                    timeout=30.0,
+                )
+                
+                if response.status_code != 200:
+                    logger.error(f"GitHub token refresh failed: {response.status_code}")
+                    return None
+                
+                data = response.json()
+                
+                if "error" in data:
+                    logger.error(f"GitHub OAuth refresh error: {data.get('error_description', data.get('error'))}")
+                    return None
+                
+                token_info: GitHubTokenInfo = {
+                    "access_token": data["access_token"],
+                    "token_type": data.get("token_type", "bearer"),
+                    "scope": data.get("scope", ""),
+                }
+                
+                # Include new refresh_token if provided (GitHub rotates refresh tokens)
+                if "refresh_token" in data:
+                    token_info["refresh_token"] = data["refresh_token"]
+                
+                if "expires_in" in data:
+                    token_info["expires_in"] = int(data["expires_in"])
+                
+                logger.info("Successfully refreshed GitHub access token")
+                return token_info
+        except Exception as e:
+            logger.error(f"Failed to refresh access token: {type(e).__name__}")
+            return None
+    
+    @staticmethod
+    async def get_valid_access_token(
+        db: AsyncSession,
+        connection: GitHubConnection,
+    ) -> Optional[str]:
+        """
+        Get a valid access token for a connection, refreshing if needed.
+        
+        This method checks if the token is expired and automatically refreshes it
+        using the refresh_token if available.
+        
+        Args:
+            db: Database session
+            connection: GitHubConnection object
+            
+        Returns:
+            Valid access token or None if refresh failed
+        """
+        access_token = GitHubService.decrypt_token(connection.access_token)
+        
+        # Check if token has expiration time set
+        if connection.token_expires_at is not None:
+            # Refresh 5 minutes before expiration to avoid race conditions
+            refresh_threshold = datetime.now(timezone.utc) + timedelta(minutes=5)
+            
+            if connection.token_expires_at <= refresh_threshold:
+                logger.info(f"Token expired or expiring soon for connection {connection.id}, attempting refresh")
+                
+                # Check if we have a refresh token
+                if not connection.refresh_token:
+                    logger.warning(f"No refresh token available for connection {connection.id}")
+                    return None
+                
+                # Decrypt and use refresh token
+                decrypted_refresh_token = GitHubService.decrypt_token(connection.refresh_token)
+                new_token_info = await GitHubService.refresh_access_token(decrypted_refresh_token)
+                
+                if not new_token_info:
+                    logger.error(f"Failed to refresh token for connection {connection.id}")
+                    return None
+                
+                # Update connection with new tokens
+                encrypted_access = GitHubService.encrypt_token(new_token_info["access_token"])
+                
+                update_values = {
+                    "access_token": encrypted_access,
+                }
+                
+                # Update refresh token if GitHub rotated it
+                if new_token_info.get("refresh_token"):
+                    update_values["refresh_token"] = GitHubService.encrypt_token(new_token_info["refresh_token"])
+                
+                # Update expiration time
+                if new_token_info.get("expires_in"):
+                    update_values["token_expires_at"] = datetime.now(timezone.utc) + timedelta(
+                        seconds=new_token_info["expires_in"]
+                    )
+                
+                await db.execute(
+                    update(GitHubConnection)
+                    .where(GitHubConnection.id == connection.id)
+                    .values(**update_values)
+                )
+                await db.commit()
+                
+                logger.info(f"Successfully refreshed and updated token for connection {connection.id}")
+                return new_token_info["access_token"]
+        
+        return access_token
+    
+    @staticmethod
     async def create_connection(
         db: AsyncSession,
         team_id: int,
@@ -375,6 +519,16 @@ class GitHubService:
         
         encrypted_token = GitHubService.encrypt_token(token_info["access_token"])
         
+        # Encrypt refresh_token if present
+        encrypted_refresh = None
+        if token_info.get("refresh_token"):
+            encrypted_refresh = GitHubService.encrypt_token(token_info["refresh_token"])
+        
+        # Calculate token expiration time if expires_in is provided
+        token_expires_at = None
+        if token_info.get("expires_in"):
+            token_expires_at = datetime.now(timezone.utc) + timedelta(seconds=token_info["expires_in"])
+        
         if existing:
             # Update existing connection
             existing.access_token = encrypted_token
@@ -384,6 +538,12 @@ class GitHubService:
             existing.github_avatar_url = user_info["avatar_url"]
             existing.github_email = user_info["email"]
             existing.connected_by_user_id = connected_by_user_id
+            
+            # Update refresh token fields
+            if encrypted_refresh is not None:
+                existing.refresh_token = encrypted_refresh
+            if token_expires_at is not None:
+                existing.token_expires_at = token_expires_at
             
             await db.commit()
             await db.refresh(existing)
@@ -396,6 +556,8 @@ class GitHubService:
             team_id=team_id,
             connected_by_user_id=connected_by_user_id,
             access_token=encrypted_token,
+            refresh_token=encrypted_refresh,
+            token_expires_at=token_expires_at,
             token_type=token_info["token_type"],
             scope=token_info["scope"],
             github_user_id=user_info["id"],

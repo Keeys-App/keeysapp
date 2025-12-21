@@ -153,6 +153,7 @@ class ScannerService:
         user_id: int,
         ai_provider: Optional[str] = None,
         ai_model: Optional[str] = None,
+        scan_path: Optional[str] = None,
     ) -> ScanSession:
         """
         Start a new scan session for a repository.
@@ -163,6 +164,7 @@ class ScannerService:
             user_id: ID of user starting the scan
             ai_provider: AI provider to use (OPENAI or ANTHROPIC)
             ai_model: Specific model to use
+            scan_path: Optional directory path to limit scan scope
             
         Returns:
             Created ScanSession
@@ -192,6 +194,7 @@ class ScannerService:
             status=ScanStatus.PENDING,
             ai_provider=provider,
             ai_model=model,
+            scan_path=scan_path,
         )
         
         db.add(session)
@@ -257,8 +260,11 @@ class ScannerService:
                 await ScannerService._fail_scan(db, session, "GitHub connection not found")
                 return False
             
-            # Get access token
-            access_token = GitHubService.get_decrypted_token(connection)
+            # Get access token (with auto-refresh)
+            access_token = await GitHubService.get_valid_access_token(db, connection)
+            if not access_token:
+                await ScannerService._fail_scan(db, session, "GitHub token expired. Please reconnect your account.")
+                return False
             
             # Get repository file tree
             tree = await GitHubService.get_repository_tree(
@@ -275,6 +281,12 @@ class ScannerService:
             # Filter files by patterns
             include_patterns = repository.source_patterns if repository.source_patterns else None
             files = GitHubService.filter_files_by_patterns(tree, include_patterns)
+            
+            # Filter by scan_path if specified
+            if session.scan_path:
+                scan_path_prefix = session.scan_path.rstrip("/") + "/"
+                files = [f for f in files if f.get("path", "").startswith(scan_path_prefix)]
+                logger.info(f"Filtered to {len(files)} files in directory '{session.scan_path}'")
             
             # Update total files count
             session.files_total = len(files)

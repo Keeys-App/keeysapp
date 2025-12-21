@@ -35,6 +35,7 @@ from app.schemas.scanner import (
     StartScanResult,
     UpdateFoundStringResult,
     ConvertStringsResult,
+    RepositoryDirectoryType,
 )
 
 
@@ -87,6 +88,7 @@ class Query:
     scan_session: Optional[ScanSessionType] = strawberry.field(resolver=ScannerQuery.scan_session)
     project_scan_sessions: List[ScanSessionType] = strawberry.field(resolver=ScannerQuery.project_scan_sessions)
     team_token_usage: TokenUsageStatsType = strawberry.field(resolver=ScannerQuery.team_token_usage)
+    repository_directories: List[RepositoryDirectoryType] = strawberry.field(resolver=ScannerQuery.repository_directories)
     
     # AI
     available_ai_models: List[AIProviderModels] = strawberry.field(resolver=AIQuery.available_ai_models)

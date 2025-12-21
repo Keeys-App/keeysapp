@@ -201,8 +201,14 @@ class GitHubQuery:
                         has_installation=False,
                     )
                 
-                # Check installations using the first connection's token
-                access_token = GitHubService.get_decrypted_token(connections[0])
+                # Check installations using the first connection's token (with auto-refresh)
+                access_token = await GitHubService.get_valid_access_token(db, connections[0])
+                if not access_token:
+                    return GitHubAppInfoType(
+                        installation_url=GitHubService.get_app_installation_url(),
+                        installations=[],
+                        has_installation=False,
+                    )
                 raw_installations = await GitHubService.get_user_installations(access_token)
                 
                 installations = [
@@ -272,7 +278,10 @@ class GitHubQuery:
                 
                 for conn in connections:
                     try:
-                        access_token = GitHubService.get_decrypted_token(conn)
+                        access_token = await GitHubService.get_valid_access_token(db, conn)
+                        if not access_token:
+                            logger.warning(f"Token expired and refresh failed for connection {conn.id}")
+                            continue
                         repos = await GitHubService.list_user_repositories(access_token)
                         
                         for repo in repos:
@@ -409,9 +418,12 @@ class GitHubQuery:
                 if not connections:
                     return []
                 
-                # Use first connection for search
+                # Use first connection for search (with auto-refresh)
                 conn = connections[0]
-                access_token = GitHubService.get_decrypted_token(conn)
+                access_token = await GitHubService.get_valid_access_token(db, conn)
+                if not access_token:
+                    logger.warning(f"Token expired and refresh failed for connection {conn.id}")
+                    return []
                 repos = await GitHubService.search_repositories(access_token, query)
                 
                 return [
@@ -771,8 +783,13 @@ class GitHubMutation:
                         message="GitHub connection doesn't belong to project's team",
                     )
                 
-                # Fetch repository info from GitHub
-                access_token = GitHubService.get_decrypted_token(connection)
+                # Fetch repository info from GitHub (with auto-refresh)
+                access_token = await GitHubService.get_valid_access_token(db, connection)
+                if not access_token:
+                    return ConnectRepositoryResult(
+                        success=False,
+                        message="GitHub token expired. Please reconnect your account.",
+                    )
                 repos = await GitHubService.list_user_repositories(access_token)
                 
                 logger.info(f"Looking for repo with id={github_repo_id} in {len(repos)} repos")

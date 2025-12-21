@@ -119,6 +119,8 @@ export const ConnectGitHubCard: FC<ConnectGitHubCardProps> = ({
     });
   };
 
+  const hasValidConnection = connections.some(c => c.isValid);
+
   if (loading) {
     return (
       <Card className={className}>
@@ -240,7 +242,7 @@ export const ConnectGitHubCard: FC<ConnectGitHubCardProps> = ({
             ))}
             
             {/* Installation warning */}
-            {!appInfoLoading && appInfo && !appInfo.hasInstallation && appInfo.installationUrl ? (
+            {!appInfoLoading && appInfo && !appInfo.hasInstallation && appInfo.installationUrl && hasValidConnection ? (
               <Alert variant="default" className="border-yellow-500/50 bg-yellow-500/10">
                 <AlertTriangle className="h-4 w-4 text-yellow-500" />
                 <AlertDescription className="flex flex-col gap-3">

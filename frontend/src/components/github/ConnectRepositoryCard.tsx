@@ -129,12 +129,18 @@ export const ConnectRepositoryCard: FC<ConnectRepositoryCardProps> = ({
     : null;
   const isTokenValid = connectionForRepo?.isValid !== false;
 
-  // Auto-select first connection if only one
+  // Check if there's at least one valid connection for connecting new repos
+  const hasValidConnection = connections.some(c => c.isValid !== false);
+
+  // Get only valid connections for selection
+  const validConnections = connections.filter(c => c.isValid !== false);
+
+  // Auto-select first valid connection if only one
   useEffect(() => {
-    if (connections.length === 1 && !selectedConnectionId) {
-      setSelectedConnectionId(connections[0].id);
+    if (validConnections.length === 1 && !selectedConnectionId) {
+      setSelectedConnectionId(validConnections[0].id);
     }
-  }, [connections, selectedConnectionId]);
+  }, [validConnections, selectedConnectionId]);
 
   // Handle connect success
   useEffect(() => {
@@ -343,116 +349,132 @@ export const ConnectRepositoryCard: FC<ConnectRepositoryCardProps> = ({
             </div>
           </div>
         ) : canManage ? (
-          <div className='space-y-4'>
-            {connections.length > 1 ? (
+          !hasValidConnection ? (
+            // Show only warning if all tokens expired - hide repository selection form
+            <Alert variant='destructive'>
+              <AlertTriangle className='h-4 w-4' />
+              <AlertDescription>
+                <div>
+                  GitHub token expired. Please reconnect your GitHub account in{' '}
+                  <Link to={PATHS.TEAM_EDIT.replace(':id', teamId)} className='font-medium underline'>
+                    team settings
+                  </Link>{' '}
+                  to connect a repository.
+                </div>
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <div className='space-y-4'>
+              {validConnections.length > 1 ? (
+                <div className='space-y-2'>
+                  <label className='text-sm font-medium'>GitHub Account</label>
+                  <Select value={selectedConnectionId} onValueChange={setSelectedConnectionId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder='Select GitHub account' />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {validConnections.map(conn => (
+                        <SelectItem key={conn.id} value={conn.id}>
+                          @{conn.githubUsername}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : null}
+
               <div className='space-y-2'>
-                <label className='text-sm font-medium'>GitHub Account</label>
-                <Select value={selectedConnectionId} onValueChange={setSelectedConnectionId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder='Select GitHub account' />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {connections.map(conn => (
-                      <SelectItem key={conn.id} value={conn.id}>
-                        @{conn.githubUsername}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            ) : null}
-
-            <div className='space-y-2'>
-              <label className='text-sm font-medium'>Repository</label>
-              <Popover open={repoComboboxOpen} onOpenChange={setRepoComboboxOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant='outline'
-                    role='combobox'
-                    aria-expanded={repoComboboxOpen}
-                    className='w-full justify-between'
-                    disabled={!selectedConnectionId}>
-                    {selectedRepo ? (
-                      <div className='flex items-center gap-2'>
-                        {selectedRepo.private ? (
-                          <Lock className='h-3 w-3 text-muted-foreground' />
-                        ) : (
-                          <Globe className='h-3 w-3 text-muted-foreground' />
-                        )}
-                        <span>{selectedRepo.fullName}</span>
-                      </div>
-                    ) : (
-                      <span className='text-muted-foreground'>
-                        {selectedConnectionId ? 'Search repositories...' : 'Select a GitHub account first'}
-                      </span>
-                    )}
-                    <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className='w-[400px] p-0' align='start'>
-                  <Command shouldFilter={false}>
-                    <CommandInput
-                      placeholder='Search repository...'
-                      value={searchQuery}
-                      onValueChange={setSearchQuery}
-                    />
-                    <CommandList>
-                      <CommandEmpty>
-                        {searchLoading ? (
-                          <div className='flex items-center justify-center gap-2 py-2'>
-                            <Search className='h-4 w-4 animate-pulse' />
-                            <span>Searching...</span>
-                          </div>
-                        ) : searchQuery.length >= 2 ? (
-                          'No repository found.'
-                        ) : (
-                          'Type at least 2 characters to search...'
-                        )}
-                      </CommandEmpty>
-                      <CommandGroup>
-                        {searchResults.map(repo => (
-                          <CommandItem
-                            key={repo.id}
-                            value={repo.fullName}
-                            onSelect={() => {
-                              if (repo.id === selectedRepoId) {
-                                setSelectedRepoId('');
-                                setSelectedRepo(null);
-                              } else {
-                                setSelectedRepoId(repo.id);
-                                setSelectedRepo(repo);
-                              }
-                              setRepoComboboxOpen(false);
-                            }}>
-                            {repo.private ? (
-                              <Lock className='h-3 w-3 text-muted-foreground' />
-                            ) : (
-                              <Globe className='h-3 w-3 text-muted-foreground' />
-                            )}
-                            <span>{repo.fullName}</span>
-                            <Check
-                              className={cn(
-                                'ml-auto h-4 w-4',
-                                selectedRepoId === repo.id ? 'opacity-100' : 'opacity-0',
+                <label className='text-sm font-medium'>Repository</label>
+                <Popover open={repoComboboxOpen} onOpenChange={setRepoComboboxOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant='outline'
+                      role='combobox'
+                      aria-expanded={repoComboboxOpen}
+                      className='w-full justify-between'
+                      disabled={!selectedConnectionId}>
+                      {selectedRepo ? (
+                        <div className='flex items-center gap-2'>
+                          {selectedRepo.private ? (
+                            <Lock className='h-3 w-3 text-muted-foreground' />
+                          ) : (
+                            <Globe className='h-3 w-3 text-muted-foreground' />
+                          )}
+                          <span>{selectedRepo.fullName}</span>
+                        </div>
+                      ) : (
+                        <span className='text-muted-foreground'>
+                          {selectedConnectionId ? 'Search repositories...' : 'Select a GitHub account first'}
+                        </span>
+                      )}
+                      <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className='w-[400px] p-0' align='start'>
+                    <Command shouldFilter={false}>
+                      <CommandInput
+                        placeholder='Search repository...'
+                        value={searchQuery}
+                        onValueChange={setSearchQuery}
+                      />
+                      <CommandList>
+                        <CommandEmpty>
+                          {searchLoading ? (
+                            <div className='flex items-center justify-center gap-2 py-2'>
+                              <Search className='h-4 w-4 animate-pulse' />
+                              <span>Searching...</span>
+                            </div>
+                          ) : searchQuery.length >= 2 ? (
+                            'No repository found.'
+                          ) : (
+                            'Type at least 2 characters to search...'
+                          )}
+                        </CommandEmpty>
+                        <CommandGroup>
+                          {searchResults.map(repo => (
+                            <CommandItem
+                              key={repo.id}
+                              value={repo.fullName}
+                              onSelect={() => {
+                                if (repo.id === selectedRepoId) {
+                                  setSelectedRepoId('');
+                                  setSelectedRepo(null);
+                                } else {
+                                  setSelectedRepoId(repo.id);
+                                  setSelectedRepo(repo);
+                                }
+                                setRepoComboboxOpen(false);
+                              }}>
+                              {repo.private ? (
+                                <Lock className='h-3 w-3 text-muted-foreground' />
+                              ) : (
+                                <Globe className='h-3 w-3 text-muted-foreground' />
                               )}
-                            />
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
+                              <span>{repo.fullName}</span>
+                              <Check
+                                className={cn(
+                                  'ml-auto h-4 w-4',
+                                  selectedRepoId === repo.id ? 'opacity-100' : 'opacity-0',
+                                )}
+                              />
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
 
-            <Button
-              onClick={handleConnect}
-              disabled={!selectedRepoId || !selectedConnectionId || connectLoading}
-              className='w-full'>
-              <Github className='mr-2 h-4 w-4' />
-              Connect Repository
-            </Button>
-          </div>
+              <Button
+                onClick={handleConnect}
+                disabled={!selectedRepoId || !selectedConnectionId || connectLoading}
+                className='w-full'>
+                <Github className='mr-2 h-4 w-4' />
+                Connect Repository
+              </Button>
+            </div>
+          )
         ) : (
           <p className='text-sm text-muted-foreground'>
             No repository connected. Ask a project admin to connect a repository.
