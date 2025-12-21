@@ -1760,6 +1760,159 @@ def migrate_add_scan_branch_if_needed():
         return False
 
 
+def migrate_add_pr_progress_fields_if_needed():
+    """
+    Add PR progress tracking fields to scan_sessions table:
+    - pr_status (enum: PENDING, PROCESSING, COMPLETED, FAILED)
+    - pr_translation_function (the t() function name)
+    - pr_files_total (total files to process)
+    - pr_files_processed (files already processed)
+    - pr_processed_files (JSONB array of processed file paths for resume)
+    - pr_error_message (error message if PR creation failed)
+    These fields enable background PR creation with recovery after restart.
+    Safe to run multiple times.
+    """
+    try:
+        # Check if PRStatus enum exists
+        with engine.connect() as connection:
+            result = connection.execute(text("""
+                SELECT EXISTS (
+                    SELECT 1 FROM pg_type WHERE typname = 'prstatus'
+                );
+            """))
+            enum_exists = result.scalar()
+            
+            if not enum_exists:
+                logger.info("Creating PRStatus enum type...")
+                connection.execute(text("""
+                    CREATE TYPE prstatus AS ENUM (
+                        'PENDING', 'PROCESSING', 'COMPLETED', 'FAILED'
+                    )
+                """))
+                connection.commit()
+                logger.info("✅ Created PRStatus enum type")
+            else:
+                logger.info("✅ PRStatus enum type already exists")
+        
+        # Check all columns
+        has_pr_status = check_column_exists('scan_sessions', 'pr_status')
+        has_pr_translation_function = check_column_exists('scan_sessions', 'pr_translation_function')
+        has_pr_files_total = check_column_exists('scan_sessions', 'pr_files_total')
+        has_pr_files_processed = check_column_exists('scan_sessions', 'pr_files_processed')
+        has_pr_processed_files = check_column_exists('scan_sessions', 'pr_processed_files')
+        has_pr_error_message = check_column_exists('scan_sessions', 'pr_error_message')
+        
+        if (has_pr_status and has_pr_translation_function and has_pr_files_total and 
+            has_pr_files_processed and has_pr_processed_files and has_pr_error_message):
+            logger.info("✅ Migration: PR progress fields already exist, skipping")
+            return True
+        
+        logger.info("🔄 Migration: Adding PR progress fields to scan_sessions")
+        
+        with engine.connect() as connection:
+            if not has_pr_status:
+                logger.info("  Adding pr_status column...")
+                connection.execute(text("""
+                    ALTER TABLE scan_sessions 
+                    ADD COLUMN pr_status prstatus DEFAULT NULL
+                """))
+                connection.commit()
+                logger.info("  ✅ pr_status column added")
+            
+            if not has_pr_translation_function:
+                logger.info("  Adding pr_translation_function column...")
+                connection.execute(text("""
+                    ALTER TABLE scan_sessions 
+                    ADD COLUMN pr_translation_function VARCHAR(50) DEFAULT 't'
+                """))
+                connection.commit()
+                logger.info("  ✅ pr_translation_function column added")
+            
+            if not has_pr_files_total:
+                logger.info("  Adding pr_files_total column...")
+                connection.execute(text("""
+                    ALTER TABLE scan_sessions 
+                    ADD COLUMN pr_files_total INTEGER NOT NULL DEFAULT 0
+                """))
+                connection.commit()
+                logger.info("  ✅ pr_files_total column added")
+            
+            if not has_pr_files_processed:
+                logger.info("  Adding pr_files_processed column...")
+                connection.execute(text("""
+                    ALTER TABLE scan_sessions 
+                    ADD COLUMN pr_files_processed INTEGER NOT NULL DEFAULT 0
+                """))
+                connection.commit()
+                logger.info("  ✅ pr_files_processed column added")
+            
+            if not has_pr_processed_files:
+                logger.info("  Adding pr_processed_files column...")
+                connection.execute(text("""
+                    ALTER TABLE scan_sessions 
+                    ADD COLUMN pr_processed_files JSONB NOT NULL DEFAULT '[]'
+                """))
+                connection.commit()
+                logger.info("  ✅ pr_processed_files column added")
+            
+            if not has_pr_error_message:
+                logger.info("  Adding pr_error_message column...")
+                connection.execute(text("""
+                    ALTER TABLE scan_sessions 
+                    ADD COLUMN pr_error_message TEXT DEFAULT NULL
+                """))
+                connection.commit()
+                logger.info("  ✅ pr_error_message column added")
+            
+            logger.info("✅ Migration: PR progress fields added successfully")
+            return True
+            
+    except Exception as e:
+        logger.error(f"❌ Migration failed: {type(e).__name__}: {str(e)}")
+        return False
+
+
+def migrate_add_pr_action_types_if_needed():
+    """
+    Add PR_CREATED, PR_FAILED, PR_CANCELLED action types to actiontype enum.
+    Safe to run multiple times.
+    """
+    try:
+        logger.info("🔄 Migration: Adding PR action types to actiontype enum")
+        
+        pr_actions = ['PR_CREATED', 'PR_FAILED', 'PR_CANCELLED']
+        
+        with engine.connect() as connection:
+            for action_type in pr_actions:
+                # Check if enum value exists
+                result = connection.execute(text("""
+                    SELECT EXISTS (
+                        SELECT 1 
+                        FROM pg_type t 
+                        JOIN pg_enum e ON t.oid = e.enumtypid 
+                        WHERE t.typname = 'actiontype' 
+                        AND e.enumlabel = :action_type
+                    )
+                """), {"action_type": action_type})
+                exists = result.scalar()
+                
+                if exists:
+                    logger.info(f"✅ Migration: {action_type} already exists, skipping")
+                else:
+                    logger.info(f"Adding {action_type} to actiontype enum...")
+                    connection.execute(
+                        text(f"ALTER TYPE actiontype ADD VALUE '{action_type}'")
+                    )
+                    connection.commit()
+                    logger.info(f"✅ Migration: {action_type} added successfully")
+            
+            return True
+        
+    except Exception as e:
+        logger.error(f"❌ Migration failed: {str(e)}")
+        return False
+
+
 def run_all_migrations():
     """
     Run all pending migrations.
@@ -1799,6 +1952,8 @@ def run_all_migrations():
         ("add_key_naming_settings", migrate_add_key_naming_settings_if_needed),
         ("add_scan_pr_fields", migrate_add_scan_pr_fields_if_needed),
         ("add_scan_branch", migrate_add_scan_branch_if_needed),
+        ("add_pr_progress_fields", migrate_add_pr_progress_fields_if_needed),
+        ("add_pr_action_types", migrate_add_pr_action_types_if_needed),
         # Add more migrations here as needed
     ]
     

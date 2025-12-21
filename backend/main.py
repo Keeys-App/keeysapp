@@ -43,9 +43,10 @@ async def lifespan(app: FastAPI):
     print("✅ Migrations complete")
     
     # Resume interrupted scans or cleanup very old ones
-    print("🔄 Checking for interrupted scans...")
+    print("🔄 Checking for interrupted scans and PR creations...")
     from app.database import AsyncSessionLocal
     from app.services.scanner_service import ScannerService
+    from app.services.pr_service import PRService
     import asyncio as startup_asyncio
     
     async with AsyncSessionLocal() as db:
@@ -53,6 +54,11 @@ async def lifespan(app: FastAPI):
         cleaned = await ScannerService.cleanup_stale_scans(db, timeout_minutes=60)
         if cleaned > 0:
             print(f"⚠️  Cleaned up {cleaned} very old stale scan(s)")
+        
+        # Cleanup very old PR creations (> 60 minutes)
+        cleaned_prs = await PRService.cleanup_stale_pr_creations(db, timeout_minutes=60)
+        if cleaned_prs > 0:
+            print(f"⚠️  Cleaned up {cleaned_prs} very old stale PR creation(s)")
         
         # Get interrupted scans to resume
         interrupted = await ScannerService.get_interrupted_scans(db)
@@ -68,6 +74,21 @@ async def lifespan(app: FastAPI):
                 print(f"  → Resumed scan {scan_id}")
         else:
             print("✅ No interrupted scans found")
+        
+        # Get interrupted PR creations to resume
+        interrupted_prs = await PRService.get_interrupted_pr_creations(db)
+        if interrupted_prs:
+            print(f"🔄 Found {len(interrupted_prs)} interrupted PR creation(s), resuming...")
+            for scan_session_id in interrupted_prs:
+                # Resume PR creation in background task
+                async def resume_pr(sid: int):
+                    async with AsyncSessionLocal() as pr_db:
+                        await PRService.process_pr(pr_db, sid)
+                
+                startup_asyncio.create_task(resume_pr(scan_session_id))
+                print(f"  → Resumed PR creation for session {scan_session_id}")
+        else:
+            print("✅ No interrupted PR creations found")
     
     print("✅ Application startup complete!")
     

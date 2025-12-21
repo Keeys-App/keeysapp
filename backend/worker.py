@@ -2,6 +2,10 @@
 ARQ Worker for background file analysis tasks.
 
 Run with: arq worker.WorkerSettings
+
+Supports two types of tasks:
+1. analyze_file_task - Analyze a single file for hardcoded strings (used in scanning)
+2. process_pr_file_task - Process a single file for PR creation (replace strings with keys)
 """
 import logging
 import sys
@@ -172,6 +176,148 @@ async def analyze_file_task(
         }
 
 
+async def process_pr_file_task(
+    ctx: dict,
+    file_path: str,
+    file_content: str,
+    file_sha: Optional[str],
+    replacements: list[dict],
+    scan_session_id: int,
+    translation_function: str,
+    ai_provider: str,
+    ai_model: str,
+    repo_owner: str,
+    repo_name: str,
+    branch_name: str,
+    access_token: str,
+) -> dict[str, Any]:
+    """
+    Process a single file for PR creation - replace hardcoded strings with translation keys.
+    
+    Args:
+        ctx: ARQ context (contains redis connection)
+        file_path: Path to the file in the repository
+        file_content: Current content of the file
+        file_sha: SHA of the file (for GitHub API)
+        replacements: List of replacements [{original_text, key, line_number}]
+        scan_session_id: ID of the scan session
+        translation_function: Name of the translation function (e.g., "t")
+        ai_provider: AI provider to use
+        ai_model: AI model to use
+        repo_owner: GitHub repository owner
+        repo_name: GitHub repository name
+        branch_name: Branch to commit to
+        access_token: GitHub access token
+        
+    Returns:
+        Dictionary with result:
+        - file_path: str
+        - success: bool
+        - error: optional error message
+        - modified: bool (whether the file was actually modified)
+    """
+    logger.info(f"Processing file for PR: {file_path} with {len(replacements)} replacements")
+    
+    try:
+        # Check Redis cancel flag BEFORE processing
+        cancel_redis = ctx.get('cancel_redis')
+        if cancel_redis:
+            try:
+                cancel_key = f"pr_cancelled:{scan_session_id}"
+                cancelled = await cancel_redis.get(cancel_key)
+                if cancelled:
+                    logger.info(f"🛑 PR creation {scan_session_id} was cancelled, skipping file {file_path}")
+                    return {
+                        "file_path": file_path,
+                        "success": False,
+                        "error": "PR creation cancelled",
+                        "modified": False,
+                        "cancelled": True,
+                    }
+            except Exception as e:
+                logger.warning(f"Failed to check cancel flag: {e}")
+        
+        if not replacements:
+            return {
+                "file_path": file_path,
+                "success": True,
+                "error": None,
+                "modified": False,
+            }
+        
+        # Use AI to replace strings (understands code context)
+        result = await ai_service.replace_strings_in_file(
+            file_content=file_content,
+            file_path=file_path,
+            replacements=replacements,
+            translation_function=translation_function,
+            provider=ai_provider,
+            model=ai_model,
+        )
+        
+        if not result.get("success"):
+            error_msg = result.get("error", "Unknown error")
+            logger.error(f"AI replacement failed for {file_path}: {error_msg}")
+            return {
+                "file_path": file_path,
+                "success": False,
+                "error": f"AI replacement failed: {error_msg}",
+                "modified": False,
+            }
+        
+        new_content = result.get("content", "")
+        
+        # Only commit if content actually changed
+        if not new_content or new_content == file_content:
+            logger.info(f"No changes needed for {file_path}")
+            return {
+                "file_path": file_path,
+                "success": True,
+                "error": None,
+                "modified": False,
+            }
+        
+        # Commit the file to GitHub
+        from app.services.github_service import GitHubService
+        
+        commit_success = await GitHubService.update_file(
+            access_token=access_token,
+            owner=repo_owner,
+            repo=repo_name,
+            path=file_path,
+            content=new_content,
+            message=f"Replace hardcoded strings with translation keys in {file_path.split('/')[-1]}",
+            branch=branch_name,
+            file_sha=file_sha,
+        )
+        
+        if commit_success:
+            logger.info(f"Successfully modified {file_path}")
+            return {
+                "file_path": file_path,
+                "success": True,
+                "error": None,
+                "modified": True,
+            }
+        else:
+            logger.error(f"Failed to commit {file_path}")
+            return {
+                "file_path": file_path,
+                "success": False,
+                "error": "Failed to commit file to GitHub",
+                "modified": False,
+            }
+        
+    except Exception as e:
+        logger.error(f"Error processing {file_path} for PR: {type(e).__name__}: {str(e)}")
+        return {
+            "file_path": file_path,
+            "success": False,
+            "error": str(e),
+            "modified": False,
+        }
+
+
 async def startup(ctx: dict) -> None:
     """Called when worker starts."""
     # Create dedicated Redis client for cancel checks
@@ -197,7 +343,7 @@ async def shutdown(ctx: dict) -> None:
 class WorkerSettings:
     """ARQ Worker settings."""
     
-    functions = [analyze_file_task]
+    functions = [analyze_file_task, process_pr_file_task]
     on_startup = startup
     on_shutdown = shutdown
     

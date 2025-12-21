@@ -26,6 +26,10 @@ export const SCAN_SESSION_QUERY = gql`
       prNumber
       prUrl
       prCreatedAt
+      prStatus
+      prFilesTotal
+      prFilesProcessed
+      prErrorMessage
       foundStrings {
         id
         filePath
@@ -69,6 +73,10 @@ export const PROJECT_SCAN_SESSIONS_QUERY = gql`
       prNumber
       prUrl
       prCreatedAt
+      prStatus
+      prFilesTotal
+      prFilesProcessed
+      prErrorMessage
       foundStrings {
         id
         filePath
@@ -254,6 +262,16 @@ export const CREATE_LOCALIZATION_PR_MUTATION = gql`
   }
 `;
 
+// Mutation to cancel PR creation
+export const CANCEL_PR_CREATION_MUTATION = gql`
+  mutation CancelPRCreation($scanSessionId: String!) {
+    cancelPrCreation(scanSessionId: $scanSessionId) {
+      success
+      message
+    }
+  }
+`;
+
 // TypeScript types
 export const ScanStatus = {
   PENDING: 'PENDING',
@@ -278,6 +296,14 @@ export const FoundStringStatus = {
   MATCHED: 'MATCHED',
 } as const;
 export type FoundStringStatus = (typeof FoundStringStatus)[keyof typeof FoundStringStatus];
+
+export const PRStatus = {
+  PENDING: 'PENDING',
+  PROCESSING: 'PROCESSING',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED',
+} as const;
+export type PRStatus = (typeof PRStatus)[keyof typeof PRStatus];
 
 export interface FoundString {
   id: string;
@@ -333,6 +359,11 @@ export interface ScanSession {
   prNumber: number | null;
   prUrl: string | null;
   prCreatedAt: string | null;
+  // PR creation progress
+  prStatus: PRStatus | null;
+  prFilesTotal: number;
+  prFilesProcessed: number;
+  prErrorMessage: string | null;
 }
 
 export interface RepositoryDirectory {

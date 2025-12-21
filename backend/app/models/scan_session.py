@@ -26,6 +26,14 @@ class AIProvider(str, enum.Enum):
     ANTHROPIC = "ANTHROPIC"
 
 
+class PRStatus(str, enum.Enum):
+    """Enum for PR creation status."""
+    PENDING = "PENDING"  # PR not started yet
+    PROCESSING = "PROCESSING"  # PR creation in progress
+    COMPLETED = "COMPLETED"  # PR created successfully
+    FAILED = "FAILED"  # PR creation failed
+
+
 class ScanSession(Base):
     """
     ScanSession model for tracking repository scanning operations.
@@ -76,6 +84,14 @@ class ScanSession(Base):
     pr_number = Column(Integer, nullable=True)
     pr_url = Column(String(500), nullable=True)
     pr_created_at = Column(DateTime(timezone=True), nullable=True)
+    
+    # PR creation progress tracking (for worker-based processing)
+    pr_status = Column(SQLEnum(PRStatus), nullable=True)
+    pr_translation_function = Column(String(50), nullable=True, default="t")
+    pr_files_total = Column(Integer, default=0, nullable=False)
+    pr_files_processed = Column(Integer, default=0, nullable=False)
+    pr_processed_files = Column(JSONB, default=list, nullable=False, server_default='[]')
+    pr_error_message = Column(Text, nullable=True)
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())

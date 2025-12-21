@@ -50,11 +50,13 @@ import {
   CONVERT_FOUND_STRINGS_TO_KEYS_MUTATION,
   REPLACE_FOUND_STRING_MUTATION,
   CREATE_LOCALIZATION_PR_MUTATION,
+  CANCEL_PR_CREATION_MUTATION,
   type ScanSession,
   type FoundString,
   type CreatePRResult,
   ScanStatus,
   FoundStringStatus,
+  PRStatus,
 } from '@/graphql/scanner';
 import { DirectoryPicker } from './DirectoryPicker';
 import { BranchPicker } from './BranchPicker';
@@ -103,6 +105,7 @@ export const ScanRepositoryCard: FC<ScanRepositoryCardProps> = ({
   const [convertToKeys, { loading: converting }] = useMutation(CONVERT_FOUND_STRINGS_TO_KEYS_MUTATION);
   const [replaceFoundString] = useMutation(REPLACE_FOUND_STRING_MUTATION);
   const [createPR, { loading: creatingPR }] = useMutation<{ createLocalizationPr: CreatePRResult }>(CREATE_LOCALIZATION_PR_MUTATION);
+  const [cancelPRCreation, { loading: cancellingPR }] = useMutation(CANCEL_PR_CREATION_MUTATION);
   
   const sessions = sessionsData?.projectScanSessions ?? [];
   const currentScan = currentScanData?.scanSession ?? (sessions.length > 0 ? sessions[0] : null);
@@ -134,18 +137,27 @@ export const ScanRepositoryCard: FC<ScanRepositoryCardProps> = ({
     }
   }, [sessions, currentScanId]);
   
-  // Poll for updates when scanning
+  // Poll for updates when scanning or creating PR
   useEffect(() => {
-    if (currentScan?.status === ScanStatus.SCANNING || currentScan?.status === ScanStatus.PENDING) {
+    const isScanning = currentScan?.status === ScanStatus.SCANNING || currentScan?.status === ScanStatus.PENDING;
+    const isCreatingPR = currentScan?.prStatus === PRStatus.PENDING || currentScan?.prStatus === PRStatus.PROCESSING;
+    
+    if (isScanning || isCreatingPR) {
       startPolling(2000);
     } else {
       stopPolling();
+      // Refetch sessions when scan or PR creation completes to update the list
+      if (currentScan?.status === ScanStatus.COMPLETED || 
+          currentScan?.prStatus === PRStatus.COMPLETED || 
+          currentScan?.prStatus === PRStatus.FAILED) {
+        refetchSessions();
+      }
     }
     
     return () => {
       stopPolling();
     };
-  }, [currentScan?.status, startPolling, stopPolling]);
+  }, [currentScan?.status, currentScan?.prStatus, startPolling, stopPolling, refetchSessions]);
   
   const handleStartScan = async () => {
     // Clear previous error
@@ -272,21 +284,41 @@ export const ScanRepositoryCard: FC<ScanRepositoryCardProps> = ({
         refetchQueries: [{ query: SCAN_SESSION_QUERY, variables: { scanSessionId: currentScanId } }],
       });
       
-      const { success, message, prUrl, filesModified } = result.data?.createLocalizationPr ?? {};
+      const { success, message } = result.data?.createLocalizationPr ?? {};
       
-      if (success && prUrl) {
-        toast('Pull request created', { 
-          description: `Modified ${filesModified} files. Click to open PR.`,
-          action: {
-            label: 'Open PR',
-            onClick: () => { window.open(prUrl, '_blank'); },
-          },
+      if (success) {
+        // PR creation started in background - polling will show progress
+        toast('PR creation started', { 
+          description: message || 'Processing files in background...',
         });
       } else {
         toast('Failed to create PR', { description: message });
       }
     } catch (error) {
       toast('Error', { description: 'Failed to create pull request. Please try again.' });
+    }
+  };
+  
+  const handleCancelPR = async () => {
+    if (!currentScanId) {
+      return;
+    }
+    
+    try {
+      const result = await cancelPRCreation({
+        variables: { scanSessionId: currentScanId },
+        refetchQueries: [{ query: SCAN_SESSION_QUERY, variables: { scanSessionId: currentScanId } }],
+      });
+      
+      const { success, message } = result.data?.cancelPrCreation ?? {};
+      
+      if (success) {
+        toast('PR creation cancelled');
+      } else {
+        toast('Failed to cancel', { description: message });
+      }
+    } catch (error) {
+      toast('Error', { description: 'Failed to cancel PR creation. Please try again.' });
     }
   };
   
@@ -609,8 +641,8 @@ export const ScanRepositoryCard: FC<ScanRepositoryCardProps> = ({
                     </div>
                   ) : null}
                   
-                  {/* PR section - show if there are strings ready for PR or PR already exists */}
-                  {(readyForPRCount > 0 || currentScan?.prUrl) ? (
+                  {/* PR section - show if there are strings ready for PR, PR in progress, or PR already exists */}
+                  {(readyForPRCount > 0 || currentScan?.prUrl || currentScan?.prStatus) ? (
                     <div className="rounded-lg border bg-muted/50 p-4">
                       <div className="flex items-center gap-2 mb-3">
                         <GitPullRequest className="h-5 w-5 text-purple-500" />
@@ -638,6 +670,75 @@ export const ScanRepositoryCard: FC<ScanRepositoryCardProps> = ({
                           >
                             <ExternalLink className="mr-2 h-4 w-4" />
                             Open Pull Request
+                          </Button>
+                        </div>
+                      ) : currentScan?.prStatus === PRStatus.PROCESSING || currentScan?.prStatus === PRStatus.PENDING ? (
+                        /* PR creation in progress */
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Loader2 className="h-4 w-4 animate-spin text-purple-500" />
+                              <span className="text-sm">Creating pull request...</span>
+                            </div>
+                            <Button
+                              onClick={handleCancelPR}
+                              disabled={cancellingPR}
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 text-muted-foreground hover:text-destructive"
+                            >
+                              {cancellingPR ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <X className="h-4 w-4" />
+                              )}
+                              <span className="ml-1">Cancel</span>
+                            </Button>
+                          </div>
+                          {currentScan.prFilesTotal > 0 ? (
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                <span>Processing files</span>
+                                <span>{currentScan.prFilesProcessed} / {currentScan.prFilesTotal}</span>
+                              </div>
+                              <Progress 
+                                value={(currentScan.prFilesProcessed / currentScan.prFilesTotal) * 100} 
+                                className="h-2" 
+                              />
+                            </div>
+                          ) : null}
+                          {currentScan.prBranchName ? (
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <span>Branch:</span>
+                              <code className="rounded bg-muted px-1.5 py-0.5 font-mono">
+                                {currentScan.prBranchName}
+                              </code>
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : currentScan?.prStatus === PRStatus.FAILED ? (
+                        /* PR creation failed */
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-red-600">
+                            <XCircle className="h-4 w-4" />
+                            <span className="text-sm">PR creation failed</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {currentScan.prErrorMessage || 'Unknown error occurred'}
+                          </p>
+                          <Button 
+                            onClick={handleCreatePR} 
+                            disabled={creatingPR}
+                            variant="outline"
+                            size="sm"
+                            className="mt-2"
+                          >
+                            {creatingPR ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <RefreshCw className="mr-2 h-4 w-4" />
+                            )}
+                            Retry
                           </Button>
                         </div>
                       ) : (

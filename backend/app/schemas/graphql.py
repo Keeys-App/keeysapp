@@ -169,6 +169,7 @@ class Mutation:
     replace_found_string: UpdateFoundStringResult = strawberry.field(resolver=ScannerMutation.replace_found_string)
     convert_found_strings_to_keys: ConvertStringsResult = strawberry.field(resolver=ScannerMutation.convert_found_strings_to_keys)
     create_localization_pr: CreatePRResult = strawberry.field(resolver=ScannerMutation.create_localization_pr)
+    cancel_pr_creation: CreatePRResult = strawberry.field(resolver=ScannerMutation.cancel_pr_creation)
 
 
 schema = strawberry.Schema(

@@ -57,6 +57,11 @@ class ActionType(str, enum.Enum):
     SCAN_COMPLETE = "SCAN_COMPLETE"
     SCAN_FAILED = "SCAN_FAILED"
     SCAN_CANCELLED = "SCAN_CANCELLED"
+    
+    # PR actions
+    PR_CREATED = "PR_CREATED"
+    PR_FAILED = "PR_FAILED"
+    PR_CANCELLED = "PR_CANCELLED"
 
 
 class ActivityLog(Base):

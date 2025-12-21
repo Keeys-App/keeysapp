@@ -25,7 +25,6 @@ from app.services.token_usage_service import TokenUsageService
 from app.services.github_service import GitHubService
 from app.services.project_service import ProjectService
 from app.services.team_service import TeamService
-from app.services.ai_service import ai_service
 from app.schemas.github import get_current_user_id
 from app.core.exceptions import AuthenticationError
 
@@ -57,6 +56,15 @@ class FoundStringStatusEnum(str, Enum):
     SKIPPED = "SKIPPED"
     CONVERTED = "CONVERTED"
     MATCHED = "MATCHED"
+
+
+@strawberry.enum
+class PRStatusEnum(str, Enum):
+    """GraphQL enum for PR creation status."""
+    PENDING = "PENDING"
+    PROCESSING = "PROCESSING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
 
 
 @strawberry.type
@@ -102,6 +110,11 @@ class ScanSessionType:
     pr_number: Optional[int] = None
     pr_url: Optional[str] = None
     pr_created_at: Optional[datetime] = None
+    # PR creation progress (for background processing)
+    pr_status: Optional[PRStatusEnum] = None
+    pr_files_total: int = 0
+    pr_files_processed: int = 0
+    pr_error_message: Optional[str] = None
 
 
 @strawberry.type
@@ -340,6 +353,11 @@ def _session_to_type(session: ScanSession, found_strings: List[FoundString] = No
                 created_at=fs.created_at,
             ))
     
+    # Convert PR status enum if present
+    pr_status_enum = None
+    if session.pr_status:
+        pr_status_enum = PRStatusEnum(session.pr_status.value)
+    
     return ScanSessionType(
         id=str(session.public_id),
         status=ScanStatusEnum(session.status.value),
@@ -361,6 +379,11 @@ def _session_to_type(session: ScanSession, found_strings: List[FoundString] = No
         pr_number=session.pr_number,
         pr_url=session.pr_url,
         pr_created_at=session.pr_created_at,
+        # PR creation progress
+        pr_status=pr_status_enum,
+        pr_files_total=session.pr_files_total or 0,
+        pr_files_processed=session.pr_files_processed or 0,
+        pr_error_message=session.pr_error_message,
     )
 
 
@@ -459,7 +482,13 @@ class ScannerQuery:
                 # Get scan sessions
                 sessions = await ScannerService.get_scan_sessions_by_repository(db, repository.id, limit)
                 
-                return [_session_to_type(s) for s in sessions]
+                # Load found strings for each session
+                result = []
+                for session in sessions:
+                    found_strings = await ScannerService.get_found_strings(db, session.id)
+                    result.append(_session_to_type(session, found_strings))
+                
+                return result
                 
         except AuthenticationError:
             raise
@@ -933,6 +962,94 @@ class ScannerMutation:
             )
     
     @strawberry.mutation
+    async def cancel_pr_creation(
+        self,
+        info: Info,
+        scan_session_id: str,
+    ) -> CreatePRResult:
+        """
+        Cancel PR creation in progress.
+        
+        Args:
+            info: GraphQL info object
+            scan_session_id: Public UUID of the scan session
+            
+        Returns:
+            Result with success status
+        """
+        from app.services.pr_service import pr_service
+        
+        try:
+            user_id = await get_current_user_id(info)
+            
+            async with AsyncSessionLocal() as db:
+                session = await ScannerService.get_scan_session(db, scan_session_id)
+                
+                if not session:
+                    return CreatePRResult(
+                        success=False,
+                        message="Scan session not found",
+                    )
+                
+                # Check access through repository -> project
+                result = await db.execute(
+                    select(Repository).where(Repository.id == session.repository_id)
+                )
+                repository = result.scalar_one_or_none()
+                if repository:
+                    has_access = await ProjectService.check_project_access(db, repository.project_id, user_id)
+                    if not has_access:
+                        return CreatePRResult(
+                            success=False,
+                            message="Access denied",
+                        )
+                
+                cancelled = await pr_service.cancel_pr(db, session.id)
+                
+                if cancelled:
+                    await db.refresh(session)
+                    
+                    # Log PR cancelled activity
+                    if repository:
+                        from app.models.project import Project
+                        proj_result = await db.execute(
+                            select(Project).where(Project.id == repository.project_id)
+                        )
+                        project = proj_result.scalar_one_or_none()
+                        if project:
+                            pr_cancelled_log = ActivityLog(
+                                team_id=project.team_id,
+                                project_id=project.id,
+                                user_id=user_id,
+                                action=ActionType.PR_CANCELLED,
+                                extra_data={
+                                    "repository": repository.full_name,
+                                    "scan_session_id": str(session.public_id),
+                                }
+                            )
+                            db.add(pr_cancelled_log)
+                            await db.commit()
+                    
+                    return CreatePRResult(
+                        success=True,
+                        message="PR creation cancelled",
+                    )
+                else:
+                    return CreatePRResult(
+                        success=False,
+                        message="Cannot cancel PR creation (not in progress)",
+                    )
+                
+        except AuthenticationError:
+            raise
+        except Exception as e:
+            logger.error(f"Error cancelling PR creation: {type(e).__name__}: {str(e)}")
+            return CreatePRResult(
+                success=False,
+                message="Failed to cancel PR creation. Please try again.",
+            )
+    
+    @strawberry.mutation
     async def update_found_string_status(
         self,
         info: Info,
@@ -1283,15 +1400,18 @@ class ScannerMutation:
         Create a pull request that replaces hardcoded strings with translation function calls.
         Only processes CONVERTED found strings (those that have been turned into keys).
         
+        This mutation starts background processing and returns immediately.
+        The PR creation progress can be monitored via scanSession query.
+        
         Args:
             info: GraphQL info object
             scan_session_id: Public UUID of the scan session
             translation_function: Name of the translation function (default: "t")
             
         Returns:
-            Result with PR URL and details
+            Result with status - actual PR URL will be available after background processing
         """
-        from datetime import datetime, timezone
+        from app.services.pr_service import PRService
         
         try:
             user_id = await get_current_user_id(info)
@@ -1314,6 +1434,16 @@ class ScannerMutation:
                         pr_url=session.pr_url,
                         pr_number=session.pr_number,
                         branch_name=session.pr_branch_name,
+                    )
+                
+                # Check if PR is already in progress
+                from app.models.scan_session import PRStatus
+                if session.pr_status == PRStatus.PROCESSING:
+                    return CreatePRResult(
+                        success=False,
+                        message="PR creation already in progress. Please wait.",
+                        branch_name=session.pr_branch_name,
+                        files_modified=session.pr_files_processed,
                     )
                 
                 # Get repository
@@ -1349,7 +1479,7 @@ class ScannerMutation:
                         message="GitHub connection not found",
                     )
                 
-                # Get valid access token
+                # Check if we have valid token
                 access_token = await GitHubService.get_valid_access_token(db, connection)
                 if not access_token:
                     return CreatePRResult(
@@ -1357,218 +1487,49 @@ class ScannerMutation:
                         message="GitHub token expired. Please reconnect your account.",
                     )
                 
-                # Get found strings ready for PR:
-                # - CONVERTED: new keys were created (key_id set)
-                # - MATCHED: existing keys found (matched_key_id set)
-                found_strings = await ScannerService.get_found_strings(db, session.id)
-                ready_strings = [
-                    fs for fs in found_strings 
-                    if (fs.status == FoundStringStatus.CONVERTED and fs.key_id) or
-                       (fs.status == FoundStringStatus.MATCHED and fs.matched_key_id)
-                ]
-                
-                if not ready_strings:
-                    return CreatePRResult(
-                        success=False,
-                        message="No keys ready for PR. Please convert approved strings to keys first, or use matched existing keys.",
-                    )
-                
-                # Load keys for all strings (both converted and matched)
-                key_ids = set()
-                for fs in ready_strings:
-                    if fs.key_id:
-                        key_ids.add(fs.key_id)
-                    if fs.matched_key_id:
-                        key_ids.add(fs.matched_key_id)
-                
-                keys_result = await db.execute(
-                    select(Key).where(Key.id.in_(list(key_ids)))
-                )
-                keys_map = {key.id: key for key in keys_result.scalars().all()}
-                
-                # Group strings by file
-                files_to_modify: dict[str, list] = {}
-                for fs in ready_strings:
-                    if fs.file_path not in files_to_modify:
-                        files_to_modify[fs.file_path] = []
-                    files_to_modify[fs.file_path].append(fs)
-                
-                # Create branch name
-                import time
-                branch_name = f"localization/scan-{int(time.time())}"
-                
-                # Create branch
-                branch_sha = await GitHubService.create_branch(
-                    access_token=access_token,
-                    owner=repository.repo_owner,
-                    repo=repository.repo_name,
-                    branch_name=branch_name,
-                    source_branch=repository.default_branch or "main",
+                # Start PR creation process
+                success, message = await PRService.start_pr_creation(
+                    db=db,
+                    scan_session_id=session.id,
+                    translation_function=translation_function,
                 )
                 
-                if not branch_sha:
+                if not success:
                     return CreatePRResult(
                         success=False,
-                        message="Failed to create branch. Please check repository permissions.",
+                        message=message,
                     )
                 
-                # Process each file
-                files_modified = 0
+                # Start background processing
+                # Save session.id to local variable to avoid accessing expired ORM object
+                session_id = session.id
                 
-                for file_path, strings in files_to_modify.items():
-                    # Get current file content
-                    content = await GitHubService.get_file_content(
-                        access_token=access_token,
-                        owner=repository.repo_owner,
-                        repo=repository.repo_name,
-                        path=file_path,
-                        branch=repository.default_branch or "main",
-                    )
-                    
-                    if content is None:
-                        logger.warning(f"Could not get content for file: {file_path}")
-                        continue
-                    
-                    # Get file SHA for the branch
-                    file_sha = await GitHubService.get_file_sha(
-                        access_token=access_token,
-                        owner=repository.repo_owner,
-                        repo=repository.repo_name,
-                        path=file_path,
-                        branch=branch_name,
-                    )
-                    
-                    # Build replacements list for AI
-                    replacements = []
-                    for fs in strings:
-                        # Get key based on string status
-                        key_id_to_use = fs.key_id if fs.key_id else fs.matched_key_id
-                        key = keys_map.get(key_id_to_use) if key_id_to_use else None
-                        if not key:
-                            continue
-                        
-                        replacements.append({
-                            "original_text": fs.original_text,
-                            "key": key.key,
-                            "line_number": fs.line_number,
-                        })
-                    
-                    if not replacements:
-                        continue
-                    
-                    # Use AI to replace strings (understands code context)
-                    logger.info(f"Using AI to replace {len(replacements)} strings in {file_path} with {session.ai_provider.value}/{session.ai_model}")
-                    result = await ai_service.replace_strings_in_file(
-                        file_content=content,
-                        file_path=file_path,
-                        replacements=replacements,
-                        translation_function=translation_function,
-                        provider=session.ai_provider.value,
-                        model=session.ai_model,
-                    )
-                    
-                    if not result.get("success"):
-                        logger.error(f"AI replacement failed for {file_path}: {result.get('error', 'Unknown error')}")
-                        continue
-                    
-                    new_content = result.get("content", "")
-                    
-                    # Only commit if content actually changed
-                    if new_content and new_content != content:
-                        success = await GitHubService.update_file(
-                            access_token=access_token,
-                            owner=repository.repo_owner,
-                            repo=repository.repo_name,
-                            path=file_path,
-                            content=new_content,
-                            message=f"Replace hardcoded strings with translation keys in {file_path.split('/')[-1]}",
-                            branch=branch_name,
-                            file_sha=file_sha,
-                        )
-                        
-                        if success:
-                            files_modified += 1
-                            logger.info(f"Successfully modified {file_path}")
+                async def run_pr_creation():
+                    try:
+                        logger.info(f"Starting background PR creation for session {session_id}")
+                        async with AsyncSessionLocal() as pr_db:
+                            result = await PRService.process_pr(pr_db, session_id)
+                            logger.info(f"PR creation completed for session {session_id}, result: {result}")
+                    except Exception as e:
+                        logger.error(f"Background PR creation failed for session {session_id}: {type(e).__name__}: {str(e)}")
                 
-                if files_modified == 0:
-                    return CreatePRResult(
-                        success=False,
-                        message="No files were modified. Strings may have already been replaced.",
-                    )
+                asyncio.create_task(run_pr_creation())
                 
-                # Create PR
-                pr_title = f"🌐 Add localization keys ({files_modified} files)"
-                pr_body = f"""## Localization Changes
-
-This PR replaces hardcoded strings with translation function calls.
-
-### Summary
-- **Files modified:** {files_modified}
-- **Keys used:** {len(ready_strings)}
-- **Translation function:** `{translation_function}()`
-
-### Changes
-The following strings have been replaced with translation keys:
-
-| File | Key | Original Text |
-|------|-----|---------------|
-"""
-                for fs in ready_strings[:20]:  # Limit to first 20
-                    key_id_to_use = fs.key_id if fs.key_id else fs.matched_key_id
-                    key = keys_map.get(key_id_to_use) if key_id_to_use else None
-                    if key:
-                        # Truncate long strings
-                        text = fs.original_text[:50] + "..." if len(fs.original_text) > 50 else fs.original_text
-                        pr_body += f"| `{fs.file_path.split('/')[-1]}` | `{key.key}` | {text} |\n"
-                
-                if len(ready_strings) > 20:
-                    pr_body += f"\n_...and {len(ready_strings) - 20} more_\n"
-                
-                pr_body += """
----
-_Generated automatically by Keeys localization scanner_
-"""
-                
-                pr_data = await GitHubService.create_pull_request(
-                    access_token=access_token,
-                    owner=repository.repo_owner,
-                    repo=repository.repo_name,
-                    title=pr_title,
-                    body=pr_body,
-                    head=branch_name,
-                    base=repository.default_branch or "main",
-                )
-                
-                if not pr_data:
-                    return CreatePRResult(
-                        success=False,
-                        message="Failed to create pull request. Branch was created but PR creation failed.",
-                        branch_name=branch_name,
-                        files_modified=files_modified,
-                    )
-                
-                # Update scan session with PR info
-                session.pr_branch_name = branch_name
-                session.pr_number = pr_data.get("number")
-                session.pr_url = pr_data.get("html_url")
-                session.pr_created_at = datetime.now(timezone.utc)
-                await db.commit()
+                # Refresh session to get updated counts
+                await db.refresh(session)
                 
                 return CreatePRResult(
                     success=True,
-                    message=f"Pull request created successfully with {files_modified} files modified",
-                    pr_url=pr_data.get("html_url"),
-                    pr_number=pr_data.get("number"),
-                    branch_name=branch_name,
-                    files_modified=files_modified,
+                    message=f"PR creation started. Processing {session.pr_files_total} files in background.",
+                    files_modified=0,  # Will be updated as processing completes
                 )
                 
         except AuthenticationError:
             raise
         except Exception as e:
-            logger.error(f"Error creating PR: {type(e).__name__}: {str(e)}")
+            logger.error(f"Error starting PR creation: {type(e).__name__}: {str(e)}")
             return CreatePRResult(
                 success=False,
-                message="Failed to create pull request. Please try again.",
+                message="Failed to start PR creation. Please try again.",
             )
 
