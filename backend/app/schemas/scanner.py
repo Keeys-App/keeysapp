@@ -96,6 +96,11 @@ class ScanSessionType:
     started_at: Optional[datetime]
     completed_at: Optional[datetime]
     found_strings: List[FoundStringType]
+    # PR information
+    pr_branch_name: Optional[str] = None
+    pr_number: Optional[int] = None
+    pr_url: Optional[str] = None
+    pr_created_at: Optional[datetime] = None
 
 
 @strawberry.type
@@ -293,6 +298,17 @@ class ReplaceFoundStringResult:
     found_string: Optional[FoundStringType] = None
 
 
+@strawberry.type
+class CreatePRResult:
+    """Result type for creating a pull request with key replacements."""
+    success: bool
+    message: str
+    pr_url: Optional[str] = None
+    pr_number: Optional[int] = None
+    branch_name: Optional[str] = None
+    files_modified: int = 0
+
+
 def _session_to_type(session: ScanSession, found_strings: List[FoundString] = None) -> ScanSessionType:
     """Convert ScanSession model to GraphQL type."""
     strings_list = []
@@ -339,6 +355,11 @@ def _session_to_type(session: ScanSession, found_strings: List[FoundString] = No
         started_at=session.started_at,
         completed_at=session.completed_at,
         found_strings=strings_list,
+        # PR information
+        pr_branch_name=session.pr_branch_name,
+        pr_number=session.pr_number,
+        pr_url=session.pr_url,
+        pr_created_at=session.pr_created_at,
     )
 
 
@@ -1243,5 +1264,345 @@ class ScannerMutation:
             return ReplaceFoundStringResult(
                 success=False,
                 message="Failed to replace key. Please try again.",
+            )
+    
+    @strawberry.mutation
+    async def create_localization_pr(
+        self,
+        info: Info,
+        scan_session_id: str,
+        translation_function: str = "t",
+    ) -> CreatePRResult:
+        """
+        Create a pull request that replaces hardcoded strings with translation function calls.
+        Only processes CONVERTED found strings (those that have been turned into keys).
+        
+        Args:
+            info: GraphQL info object
+            scan_session_id: Public UUID of the scan session
+            translation_function: Name of the translation function (default: "t")
+            
+        Returns:
+            Result with PR URL and details
+        """
+        import re
+        from datetime import datetime, timezone
+        
+        try:
+            user_id = await get_current_user_id(info)
+            
+            async with AsyncSessionLocal() as db:
+                # Get scan session
+                session = await ScannerService.get_scan_session(db, scan_session_id)
+                
+                if not session:
+                    return CreatePRResult(
+                        success=False,
+                        message="Scan session not found",
+                    )
+                
+                # Check if PR already created
+                if session.pr_url:
+                    return CreatePRResult(
+                        success=False,
+                        message="Pull request already created for this scan",
+                        pr_url=session.pr_url,
+                        pr_number=session.pr_number,
+                        branch_name=session.pr_branch_name,
+                    )
+                
+                # Get repository
+                result = await db.execute(
+                    select(Repository).where(Repository.id == session.repository_id)
+                )
+                repository = result.scalar_one_or_none()
+                
+                if not repository:
+                    return CreatePRResult(
+                        success=False,
+                        message="Repository not found",
+                    )
+                
+                # Check access
+                has_access = await ProjectService.check_project_access(db, repository.project_id, user_id)
+                if not has_access:
+                    return CreatePRResult(
+                        success=False,
+                        message="Access denied",
+                    )
+                
+                # Get GitHub connection
+                conn_result = await db.execute(
+                    select(GitHubConnection).where(
+                        GitHubConnection.id == repository.github_connection_id
+                    )
+                )
+                connection = conn_result.scalar_one_or_none()
+                if not connection:
+                    return CreatePRResult(
+                        success=False,
+                        message="GitHub connection not found",
+                    )
+                
+                # Get valid access token
+                access_token = await GitHubService.get_valid_access_token(db, connection)
+                if not access_token:
+                    return CreatePRResult(
+                        success=False,
+                        message="GitHub token expired. Please reconnect your account.",
+                    )
+                
+                # Get found strings ready for PR:
+                # - CONVERTED: new keys were created (key_id set)
+                # - MATCHED: existing keys found (matched_key_id set)
+                found_strings = await ScannerService.get_found_strings(db, session.id)
+                ready_strings = [
+                    fs for fs in found_strings 
+                    if (fs.status == FoundStringStatus.CONVERTED and fs.key_id) or
+                       (fs.status == FoundStringStatus.MATCHED and fs.matched_key_id)
+                ]
+                
+                if not ready_strings:
+                    return CreatePRResult(
+                        success=False,
+                        message="No keys ready for PR. Please convert approved strings to keys first, or use matched existing keys.",
+                    )
+                
+                # Load keys for all strings (both converted and matched)
+                key_ids = set()
+                for fs in ready_strings:
+                    if fs.key_id:
+                        key_ids.add(fs.key_id)
+                    if fs.matched_key_id:
+                        key_ids.add(fs.matched_key_id)
+                
+                keys_result = await db.execute(
+                    select(Key).where(Key.id.in_(list(key_ids)))
+                )
+                keys_map = {key.id: key for key in keys_result.scalars().all()}
+                
+                # Group strings by file
+                files_to_modify: dict[str, list] = {}
+                for fs in ready_strings:
+                    if fs.file_path not in files_to_modify:
+                        files_to_modify[fs.file_path] = []
+                    files_to_modify[fs.file_path].append(fs)
+                
+                # Create branch name
+                import time
+                branch_name = f"localization/scan-{int(time.time())}"
+                
+                # Create branch
+                branch_sha = await GitHubService.create_branch(
+                    access_token=access_token,
+                    owner=repository.repo_owner,
+                    repo=repository.repo_name,
+                    branch_name=branch_name,
+                    source_branch=repository.default_branch or "main",
+                )
+                
+                if not branch_sha:
+                    return CreatePRResult(
+                        success=False,
+                        message="Failed to create branch. Please check repository permissions.",
+                    )
+                
+                # Process each file
+                files_modified = 0
+                
+                for file_path, strings in files_to_modify.items():
+                    # Get current file content
+                    content = await GitHubService.get_file_content(
+                        access_token=access_token,
+                        owner=repository.repo_owner,
+                        repo=repository.repo_name,
+                        path=file_path,
+                        branch=repository.default_branch or "main",
+                    )
+                    
+                    if content is None:
+                        logger.warning(f"Could not get content for file: {file_path}")
+                        continue
+                    
+                    # Get file SHA for the branch
+                    file_sha = await GitHubService.get_file_sha(
+                        access_token=access_token,
+                        owner=repository.repo_owner,
+                        repo=repository.repo_name,
+                        path=file_path,
+                        branch=branch_name,
+                    )
+                    
+                    # Sort strings by line number descending to replace from bottom up
+                    # This prevents line number shifts from affecting other replacements
+                    strings.sort(key=lambda x: x.line_number or 0, reverse=True)
+                    
+                    # Split content into lines for line-based replacement
+                    lines = content.split('\n')
+                    modified = False
+                    
+                    for fs in strings:
+                        # Get key based on string status
+                        # CONVERTED strings have key_id, MATCHED strings have matched_key_id
+                        key_id_to_use = fs.key_id if fs.key_id else fs.matched_key_id
+                        key = keys_map.get(key_id_to_use) if key_id_to_use else None
+                        if not key:
+                            continue
+                        
+                        key_name = key.key
+                        original_text = fs.original_text
+                        
+                        # Determine replacement format based on context
+                        # Check if the string is inside JSX (has quotes and is in a tag attribute or as child)
+                        line_num = fs.line_number
+                        if line_num and 0 < line_num <= len(lines):
+                            line = lines[line_num - 1]
+                            
+                            # Create regex pattern to match the original string
+                            # Handle both single and double quotes
+                            escaped_text = re.escape(original_text)
+                            
+                            # Pattern 1: String in quotes (e.g., "Hello" or 'Hello')
+                            pattern_double = f'"{escaped_text}"'
+                            pattern_single = f"'{escaped_text}'"
+                            
+                            # Generate replacement
+                            replacement = f"{translation_function}('{key_name}')"
+                            
+                            # Check if it's in JSX context (needs curly braces)
+                            # Look for JSX patterns like: <tag attr="text"> or >text<
+                            is_jsx_attr = re.search(rf'\w+\s*=\s*["\']?{escaped_text}["\']?', line)
+                            is_jsx_child = re.search(rf'>\s*{escaped_text}\s*<', line) or \
+                                          re.search(rf'>\s*["\']?{escaped_text}["\']?\s*$', line)
+                            
+                            if is_jsx_attr:
+                                # JSX attribute: prop="text" -> prop={t('key')}
+                                replacement = "{" + replacement + "}"
+                                # Replace quoted string in attribute
+                                new_line = re.sub(
+                                    rf'(\w+\s*=\s*)["\']' + escaped_text + r'["\']',
+                                    r'\1' + replacement,
+                                    line
+                                )
+                            elif is_jsx_child:
+                                # JSX child text: >text< -> >{t('key')}<
+                                replacement = "{" + replacement + "}"
+                                new_line = re.sub(
+                                    rf'(>)\s*["\']?' + escaped_text + r'["\']?\s*(<)',
+                                    r'\1' + replacement + r'\2',
+                                    line
+                                )
+                            else:
+                                # Regular string replacement
+                                if pattern_double in line:
+                                    new_line = line.replace(pattern_double, replacement, 1)
+                                elif pattern_single in line:
+                                    new_line = line.replace(pattern_single, replacement, 1)
+                                else:
+                                    # Try matching without quotes (template literals, etc.)
+                                    new_line = line.replace(original_text, replacement, 1)
+                            
+                            if new_line != line:
+                                lines[line_num - 1] = new_line
+                                modified = True
+                    
+                    if modified:
+                        new_content = '\n'.join(lines)
+                        
+                        # Commit the file
+                        success = await GitHubService.update_file(
+                            access_token=access_token,
+                            owner=repository.repo_owner,
+                            repo=repository.repo_name,
+                            path=file_path,
+                            content=new_content,
+                            message=f"Replace hardcoded strings with translation keys in {file_path.split('/')[-1]}",
+                            branch=branch_name,
+                            file_sha=file_sha,
+                        )
+                        
+                        if success:
+                            files_modified += 1
+                
+                if files_modified == 0:
+                    return CreatePRResult(
+                        success=False,
+                        message="No files were modified. Strings may have already been replaced.",
+                    )
+                
+                # Create PR
+                pr_title = f"🌐 Add localization keys ({files_modified} files)"
+                pr_body = f"""## Localization Changes
+
+This PR replaces hardcoded strings with translation function calls.
+
+### Summary
+- **Files modified:** {files_modified}
+- **Keys used:** {len(ready_strings)}
+- **Translation function:** `{translation_function}()`
+
+### Changes
+The following strings have been replaced with translation keys:
+
+| File | Key | Original Text |
+|------|-----|---------------|
+"""
+                for fs in ready_strings[:20]:  # Limit to first 20
+                    key_id_to_use = fs.key_id if fs.key_id else fs.matched_key_id
+                    key = keys_map.get(key_id_to_use) if key_id_to_use else None
+                    if key:
+                        # Truncate long strings
+                        text = fs.original_text[:50] + "..." if len(fs.original_text) > 50 else fs.original_text
+                        pr_body += f"| `{fs.file_path.split('/')[-1]}` | `{key.key}` | {text} |\n"
+                
+                if len(ready_strings) > 20:
+                    pr_body += f"\n_...and {len(ready_strings) - 20} more_\n"
+                
+                pr_body += """
+---
+_Generated automatically by Keeys localization scanner_
+"""
+                
+                pr_data = await GitHubService.create_pull_request(
+                    access_token=access_token,
+                    owner=repository.repo_owner,
+                    repo=repository.repo_name,
+                    title=pr_title,
+                    body=pr_body,
+                    head=branch_name,
+                    base=repository.default_branch or "main",
+                )
+                
+                if not pr_data:
+                    return CreatePRResult(
+                        success=False,
+                        message="Failed to create pull request. Branch was created but PR creation failed.",
+                        branch_name=branch_name,
+                        files_modified=files_modified,
+                    )
+                
+                # Update scan session with PR info
+                session.pr_branch_name = branch_name
+                session.pr_number = pr_data.get("number")
+                session.pr_url = pr_data.get("html_url")
+                session.pr_created_at = datetime.now(timezone.utc)
+                await db.commit()
+                
+                return CreatePRResult(
+                    success=True,
+                    message=f"Pull request created successfully with {files_modified} files modified",
+                    pr_url=pr_data.get("html_url"),
+                    pr_number=pr_data.get("number"),
+                    branch_name=branch_name,
+                    files_modified=files_modified,
+                )
+                
+        except AuthenticationError:
+            raise
+        except Exception as e:
+            logger.error(f"Error creating PR: {type(e).__name__}: {str(e)}")
+            return CreatePRResult(
+                success=False,
+                message="Failed to create pull request. Please try again.",
             )
 

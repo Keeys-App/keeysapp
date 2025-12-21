@@ -1181,5 +1181,251 @@ class GitHubService:
             if included:
                 filtered.append(entry)
         
-        logger.info(f"Filtered {len(tree)} entries to {len(filtered)} files")
+            logger.info(f"Filtered {len(tree)} entries to {len(filtered)} files")
         return filtered
+    
+    @staticmethod
+    async def create_branch(
+        access_token: str,
+        owner: str,
+        repo: str,
+        branch_name: str,
+        source_branch: str = "main",
+    ) -> Optional[str]:
+        """
+        Create a new branch in a repository.
+        
+        Args:
+            access_token: GitHub access token
+            owner: Repository owner
+            repo: Repository name
+            branch_name: Name for the new branch
+            source_branch: Source branch to base off (default: main)
+            
+        Returns:
+            SHA of the new branch ref, or None if failed
+        """
+        try:
+            async with httpx.AsyncClient() as client:
+                # Get source branch SHA
+                ref_response = await client.get(
+                    f"{GITHUB_API_URL}/repos/{owner}/{repo}/git/ref/heads/{source_branch}",
+                    headers={
+                        "Authorization": f"Bearer {access_token}",
+                        "Accept": "application/vnd.github+json",
+                        "X-GitHub-Api-Version": "2022-11-28",
+                    },
+                    timeout=30.0,
+                )
+                
+                if ref_response.status_code != 200:
+                    logger.error(f"Failed to get source branch ref: {ref_response.status_code}")
+                    return None
+                
+                ref_data = ref_response.json()
+                source_sha = ref_data.get("object", {}).get("sha")
+                
+                if not source_sha:
+                    logger.error("Could not get source branch SHA")
+                    return None
+                
+                # Create new branch
+                create_response = await client.post(
+                    f"{GITHUB_API_URL}/repos/{owner}/{repo}/git/refs",
+                    json={
+                        "ref": f"refs/heads/{branch_name}",
+                        "sha": source_sha,
+                    },
+                    headers={
+                        "Authorization": f"Bearer {access_token}",
+                        "Accept": "application/vnd.github+json",
+                        "X-GitHub-Api-Version": "2022-11-28",
+                    },
+                    timeout=30.0,
+                )
+                
+                if create_response.status_code in (201, 200):
+                    logger.info(f"Created branch {branch_name} from {source_branch}")
+                    return source_sha
+                elif create_response.status_code == 422:
+                    # Branch might already exist
+                    logger.info(f"Branch {branch_name} may already exist")
+                    return source_sha
+                else:
+                    logger.error(f"Failed to create branch: {create_response.status_code} - {create_response.text}")
+                    return None
+                    
+        except Exception as e:
+            logger.error(f"Failed to create branch: {type(e).__name__}: {str(e)}")
+            return None
+    
+    @staticmethod
+    async def get_file_sha(
+        access_token: str,
+        owner: str,
+        repo: str,
+        path: str,
+        branch: str = "main",
+    ) -> Optional[str]:
+        """
+        Get the SHA of a file in the repository.
+        
+        Args:
+            access_token: GitHub access token
+            owner: Repository owner
+            repo: Repository name
+            path: Path to the file
+            branch: Branch name (default: main)
+            
+        Returns:
+            File SHA or None if not found
+        """
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    f"{GITHUB_API_URL}/repos/{owner}/{repo}/contents/{path}",
+                    params={"ref": branch},
+                    headers={
+                        "Authorization": f"Bearer {access_token}",
+                        "Accept": "application/vnd.github+json",
+                        "X-GitHub-Api-Version": "2022-11-28",
+                    },
+                    timeout=30.0,
+                )
+                
+                if response.status_code != 200:
+                    return None
+                
+                data = response.json()
+                return data.get("sha")
+                
+        except Exception as e:
+            logger.error(f"Failed to get file SHA: {type(e).__name__}: {str(e)}")
+            return None
+    
+    @staticmethod
+    async def update_file(
+        access_token: str,
+        owner: str,
+        repo: str,
+        path: str,
+        content: str,
+        message: str,
+        branch: str,
+        file_sha: Optional[str] = None,
+    ) -> bool:
+        """
+        Update or create a file in the repository.
+        
+        Args:
+            access_token: GitHub access token
+            owner: Repository owner
+            repo: Repository name
+            path: Path to the file
+            content: New file content
+            message: Commit message
+            branch: Branch to commit to
+            file_sha: Current file SHA (required for updates)
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        import base64
+        
+        try:
+            async with httpx.AsyncClient() as client:
+                payload = {
+                    "message": message,
+                    "content": base64.b64encode(content.encode("utf-8")).decode("ascii"),
+                    "branch": branch,
+                }
+                
+                if file_sha:
+                    payload["sha"] = file_sha
+                
+                response = await client.put(
+                    f"{GITHUB_API_URL}/repos/{owner}/{repo}/contents/{path}",
+                    json=payload,
+                    headers={
+                        "Authorization": f"Bearer {access_token}",
+                        "Accept": "application/vnd.github+json",
+                        "X-GitHub-Api-Version": "2022-11-28",
+                    },
+                    timeout=30.0,
+                )
+                
+                if response.status_code in (200, 201):
+                    logger.info(f"Updated file {path} on branch {branch}")
+                    return True
+                else:
+                    logger.error(f"Failed to update file: {response.status_code} - {response.text}")
+                    return False
+                    
+        except Exception as e:
+            logger.error(f"Failed to update file: {type(e).__name__}: {str(e)}")
+            return False
+    
+    @staticmethod
+    async def create_pull_request(
+        access_token: str,
+        owner: str,
+        repo: str,
+        title: str,
+        body: str,
+        head: str,
+        base: str = "main",
+    ) -> Optional[dict]:
+        """
+        Create a pull request.
+        
+        Args:
+            access_token: GitHub access token
+            owner: Repository owner
+            repo: Repository name
+            title: PR title
+            body: PR description
+            head: Source branch name
+            base: Target branch name (default: main)
+            
+        Returns:
+            PR data dict with 'number', 'html_url', etc. or None if failed
+        """
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"{GITHUB_API_URL}/repos/{owner}/{repo}/pulls",
+                    json={
+                        "title": title,
+                        "body": body,
+                        "head": head,
+                        "base": base,
+                    },
+                    headers={
+                        "Authorization": f"Bearer {access_token}",
+                        "Accept": "application/vnd.github+json",
+                        "X-GitHub-Api-Version": "2022-11-28",
+                    },
+                    timeout=30.0,
+                )
+                
+                if response.status_code == 201:
+                    pr_data = response.json()
+                    logger.info(f"Created PR #{pr_data.get('number')}: {title}")
+                    return {
+                        "number": pr_data.get("number"),
+                        "html_url": pr_data.get("html_url"),
+                        "id": pr_data.get("id"),
+                        "state": pr_data.get("state"),
+                    }
+                elif response.status_code == 422:
+                    # PR might already exist
+                    error_data = response.json()
+                    logger.warning(f"PR creation returned 422: {error_data}")
+                    return None
+                else:
+                    logger.error(f"Failed to create PR: {response.status_code} - {response.text}")
+                    return None
+                    
+        except Exception as e:
+            logger.error(f"Failed to create PR: {type(e).__name__}: {str(e)}")
+            return None

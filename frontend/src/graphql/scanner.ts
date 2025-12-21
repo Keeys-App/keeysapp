@@ -22,6 +22,10 @@ export const SCAN_SESSION_QUERY = gql`
       createdAt
       startedAt
       completedAt
+      prBranchName
+      prNumber
+      prUrl
+      prCreatedAt
       foundStrings {
         id
         filePath
@@ -61,6 +65,10 @@ export const PROJECT_SCAN_SESSIONS_QUERY = gql`
       createdAt
       startedAt
       completedAt
+      prBranchName
+      prNumber
+      prUrl
+      prCreatedAt
       foundStrings {
         id
         filePath
@@ -220,6 +228,20 @@ export const CONVERT_FOUND_STRINGS_TO_KEYS_MUTATION = gql`
   }
 `;
 
+// Mutation to create a pull request with key replacements
+export const CREATE_LOCALIZATION_PR_MUTATION = gql`
+  mutation CreateLocalizationPR($scanSessionId: String!, $translationFunction: String) {
+    createLocalizationPr(scanSessionId: $scanSessionId, translationFunction: $translationFunction) {
+      success
+      message
+      prUrl
+      prNumber
+      branchName
+      filesModified
+    }
+  }
+`;
+
 // TypeScript types
 export const ScanStatus = {
   PENDING: 'PENDING',
@@ -294,6 +316,11 @@ export interface ScanSession {
   startedAt: string | null;
   completedAt: string | null;
   foundStrings: FoundString[];
+  // PR information
+  prBranchName: string | null;
+  prNumber: number | null;
+  prUrl: string | null;
+  prCreatedAt: string | null;
 }
 
 export interface RepositoryDirectory {
@@ -331,5 +358,14 @@ export interface ReplaceFoundStringResult {
   success: boolean;
   message: string;
   foundString: FoundString | null;
+}
+
+export interface CreatePRResult {
+  success: boolean;
+  message: string;
+  prUrl: string | null;
+  prNumber: number | null;
+  branchName: string | null;
+  filesModified: number;
 }
 

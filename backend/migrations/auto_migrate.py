@@ -1575,6 +1575,72 @@ def migrate_add_key_naming_settings_if_needed():
         return False
 
 
+def migrate_add_scan_pr_fields_if_needed():
+    """
+    Add PR-related fields to scan_sessions table:
+    - pr_branch_name - name of the created branch
+    - pr_number - PR number in GitHub
+    - pr_url - URL to the PR
+    - pr_created_at - when the PR was created
+    Safe to run multiple times.
+    """
+    try:
+        has_pr_branch = check_column_exists('scan_sessions', 'pr_branch_name')
+        has_pr_number = check_column_exists('scan_sessions', 'pr_number')
+        has_pr_url = check_column_exists('scan_sessions', 'pr_url')
+        has_pr_created_at = check_column_exists('scan_sessions', 'pr_created_at')
+        
+        if has_pr_branch and has_pr_number and has_pr_url and has_pr_created_at:
+            logger.info("✅ Migration: PR fields in scan_sessions already exist, skipping")
+            return True
+        
+        logger.info("🔄 Migration: Adding PR fields to scan_sessions")
+        
+        with engine.connect() as connection:
+            if not has_pr_branch:
+                logger.info("  Adding pr_branch_name column...")
+                connection.execute(text("""
+                    ALTER TABLE scan_sessions 
+                    ADD COLUMN pr_branch_name VARCHAR(255) DEFAULT NULL
+                """))
+                connection.commit()
+                logger.info("  ✅ pr_branch_name column added")
+            
+            if not has_pr_number:
+                logger.info("  Adding pr_number column...")
+                connection.execute(text("""
+                    ALTER TABLE scan_sessions 
+                    ADD COLUMN pr_number INTEGER DEFAULT NULL
+                """))
+                connection.commit()
+                logger.info("  ✅ pr_number column added")
+            
+            if not has_pr_url:
+                logger.info("  Adding pr_url column...")
+                connection.execute(text("""
+                    ALTER TABLE scan_sessions 
+                    ADD COLUMN pr_url VARCHAR(500) DEFAULT NULL
+                """))
+                connection.commit()
+                logger.info("  ✅ pr_url column added")
+            
+            if not has_pr_created_at:
+                logger.info("  Adding pr_created_at column...")
+                connection.execute(text("""
+                    ALTER TABLE scan_sessions 
+                    ADD COLUMN pr_created_at TIMESTAMP WITH TIME ZONE DEFAULT NULL
+                """))
+                connection.commit()
+                logger.info("  ✅ pr_created_at column added")
+            
+            logger.info("✅ Migration: PR fields added successfully")
+            return True
+            
+    except Exception as e:
+        logger.error(f"❌ Migration failed: {type(e).__name__}: {str(e)}")
+        return False
+
+
 def migrate_add_key_matching_fields_if_needed():
     """
     Add fields for key matching feature:
@@ -1705,6 +1771,7 @@ def run_all_migrations():
         ("add_found_string_file_metadata", migrate_add_found_string_file_metadata_if_needed),
         ("add_key_matching_fields", migrate_add_key_matching_fields_if_needed),
         ("add_key_naming_settings", migrate_add_key_naming_settings_if_needed),
+        ("add_scan_pr_fields", migrate_add_scan_pr_fields_if_needed),
         # Add more migrations here as needed
     ]
     

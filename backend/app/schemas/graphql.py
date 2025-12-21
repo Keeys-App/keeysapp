@@ -35,6 +35,7 @@ from app.schemas.scanner import (
     StartScanResult,
     UpdateFoundStringResult,
     ConvertStringsResult,
+    CreatePRResult,
     RepositoryDirectoryType,
 )
 
@@ -165,6 +166,7 @@ class Mutation:
     update_found_string_status: UpdateFoundStringResult = strawberry.field(resolver=ScannerMutation.update_found_string_status)
     replace_found_string: UpdateFoundStringResult = strawberry.field(resolver=ScannerMutation.replace_found_string)
     convert_found_strings_to_keys: ConvertStringsResult = strawberry.field(resolver=ScannerMutation.convert_found_strings_to_keys)
+    create_localization_pr: CreatePRResult = strawberry.field(resolver=ScannerMutation.create_localization_pr)
 
 
 schema = strawberry.Schema(

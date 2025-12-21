@@ -13,6 +13,8 @@ import {
   X,
   FolderOpen,
   RefreshCw,
+  GitPullRequest,
+  ExternalLink,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -47,8 +49,10 @@ import {
   UPDATE_FOUND_STRING_STATUS_MUTATION,
   CONVERT_FOUND_STRINGS_TO_KEYS_MUTATION,
   REPLACE_FOUND_STRING_MUTATION,
+  CREATE_LOCALIZATION_PR_MUTATION,
   type ScanSession,
   type FoundString,
+  type CreatePRResult,
   ScanStatus,
   FoundStringStatus,
 } from '@/graphql/scanner';
@@ -96,6 +100,7 @@ export const ScanRepositoryCard: FC<ScanRepositoryCardProps> = ({
   const [updateStatus] = useMutation(UPDATE_FOUND_STRING_STATUS_MUTATION);
   const [convertToKeys, { loading: converting }] = useMutation(CONVERT_FOUND_STRINGS_TO_KEYS_MUTATION);
   const [replaceFoundString] = useMutation(REPLACE_FOUND_STRING_MUTATION);
+  const [createPR, { loading: creatingPR }] = useMutation<{ createLocalizationPr: CreatePRResult }>(CREATE_LOCALIZATION_PR_MUTATION);
   
   const sessions = sessionsData?.projectScanSessions ?? [];
   const currentScan = currentScanData?.scanSession ?? (sessions.length > 0 ? sessions[0] : null);
@@ -231,6 +236,38 @@ export const ScanRepositoryCard: FC<ScanRepositoryCardProps> = ({
     }
   };
   
+  const handleCreatePR = async () => {
+    if (!currentScanId) {
+      return;
+    }
+    
+    try {
+      const result = await createPR({
+        variables: { 
+          scanSessionId: currentScanId,
+          translationFunction: 't',
+        },
+        refetchQueries: [{ query: SCAN_SESSION_QUERY, variables: { scanSessionId: currentScanId } }],
+      });
+      
+      const { success, message, prUrl, filesModified } = result.data?.createLocalizationPr ?? {};
+      
+      if (success && prUrl) {
+        toast('Pull request created', { 
+          description: `Modified ${filesModified} files. Click to open PR.`,
+          action: {
+            label: 'Open PR',
+            onClick: () => { window.open(prUrl, '_blank'); },
+          },
+        });
+      } else {
+        toast('Failed to create PR', { description: message });
+      }
+    } catch (error) {
+      toast('Error', { description: 'Failed to create pull request. Please try again.' });
+    }
+  };
+  
   const [approvingAll, setApprovingAll] = useState(false);
   
   const handleApproveAll = async () => {
@@ -300,6 +337,12 @@ export const ScanRepositoryCard: FC<ScanRepositoryCardProps> = ({
   const approvedCount = currentScan?.foundStrings.filter(s => s.status === FoundStringStatus.APPROVED).length ?? 0;
   const pendingCount = currentScan?.foundStrings.filter(s => s.status === FoundStringStatus.PENDING).length ?? 0;
   const matchedCount = currentScan?.foundStrings.filter(s => s.status === FoundStringStatus.MATCHED).length ?? 0;
+  const convertedCount = currentScan?.foundStrings.filter(s => s.status === FoundStringStatus.CONVERTED).length ?? 0;
+  // Strings ready for PR: CONVERTED (new keys created) or MATCHED (existing keys with matchedKeyId)
+  const matchedWithKeyCount = currentScan?.foundStrings.filter(
+    s => s.status === FoundStringStatus.MATCHED && s.matchedKeyId
+  ).length ?? 0;
+  const readyForPRCount = convertedCount + matchedWithKeyCount;
   
   if (!hasRepository) {
     return null;
@@ -379,6 +422,9 @@ export const ScanRepositoryCard: FC<ScanRepositoryCardProps> = ({
                 <span className="font-medium">{currentScan.stringsFound} strings found</span>
                 <Badge variant="secondary">{approvedCount} approved</Badge>
                 <Badge variant="outline">{pendingCount} pending</Badge>
+                {convertedCount > 0 ? (
+                  <Badge variant="default" className="bg-blue-500">{convertedCount} converted</Badge>
+                ) : null}
                 {matchedCount > 0 ? (
                   <Badge variant="outline" className="border-orange-500 text-orange-600">{matchedCount} matched</Badge>
                 ) : null}
@@ -528,12 +574,72 @@ export const ScanRepositoryCard: FC<ScanRepositoryCardProps> = ({
                 </Table>
               </div>
               
-              {canManage && approvedCount > 0 ? (
-                <div className="mt-4 flex justify-end">
-                  <Button onClick={handleConvertToKeys} disabled={converting}>
-                    {converting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    Create {approvedCount} Keys
-                  </Button>
+              {/* Action buttons section */}
+              {canManage ? (
+                <div className="mt-4 space-y-3">
+                  {/* Create Keys button - show if there are approved strings */}
+                  {approvedCount > 0 ? (
+                    <div className="flex justify-end">
+                      <Button onClick={handleConvertToKeys} disabled={converting}>
+                        {converting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        Create {approvedCount} Keys
+                      </Button>
+                    </div>
+                  ) : null}
+                  
+                  {/* PR section - show if there are strings ready for PR or PR already exists */}
+                  {(readyForPRCount > 0 || currentScan?.prUrl) ? (
+                    <div className="rounded-lg border bg-muted/50 p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <GitPullRequest className="h-5 w-5 text-purple-500" />
+                        <span className="font-medium">Pull Request</span>
+                      </div>
+                      
+                      {currentScan?.prUrl ? (
+                        /* PR already created */
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-green-500" />
+                            <span className="text-sm">PR #{currentScan.prNumber} created</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span>Branch:</span>
+                            <code className="rounded bg-muted px-1.5 py-0.5 font-mono">
+                              {currentScan.prBranchName}
+                            </code>
+                          </div>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="mt-2"
+                            onClick={() => { window.open(currentScan.prUrl!, '_blank'); }}
+                          >
+                            <ExternalLink className="mr-2 h-4 w-4" />
+                            Open Pull Request
+                          </Button>
+                        </div>
+                      ) : (
+                        /* No PR yet - show create button */
+                        <div className="space-y-2">
+                          <p className="text-sm text-muted-foreground">
+                            Create a pull request to replace {readyForPRCount} hardcoded strings with translation keys.
+                          </p>
+                          <Button 
+                            onClick={handleCreatePR} 
+                            disabled={creatingPR}
+                            className="w-full"
+                          >
+                            {creatingPR ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <GitPullRequest className="mr-2 h-4 w-4" />
+                            )}
+                            Create Pull Request
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
             </CollapsibleContent>

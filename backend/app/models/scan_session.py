@@ -68,6 +68,12 @@ class ScanSession(Base):
     # Error handling
     error_message = Column(Text, nullable=True)
     
+    # Pull Request information
+    pr_branch_name = Column(String(255), nullable=True)
+    pr_number = Column(Integer, nullable=True)
+    pr_url = Column(String(500), nullable=True)
+    pr_created_at = Column(DateTime(timezone=True), nullable=True)
+    
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     started_at = Column(DateTime(timezone=True), nullable=True)
