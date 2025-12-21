@@ -348,6 +348,8 @@ class ScannerService:
         ai_provider: Optional[str] = None,
         ai_model: Optional[str] = None,
         scan_path: Optional[str] = None,
+        key_naming_style: Optional[str] = None,
+        key_naming_delimiter: Optional[str] = None,
     ) -> ScanSession:
         """
         Start a new scan session for a repository.
@@ -359,6 +361,8 @@ class ScannerService:
             ai_provider: AI provider to use (OPENAI or ANTHROPIC)
             ai_model: Specific model to use
             scan_path: Optional directory path to limit scan scope
+            key_naming_style: Key naming style (UPPERCASE, snake_case, camelCase)
+            key_naming_delimiter: Delimiter for key segments (_, ., :, ::)
             
         Returns:
             Created ScanSession
@@ -389,6 +393,8 @@ class ScannerService:
             ai_provider=provider,
             ai_model=model,
             scan_path=scan_path,
+            key_naming_style=key_naming_style or "camelCase",
+            key_naming_delimiter=key_naming_delimiter or ".",
         )
         
         db.add(session)
@@ -547,7 +553,7 @@ class ScannerService:
                     if not content or len(content) > 100000:  # 100KB limit
                         continue
                     
-                    # Enqueue job with provider and model from session
+                    # Enqueue job with provider, model, and key naming settings from session
                     job = await redis_pool.enqueue_job(
                         "analyze_file_task",
                         file_path,
@@ -556,6 +562,8 @@ class ScannerService:
                         repository.i18n_framework,
                         session.ai_provider.value,  # Pass provider
                         session.ai_model,  # Pass model
+                        session.key_naming_style,  # Pass key naming style
+                        session.key_naming_delimiter,  # Pass key naming delimiter
                     )
                     jobs.append((file_path, job))
                     

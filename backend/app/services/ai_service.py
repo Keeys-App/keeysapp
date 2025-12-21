@@ -685,6 +685,8 @@ class AIService:
         existing_keys: Optional[list[str]] = None,
         provider: Optional[str] = None,
         model: Optional[str] = None,
+        key_naming_style: Optional[str] = None,
+        key_naming_delimiter: Optional[str] = None,
     ) -> AnalysisResult:
         """
         Analyze a source file to find hardcoded strings that need localization.
@@ -696,6 +698,8 @@ class AIService:
             existing_keys: Optional list of existing translation keys to avoid duplicates
             provider: AI provider to use (OPENAI or ANTHROPIC)
             model: Specific model to use
+            key_naming_style: Key naming style (UPPERCASE, snake_case, camelCase)
+            key_naming_delimiter: Delimiter for key segments (_, ., :, ::)
             
         Returns:
             AnalysisResult with found strings and token usage
@@ -707,7 +711,9 @@ class AIService:
             raise Exception(f"AI service ({use_provider}) is not configured")
         
         # Build the system prompt
-        system_prompt = self._build_analysis_system_prompt(i18n_framework, existing_keys)
+        system_prompt = self._build_analysis_system_prompt(
+            i18n_framework, existing_keys, key_naming_style, key_naming_delimiter
+        )
         
         # Build the user prompt
         user_prompt = self._build_analysis_user_prompt(file_content, file_path)
@@ -849,6 +855,8 @@ class AIService:
         self,
         i18n_framework: Optional[str] = None,
         existing_keys: Optional[list[str]] = None,
+        key_naming_style: Optional[str] = None,
+        key_naming_delimiter: Optional[str] = None,
     ) -> str:
         """Build the system prompt for file analysis."""
         framework_context = ""
@@ -867,6 +875,9 @@ Existing translation keys in the project (sample):
 
 Try to follow the existing naming conventions and avoid duplicating these keys.
 """
+        
+        # Build key naming convention based on style and delimiter
+        naming_convention = self._build_key_naming_convention(key_naming_style, key_naming_delimiter)
         
         return f"""You are an expert code analyzer specializing in internationalization (i18n).
 Your task is to analyze source code files and identify user-facing strings that should be localized.
@@ -893,35 +904,7 @@ RULES FOR IDENTIFYING STRINGS TO LOCALIZE:
    - Empty strings or whitespace-only strings
    - Single characters or punctuation
 
-KEY NAMING CONVENTIONS (STRICTLY FOLLOW THIS FORMAT):
-- Format: componentName.entity.block.textDescription
-- Use ONLY camelCase for each segment (no underscores, no UPPERCASE)
-- Use dots (.) as the ONLY separator between segments
-- Structure: [component].[entity/section].[element].[description]
-
-NAMING RULES:
-1. Component name from file/folder: AppSidebar.tsx -> "appSidebar"
-2. Entity/section describes the area: "brand", "navigation", "header", "footer"
-3. Element (optional) for nested items: "item", "button", "link", "input"
-4. Description of the text purpose: "title", "label", "placeholder", "description"
-
-EXAMPLES:
-- AppSidebar brand name: "appSidebar.brand.name" ✓ (NOT "app.sidebar.brandName" ✗)
-- Login page title: "loginPage.title" ✓
-- Login form submit button: "loginPage.form.submitButton" ✓
-- Navigation home link: "navigation.home.label" ✓
-- Error validation required: "errors.validation.required" ✓
-- Dashboard stats card title: "dashboard.stats.card.title" ✓
-- Settings profile section heading: "settings.profile.heading" ✓
-- Modal confirm button: "modal.confirm.button" ✓
-- Toast success message: "toast.success.message" ✓
-
-WRONG FORMATS (NEVER USE):
-- "app.sidebar.brand.name" ✗ (too many dots, component split)
-- "App_Sidebar_Brand" ✗ (underscores)
-- "APP_SIDEBAR" ✗ (uppercase)
-- "app-sidebar-brand" ✗ (dashes)
-- "appSidebarBrandName" ✗ (no dots, all one segment)
+{naming_convention}
 
 RESPONSE FORMAT:
 You MUST respond with valid JSON only, no other text. Use this exact format:
@@ -930,7 +913,7 @@ You MUST respond with valid JSON only, no other text. Use this exact format:
     {{
       "text": "The exact string found in code",
       "line": 24,
-      "suggested_key": "namespace.component.element",
+      "suggested_key": "namespace{key_naming_delimiter or '.'}component{key_naming_delimiter or '.'}element",
       "context": "Brief description of where/how this string is used",
       "confidence": 0.95
     }}
@@ -939,6 +922,109 @@ You MUST respond with valid JSON only, no other text. Use this exact format:
 
 If no strings need localization, return: {{"strings": []}}
 """
+
+    def _build_key_naming_convention(
+        self,
+        style: Optional[str] = None,
+        delimiter: Optional[str] = None,
+    ) -> str:
+        """Build key naming convention section based on style and delimiter."""
+        # Default values
+        style = style or "camelCase"
+        delimiter = delimiter or "."
+        
+        # Style descriptions and examples
+        style_configs = {
+            "UPPERCASE": {
+                "case_desc": "UPPERCASE for each segment",
+                "segment_transform": lambda s: s.upper(),
+                "example_component": "APP_SIDEBAR",
+                "example_section": "BRAND",
+                "example_element": "NAME",
+            },
+            "snake_case": {
+                "case_desc": "snake_case for each segment (all lowercase with underscores within segment)",
+                "segment_transform": lambda s: s.lower(),
+                "example_component": "app_sidebar",
+                "example_section": "brand",
+                "example_element": "name",
+            },
+            "camelCase": {
+                "case_desc": "camelCase for each segment",
+                "segment_transform": lambda s: s[0].lower() + s[1:] if s else s,
+                "example_component": "appSidebar",
+                "example_section": "brand",
+                "example_element": "name",
+            },
+        }
+        
+        config = style_configs.get(style, style_configs["camelCase"])
+        
+        # Build examples
+        d = delimiter  # shorthand
+        comp = config["example_component"]
+        sect = config["example_section"]
+        elem = config["example_element"]
+        
+        # Generate examples for different contexts
+        examples = f"""
+EXAMPLES:
+- AppSidebar brand name: "{comp}{d}{sect}{d}{elem}" ✓
+- Login page title: "{"LOGIN_PAGE" if style == "UPPERCASE" else "login_page" if style == "snake_case" else "loginPage"}{d}{"TITLE" if style == "UPPERCASE" else "title"}" ✓
+- Login form submit button: "{"LOGIN_PAGE" if style == "UPPERCASE" else "login_page" if style == "snake_case" else "loginPage"}{d}{"FORM" if style == "UPPERCASE" else "form"}{d}{"SUBMIT_BUTTON" if style == "UPPERCASE" else "submit_button" if style == "snake_case" else "submitButton"}" ✓
+- Navigation home link: "{"NAVIGATION" if style == "UPPERCASE" else "navigation"}{d}{"HOME" if style == "UPPERCASE" else "home"}{d}{"LABEL" if style == "UPPERCASE" else "label"}" ✓
+- Error validation required: "{"ERRORS" if style == "UPPERCASE" else "errors"}{d}{"VALIDATION" if style == "UPPERCASE" else "validation"}{d}{"REQUIRED" if style == "UPPERCASE" else "required"}" ✓
+- Dashboard stats card title: "{"DASHBOARD" if style == "UPPERCASE" else "dashboard"}{d}{"STATS" if style == "UPPERCASE" else "stats"}{d}{"CARD" if style == "UPPERCASE" else "card"}{d}{"TITLE" if style == "UPPERCASE" else "title"}" ✓
+"""
+
+        # Build wrong format examples based on current style
+        wrong_examples = self._build_wrong_format_examples(style, delimiter)
+        
+        return f"""KEY NAMING CONVENTIONS (STRICTLY FOLLOW THIS FORMAT):
+- Format: component{d}entity{d}block{d}textDescription
+- Use {config["case_desc"]}
+- Use "{d}" as the ONLY separator between segments
+- Structure: [component]{d}[entity/section]{d}[element]{d}[description]
+
+NAMING RULES:
+1. Component name from file/folder: AppSidebar.tsx -> "{comp}"
+2. Entity/section describes the area: "{sect}", "{"NAVIGATION" if style == "UPPERCASE" else "navigation"}", "{"HEADER" if style == "UPPERCASE" else "header"}", "{"FOOTER" if style == "UPPERCASE" else "footer"}"
+3. Element (optional) for nested items: "{"ITEM" if style == "UPPERCASE" else "item"}", "{"BUTTON" if style == "UPPERCASE" else "button"}", "{"LINK" if style == "UPPERCASE" else "link"}", "{"INPUT" if style == "UPPERCASE" else "input"}"
+4. Description of the text purpose: "{"TITLE" if style == "UPPERCASE" else "title"}", "{"LABEL" if style == "UPPERCASE" else "label"}", "{"PLACEHOLDER" if style == "UPPERCASE" else "placeholder"}", "{"DESCRIPTION" if style == "UPPERCASE" else "description"}"
+
+{examples}
+
+{wrong_examples}"""
+
+    def _build_wrong_format_examples(self, style: str, delimiter: str) -> str:
+        """Build wrong format examples based on current style."""
+        wrong = []
+        
+        # Always wrong: mixing styles
+        if style != "UPPERCASE":
+            wrong.append('- "APP_SIDEBAR_BRAND" ✗ (UPPERCASE not allowed)')
+        if style != "camelCase":
+            wrong.append('- "appSidebar.brandName" ✗ (camelCase not allowed)' if delimiter != "." else '- "appSidebarBrandName" ✗ (camelCase segments not allowed)')
+        if style != "snake_case":
+            wrong.append('- "app_sidebar_brand" ✗ (snake_case not allowed)' if "_" not in delimiter else '')
+        
+        # Wrong delimiters
+        if delimiter != ".":
+            wrong.append('- "app.sidebar.brand" ✗ (dots not allowed as delimiter)')
+        if delimiter != "_":
+            wrong.append('- "app_sidebar_brand" ✗ (underscores not allowed as delimiter)')
+        if delimiter != ":":
+            wrong.append('- "app:sidebar:brand" ✗ (single colon not allowed as delimiter)')
+        if delimiter != "::":
+            wrong.append('- "app::sidebar::brand" ✗ (double colon not allowed as delimiter)')
+        
+        # Always wrong
+        wrong.append('- "app-sidebar-brand" ✗ (dashes never allowed)')
+        
+        # Filter empty strings and limit
+        wrong = [w for w in wrong if w][:6]
+        
+        return "WRONG FORMATS (NEVER USE):\n" + "\n".join(wrong)
 
     def _build_analysis_user_prompt(self, file_content: str, file_path: str) -> str:
         """Build the user prompt for file analysis."""

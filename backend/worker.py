@@ -83,6 +83,8 @@ async def analyze_file_task(
     i18n_framework: Optional[str] = None,
     ai_provider: Optional[str] = None,
     ai_model: Optional[str] = None,
+    key_naming_style: Optional[str] = None,
+    key_naming_delimiter: Optional[str] = None,
 ) -> dict[str, Any]:
     """
     Analyze a single file for hardcoded strings.
@@ -95,6 +97,8 @@ async def analyze_file_task(
         i18n_framework: Optional i18n framework name
         ai_provider: AI provider to use (OPENAI or ANTHROPIC)
         ai_model: Specific AI model to use
+        key_naming_style: Key naming style (UPPERCASE, snake_case, camelCase)
+        key_naming_delimiter: Delimiter for key segments (_, ., :, ::)
         
     Returns:
         Dictionary with analysis results:
@@ -137,6 +141,8 @@ async def analyze_file_task(
             i18n_framework=i18n_framework,
             provider=ai_provider,
             model=ai_model,
+            key_naming_style=key_naming_style,
+            key_naming_delimiter=key_naming_delimiter,
         )
         
         logger.info(

@@ -1531,6 +1531,50 @@ def migrate_add_found_string_file_metadata_if_needed():
         return False
 
 
+def migrate_add_key_naming_settings_if_needed():
+    """
+    Add key naming settings to scan_sessions table:
+    - key_naming_style (UPPERCASE, snake_case, camelCase)
+    - key_naming_delimiter (_, ., :, ::)
+    Safe to run multiple times.
+    """
+    try:
+        has_key_naming_style = check_column_exists('scan_sessions', 'key_naming_style')
+        has_key_naming_delimiter = check_column_exists('scan_sessions', 'key_naming_delimiter')
+        
+        if has_key_naming_style and has_key_naming_delimiter:
+            logger.info("✅ Migration: Key naming settings columns already exist, skipping")
+            return True
+        
+        logger.info("🔄 Migration: Adding key naming settings columns to scan_sessions")
+        
+        with engine.connect() as connection:
+            if not has_key_naming_style:
+                logger.info("  Adding key_naming_style column...")
+                connection.execute(text("""
+                    ALTER TABLE scan_sessions 
+                    ADD COLUMN key_naming_style VARCHAR(20) DEFAULT 'camelCase'
+                """))
+                connection.commit()
+                logger.info("  ✅ key_naming_style column added")
+            
+            if not has_key_naming_delimiter:
+                logger.info("  Adding key_naming_delimiter column...")
+                connection.execute(text("""
+                    ALTER TABLE scan_sessions 
+                    ADD COLUMN key_naming_delimiter VARCHAR(5) DEFAULT '.'
+                """))
+                connection.commit()
+                logger.info("  ✅ key_naming_delimiter column added")
+            
+            logger.info("✅ Migration: Key naming settings columns added successfully")
+            return True
+            
+    except Exception as e:
+        logger.error(f"❌ Migration failed: {type(e).__name__}: {str(e)}")
+        return False
+
+
 def migrate_add_key_matching_fields_if_needed():
     """
     Add fields for key matching feature:
@@ -1660,6 +1704,7 @@ def run_all_migrations():
         ("add_github_refresh_token", migrate_add_github_refresh_token_if_needed),
         ("add_found_string_file_metadata", migrate_add_found_string_file_metadata_if_needed),
         ("add_key_matching_fields", migrate_add_key_matching_fields_if_needed),
+        ("add_key_naming_settings", migrate_add_key_naming_settings_if_needed),
         # Add more migrations here as needed
     ]
     

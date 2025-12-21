@@ -13,6 +13,8 @@ export const SCAN_SESSION_QUERY = gql`
       aiProvider
       aiModel
       scanPath
+      keyNamingStyle
+      keyNamingDelimiter
       filesTotal
       filesScanned
       stringsFound
@@ -50,6 +52,8 @@ export const PROJECT_SCAN_SESSIONS_QUERY = gql`
       aiProvider
       aiModel
       scanPath
+      keyNamingStyle
+      keyNamingDelimiter
       filesTotal
       filesScanned
       stringsFound
@@ -104,8 +108,18 @@ export const REPOSITORY_DIRECTORIES_QUERY = gql`
 // Mutation to start a repository scan
 // Note: AI settings are taken from Team configuration on backend
 export const START_REPOSITORY_SCAN_MUTATION = gql`
-  mutation StartRepositoryScan($projectId: String!, $scanPath: String) {
-    startRepositoryScan(projectId: $projectId, scanPath: $scanPath) {
+  mutation StartRepositoryScan(
+    $projectId: String!
+    $scanPath: String
+    $keyNamingStyle: String
+    $keyNamingDelimiter: String
+  ) {
+    startRepositoryScan(
+      projectId: $projectId
+      scanPath: $scanPath
+      keyNamingStyle: $keyNamingStyle
+      keyNamingDelimiter: $keyNamingDelimiter
+    ) {
       success
       message
       scanSession {
@@ -114,6 +128,8 @@ export const START_REPOSITORY_SCAN_MUTATION = gql`
         aiProvider
         aiModel
         scanPath
+        keyNamingStyle
+        keyNamingDelimiter
         filesTotal
         filesScanned
         stringsFound
@@ -247,12 +263,29 @@ export interface FoundString {
   createdAt: string;
 }
 
+export const KeyNamingStyle = {
+  UPPERCASE: 'UPPERCASE',
+  snake_case: 'snake_case',
+  camelCase: 'camelCase',
+} as const;
+export type KeyNamingStyle = (typeof KeyNamingStyle)[keyof typeof KeyNamingStyle];
+
+export const KeyNamingDelimiter = {
+  UNDERSCORE: '_',
+  DOT: '.',
+  COLON: ':',
+  DOUBLE_COLON: '::',
+} as const;
+export type KeyNamingDelimiter = (typeof KeyNamingDelimiter)[keyof typeof KeyNamingDelimiter];
+
 export interface ScanSession {
   id: string;
   status: ScanStatus;
   aiProvider: AIProvider;
   aiModel: string;
   scanPath: string | null;
+  keyNamingStyle: string | null;
+  keyNamingDelimiter: string | null;
   filesTotal: number;
   filesScanned: number;
   stringsFound: number;

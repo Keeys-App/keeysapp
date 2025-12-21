@@ -86,6 +86,8 @@ class ScanSessionType:
     ai_provider: AIProviderEnum
     ai_model: str
     scan_path: Optional[str]  # Directory to scan (None = entire repo)
+    key_naming_style: Optional[str]  # UPPERCASE, snake_case, camelCase
+    key_naming_delimiter: Optional[str]  # _, ., :, ::
     files_total: int
     files_scanned: int
     strings_found: int
@@ -327,6 +329,8 @@ def _session_to_type(session: ScanSession, found_strings: List[FoundString] = No
         ai_provider=AIProviderEnum(session.ai_provider.value),
         ai_model=session.ai_model,
         scan_path=session.scan_path,
+        key_naming_style=session.key_naming_style,
+        key_naming_delimiter=session.key_naming_delimiter,
         files_total=session.files_total,
         files_scanned=session.files_scanned,
         strings_found=session.strings_found,
@@ -658,6 +662,8 @@ class ScannerMutation:
         info: Info,
         project_id: str,
         scan_path: Optional[str] = None,
+        key_naming_style: Optional[str] = None,
+        key_naming_delimiter: Optional[str] = None,
     ) -> StartScanResult:
         """
         Start scanning a repository for hardcoded strings.
@@ -667,6 +673,8 @@ class ScannerMutation:
             info: GraphQL info object
             project_id: Public UUID of the project
             scan_path: Optional directory path to limit scan scope
+            key_naming_style: Key naming style (UPPERCASE, snake_case, camelCase)
+            key_naming_delimiter: Delimiter for key segments (_, ., :, ::)
             
         Returns:
             Result with scan session info
@@ -765,6 +773,8 @@ class ScannerMutation:
                     ai_provider=ai_provider,
                     ai_model=ai_model,
                     scan_path=scan_path,
+                    key_naming_style=key_naming_style,
+                    key_naming_delimiter=key_naming_delimiter,
                 )
                 
                 # Log scan start activity

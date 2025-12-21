@@ -50,6 +50,10 @@ class ScanSession(Base):
     ai_provider = Column(SQLEnum(AIProvider), nullable=False, default=AIProvider.ANTHROPIC)
     ai_model = Column(String(100), nullable=False, default="claude-haiku-4-5")
     
+    # Key naming configuration
+    key_naming_style = Column(String(20), nullable=True, default="camelCase")  # UPPERCASE, snake_case, camelCase
+    key_naming_delimiter = Column(String(5), nullable=True, default=".")  # _, ., :, ::
+    
     # Scan path (optional directory to limit scan scope)
     scan_path = Column(String(500), nullable=True)
     
