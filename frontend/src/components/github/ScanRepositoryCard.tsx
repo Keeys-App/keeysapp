@@ -376,7 +376,15 @@ export const ScanRepositoryCard: FC<ScanRepositoryCardProps> = ({
                   <TableBody>
                     {currentScan.foundStrings.map((fs) => (
                       <TableRow key={fs.id}>
-                        <TableCell className="font-mono text-xs">{fs.suggestedKey}</TableCell>
+                        <TableCell className="font-mono text-xs">
+                          {fs.status === FoundStringStatus.MATCHED && fs.matchedKeyName ? (
+                            <span title={`AI suggested: ${fs.suggestedKey}`}>
+                              {fs.matchedKeyName}
+                            </span>
+                          ) : (
+                            fs.suggestedKey
+                          )}
+                        </TableCell>
                         <TableCell className="max-w-[300px] truncate">{fs.originalText}</TableCell>
                         <TableCell>
                           <div className="flex flex-col gap-0.5">
@@ -400,29 +408,22 @@ export const ScanRepositoryCard: FC<ScanRepositoryCardProps> = ({
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="flex flex-col gap-1">
-                            <Badge 
-                              variant={
-                                fs.status === FoundStringStatus.APPROVED ? 'default' :
-                                fs.status === FoundStringStatus.CONVERTED ? 'default' :
-                                fs.status === FoundStringStatus.SKIPPED ? 'secondary' :
-                                fs.status === FoundStringStatus.MATCHED ? 'outline' :
-                                'outline'
-                              }
-                              className={cn(
-                                fs.status === FoundStringStatus.APPROVED && 'bg-green-500',
-                                fs.status === FoundStringStatus.CONVERTED && 'bg-blue-500',
-                                fs.status === FoundStringStatus.MATCHED && 'border-orange-500 text-orange-600',
-                              )}
-                            >
-                              {fs.status === FoundStringStatus.MATCHED ? 'EXISTS' : fs.status}
-                            </Badge>
-                            {fs.status === FoundStringStatus.MATCHED && fs.matchedKeyName ? (
-                              <span className="text-[10px] text-muted-foreground truncate max-w-[80px]" title={fs.matchedKeyName}>
-                                {fs.matchedKeyName}
-                              </span>
-                            ) : null}
-                          </div>
+                          <Badge 
+                            variant={
+                              fs.status === FoundStringStatus.APPROVED ? 'default' :
+                              fs.status === FoundStringStatus.CONVERTED ? 'default' :
+                              fs.status === FoundStringStatus.SKIPPED ? 'secondary' :
+                              fs.status === FoundStringStatus.MATCHED ? 'outline' :
+                              'outline'
+                            }
+                            className={cn(
+                              fs.status === FoundStringStatus.APPROVED && 'bg-green-500',
+                              fs.status === FoundStringStatus.CONVERTED && 'bg-blue-500',
+                              fs.status === FoundStringStatus.MATCHED && 'border-orange-500 text-orange-600',
+                            )}
+                          >
+                            {fs.status === FoundStringStatus.MATCHED ? 'EXISTS' : fs.status}
+                          </Badge>
                         </TableCell>
                         {canManage ? (
                           <TableCell>

@@ -198,7 +198,7 @@ class AIMutation:
                         model=used_model,
                         input_tokens=token_usage.get("input_tokens", 0),
                         output_tokens=token_usage.get("output_tokens", 0),
-                    )
+            )
 
             if reason:
                 # AI couldn't process the text
@@ -276,7 +276,7 @@ class AIMutation:
                         model=used_model,
                         input_tokens=token_usage.get("input_tokens", 0),
                         output_tokens=token_usage.get("output_tokens", 0),
-                    )
+            )
 
             if reason:
                 # AI couldn't process the text
@@ -354,7 +354,7 @@ class AIMutation:
                         model=used_model,
                         input_tokens=token_usage.get("input_tokens", 0),
                         output_tokens=token_usage.get("output_tokens", 0),
-                    )
+            )
 
             if reason:
                 # AI couldn't process the text
@@ -433,7 +433,7 @@ class AIMutation:
                         model=used_model,
                         input_tokens=token_usage.get("input_tokens", 0),
                         output_tokens=token_usage.get("output_tokens", 0),
-                    )
+            )
 
             if reason:
                 # AI couldn't process the text

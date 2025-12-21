@@ -8,12 +8,14 @@ import logging
 from typing import Optional
 from datetime import datetime, timezone
 from uuid import UUID
+from dataclasses import dataclass
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 from arq import create_pool
 from arq.connections import RedisSettings
+from rapidfuzz import fuzz
 
 from app.models.scan_session import ScanSession, ScanStatus, AIProvider
 from app.models.found_string import FoundString, FoundStringStatus
@@ -28,7 +30,119 @@ from app.services.token_usage_service import TokenUsageService
 from app.services.email_service import send_scan_completed_email_background
 from app.core.config import settings
 
+
+@dataclass
+class ExistingKey:
+    """Data class for existing key with translations."""
+    id: int
+    name: str
+    translations: list[str]  # List of translation values
+
+
+@dataclass
+class MatchResult:
+    """Result of fuzzy matching."""
+    key_id: Optional[int]
+    score: float
+    key_name: Optional[str] = None
+
+
+# Matching thresholds
+MATCH_THRESHOLD = 85  # Minimum score to consider a match (0-100)
+KEY_WEIGHT = 0.3  # Weight for key name similarity
+TEXT_WEIGHT = 0.7  # Weight for text content similarity
+
+
+def find_best_match(
+    suggested_key: str,
+    original_text: str,
+    existing_keys: list[ExistingKey],
+) -> MatchResult:
+    """
+    Find the best matching existing key using hybrid fuzzy matching.
+    
+    Combines:
+    - Key name similarity (30% weight)
+    - Text content similarity with translations (70% weight)
+    
+    Args:
+        suggested_key: AI-suggested key name
+        original_text: Original text found in code
+        existing_keys: List of existing keys with their translations
+        
+    Returns:
+        MatchResult with best matching key_id and confidence score
+    """
+    if not existing_keys:
+        return MatchResult(key_id=None, score=0.0)
+    
+    best_match = MatchResult(key_id=None, score=0.0)
+    original_text_lower = original_text.lower().strip()
+    suggested_key_lower = suggested_key.lower()
+    
+    for key in existing_keys:
+        # 1. Calculate key name similarity (token_sort_ratio handles reordering)
+        key_similarity = fuzz.token_sort_ratio(suggested_key_lower, key.name.lower())
+        
+        # 2. Calculate text similarity with translations
+        text_similarity = 0.0
+        for translation in key.translations:
+            translation_lower = translation.lower().strip()
+            
+            # Exact match gets highest score
+            if original_text_lower == translation_lower:
+                text_similarity = 100.0
+                break
+            
+            # Fuzzy match - use ratio for full string comparison
+            ratio = fuzz.ratio(original_text_lower, translation_lower)
+            
+            # Only use partial_ratio for longer strings to avoid false positives
+            # on short strings like "Home", "Save", etc.
+            if len(original_text_lower) > 15 and len(translation_lower) > 15:
+                partial = fuzz.partial_ratio(original_text_lower, translation_lower)
+                ratio = max(ratio, partial * 0.85)
+            
+            text_similarity = max(text_similarity, ratio)
+        
+        # 3. Calculate combined score
+        combined_score = (key_similarity * KEY_WEIGHT) + (text_similarity * TEXT_WEIGHT)
+        
+        # Update best match if this is better
+        if combined_score > best_match.score:
+            best_match = MatchResult(
+                key_id=key.id,
+                score=combined_score,
+                key_name=key.name,
+            )
+    
+    # Only return match if above threshold
+    if best_match.score >= MATCH_THRESHOLD:
+        return best_match
+    
+    return MatchResult(key_id=None, score=0.0)
+
+
 logger = logging.getLogger(__name__)
+
+
+def log_match_debug(
+    suggested_key: str,
+    original_text: str,
+    match_result: MatchResult,
+    existing_keys: list[ExistingKey],
+) -> None:
+    """Log detailed matching information for debugging."""
+    if not match_result.key_id:
+        return
+    
+    # Find the matched key to get translations
+    matched_key = next((k for k in existing_keys if k.id == match_result.key_id), None)
+    if matched_key:
+        logger.info(
+            f"🔗 MATCHED: '{original_text[:50]}' -> '{matched_key.name}' "
+            f"(score: {match_result.score:.1f}, translations: {matched_key.translations[:2]})"
+        )
 
 
 def _get_redis_settings() -> RedisSettings:
@@ -374,15 +488,22 @@ class ScannerService:
             
             logger.info(f"Scanning {len(files)} files in repository {repository.full_name}")
             
-            # Load existing keys for matching
-            existing_keys_map: dict[str, int] = {}  # key_name -> key_id
+            # Load existing keys with translations for fuzzy matching
+            existing_keys: list[ExistingKey] = []
             if repository.project_id:
                 keys_result = await db.execute(
-                    select(Key.id, Key.key).where(Key.project_id == repository.project_id)
+                    select(Key)
+                    .options(joinedload(Key.translations))
+                    .where(Key.project_id == repository.project_id)
                 )
-                for row in keys_result.fetchall():
-                    existing_keys_map[row[1]] = row[0]  # key name -> key id
-                logger.info(f"Loaded {len(existing_keys_map)} existing keys for matching")
+                for key in keys_result.unique().scalars().all():
+                    translations = [t.value for t in key.translations if t.value]
+                    existing_keys.append(ExistingKey(
+                        id=key.id,
+                        name=key.key,
+                        translations=translations,
+                    ))
+                logger.info(f"Loaded {len(existing_keys)} existing keys with translations for fuzzy matching")
             
             # Connect to Redis and create job pool
             try:
@@ -491,21 +612,31 @@ class ScannerService:
                         
                         for string_info in strings:
                             suggested_key = string_info.get("suggested_key", "")
+                            original_text = string_info.get("text", "")
                             
-                            # Check if key with this name already exists
-                            matched_key_id = existing_keys_map.get(suggested_key)
-                            status = FoundStringStatus.MATCHED if matched_key_id else FoundStringStatus.PENDING
+                            # Fuzzy match against existing keys
+                            match_result = find_best_match(
+                                suggested_key=suggested_key,
+                                original_text=original_text,
+                                existing_keys=existing_keys,
+                            )
+                            
+                            status = FoundStringStatus.MATCHED if match_result.key_id else FoundStringStatus.PENDING
+                            
+                            # Log match for debugging
+                            if match_result.key_id:
+                                log_match_debug(suggested_key, original_text, match_result, existing_keys)
                             
                             found_string = FoundString(
                                 scan_session_id=session.id,
                                 file_path=file_path,
                                 line_number=string_info.get("line"),
-                                original_text=string_info.get("text", ""),
+                                original_text=original_text,
                                 suggested_key=suggested_key,
                                 context=string_info.get("context", ""),
                                 confidence=int(string_info.get("confidence", 0.8) * 100),
                                 status=status,
-                                matched_key_id=matched_key_id,
+                                matched_key_id=match_result.key_id,
                                 file_type=file_metadata["file_type"],
                                 file_language=file_metadata["file_language"],
                                 file_framework=file_metadata["file_framework"],
