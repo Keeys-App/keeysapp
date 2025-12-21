@@ -32,6 +32,7 @@ const OPERATION_LABELS: Record<string, string> = {
   SCAN_FILE: "File Scanning",
   TRANSLATE: "Translation",
   REPHRASE: "Rephrasing",
+  SHORTEN: "Shortening",
   VARIANTS: "Generating Variants",
 };
 
