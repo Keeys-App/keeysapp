@@ -1057,6 +1057,7 @@ Remember: Return ONLY valid JSON with the found strings. Do not include any expl
         file_path: str,
         replacements: list[dict],
         translation_function: str = "t",
+        provider: Optional[str] = None,
         model: Optional[str] = None,
     ) -> dict:
         """
@@ -1067,6 +1068,7 @@ Remember: Return ONLY valid JSON with the found strings. Do not include any expl
             file_path: Path to the file (for context)
             replacements: List of {original_text: str, key: str, line_number: int}
             translation_function: The i18n function to use (t, $t, etc.)
+            provider: AI provider (OPENAI or ANTHROPIC)
             model: Specific model to use
             
         Returns:
@@ -1082,6 +1084,9 @@ Remember: Return ONLY valid JSON with the found strings. Do not include any expl
                 "content": file_content,
                 "token_usage": {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
             }
+        
+        use_provider = provider or "ANTHROPIC"
+        use_model = model or self._get_default_model(use_provider)
         
         # Build replacement instructions
         replacement_list = []
@@ -1116,49 +1121,10 @@ ORIGINAL FILE:
 Return the complete modified file with the replacements applied. Output ONLY the file content, no markdown formatting."""
 
         try:
-            if not self.openai_client:
-                return {
-                    "success": False,
-                    "content": file_content,
-                    "token_usage": {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0},
-                    "error": "OpenAI client not configured"
-                }
-            
-            model_to_use = model or settings.openai_text_model
-            
-            response = await self.openai_client.chat.completions.create(
-                model=model_to_use,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                temperature=0,  # Deterministic output
-                max_tokens=16000,
-            )
-            
-            new_content = response.choices[0].message.content
-            
-            # Clean up response - remove markdown code blocks if present
-            if new_content.startswith("```"):
-                lines = new_content.split("\n")
-                # Remove first line (```language) and last line (```)
-                if lines[-1].strip() == "```":
-                    lines = lines[1:-1]
-                else:
-                    lines = lines[1:]
-                new_content = "\n".join(lines)
-            
-            token_usage: TokenUsageInfo = {
-                "input_tokens": response.usage.prompt_tokens if response.usage else 0,
-                "output_tokens": response.usage.completion_tokens if response.usage else 0,
-                "total_tokens": response.usage.total_tokens if response.usage else 0,
-            }
-            
-            return {
-                "success": True,
-                "content": new_content,
-                "token_usage": token_usage
-            }
+            if use_provider == "ANTHROPIC":
+                return await self._replace_with_anthropic(system_prompt, user_prompt, use_model, file_content)
+            else:
+                return await self._replace_with_openai(system_prompt, user_prompt, use_model, file_content)
             
         except Exception as e:
             logger.error(f"Failed to replace strings with AI: {type(e).__name__}: {str(e)}")
@@ -1168,6 +1134,123 @@ Return the complete modified file with the replacements applied. Output ONLY the
                 "token_usage": {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0},
                 "error": str(e)
             }
+
+    async def _replace_with_anthropic(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        model: str,
+        original_content: str,
+    ) -> dict:
+        """Use Anthropic for string replacement."""
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                self.ANTHROPIC_API_URL,
+                headers={
+                    "x-api-key": self.anthropic_api_key,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": model,
+                    "max_tokens": 16000,
+                    "system": system_prompt,
+                    "messages": [{"role": "user", "content": user_prompt}],
+                },
+                timeout=180.0,
+            )
+            
+            if response.status_code != 200:
+                logger.error(f"Anthropic API error: {response.status_code} - {response.text}")
+                return {
+                    "success": False,
+                    "content": original_content,
+                    "token_usage": {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0},
+                    "error": f"API error: {response.status_code}"
+                }
+            
+            data = response.json()
+            usage = data.get("usage", {})
+            token_usage: TokenUsageInfo = {
+                "input_tokens": usage.get("input_tokens", 0),
+                "output_tokens": usage.get("output_tokens", 0),
+                "total_tokens": usage.get("input_tokens", 0) + usage.get("output_tokens", 0),
+            }
+            
+            content = data.get("content", [])
+            if not content:
+                return {
+                    "success": False,
+                    "content": original_content,
+                    "token_usage": token_usage,
+                    "error": "No content in response"
+                }
+            
+            new_content = content[0].get("text", "")
+            
+            # Clean up markdown code blocks
+            if new_content.startswith("```"):
+                lines = new_content.split("\n")
+                if lines[-1].strip() == "```":
+                    lines = lines[1:-1]
+                else:
+                    lines = lines[1:]
+                new_content = "\n".join(lines)
+            
+            return {
+                "success": True,
+                "content": new_content,
+                "token_usage": token_usage
+            }
+
+    async def _replace_with_openai(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        model: str,
+        original_content: str,
+    ) -> dict:
+        """Use OpenAI for string replacement."""
+        if not self.openai_client:
+            return {
+                "success": False,
+                "content": original_content,
+                "token_usage": {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0},
+                "error": "OpenAI client not configured"
+            }
+        
+        response = await self.openai_client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0,
+            max_tokens=16000,
+        )
+        
+        new_content = response.choices[0].message.content
+        
+        # Clean up markdown code blocks
+        if new_content.startswith("```"):
+            lines = new_content.split("\n")
+            if lines[-1].strip() == "```":
+                lines = lines[1:-1]
+            else:
+                lines = lines[1:]
+            new_content = "\n".join(lines)
+        
+        token_usage: TokenUsageInfo = {
+            "input_tokens": response.usage.prompt_tokens if response.usage else 0,
+            "output_tokens": response.usage.completion_tokens if response.usage else 0,
+            "total_tokens": response.usage.total_tokens if response.usage else 0,
+        }
+        
+        return {
+            "success": True,
+            "content": new_content,
+            "token_usage": token_usage
+        }
 
 
 # Global instance

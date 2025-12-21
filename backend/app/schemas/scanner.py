@@ -1452,12 +1452,14 @@ class ScannerMutation:
                         continue
                     
                     # Use AI to replace strings (understands code context)
-                    logger.info(f"Using AI to replace {len(replacements)} strings in {file_path}")
+                    logger.info(f"Using AI to replace {len(replacements)} strings in {file_path} with {session.ai_provider.value}/{session.ai_model}")
                     result = await ai_service.replace_strings_in_file(
                         file_content=content,
                         file_path=file_path,
                         replacements=replacements,
                         translation_function=translation_function,
+                        provider=session.ai_provider.value,
+                        model=session.ai_model,
                     )
                     
                     if not result.get("success"):
