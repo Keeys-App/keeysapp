@@ -222,15 +222,35 @@ RULES FOR IDENTIFYING STRINGS TO LOCALIZE:
    - Empty strings or whitespace-only strings
    - Single characters or punctuation
 
-KEY NAMING CONVENTIONS:
-- Use dot notation: namespace.component.element
-- Keep keys descriptive but concise
-- Use lowercase with camelCase for multi-word parts
-- Examples:
-  - auth.login.title -> "Welcome Back"
-  - auth.login.submitButton -> "Sign In"
-  - common.buttons.save -> "Save"
-  - errors.validation.required -> "This field is required"
+KEY NAMING CONVENTIONS (STRICTLY FOLLOW THIS FORMAT):
+- Format: componentName.entity.block.textDescription
+- Use ONLY camelCase for each segment (no underscores, no UPPERCASE)
+- Use dots (.) as the ONLY separator between segments
+- Structure: [component].[entity/section].[element].[description]
+
+NAMING RULES:
+1. Component name from file/folder: AppSidebar.tsx -> "appSidebar"
+2. Entity/section describes the area: "brand", "navigation", "header", "footer"
+3. Element (optional) for nested items: "item", "button", "link", "input"
+4. Description of the text purpose: "title", "label", "placeholder", "description"
+
+EXAMPLES:
+- AppSidebar brand name: "appSidebar.brand.name" ✓ (NOT "app.sidebar.brandName" ✗)
+- Login page title: "loginPage.title" ✓
+- Login form submit button: "loginPage.form.submitButton" ✓
+- Navigation home link: "navigation.home.label" ✓
+- Error validation required: "errors.validation.required" ✓
+- Dashboard stats card title: "dashboard.stats.card.title" ✓
+- Settings profile section heading: "settings.profile.heading" ✓
+- Modal confirm button: "modal.confirm.button" ✓
+- Toast success message: "toast.success.message" ✓
+
+WRONG FORMATS (NEVER USE):
+- "app.sidebar.brand.name" ✗ (too many dots, component split)
+- "App_Sidebar_Brand" ✗ (underscores)
+- "APP_SIDEBAR" ✗ (uppercase)
+- "app-sidebar-brand" ✗ (dashes)
+- "appSidebarBrandName" ✗ (no dots, all one segment)
 
 RESPONSE FORMAT:
 You MUST respond with valid JSON only, no other text. Use this exact format:

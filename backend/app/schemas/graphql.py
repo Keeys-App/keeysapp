@@ -163,6 +163,7 @@ class Mutation:
     start_repository_scan: StartScanResult = strawberry.field(resolver=ScannerMutation.start_repository_scan)
     cancel_scan: StartScanResult = strawberry.field(resolver=ScannerMutation.cancel_scan)
     update_found_string_status: UpdateFoundStringResult = strawberry.field(resolver=ScannerMutation.update_found_string_status)
+    replace_found_string: UpdateFoundStringResult = strawberry.field(resolver=ScannerMutation.replace_found_string)
     convert_found_strings_to_keys: ConvertStringsResult = strawberry.field(resolver=ScannerMutation.convert_found_strings_to_keys)
 
 
