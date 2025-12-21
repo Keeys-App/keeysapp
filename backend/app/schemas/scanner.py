@@ -20,6 +20,7 @@ from app.models.github_connection import GitHubConnection
 from app.models.activity_log import ActivityLog, ActionType
 from app.models.key import Key, Translation
 from app.models.project import Project
+from app.models.team import TeamMember
 from app.services.scanner_service import ScannerService
 from app.services.token_usage_service import TokenUsageService
 from app.services.github_service import GitHubService
@@ -278,6 +279,27 @@ class TokenUsageStatsType:
     by_operation: List[TokenUsageBreakdownItem]
     by_provider: List[TokenUsageBreakdownItem]
     by_model: List[TokenUsageBreakdownItem]
+
+
+@strawberry.enum
+class AgentTypeEnum(str, Enum):
+    """GraphQL enum for agent type."""
+    SCANNING = "SCANNING"  # Repository scanning for hardcoded strings
+    CODING = "CODING"      # PR creation with code changes
+
+
+@strawberry.type
+class ActiveAgentType:
+    """GraphQL type for an active agent process."""
+    id: str  # Scan session public UUID
+    project_id: str  # Project public UUID
+    project_name: str
+    agent_type: AgentTypeEnum
+    status: str  # Running, Completed, Failed, etc.
+    execution_time_seconds: int  # Time since started
+    progress: Optional[str] = None  # e.g., "5/10 files"
+    error_message: Optional[str] = None
+    started_at: Optional[datetime] = None
 
 
 @strawberry.type
@@ -701,6 +723,187 @@ class ScannerQuery:
         except Exception as e:
             logger.error(f"Error fetching repository directories: {type(e).__name__}: {str(e)}")
             return []
+    
+    @strawberry.field
+    async def team_active_agents(
+        self,
+        info: Info,
+        team_id: str,
+    ) -> List[ActiveAgentType]:
+        """
+        Get all active agent processes (scan, PR creation) for a team.
+        Only returns agents for projects where user has Editor role or higher.
+        
+        Args:
+            info: GraphQL info object
+            team_id: Public UUID of the team
+            
+        Returns:
+            List of active agent processes
+        """
+        from app.models.scan_session import ScanStatus, PRStatus
+        from app.services.project_access_service import ProjectAccessService
+        
+        try:
+            user_id = await get_current_user_id(info)
+            
+            async with AsyncSessionLocal() as db:
+                # Get team and check access
+                team = await TeamService.get_team_by_public_id(db, team_id)
+                if not team:
+                    return []
+                
+                has_access = await TeamService.check_user_team_access(db, team.id, user_id)
+                if not has_access and team.owner_id != user_id:
+                    return []
+                
+                # Get all projects in the team
+                result = await db.execute(
+                    select(Project).where(Project.team_id == team.id)
+                )
+                projects = result.scalars().all()
+                
+                if not projects:
+                    return []
+                
+                # Filter projects where user has Editor or higher access
+                # Roles hierarchy: admin > editor > viewer > translator > reviewer
+                editor_or_higher_roles = {"admin", "editor"}
+                accessible_project_ids = []
+                project_map = {}
+                
+                for project in projects:
+                    # Owner has implicit admin role
+                    if project.owner_id == user_id:
+                        accessible_project_ids.append(project.id)
+                        project_map[project.id] = project
+                        continue
+                    
+                    # Check team member role
+                    team_member_result = await db.execute(
+                        select(TeamMember).where(
+                            TeamMember.team_id == team.id,
+                            TeamMember.user_id == user_id
+                        )
+                    )
+                    team_member = team_member_result.scalar_one_or_none()
+                    
+                    # Team admin/owner has access to all projects
+                    if team_member and team_member.role in {"admin", "owner"}:
+                        accessible_project_ids.append(project.id)
+                        project_map[project.id] = project
+                        continue
+                    
+                    # Check project-level access
+                    user_role = await ProjectAccessService.get_user_role_in_project(db, project.id, user_id)
+                    if user_role and user_role in editor_or_higher_roles:
+                        accessible_project_ids.append(project.id)
+                        project_map[project.id] = project
+                
+                if not accessible_project_ids:
+                    return []
+                
+                # Get repositories for accessible projects
+                repo_result = await db.execute(
+                    select(Repository).where(Repository.project_id.in_(accessible_project_ids))
+                )
+                repositories = repo_result.scalars().all()
+                
+                if not repositories:
+                    return []
+                
+                repo_ids = [r.id for r in repositories]
+                repo_to_project = {r.id: r.project_id for r in repositories}
+                
+                # Get all scan sessions for these repositories
+                # Active statuses: PENDING, SCANNING for scans; PENDING, PROCESSING for PR
+                scan_result = await db.execute(
+                    select(ScanSession).where(
+                        ScanSession.repository_id.in_(repo_ids)
+                    ).order_by(ScanSession.created_at.desc())
+                )
+                sessions = scan_result.scalars().all()
+                
+                active_agents = []
+                now = datetime.now(sessions[0].created_at.tzinfo) if sessions else datetime.utcnow()
+                
+                for session in sessions:
+                    project_id = repo_to_project.get(session.repository_id)
+                    project = project_map.get(project_id)
+                    if not project:
+                        continue
+                    
+                    # Determine agent type and status
+                    agent_type = None
+                    status = None
+                    progress = None
+                    error_message = None
+                    started_at = session.started_at or session.created_at
+                    ended_at = None  # Will be set for completed/failed/cancelled
+                    
+                    # Check if it's a scanning process
+                    if session.status in [ScanStatus.PENDING, ScanStatus.SCANNING]:
+                        agent_type = AgentTypeEnum.SCANNING
+                        status = "Running" if session.status == ScanStatus.SCANNING else "Pending"
+                        if session.files_total > 0:
+                            progress = f"{session.files_scanned}/{session.files_total} files"
+                    elif session.status == ScanStatus.COMPLETED and session.pr_status in [PRStatus.PENDING, PRStatus.PROCESSING]:
+                        # PR creation in progress
+                        agent_type = AgentTypeEnum.CODING
+                        status = "Running" if session.pr_status == PRStatus.PROCESSING else "Pending"
+                        if session.pr_files_total > 0:
+                            progress = f"{session.pr_files_processed}/{session.pr_files_total} files"
+                    elif session.status == ScanStatus.FAILED:
+                        agent_type = AgentTypeEnum.SCANNING
+                        status = "Failed"
+                        error_message = session.error_message
+                        ended_at = session.completed_at
+                    elif session.pr_status == PRStatus.FAILED:
+                        agent_type = AgentTypeEnum.CODING
+                        status = "Failed"
+                        error_message = session.pr_error_message
+                        ended_at = session.pr_created_at or session.completed_at
+                    elif session.status == ScanStatus.COMPLETED:
+                        if session.pr_status == PRStatus.COMPLETED:
+                            agent_type = AgentTypeEnum.CODING
+                            status = "Completed"
+                            ended_at = session.pr_created_at
+                        else:
+                            agent_type = AgentTypeEnum.SCANNING
+                            status = "Completed"
+                            ended_at = session.completed_at
+                    elif session.status == ScanStatus.CANCELLED:
+                        agent_type = AgentTypeEnum.SCANNING
+                        status = "Cancelled"
+                        ended_at = session.completed_at
+                    else:
+                        # Skip sessions that don't fit any category
+                        continue
+                    
+                    # Calculate execution time
+                    # For completed/failed/cancelled - use ended_at, otherwise use current time
+                    end_time = ended_at if ended_at else now
+                    execution_time = int((end_time - started_at).total_seconds()) if started_at else 0
+                    
+                    active_agents.append(ActiveAgentType(
+                        id=str(session.public_id),
+                        project_id=str(project.public_id),
+                        project_name=project.name,
+                        agent_type=agent_type,
+                        status=status,
+                        execution_time_seconds=execution_time,
+                        progress=progress,
+                        error_message=error_message,
+                        started_at=started_at,
+                    ))
+                
+                return active_agents
+                
+        except AuthenticationError:
+            raise
+        except Exception as e:
+            logger.error(f"Error fetching team active agents: {type(e).__name__}: {str(e)}")
+            return []
 
 
 @strawberry.type
@@ -1047,6 +1250,80 @@ class ScannerMutation:
             return CreatePRResult(
                 success=False,
                 message="Failed to cancel PR creation. Please try again.",
+            )
+    
+    @strawberry.mutation
+    async def delete_scan_session(
+        self,
+        info: Info,
+        scan_session_id: str,
+    ) -> StartScanResult:
+        """
+        Delete a scan session and all its found strings.
+        Only completed, failed, or cancelled sessions can be deleted.
+        
+        Args:
+            info: GraphQL info object
+            scan_session_id: Public UUID of the scan session
+            
+        Returns:
+            Result with success status
+        """
+        from app.models.scan_session import ScanStatus, PRStatus
+        
+        try:
+            user_id = await get_current_user_id(info)
+            
+            async with AsyncSessionLocal() as db:
+                session = await ScannerService.get_scan_session(db, scan_session_id)
+                
+                if not session:
+                    return StartScanResult(
+                        success=False,
+                        message="Scan session not found",
+                    )
+                
+                # Check access through repository -> project
+                result = await db.execute(
+                    select(Repository).where(Repository.id == session.repository_id)
+                )
+                repository = result.scalar_one_or_none()
+                if repository:
+                    has_access = await ProjectService.check_project_access(db, repository.project_id, user_id)
+                    if not has_access:
+                        return StartScanResult(
+                            success=False,
+                            message="Access denied",
+                        )
+                
+                # Only allow deletion of completed, failed, or cancelled sessions
+                can_delete = session.status in [ScanStatus.COMPLETED, ScanStatus.FAILED, ScanStatus.CANCELLED]
+                # Also check PR status - don't delete if PR is still in progress
+                if session.pr_status in [PRStatus.PENDING, PRStatus.PROCESSING]:
+                    can_delete = False
+                
+                if not can_delete:
+                    return StartScanResult(
+                        success=False,
+                        message="Cannot delete session while it's still running. Please cancel it first.",
+                    )
+                
+                # Delete the session (cascade will delete found_strings)
+                await db.delete(session)
+                await db.commit()
+                
+                return StartScanResult(
+                    success=True,
+                    message="Scan session deleted successfully",
+                )
+                
+        except AuthenticationError:
+            raise
+        except Exception as e:
+            logger.error(f"Error deleting scan session: {type(e).__name__}: {str(e)}")
+            return StartScanResult(
+                success=False,
+                message="Failed to delete scan session. Please try again.",
             )
     
     @strawberry.mutation

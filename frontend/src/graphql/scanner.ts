@@ -272,6 +272,33 @@ export const CANCEL_PR_CREATION_MUTATION = gql`
   }
 `;
 
+// Mutation to delete a scan session
+export const DELETE_SCAN_SESSION_MUTATION = gql`
+  mutation DeleteScanSession($scanSessionId: String!) {
+    deleteScanSession(scanSessionId: $scanSessionId) {
+      success
+      message
+    }
+  }
+`;
+
+// Query to get active agents for a team
+export const TEAM_ACTIVE_AGENTS_QUERY = gql`
+  query TeamActiveAgents($teamId: String!) {
+    teamActiveAgents(teamId: $teamId) {
+      id
+      projectId
+      projectName
+      agentType
+      status
+      executionTimeSeconds
+      progress
+      errorMessage
+      startedAt
+    }
+  }
+`;
+
 // TypeScript types
 export const ScanStatus = {
   PENDING: 'PENDING',
@@ -415,5 +442,28 @@ export interface CreatePRResult {
   prNumber: number | null;
   branchName: string | null;
   filesModified: number;
+}
+
+// Active Agents types
+export const AgentType = {
+  SCANNING: 'SCANNING',
+  CODING: 'CODING',
+} as const;
+export type AgentType = (typeof AgentType)[keyof typeof AgentType];
+
+export interface ActiveAgent {
+  id: string;
+  projectId: string;
+  projectName: string;
+  agentType: AgentType;
+  status: string;
+  executionTimeSeconds: number;
+  progress: string | null;
+  errorMessage: string | null;
+  startedAt: string | null;
+}
+
+export interface TeamActiveAgentsData {
+  teamActiveAgents: ActiveAgent[];
 }
 

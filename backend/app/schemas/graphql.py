@@ -31,13 +31,13 @@ from app.schemas.scanner import (
     ScannerQuery,
     ScannerMutation,
     ScanSessionType,
-    FoundStringType,
     TokenUsageStatsType,
     StartScanResult,
     UpdateFoundStringResult,
     ConvertStringsResult,
     CreatePRResult,
     RepositoryDirectoryType,
+    ActiveAgentType,
 )
 
 
@@ -92,6 +92,7 @@ class Query:
     project_scan_sessions: List[ScanSessionType] = strawberry.field(resolver=ScannerQuery.project_scan_sessions)
     team_token_usage: TokenUsageStatsType = strawberry.field(resolver=ScannerQuery.team_token_usage)
     repository_directories: List[RepositoryDirectoryType] = strawberry.field(resolver=ScannerQuery.repository_directories)
+    team_active_agents: List[ActiveAgentType] = strawberry.field(resolver=ScannerQuery.team_active_agents)
     
     # AI
     available_ai_models: List[AIProviderModels] = strawberry.field(resolver=AIQuery.available_ai_models)
@@ -165,6 +166,7 @@ class Mutation:
     # Include Scanner mutations
     start_repository_scan: StartScanResult = strawberry.field(resolver=ScannerMutation.start_repository_scan)
     cancel_scan: StartScanResult = strawberry.field(resolver=ScannerMutation.cancel_scan)
+    delete_scan_session: StartScanResult = strawberry.field(resolver=ScannerMutation.delete_scan_session)
     update_found_string_status: UpdateFoundStringResult = strawberry.field(resolver=ScannerMutation.update_found_string_status)
     replace_found_string: UpdateFoundStringResult = strawberry.field(resolver=ScannerMutation.replace_found_string)
     convert_found_strings_to_keys: ConvertStringsResult = strawberry.field(resolver=ScannerMutation.convert_found_strings_to_keys)

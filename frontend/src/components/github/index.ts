@@ -1,3 +1,4 @@
+export { ActiveAgentsSection } from './ActiveAgentsSection';
 export { BranchPicker } from './BranchPicker';
 export { ConnectGitHubCard } from './ConnectGitHubCard';
 export { ConnectRepositoryCard } from './ConnectRepositoryCard';
