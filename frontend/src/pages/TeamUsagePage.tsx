@@ -36,6 +36,12 @@ const OPERATION_LABELS: Record<string, string> = {
   VARIANTS: "Generating Variants",
 };
 
+// Human-readable labels for AI providers
+const PROVIDER_LABELS: Record<string, string> = {
+  ANTHROPIC: "Anthropic",
+  OPENAI: "OpenAI",
+};
+
 const formatNumber = (num: number): string => {
   if (num >= 1_000_000) {
     return `${(num / 1_000_000).toFixed(1)}M`;
@@ -321,6 +327,7 @@ export const TeamUsagePage: FC = () => {
             <UsageBar
               items={usage?.byProvider || []}
               total={usage?.totalTokens || 0}
+              getLabel={(name) => PROVIDER_LABELS[name] || name}
             />
           </CardContent>
         </Card>
