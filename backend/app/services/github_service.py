@@ -678,7 +678,8 @@ class GitHubService:
     @staticmethod
     async def list_user_repositories(access_token: str) -> list[GitHubRepoInfo]:
         """
-        List all repositories accessible by the authenticated user.
+        List repositories accessible via GitHub App installations.
+        Only returns repositories that the GitHub App has been granted access to.
         
         Args:
             access_token: GitHub access token
@@ -687,77 +688,98 @@ class GitHubService:
             List of repository information
         """
         repos: list[GitHubRepoInfo] = []
-        page = 1
-        per_page = 100
+        seen_repo_ids: set[str] = set()
         
         try:
+            # First, get all installations for the user
+            installations = await GitHubService.get_user_installations(access_token)
+            
+            if not installations:
+                logger.warning("No GitHub App installations found, no repositories available")
+                return []
+            
             async with httpx.AsyncClient() as client:
-                while True:
-                    response = await client.get(
-                        f"{GITHUB_API_URL}/user/repos",
-                        params={
-                            "per_page": per_page,
-                            "page": page,
-                            "sort": "full_name",
-                            "direction": "asc",
-                            "visibility": "all",  # public, private, all
-                            "affiliation": "owner,collaborator,organization_member",
-                        },
-                        headers={
-                            "Authorization": f"Bearer {access_token}",
-                            "Accept": "application/vnd.github+json",
-                            "X-GitHub-Api-Version": "2022-11-28",
-                        },
-                        timeout=30.0,
-                    )
+                # For each installation, get accessible repositories
+                for installation in installations:
+                    installation_id = installation.get("id")
+                    if not installation_id:
+                        continue
                     
-                    if response.status_code != 200:
-                        logger.error(f"GitHub API error: {response.status_code} - {response.text}")
-                        break
+                    account_login = installation.get("account", {}).get("login", "unknown")
+                    logger.info(f"Fetching repos for installation {installation_id} ({account_login})")
                     
-                    data = response.json()
+                    page = 1
+                    per_page = 100
                     
-                    if not data:
-                        break
-                    
-                    for repo in data:
-                        repos.append(GitHubRepoInfo(
-                            id=str(repo["id"]),
-                            full_name=repo["full_name"],
-                            name=repo["name"],
-                            owner=repo["owner"]["login"],
-                            default_branch=repo.get("default_branch", "main"),
-                            private=repo.get("private", False),
-                            description=repo.get("description"),
-                            html_url=repo.get("html_url", ""),
-                        ))
-                    
-                    logger.info(f"Fetched page {page} with {len(data)} repos, total: {len(repos)}")
-                    
-                    # Check if there are more pages
-                    # Note: GitHub may return less than per_page even if more pages exist
-                    if len(data) == 0:
-                        break
-                    
-                    page += 1
-                    
-                    # Safety limit - increased to 50 pages (5000 repos max)
-                    if page > 50:
-                        logger.warning("Hit page limit of 50, some repos may not be shown")
-                        break
+                    while True:
+                        response = await client.get(
+                            f"{GITHUB_API_URL}/user/installations/{installation_id}/repositories",
+                            params={
+                                "per_page": per_page,
+                                "page": page,
+                            },
+                            headers={
+                                "Authorization": f"Bearer {access_token}",
+                                "Accept": "application/vnd.github+json",
+                                "X-GitHub-Api-Version": "2022-11-28",
+                            },
+                            timeout=30.0,
+                        )
+                        
+                        if response.status_code != 200:
+                            logger.error(f"GitHub API error for installation {installation_id}: {response.status_code} - {response.text}")
+                            break
+                        
+                        data = response.json()
+                        repositories = data.get("repositories", [])
+                        
+                        if not repositories:
+                            break
+                        
+                        for repo in repositories:
+                            repo_id = str(repo["id"])
+                            # Avoid duplicates if same repo is accessible via multiple installations
+                            if repo_id not in seen_repo_ids:
+                                seen_repo_ids.add(repo_id)
+                                repos.append(GitHubRepoInfo(
+                                    id=repo_id,
+                                    full_name=repo["full_name"],
+                                    name=repo["name"],
+                                    owner=repo["owner"]["login"],
+                                    default_branch=repo.get("default_branch", "main"),
+                                    private=repo.get("private", False),
+                                    description=repo.get("description"),
+                                    html_url=repo.get("html_url", ""),
+                                ))
+                        
+                        logger.info(f"Installation {account_login} page {page}: {len(repositories)} repos, total unique: {len(repos)}")
+                        
+                        # Check if there are more pages
+                        total_count = data.get("total_count", 0)
+                        if len(repos) >= total_count or len(repositories) < per_page:
+                            break
+                        
+                        page += 1
+                        
+                        # Safety limit
+                        if page > 50:
+                            logger.warning(f"Hit page limit for installation {installation_id}")
+                            break
                 
-                logger.info(f"Total repositories fetched: {len(repos)}")
+                # Sort by full_name for consistent ordering
+                repos.sort(key=lambda r: r["full_name"].lower())
+                logger.info(f"Total repositories fetched from {len(installations)} installations: {len(repos)}")
             
             return repos
         except Exception as e:
-            logger.error(f"Failed to list repositories: {type(e).__name__}")
+            logger.error(f"Failed to list repositories: {type(e).__name__}: {str(e)}")
             return []
     
     @staticmethod
     async def search_repositories(access_token: str, query: str) -> list[GitHubRepoInfo]:
         """
-        Search for repositories by filtering /user/repos locally.
-        GitHub Search API doesn't find private repos, so we fetch all and filter.
+        Search for repositories by filtering accessible repos locally.
+        Only searches within repositories the GitHub App has access to.
         
         Args:
             access_token: GitHub access token
@@ -770,73 +792,22 @@ class GitHubService:
         if not query_lower:
             return []
         
-        repos: list[GitHubRepoInfo] = []
-        page = 1
-        per_page = 100
-        
         try:
-            async with httpx.AsyncClient() as client:
-                while True:
-                    response = await client.get(
-                        f"{GITHUB_API_URL}/user/repos",
-                        params={
-                            "per_page": per_page,
-                            "page": page,
-                            "sort": "full_name",
-                            "direction": "asc",
-                            "visibility": "all",
-                            "affiliation": "owner,collaborator,organization_member",
-                        },
-                        headers={
-                            "Authorization": f"Bearer {access_token}",
-                            "Accept": "application/vnd.github+json",
-                            "X-GitHub-Api-Version": "2022-11-28",
-                        },
-                        timeout=30.0,
-                    )
-                    
-                    if response.status_code != 200:
-                        logger.error(f"GitHub API error: {response.status_code} - {response.text}")
-                        break
-                    
-                    data = response.json()
-                    
-                    if not data:
-                        break
-                    
-                    for repo in data:
-                        full_name = repo["full_name"].lower()
-                        name = repo["name"].lower()
-                        owner = repo["owner"]["login"].lower()
-                        
-                        # Match if query is found in full_name, name, or owner
-                        if query_lower in full_name or query_lower in name or query_lower in owner:
-                            repos.append(GitHubRepoInfo(
-                                id=str(repo["id"]),
-                                full_name=repo["full_name"],
-                                name=repo["name"],
-                                owner=repo["owner"]["login"],
-                                default_branch=repo.get("default_branch", "main"),
-                                private=repo.get("private", False),
-                                description=repo.get("description"),
-                                html_url=repo.get("html_url", ""),
-                            ))
-                    
-                    logger.info(f"Search page {page}: checked {len(data)} repos, matched {len(repos)} so far for query '{query}'")
-                    
-                    if len(data) == 0:
-                        break
-                    
-                    page += 1
-                    
-                    # Limit pages to prevent long waits
-                    if page > 20:
-                        logger.warning(f"Hit page limit of 20 during search for '{query}'")
-                        break
-                
-                logger.info(f"Search complete: found {len(repos)} repos matching '{query}'")
+            # Get all accessible repos and filter
+            all_repos = await GitHubService.list_user_repositories(access_token)
             
-            return repos
+            matched_repos: list[GitHubRepoInfo] = []
+            for repo in all_repos:
+                full_name = repo["full_name"].lower()
+                name = repo["name"].lower()
+                owner = repo["owner"].lower()
+                
+                # Match if query is found in full_name, name, or owner
+                if query_lower in full_name or query_lower in name or query_lower in owner:
+                    matched_repos.append(repo)
+            
+            logger.info(f"Search complete: found {len(matched_repos)} repos matching '{query}' out of {len(all_repos)} accessible")
+            return matched_repos
         except Exception as e:
             logger.error(f"Failed to search repositories: {type(e).__name__}: {str(e)}")
             return []
