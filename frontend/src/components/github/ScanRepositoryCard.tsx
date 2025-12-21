@@ -231,6 +231,39 @@ export const ScanRepositoryCard: FC<ScanRepositoryCardProps> = ({
     }
   };
   
+  const [approvingAll, setApprovingAll] = useState(false);
+  
+  const handleApproveAll = async () => {
+    const pendingStrings = currentScan?.foundStrings.filter(s => s.status === FoundStringStatus.PENDING) ?? [];
+    
+    if (pendingStrings.length === 0) {
+      return;
+    }
+    
+    setApprovingAll(true);
+    
+    try {
+      // Approve all pending strings in parallel, refetch on the last one
+      await Promise.all(
+        pendingStrings.map((fs, index) => 
+          updateStatus({
+            variables: { foundStringId: fs.id, status: FoundStringStatus.APPROVED },
+            // Only refetch on the last call to avoid multiple refetches
+            refetchQueries: index === pendingStrings.length - 1 
+              ? [{ query: SCAN_SESSION_QUERY, variables: { scanSessionId: currentScanId } }] 
+              : undefined,
+          })
+        )
+      );
+      
+      toast('All approved', { description: `Approved ${pendingStrings.length} strings` });
+    } catch (error) {
+      toast('Error', { description: 'Failed to approve all. Please try again.' });
+    } finally {
+      setApprovingAll(false);
+    }
+  };
+  
   const getStatusIcon = (status: ScanStatus) => {
     switch (status) {
       case ScanStatus.PENDING:
@@ -350,15 +383,32 @@ export const ScanRepositoryCard: FC<ScanRepositoryCardProps> = ({
                   <Badge variant="outline" className="border-orange-500 text-orange-600">{matchedCount} matched</Badge>
                 ) : null}
               </div>
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  {isResultsOpen ? (
-                    <ChevronUp className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
-                  )}
-                </Button>
-              </CollapsibleTrigger>
+              <div className="flex items-center gap-1">
+                {canManage && pendingCount > 0 ? (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleApproveAll}
+                    disabled={approvingAll}
+                  >
+                    {approvingAll ? (
+                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                    ) : (
+                      <Check className="mr-1 h-3 w-3" />
+                    )}
+                    Approve All
+                  </Button>
+                ) : null}
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    {isResultsOpen ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                  </Button>
+                </CollapsibleTrigger>
+              </div>
             </div>
             
             <CollapsibleContent className="mt-4">
