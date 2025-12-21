@@ -270,6 +270,16 @@ export const ScanRepositoryCard: FC<ScanRepositoryCardProps> = ({
         {/* Scanning Progress */}
         {isScanning ? (
           <div className="space-y-2">
+            {/* Scanned directory info */}
+            {currentScan?.scanPath ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <FolderOpen className="h-4 w-4" />
+                <span>Scanning:</span>
+                <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
+                  /{currentScan.scanPath}
+                </code>
+              </div>
+            ) : null}
             <div className="flex items-center justify-between text-sm">
               <span>Scanning files...</span>
               <span>{currentScan?.filesScanned ?? 0} / {currentScan?.filesTotal ?? 0}</span>
@@ -296,6 +306,17 @@ export const ScanRepositoryCard: FC<ScanRepositoryCardProps> = ({
         {/* Completed Scan Results */}
         {currentScan?.status === ScanStatus.COMPLETED && currentScan.foundStrings.length > 0 ? (
           <Collapsible open={isResultsOpen} onOpenChange={setIsResultsOpen}>
+            {/* Scanned directory info */}
+            {currentScan.scanPath ? (
+              <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
+                <FolderOpen className="h-4 w-4" />
+                <span>Scanned directory:</span>
+                <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
+                  /{currentScan.scanPath}
+                </code>
+              </div>
+            ) : null}
+            
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <FileCode className="h-4 w-4" />

@@ -12,6 +12,7 @@ export const SCAN_SESSION_QUERY = gql`
       status
       aiProvider
       aiModel
+      scanPath
       filesTotal
       filesScanned
       stringsFound
@@ -43,6 +44,7 @@ export const PROJECT_SCAN_SESSIONS_QUERY = gql`
       status
       aiProvider
       aiModel
+      scanPath
       filesTotal
       filesScanned
       stringsFound
