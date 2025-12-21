@@ -107,11 +107,30 @@ export const ScanRepositoryCard: FC<ScanRepositoryCardProps> = ({
   const sessions = sessionsData?.projectScanSessions ?? [];
   const currentScan = currentScanData?.scanSession ?? (sessions.length > 0 ? sessions[0] : null);
   
-  // Auto-select most recent scan on load (any status)
+  // Reset state when projectId changes (navigating to different project)
+  useEffect(() => {
+    setCurrentScanId(null);
+    setIsResultsOpen(false);
+    setScanPath('');
+    setScanPathError(null);
+    setSelectedBranch('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
+  
+  // Auto-select most recent scan only if it's active or has actionable results
   useEffect(() => {
     if (sessions.length > 0 && !currentScanId) {
-      // Always select the latest scan to load its details
-      setCurrentScanId(sessions[0].id);
+      const latestSession = sessions[0];
+      const isActive = latestSession.status === ScanStatus.PENDING || 
+                       latestSession.status === ScanStatus.SCANNING;
+      const hasActionableResults = latestSession.status === ScanStatus.COMPLETED && 
+                                   latestSession.stringsFound > 0 &&
+                                   !latestSession.prUrl; // No PR created yet
+      
+      // Only auto-select if there's something to show/do
+      if (isActive || hasActionableResults) {
+        setCurrentScanId(latestSession.id);
+      }
     }
   }, [sessions, currentScanId]);
   
