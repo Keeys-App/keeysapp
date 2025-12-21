@@ -75,6 +75,12 @@ class ActionTypeEnum(str, enum.Enum):
     SCAN_COMPLETE = "SCAN_COMPLETE"
     SCAN_FAILED = "SCAN_FAILED"
     SCAN_CANCELLED = "SCAN_CANCELLED"
+    
+    # PR actions
+    PR_STARTED = "PR_STARTED"
+    PR_CREATED = "PR_CREATED"
+    PR_FAILED = "PR_FAILED"
+    PR_CANCELLED = "PR_CANCELLED"
 
 
 # Keep legacy enum for backward compatibility (optional)
@@ -361,6 +367,12 @@ def build_activity_log_type(log) -> ActivityLogType:
         "SCAN_COMPLETE": ActionTypeEnum.SCAN_COMPLETE,
         "SCAN_FAILED": ActionTypeEnum.SCAN_FAILED,
         "SCAN_CANCELLED": ActionTypeEnum.SCAN_CANCELLED,
+        
+        # PR actions
+        "PR_STARTED": ActionTypeEnum.PR_STARTED,
+        "PR_CREATED": ActionTypeEnum.PR_CREATED,
+        "PR_FAILED": ActionTypeEnum.PR_FAILED,
+        "PR_CANCELLED": ActionTypeEnum.PR_CANCELLED,
     }
     
     # Build user info if available

@@ -240,6 +240,64 @@ class EmailService:
             html_content=template.html_content
         )
     
+    def send_pr_completed_email(
+        self,
+        email: str,
+        username: str,
+        project_name: str,
+        repository_name: str,
+        files_modified: int,
+        pr_url: str | None,
+        success: bool,
+        error_message: str | None = None,
+    ) -> bool:
+        """
+        Send PR completed notification email.
+        
+        Args:
+            email: User's email address
+            username: User's username
+            project_name: Name of the project
+            repository_name: Name of the repository
+            files_modified: Number of files modified
+            pr_url: URL to the created PR (if successful)
+            success: Whether PR creation was successful
+            error_message: Error message if failed
+            
+        Returns:
+            True if email was sent successfully, False otherwise
+        """
+        if not self.is_configured:
+            logger.warning(f"Email service not configured. Skipping PR completed email to {email}")
+            return False
+        
+        # Use different template for success/failure
+        template_name = "pr_completed" if success else "pr_failed"
+        
+        # Render template with variables
+        template_service = EmailTemplateService.get_instance()
+        template = template_service.render(template_name, {
+            "username": username,
+            "project_name": project_name,
+            "repository_name": repository_name,
+            "files_modified": files_modified,
+            "pr_url": pr_url or "",
+            "error_message": error_message or "Unknown error",
+            "app_name": settings.brevo_sender_name,
+        })
+        
+        if not template:
+            logger.error(f"Failed to render PR email template '{template_name}' for {email}")
+            return False
+        
+        return self._send_email(
+            to_email=email,
+            to_name=username,
+            subject=template.subject,
+            text_content=template.text_content,
+            html_content=template.html_content
+        )
+    
     def _send_email(
         self,
         to_email: str,
@@ -435,4 +493,48 @@ def send_scan_completed_email_background(
     thread = threading.Thread(target=_send, daemon=True)
     thread.start()
     logger.info(f"Scan completed email background thread started for {email}")
+
+
+def send_pr_completed_email_background(
+    email: str,
+    username: str,
+    project_name: str,
+    repository_name: str,
+    files_modified: int,
+    pr_url: str | None,
+    success: bool,
+    error_message: str | None = None,
+) -> None:
+    """
+    Send PR completed notification in a background thread (fire and forget).
+    
+    Args:
+        email: User's email address
+        username: User's username
+        project_name: Name of the project
+        repository_name: Name of the repository
+        files_modified: Number of files modified
+        pr_url: URL to the created PR (if successful)
+        success: Whether PR creation was successful
+        error_message: Error message if failed
+    """
+    def _send():
+        try:
+            EmailService.get_instance().send_pr_completed_email(
+                email=email,
+                username=username,
+                project_name=project_name,
+                repository_name=repository_name,
+                files_modified=files_modified,
+                pr_url=pr_url,
+                success=success,
+                error_message=error_message,
+            )
+        except Exception as e:
+            # Log but never crash - this is background task
+            logger.error(f"Background PR completed email send failed for {email}: {type(e).__name__}")
+    
+    thread = threading.Thread(target=_send, daemon=True)
+    thread.start()
+    logger.info(f"PR completed email background thread started for {email}")
 

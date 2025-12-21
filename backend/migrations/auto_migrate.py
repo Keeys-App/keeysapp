@@ -1880,7 +1880,7 @@ def migrate_add_pr_action_types_if_needed():
     try:
         logger.info("🔄 Migration: Adding PR action types to actiontype enum")
         
-        pr_actions = ['PR_CREATED', 'PR_FAILED', 'PR_CANCELLED']
+        pr_actions = ['PR_STARTED', 'PR_CREATED', 'PR_FAILED', 'PR_CANCELLED']
         
         with engine.connect() as connection:
             for action_type in pr_actions:

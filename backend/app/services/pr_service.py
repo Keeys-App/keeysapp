@@ -18,8 +18,12 @@ from app.models.found_string import FoundString, FoundStringStatus
 from app.models.repository import Repository
 from app.models.github_connection import GitHubConnection
 from app.models.key import Key
+from app.models.project import Project
+from app.models.user import User
+from app.models.activity_log import ActivityLog, ActionType
 from app.services.github_service import GitHubService
 from app.services.scanner_service import ScannerService
+from app.services.email_service import send_pr_completed_email_background
 from app.core.config import settings
 
 
@@ -182,6 +186,27 @@ class PRService:
             if not repository:
                 await PRService._fail_pr(db, session, "Repository not found")
                 return False
+            
+            # Log PR_STARTED activity
+            proj_result = await db.execute(
+                select(Project).where(Project.id == repository.project_id)
+            )
+            project = proj_result.scalar_one_or_none()
+            if project:
+                pr_started_log = ActivityLog(
+                    team_id=project.team_id,
+                    project_id=project.id,
+                    user_id=session.started_by_user_id,
+                    action=ActionType.PR_STARTED,
+                    extra_data={
+                        "repository": repository.full_name,
+                        "scan_session_id": str(session.public_id),
+                        "files_to_process": session.pr_files_total,
+                    }
+                )
+                db.add(pr_started_log)
+                await db.commit()
+                logger.info(f"PR {scan_session_id}: Logged PR_STARTED activity")
             
             # Get GitHub connection
             result = await db.execute(
@@ -427,6 +452,36 @@ class PRService:
             await db.commit()
             
             logger.info(f"PR created successfully: {session.pr_url}")
+            
+            # Log PR_CREATED activity
+            if project:
+                pr_created_log = ActivityLog(
+                    team_id=project.team_id,
+                    project_id=project.id,
+                    user_id=session.started_by_user_id,
+                    action=ActionType.PR_CREATED,
+                    extra_data={
+                        "repository": repository.full_name,
+                        "scan_session_id": str(session.public_id),
+                        "pr_number": session.pr_number,
+                        "pr_url": session.pr_url,
+                        "files_modified": files_modified,
+                    }
+                )
+                db.add(pr_created_log)
+                await db.commit()
+            
+            # Send email notification
+            await PRService._send_completion_email(
+                db=db,
+                session=session,
+                repository=repository,
+                project=project,
+                files_modified=files_modified,
+                pr_url=session.pr_url,
+                success=True,
+            )
+            
             return True
             
         except Exception as e:
@@ -483,12 +538,99 @@ _Generated automatically by Keeys localization scanner_
         return pr_body
     
     @staticmethod
+    async def _send_completion_email(
+        db: AsyncSession,
+        session: ScanSession,
+        repository: Repository,
+        project: Project,
+        files_modified: int,
+        pr_url: str | None,
+        success: bool,
+        error_message: str | None = None,
+    ):
+        """Send email notification when PR creation completes."""
+        try:
+            # Get user who started the scan
+            if not session.started_by_user_id:
+                logger.warning(f"No user ID for PR {session.id}, skipping email")
+                return
+            
+            result = await db.execute(
+                select(User).where(User.id == session.started_by_user_id)
+            )
+            user = result.scalar_one_or_none()
+            
+            if not user or not user.email:
+                logger.warning(f"User not found for PR {session.id}, skipping email")
+                return
+            
+            project_name = project.name if project else "Unknown Project"
+            
+            # Send email in background thread
+            send_pr_completed_email_background(
+                email=user.email,
+                username=user.username or user.email,
+                project_name=project_name,
+                repository_name=repository.full_name if repository else "Unknown",
+                files_modified=files_modified,
+                pr_url=pr_url,
+                success=success,
+                error_message=error_message,
+            )
+            
+            logger.info(f"PR completion email queued for {user.email}")
+            
+        except Exception as e:
+            # Don't fail the PR if email fails
+            logger.error(f"Failed to send PR completion email: {type(e).__name__}: {str(e)}")
+    
+    @staticmethod
     async def _fail_pr(db: AsyncSession, session: ScanSession, error_message: str):
         """Mark PR creation as failed."""
         session.pr_status = PRStatus.FAILED
         session.pr_error_message = error_message
         await db.commit()
         logger.error(f"PR creation {session.id} failed: {error_message}")
+        
+        # Log PR_FAILED activity
+        try:
+            result = await db.execute(
+                select(Repository).where(Repository.id == session.repository_id)
+            )
+            repository = result.scalar_one_or_none()
+            if repository:
+                proj_result = await db.execute(
+                    select(Project).where(Project.id == repository.project_id)
+                )
+                project = proj_result.scalar_one_or_none()
+                if project:
+                    pr_failed_log = ActivityLog(
+                        team_id=project.team_id,
+                        project_id=project.id,
+                        user_id=session.started_by_user_id,
+                        action=ActionType.PR_FAILED,
+                        extra_data={
+                            "repository": repository.full_name,
+                            "scan_session_id": str(session.public_id),
+                            "error": error_message,
+                        }
+                    )
+                    db.add(pr_failed_log)
+                    await db.commit()
+                    
+                    # Send failure email notification
+                    await PRService._send_completion_email(
+                        db=db,
+                        session=session,
+                        repository=repository,
+                        project=project,
+                        files_modified=0,
+                        pr_url=None,
+                        success=False,
+                        error_message=error_message,
+                    )
+        except Exception as e:
+            logger.warning(f"Failed to log PR failure activity: {type(e).__name__}: {str(e)}")
     
     @staticmethod
     async def cancel_pr(db: AsyncSession, scan_session_id: int) -> bool:

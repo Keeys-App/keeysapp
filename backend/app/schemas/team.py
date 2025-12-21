@@ -531,6 +531,11 @@ class TeamQuery:
                     ActionType.SCAN_COMPLETE,
                     ActionType.SCAN_FAILED,
                     ActionType.SCAN_CANCELLED,
+                    # PR actions
+                    ActionType.PR_STARTED,
+                    ActionType.PR_CREATED,
+                    ActionType.PR_FAILED,
+                    ActionType.PR_CANCELLED,
                 ]
                 
                 # Get all logs for this team (team_id) or its projects (project_id)

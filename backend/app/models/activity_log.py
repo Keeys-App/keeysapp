@@ -59,6 +59,7 @@ class ActionType(str, enum.Enum):
     SCAN_CANCELLED = "SCAN_CANCELLED"
     
     # PR actions
+    PR_STARTED = "PR_STARTED"
     PR_CREATED = "PR_CREATED"
     PR_FAILED = "PR_FAILED"
     PR_CANCELLED = "PR_CANCELLED"
