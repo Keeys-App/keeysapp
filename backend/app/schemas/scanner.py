@@ -10,6 +10,7 @@ import asyncio
 import logging
 
 from sqlalchemy import select
+from sqlalchemy.orm import joinedload
 
 from app.database import AsyncSessionLocal
 from app.models.scan_session import ScanSession
@@ -17,6 +18,8 @@ from app.models.found_string import FoundString, FoundStringStatus
 from app.models.repository import Repository
 from app.models.github_connection import GitHubConnection
 from app.models.activity_log import ActivityLog, ActionType
+from app.models.key import Key, Translation
+from app.models.project import Project
 from app.services.scanner_service import ScannerService
 from app.services.token_usage_service import TokenUsageService
 from app.services.github_service import GitHubService
@@ -52,6 +55,7 @@ class FoundStringStatusEnum(str, Enum):
     APPROVED = "APPROVED"
     SKIPPED = "SKIPPED"
     CONVERTED = "CONVERTED"
+    MATCHED = "MATCHED"
 
 
 @strawberry.type
@@ -66,6 +70,11 @@ class FoundStringType:
     confidence: int  # 0-100
     status: FoundStringStatusEnum
     key_id: Optional[str]  # Public UUID of linked key
+    matched_key_id: Optional[str]  # Public UUID of matched existing key
+    matched_key_name: Optional[str]  # Name of matched existing key
+    file_type: Optional[str]  # File extension (e.g., "tsx", "vue", "py")
+    file_language: Optional[str]  # Programming language (e.g., "TypeScript", "Python")
+    file_framework: Optional[str]  # Framework (e.g., "React", "Vue", "Svelte")
     created_at: datetime
 
 
@@ -137,11 +146,26 @@ class ConvertStringsResult:
     keys_created: int
 
 
+@strawberry.type
+class ReplaceFoundStringResult:
+    """Result type for replacing an existing key with found string."""
+    success: bool
+    message: str
+    found_string: Optional[FoundStringType] = None
+
+
 def _session_to_type(session: ScanSession, found_strings: List[FoundString] = None) -> ScanSessionType:
     """Convert ScanSession model to GraphQL type."""
     strings_list = []
     if found_strings:
         for fs in found_strings:
+            # Get matched key info if available
+            matched_key_public_id = None
+            matched_key_name = None
+            if fs.matched_key_id and hasattr(fs, 'matched_key') and fs.matched_key:
+                matched_key_public_id = str(fs.matched_key.public_id)
+                matched_key_name = fs.matched_key.key
+            
             strings_list.append(FoundStringType(
                 id=str(fs.public_id),
                 file_path=fs.file_path,
@@ -152,6 +176,11 @@ def _session_to_type(session: ScanSession, found_strings: List[FoundString] = No
                 confidence=fs.confidence,
                 status=FoundStringStatusEnum(fs.status.value),
                 key_id=str(fs.key.public_id) if fs.key_id and hasattr(fs, 'key') and fs.key else None,
+                matched_key_id=matched_key_public_id,
+                matched_key_name=matched_key_name,
+                file_type=fs.file_type,
+                file_language=fs.file_language,
+                file_framework=fs.file_framework,
                 created_at=fs.created_at,
             ))
     
@@ -789,6 +818,11 @@ class ScannerMutation:
                             confidence=updated.confidence,
                             status=FoundStringStatusEnum(updated.status.value),
                             key_id=None,
+                            matched_key_id=None,
+                            matched_key_name=None,
+                            file_type=updated.file_type,
+                            file_language=updated.file_language,
+                            file_framework=updated.file_framework,
                             created_at=updated.created_at,
                         ),
                     )
@@ -888,5 +922,155 @@ class ScannerMutation:
                 success=False,
                 message="Failed to convert strings. Please try again.",
                 keys_created=0,
+            )
+    
+    @strawberry.mutation
+    async def replace_found_string(
+        self,
+        info: Info,
+        found_string_id: str,
+    ) -> ReplaceFoundStringResult:
+        """
+        Replace an existing key's default translation with the found string's text.
+        Also updates the key's source file metadata.
+        
+        This mutation is used for MATCHED found strings where we want to update
+        the existing key instead of creating a new one.
+        
+        Args:
+            info: GraphQL info object
+            found_string_id: Public UUID of the found string
+            
+        Returns:
+            Result with updated found string
+        """
+        try:
+            user_id = await get_current_user_id(info)
+            
+            async with AsyncSessionLocal() as db:
+                # Get found string with matched key
+                result = await db.execute(
+                    select(FoundString)
+                    .options(joinedload(FoundString.matched_key))
+                    .where(FoundString.public_id == found_string_id)
+                )
+                found_string = result.scalar_one_or_none()
+                
+                if not found_string:
+                    return ReplaceFoundStringResult(
+                        success=False,
+                        message="Found string not found",
+                    )
+                
+                # Check if it has a matched key
+                if not found_string.matched_key_id:
+                    return ReplaceFoundStringResult(
+                        success=False,
+                        message="No matched key to replace",
+                    )
+                
+                # Get scan session to verify access
+                session = await ScannerService.get_scan_session_by_id(db, found_string.scan_session_id)
+                if not session:
+                    return ReplaceFoundStringResult(
+                        success=False,
+                        message="Scan session not found",
+                    )
+                
+                # Get repository and check access
+                repo_result = await db.execute(
+                    select(Repository).where(Repository.id == session.repository_id)
+                )
+                repository = repo_result.scalar_one_or_none()
+                
+                if not repository:
+                    return ReplaceFoundStringResult(
+                        success=False,
+                        message="Repository not found",
+                    )
+                
+                has_access = await ProjectService.check_project_access(db, repository.project_id, user_id)
+                if not has_access:
+                    return ReplaceFoundStringResult(
+                        success=False,
+                        message="Access denied",
+                    )
+                
+                # Get the matched key
+                key_result = await db.execute(
+                    select(Key).where(Key.id == found_string.matched_key_id)
+                )
+                matched_key = key_result.scalar_one_or_none()
+                
+                if not matched_key:
+                    return ReplaceFoundStringResult(
+                        success=False,
+                        message="Matched key not found",
+                    )
+                
+                # Get project default language
+                proj_result = await db.execute(
+                    select(Project).where(Project.id == repository.project_id)
+                )
+                project = proj_result.scalar_one_or_none()
+                default_language = project.default_language or "en" if project else "en"
+                
+                # Update or create translation for default language
+                trans_result = await db.execute(
+                    select(Translation).where(
+                        Translation.key_id == matched_key.id,
+                        Translation.language == default_language,
+                    )
+                )
+                translation = trans_result.scalar_one_or_none()
+                
+                if translation:
+                    translation.value = found_string.original_text
+                else:
+                    translation = Translation(
+                        key_id=matched_key.id,
+                        language=default_language,
+                        value=found_string.original_text,
+                    )
+                    db.add(translation)
+                
+                # Update key's source file metadata
+                matched_key.source_file_path = found_string.file_path
+                matched_key.source_line_number = found_string.line_number
+                
+                # Update found string status to APPROVED
+                found_string.status = FoundStringStatus.APPROVED
+                
+                await db.commit()
+                
+                return ReplaceFoundStringResult(
+                    success=True,
+                    message="Key translation replaced successfully",
+                    found_string=FoundStringType(
+                        id=str(found_string.public_id),
+                        file_path=found_string.file_path,
+                        line_number=found_string.line_number,
+                        original_text=found_string.original_text,
+                        suggested_key=found_string.suggested_key,
+                        context=found_string.context,
+                        confidence=found_string.confidence,
+                        status=FoundStringStatusEnum(found_string.status.value),
+                        key_id=None,
+                        matched_key_id=str(matched_key.public_id),
+                        matched_key_name=matched_key.key,
+                        file_type=found_string.file_type,
+                        file_language=found_string.file_language,
+                        file_framework=found_string.file_framework,
+                        created_at=found_string.created_at,
+                    ),
+                )
+                
+        except AuthenticationError:
+            raise
+        except Exception as e:
+            logger.error(f"Error replacing found string: {type(e).__name__}: {str(e)}")
+            return ReplaceFoundStringResult(
+                success=False,
+                message="Failed to replace key. Please try again.",
             )
 

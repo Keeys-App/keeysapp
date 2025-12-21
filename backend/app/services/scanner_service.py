@@ -11,6 +11,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import joinedload
 from arq import create_pool
 from arq.connections import RedisSettings
 
@@ -71,6 +72,85 @@ def _get_redis_settings() -> RedisSettings:
         password=password,
         database=database,
     )
+
+
+# File metadata mapping
+FILE_METADATA = {
+    # TypeScript/JavaScript
+    ".tsx": {"type": "tsx", "language": "TypeScript", "framework": "React"},
+    ".jsx": {"type": "jsx", "language": "JavaScript", "framework": "React"},
+    ".ts": {"type": "ts", "language": "TypeScript", "framework": None},
+    ".js": {"type": "js", "language": "JavaScript", "framework": None},
+    ".mjs": {"type": "mjs", "language": "JavaScript", "framework": None},
+    # Vue
+    ".vue": {"type": "vue", "language": "Vue", "framework": "Vue"},
+    # Svelte
+    ".svelte": {"type": "svelte", "language": "Svelte", "framework": "Svelte"},
+    # Python
+    ".py": {"type": "py", "language": "Python", "framework": None},
+    # Ruby
+    ".rb": {"type": "rb", "language": "Ruby", "framework": None},
+    ".erb": {"type": "erb", "language": "Ruby", "framework": "Rails"},
+    # PHP
+    ".php": {"type": "php", "language": "PHP", "framework": None},
+    ".blade.php": {"type": "blade", "language": "PHP", "framework": "Laravel"},
+    # Go
+    ".go": {"type": "go", "language": "Go", "framework": None},
+    # Rust
+    ".rs": {"type": "rs", "language": "Rust", "framework": None},
+    # Java/Kotlin
+    ".java": {"type": "java", "language": "Java", "framework": None},
+    ".kt": {"type": "kt", "language": "Kotlin", "framework": None},
+    # Swift
+    ".swift": {"type": "swift", "language": "Swift", "framework": None},
+    # C#
+    ".cs": {"type": "cs", "language": "C#", "framework": None},
+    ".cshtml": {"type": "cshtml", "language": "C#", "framework": "ASP.NET"},
+    # HTML templates
+    ".html": {"type": "html", "language": "HTML", "framework": None},
+    ".htm": {"type": "htm", "language": "HTML", "framework": None},
+    # Angular
+    ".component.ts": {"type": "ts", "language": "TypeScript", "framework": "Angular"},
+}
+
+
+def _get_file_metadata(file_path: str) -> dict:
+    """
+    Get file metadata (type, language, framework) based on file path.
+    
+    Args:
+        file_path: Path to the file
+        
+    Returns:
+        Dictionary with file_type, file_language, file_framework
+    """
+    file_path_lower = file_path.lower()
+    
+    # Check for compound extensions first (e.g., .blade.php, .component.ts)
+    for ext, metadata in FILE_METADATA.items():
+        if file_path_lower.endswith(ext):
+            return {
+                "file_type": metadata["type"],
+                "file_language": metadata["language"],
+                "file_framework": metadata["framework"],
+            }
+    
+    # Default: extract extension
+    if "." in file_path:
+        ext = "." + file_path.rsplit(".", 1)[-1].lower()
+        if ext in FILE_METADATA:
+            metadata = FILE_METADATA[ext]
+            return {
+                "file_type": metadata["type"],
+                "file_language": metadata["language"],
+                "file_framework": metadata["framework"],
+            }
+    
+    return {
+        "file_type": None,
+        "file_language": None,
+        "file_framework": None,
+    }
 
 
 class ScannerService:
@@ -294,6 +374,16 @@ class ScannerService:
             
             logger.info(f"Scanning {len(files)} files in repository {repository.full_name}")
             
+            # Load existing keys for matching
+            existing_keys_map: dict[str, int] = {}  # key_name -> key_id
+            if repository.project_id:
+                keys_result = await db.execute(
+                    select(Key.id, Key.key).where(Key.project_id == repository.project_id)
+                )
+                for row in keys_result.fetchall():
+                    existing_keys_map[row[1]] = row[0]  # key name -> key id
+                logger.info(f"Loaded {len(existing_keys_map)} existing keys for matching")
+            
             # Connect to Redis and create job pool
             try:
                 redis_pool = await create_pool(_get_redis_settings())
@@ -362,10 +452,13 @@ class ScannerService:
             files_processed = 0
             
             for file_path, job in jobs:
-                # Check if scan was cancelled
-                await db.refresh(session)
-                if session.status == ScanStatus.CANCELLED:
-                    logger.info(f"Scan {scan_session_id} was cancelled")
+                # Check if scan was cancelled (fresh query to see changes from other transactions)
+                status_result = await db.execute(
+                    select(ScanSession.status).where(ScanSession.id == scan_session_id)
+                )
+                current_status = status_result.scalar_one_or_none()
+                if current_status == ScanStatus.CANCELLED:
+                    logger.info(f"Scan {scan_session_id} was cancelled, stopping processing")
                     # Cancel remaining jobs (they will timeout)
                     await redis_pool.close()
                     return False
@@ -393,16 +486,29 @@ class ScannerService:
                             )
                         
                         # Save found strings
+                        # Get file metadata once per file
+                        file_metadata = _get_file_metadata(file_path)
+                        
                         for string_info in strings:
+                            suggested_key = string_info.get("suggested_key", "")
+                            
+                            # Check if key with this name already exists
+                            matched_key_id = existing_keys_map.get(suggested_key)
+                            status = FoundStringStatus.MATCHED if matched_key_id else FoundStringStatus.PENDING
+                            
                             found_string = FoundString(
                                 scan_session_id=session.id,
                                 file_path=file_path,
                                 line_number=string_info.get("line"),
                                 original_text=string_info.get("text", ""),
-                                suggested_key=string_info.get("suggested_key", ""),
+                                suggested_key=suggested_key,
                                 context=string_info.get("context", ""),
                                 confidence=int(string_info.get("confidence", 0.8) * 100),
-                                status=FoundStringStatus.PENDING,
+                                status=status,
+                                matched_key_id=matched_key_id,
+                                file_type=file_metadata["file_type"],
+                                file_language=file_metadata["file_language"],
+                                file_framework=file_metadata["file_framework"],
                             )
                             db.add(found_string)
                         
@@ -420,8 +526,17 @@ class ScannerService:
                 
                 files_processed += 1
                 
-                # Update progress periodically (every 5 files)
+                # Update progress periodically (every 5 files) and check for cancellation
                 if files_processed % 5 == 0:
+                    # Check if cancelled
+                    status_check = await db.execute(
+                        select(ScanSession.status).where(ScanSession.id == scan_session_id)
+                    )
+                    if status_check.scalar_one_or_none() == ScanStatus.CANCELLED:
+                        logger.info(f"Scan {scan_session_id} was cancelled during processing")
+                        await redis_pool.close()
+                        return False
+                    
                     session.files_scanned = len(session.processed_files or [])
                     session.strings_found = total_strings
                     await db.commit()
@@ -626,6 +741,17 @@ class ScannerService:
             return None
     
     @staticmethod
+    async def get_scan_session_by_id(
+        db: AsyncSession,
+        session_id: int,
+    ) -> Optional[ScanSession]:
+        """Get a scan session by internal ID."""
+        result = await db.execute(
+            select(ScanSession).where(ScanSession.id == session_id)
+        )
+        return result.scalar_one_or_none()
+    
+    @staticmethod
     async def get_scan_sessions_by_repository(
         db: AsyncSession,
         repository_id: int,
@@ -647,7 +773,14 @@ class ScannerService:
         status: Optional[FoundStringStatus] = None,
     ) -> list[FoundString]:
         """Get found strings for a scan session."""
-        query = select(FoundString).where(FoundString.scan_session_id == scan_session_id)
+        query = (
+            select(FoundString)
+            .where(FoundString.scan_session_id == scan_session_id)
+            .options(
+                joinedload(FoundString.key),
+                joinedload(FoundString.matched_key),
+            )
+        )
         
         if status:
             query = query.where(FoundString.status == status)
@@ -655,7 +788,7 @@ class ScannerService:
         query = query.order_by(FoundString.file_path, FoundString.line_number)
         
         result = await db.execute(query)
-        return list(result.scalars().all())
+        return list(result.scalars().unique().all())
     
     @staticmethod
     async def update_found_string_status(

@@ -34,16 +34,22 @@ export const DirectoryPicker: FC<DirectoryPickerProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  // Lazy query for fetching directories
+  // Track if directories have been loaded
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Lazy query for fetching directories (load once, filter locally)
   const [fetchDirectories, { data, loading }] = useLazyQuery<{
     repositoryDirectories: RepositoryDirectory[];
   }>(REPOSITORY_DIRECTORIES_QUERY, {
-    fetchPolicy: 'cache-and-network',
+    fetchPolicy: 'cache-first',
+    onCompleted: () => {
+      setIsLoaded(true);
+    },
   });
 
   const directories = data?.repositoryDirectories ?? [];
 
-  // Filter directories based on input
+  // Filter directories locally based on input
   const filteredDirectories = inputValue
     ? directories.filter(
         (dir) =>
@@ -52,28 +58,27 @@ export const DirectoryPicker: FC<DirectoryPickerProps> = ({
       )
     : directories;
 
-  // Debounced search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (inputValue.length >= 0) {
-        fetchDirectories({
-          variables: {
-            projectId,
-            prefix: inputValue || null,
-          },
-        });
-      }
-    }, 300);
-
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [inputValue, projectId, fetchDirectories]);
+  // Load directories once when projectId changes
+  const loadDirectories = () => {
+    if (!isLoaded && !loading) {
+      fetchDirectories({
+        variables: {
+          projectId,
+          prefix: null, // Load all directories at once
+        },
+      });
+    }
+  };
 
   // Sync external value changes
   useEffect(() => {
     setInputValue(value);
   }, [value]);
+
+  // Reset loaded state when projectId changes
+  useEffect(() => {
+    setIsLoaded(false);
+  }, [projectId]);
 
   // Reset highlighted index when list changes
   useEffect(() => {
@@ -135,12 +140,7 @@ export const DirectoryPicker: FC<DirectoryPickerProps> = ({
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         e.preventDefault();
         setOpen(true);
-        fetchDirectories({
-          variables: {
-            projectId,
-            prefix: inputValue || null,
-          },
-        });
+        loadDirectories();
       }
       return;
     }
@@ -176,13 +176,8 @@ export const DirectoryPicker: FC<DirectoryPickerProps> = ({
 
   const handleFocus = () => {
     setOpen(true);
-    // Fetch directories on focus if not already fetched
-    fetchDirectories({
-      variables: {
-        projectId,
-        prefix: inputValue || null,
-      },
-    });
+    // Load directories on focus if not already loaded
+    loadDirectories();
   };
 
   return (

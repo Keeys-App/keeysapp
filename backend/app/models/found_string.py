@@ -17,6 +17,7 @@ class FoundStringStatus(str, enum.Enum):
     APPROVED = "APPROVED"    # Approved for conversion
     SKIPPED = "SKIPPED"      # Skipped by user
     CONVERTED = "CONVERTED"  # Converted to a project key
+    MATCHED = "MATCHED"      # Matched to existing key in project
 
 
 class FoundString(Base):
@@ -36,6 +37,11 @@ class FoundString(Base):
     file_path = Column(String(1000), nullable=False)  # Path in repository
     line_number = Column(Integer, nullable=True)       # Line number in file
     
+    # File metadata
+    file_type = Column(String(50), nullable=True)     # File extension (e.g., "tsx", "vue", "py")
+    file_language = Column(String(50), nullable=True)  # Programming language (e.g., "TypeScript", "Python")
+    file_framework = Column(String(50), nullable=True) # Framework (e.g., "React", "Vue", "Svelte")
+    
     # String content
     original_text = Column(Text, nullable=False)       # The hardcoded string found
     suggested_key = Column(String(500), nullable=False)  # AI-suggested key name
@@ -50,13 +56,17 @@ class FoundString(Base):
     # Link to created key (after conversion)
     key_id = Column(Integer, ForeignKey("keys.id", ondelete="SET NULL"), nullable=True)
     
+    # Link to matched existing key (when status=MATCHED)
+    matched_key_id = Column(Integer, ForeignKey("keys.id", ondelete="SET NULL"), nullable=True)
+    
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     # Relationships
     scan_session = relationship("ScanSession", back_populates="found_strings")
-    key = relationship("Key", back_populates="found_strings")
+    key = relationship("Key", back_populates="found_strings", foreign_keys=[key_id])
+    matched_key = relationship("Key", foreign_keys=[matched_key_id])
 
     def __repr__(self) -> str:
         return f"<FoundString(id={self.id}, key={self.suggested_key}, status={self.status})>"

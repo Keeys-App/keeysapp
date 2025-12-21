@@ -29,6 +29,11 @@ class Key(Base):
     tags = Column(JSON, default=list, nullable=False)  # Array of tag strings
     is_plural = Column(Boolean, default=False, nullable=False)  # Whether this key uses plural forms
     project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    
+    # Source file metadata (from repository scanning)
+    source_file_path = Column(String(1000), nullable=True)  # Path in repository
+    source_line_number = Column(Integer, nullable=True)     # Line number in file
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -36,7 +41,7 @@ class Key(Base):
     project = relationship("Project", back_populates="keys")
     translations = relationship("Translation", back_populates="key", cascade="all, delete-orphan")
     logs = relationship("KeyLog", back_populates="key", cascade="all, delete-orphan")
-    found_strings = relationship("FoundString", back_populates="key")
+    found_strings = relationship("FoundString", back_populates="key", foreign_keys="[FoundString.key_id]")
 
     # Ensure key uniqueness within a project
     __table_args__ = (

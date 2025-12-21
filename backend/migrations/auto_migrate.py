@@ -1475,6 +1475,155 @@ def migrate_add_github_refresh_token_if_needed():
         return False
 
 
+def migrate_add_found_string_file_metadata_if_needed():
+    """
+    Add file metadata columns to found_strings table:
+    - file_type: file extension (e.g., "tsx", "vue", "py")
+    - file_language: programming language (e.g., "TypeScript", "Python")
+    - file_framework: framework (e.g., "React", "Vue", "Svelte")
+    Safe to run multiple times.
+    """
+    try:
+        # Check all columns first to avoid transaction issues
+        has_file_type = check_column_exists('found_strings', 'file_type')
+        has_file_language = check_column_exists('found_strings', 'file_language')
+        has_file_framework = check_column_exists('found_strings', 'file_framework')
+        
+        if has_file_type and has_file_language and has_file_framework:
+            logger.info("✅ Migration: File metadata columns already exist, skipping")
+            return True
+        
+        logger.info("🔄 Migration: Adding file metadata columns to found_strings")
+        
+        with engine.connect() as connection:
+            # Add file_type column
+            if not has_file_type:
+                connection.execute(text("""
+                    ALTER TABLE found_strings 
+                    ADD COLUMN file_type VARCHAR(50)
+                """))
+                connection.commit()
+                logger.info("  Added file_type column")
+            
+            # Add file_language column
+            if not has_file_language:
+                connection.execute(text("""
+                    ALTER TABLE found_strings 
+                    ADD COLUMN file_language VARCHAR(50)
+                """))
+                connection.commit()
+                logger.info("  Added file_language column")
+            
+            # Add file_framework column
+            if not has_file_framework:
+                connection.execute(text("""
+                    ALTER TABLE found_strings 
+                    ADD COLUMN file_framework VARCHAR(50)
+                """))
+                connection.commit()
+                logger.info("  Added file_framework column")
+            
+            logger.info("✅ Migration: File metadata columns added successfully")
+            return True
+        
+    except Exception as e:
+        logger.error(f"❌ Migration failed: {type(e).__name__}: {str(e)}")
+        return False
+
+
+def migrate_add_key_matching_fields_if_needed():
+    """
+    Add fields for key matching feature:
+    - matched_key_id to found_strings table (link to existing key)
+    - MATCHED value to foundstringstatus enum
+    - source_file_path and source_line_number to keys table
+    Safe to run multiple times.
+    """
+    try:
+        # Check all columns first to avoid transaction issues
+        has_matched_key_id = check_column_exists('found_strings', 'matched_key_id')
+        has_source_file_path = check_column_exists('keys', 'source_file_path')
+        has_source_line_number = check_column_exists('keys', 'source_line_number')
+        
+        # Check enum value
+        has_matched_enum = False
+        with engine.connect() as conn:
+            result = conn.execute(text("""
+                SELECT EXISTS (
+                    SELECT 1 
+                    FROM pg_type t 
+                    JOIN pg_enum e ON t.oid = e.enumtypid 
+                    WHERE t.typname = 'foundstringstatus' 
+                    AND e.enumlabel = 'MATCHED'
+                )
+            """))
+            has_matched_enum = result.scalar()
+        
+        if has_matched_key_id and has_source_file_path and has_source_line_number and has_matched_enum:
+            logger.info("✅ Migration: Key matching fields already exist, skipping")
+            return True
+        
+        logger.info("🔄 Migration: Adding key matching fields")
+        
+        with engine.connect() as connection:
+            # 1. Add matched_key_id to found_strings
+            if not has_matched_key_id:
+                logger.info("  Adding matched_key_id column to found_strings...")
+                connection.execute(text("""
+                    ALTER TABLE found_strings 
+                    ADD COLUMN matched_key_id INTEGER DEFAULT NULL 
+                    REFERENCES keys(id) ON DELETE SET NULL
+                """))
+                connection.execute(text("""
+                    CREATE INDEX IF NOT EXISTS idx_found_strings_matched_key_id 
+                    ON found_strings(matched_key_id)
+                """))
+                connection.commit()
+                logger.info("  ✅ matched_key_id column added")
+            else:
+                logger.info("  ✅ matched_key_id already exists")
+            
+            # 2. Add MATCHED to foundstringstatus enum
+            if not has_matched_enum:
+                logger.info("  Adding MATCHED to foundstringstatus enum...")
+                connection.execute(text("ALTER TYPE foundstringstatus ADD VALUE 'MATCHED'"))
+                connection.commit()
+                logger.info("  ✅ MATCHED value added to enum")
+            else:
+                logger.info("  ✅ MATCHED value already exists in enum")
+            
+            # 3. Add source_file_path to keys
+            if not has_source_file_path:
+                logger.info("  Adding source_file_path column to keys...")
+                connection.execute(text("""
+                    ALTER TABLE keys 
+                    ADD COLUMN source_file_path VARCHAR(1000) DEFAULT NULL
+                """))
+                connection.commit()
+                logger.info("  ✅ source_file_path column added")
+            else:
+                logger.info("  ✅ source_file_path already exists")
+            
+            # 4. Add source_line_number to keys
+            if not has_source_line_number:
+                logger.info("  Adding source_line_number column to keys...")
+                connection.execute(text("""
+                    ALTER TABLE keys 
+                    ADD COLUMN source_line_number INTEGER DEFAULT NULL
+                """))
+                connection.commit()
+                logger.info("  ✅ source_line_number column added")
+            else:
+                logger.info("  ✅ source_line_number already exists")
+            
+            logger.info("✅ Migration: Key matching fields added successfully")
+            return True
+            
+    except Exception as e:
+        logger.error(f"❌ Migration failed: {type(e).__name__}: {str(e)}")
+        return False
+
+
 def run_all_migrations():
     """
     Run all pending migrations.
@@ -1509,6 +1658,8 @@ def run_all_migrations():
         ("add_scan_action_types", migrate_add_scan_action_types_if_needed),
         ("add_scan_path", migrate_add_scan_path_if_needed),
         ("add_github_refresh_token", migrate_add_github_refresh_token_if_needed),
+        ("add_found_string_file_metadata", migrate_add_found_string_file_metadata_if_needed),
+        ("add_key_matching_fields", migrate_add_key_matching_fields_if_needed),
         # Add more migrations here as needed
     ]
     

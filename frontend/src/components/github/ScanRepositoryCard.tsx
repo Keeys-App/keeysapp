@@ -12,6 +12,7 @@ import {
   Check,
   X,
   FolderOpen,
+  RefreshCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -45,6 +46,7 @@ import {
   CANCEL_SCAN_MUTATION,
   UPDATE_FOUND_STRING_STATUS_MUTATION,
   CONVERT_FOUND_STRINGS_TO_KEYS_MUTATION,
+  REPLACE_FOUND_STRING_MUTATION,
   type ScanSession,
   type FoundString,
   ScanStatus,
@@ -93,6 +95,7 @@ export const ScanRepositoryCard: FC<ScanRepositoryCardProps> = ({
   const [cancelScan, { loading: cancellingScan }] = useMutation(CANCEL_SCAN_MUTATION);
   const [updateStatus] = useMutation(UPDATE_FOUND_STRING_STATUS_MUTATION);
   const [convertToKeys, { loading: converting }] = useMutation(CONVERT_FOUND_STRINGS_TO_KEYS_MUTATION);
+  const [replaceFoundString] = useMutation(REPLACE_FOUND_STRING_MUTATION);
   
   const sessions = sessionsData?.projectScanSessions ?? [];
   const currentScan = currentScanData?.scanSession ?? (sessions.length > 0 ? sessions[0] : null);
@@ -186,6 +189,25 @@ export const ScanRepositoryCard: FC<ScanRepositoryCardProps> = ({
     }
   };
   
+  const handleReplaceFoundString = async (foundStringId: string) => {
+    try {
+      const result = await replaceFoundString({
+        variables: { foundStringId },
+        refetchQueries: [{ query: SCAN_SESSION_QUERY, variables: { scanSessionId: currentScanId } }],
+      });
+      
+      const { success, message } = result.data?.replaceFoundString ?? {};
+      
+      if (success) {
+        toast('Key replaced', { description: 'Existing key translation has been updated' });
+      } else {
+        toast('Failed to replace', { description: message });
+      }
+    } catch (error) {
+      toast('Error', { description: 'Failed to replace key. Please try again.' });
+    }
+  };
+  
   const handleConvertToKeys = async () => {
     if (!currentScanId) {
       return;
@@ -244,6 +266,7 @@ export const ScanRepositoryCard: FC<ScanRepositoryCardProps> = ({
   
   const approvedCount = currentScan?.foundStrings.filter(s => s.status === FoundStringStatus.APPROVED).length ?? 0;
   const pendingCount = currentScan?.foundStrings.filter(s => s.status === FoundStringStatus.PENDING).length ?? 0;
+  const matchedCount = currentScan?.foundStrings.filter(s => s.status === FoundStringStatus.MATCHED).length ?? 0;
   
   if (!hasRepository) {
     return null;
@@ -323,6 +346,9 @@ export const ScanRepositoryCard: FC<ScanRepositoryCardProps> = ({
                 <span className="font-medium">{currentScan.stringsFound} strings found</span>
                 <Badge variant="secondary">{approvedCount} approved</Badge>
                 <Badge variant="outline">{pendingCount} pending</Badge>
+                {matchedCount > 0 ? (
+                  <Badge variant="outline" className="border-orange-500 text-orange-600">{matchedCount} matched</Badge>
+                ) : null}
               </div>
               <CollapsibleTrigger asChild>
                 <Button variant="ghost" size="sm">
@@ -342,7 +368,7 @@ export const ScanRepositoryCard: FC<ScanRepositoryCardProps> = ({
                     <TableRow>
                       <TableHead className="w-[200px]">Key</TableHead>
                       <TableHead>Text</TableHead>
-                      <TableHead className="w-[150px]">File</TableHead>
+                      <TableHead className="w-[180px]">File</TableHead>
                       <TableHead className="w-[100px]">Status</TableHead>
                       {canManage ? <TableHead className="w-[100px]">Actions</TableHead> : null}
                     </TableRow>
@@ -352,24 +378,51 @@ export const ScanRepositoryCard: FC<ScanRepositoryCardProps> = ({
                       <TableRow key={fs.id}>
                         <TableCell className="font-mono text-xs">{fs.suggestedKey}</TableCell>
                         <TableCell className="max-w-[300px] truncate">{fs.originalText}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {fs.filePath.split('/').pop()}:{fs.lineNumber}
+                        <TableCell>
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-xs text-muted-foreground">
+                              {fs.filePath.split('/').pop()}:{fs.lineNumber}
+                            </span>
+                            {fs.fileLanguage || fs.fileFramework ? (
+                              <div className="flex gap-1">
+                                {fs.fileLanguage ? (
+                                  <Badge variant="outline" className="h-4 px-1 text-[10px]">
+                                    {fs.fileLanguage}
+                                  </Badge>
+                                ) : null}
+                                {fs.fileFramework ? (
+                                  <Badge variant="secondary" className="h-4 px-1 text-[10px]">
+                                    {fs.fileFramework}
+                                  </Badge>
+                                ) : null}
+                              </div>
+                            ) : null}
+                          </div>
                         </TableCell>
                         <TableCell>
-                          <Badge 
-                            variant={
-                              fs.status === FoundStringStatus.APPROVED ? 'default' :
-                              fs.status === FoundStringStatus.CONVERTED ? 'default' :
-                              fs.status === FoundStringStatus.SKIPPED ? 'secondary' :
-                              'outline'
-                            }
-                            className={cn(
-                              fs.status === FoundStringStatus.APPROVED && 'bg-green-500',
-                              fs.status === FoundStringStatus.CONVERTED && 'bg-blue-500',
-                            )}
-                          >
-                            {fs.status}
-                          </Badge>
+                          <div className="flex flex-col gap-1">
+                            <Badge 
+                              variant={
+                                fs.status === FoundStringStatus.APPROVED ? 'default' :
+                                fs.status === FoundStringStatus.CONVERTED ? 'default' :
+                                fs.status === FoundStringStatus.SKIPPED ? 'secondary' :
+                                fs.status === FoundStringStatus.MATCHED ? 'outline' :
+                                'outline'
+                              }
+                              className={cn(
+                                fs.status === FoundStringStatus.APPROVED && 'bg-green-500',
+                                fs.status === FoundStringStatus.CONVERTED && 'bg-blue-500',
+                                fs.status === FoundStringStatus.MATCHED && 'border-orange-500 text-orange-600',
+                              )}
+                            >
+                              {fs.status === FoundStringStatus.MATCHED ? 'EXISTS' : fs.status}
+                            </Badge>
+                            {fs.status === FoundStringStatus.MATCHED && fs.matchedKeyName ? (
+                              <span className="text-[10px] text-muted-foreground truncate max-w-[80px]" title={fs.matchedKeyName}>
+                                {fs.matchedKeyName}
+                              </span>
+                            ) : null}
+                          </div>
                         </TableCell>
                         {canManage ? (
                           <TableCell>
@@ -383,6 +436,27 @@ export const ScanRepositoryCard: FC<ScanRepositoryCardProps> = ({
                                   title="Approve"
                                 >
                                   <Check className="h-4 w-4 text-green-500" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => { handleUpdateStatus(fs.id, FoundStringStatus.SKIPPED); }}
+                                  title="Skip"
+                                >
+                                  <X className="h-4 w-4 text-red-500" />
+                                </Button>
+                              </div>
+                            ) : fs.status === FoundStringStatus.MATCHED ? (
+                              <div className="flex gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => { handleReplaceFoundString(fs.id); }}
+                                  title="Replace existing key"
+                                >
+                                  <RefreshCw className="h-4 w-4 text-orange-500" />
                                 </Button>
                                 <Button
                                   variant="ghost"

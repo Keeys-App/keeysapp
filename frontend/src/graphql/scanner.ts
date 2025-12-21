@@ -30,6 +30,11 @@ export const SCAN_SESSION_QUERY = gql`
         confidence
         status
         keyId
+        matchedKeyId
+        matchedKeyName
+        fileType
+        fileLanguage
+        fileFramework
         createdAt
       }
     }
@@ -62,6 +67,11 @@ export const PROJECT_SCAN_SESSIONS_QUERY = gql`
         confidence
         status
         keyId
+        matchedKeyId
+        matchedKeyName
+        fileType
+        fileLanguage
+        fileFramework
         createdAt
       }
     }
@@ -144,6 +154,38 @@ export const UPDATE_FOUND_STRING_STATUS_MUTATION = gql`
         confidence
         status
         keyId
+        matchedKeyId
+        matchedKeyName
+        fileType
+        fileLanguage
+        fileFramework
+        createdAt
+      }
+    }
+  }
+`;
+
+// Mutation to replace existing key with found string
+export const REPLACE_FOUND_STRING_MUTATION = gql`
+  mutation ReplaceFoundString($foundStringId: String!) {
+    replaceFoundString(foundStringId: $foundStringId) {
+      success
+      message
+      foundString {
+        id
+        filePath
+        lineNumber
+        originalText
+        suggestedKey
+        context
+        confidence
+        status
+        keyId
+        matchedKeyId
+        matchedKeyName
+        fileType
+        fileLanguage
+        fileFramework
         createdAt
       }
     }
@@ -182,6 +224,7 @@ export const FoundStringStatus = {
   APPROVED: 'APPROVED',
   SKIPPED: 'SKIPPED',
   CONVERTED: 'CONVERTED',
+  MATCHED: 'MATCHED',
 } as const;
 export type FoundStringStatus = (typeof FoundStringStatus)[keyof typeof FoundStringStatus];
 
@@ -195,6 +238,11 @@ export interface FoundString {
   confidence: number;
   status: FoundStringStatus;
   keyId: string | null;
+  matchedKeyId: string | null;
+  matchedKeyName: string | null;
+  fileType: string | null;
+  fileLanguage: string | null;
+  fileFramework: string | null;
   createdAt: string;
 }
 
@@ -242,5 +290,11 @@ export interface ConvertStringsResult {
   success: boolean;
   message: string;
   keysCreated: number;
+}
+
+export interface ReplaceFoundStringResult {
+  success: boolean;
+  message: string;
+  foundString: FoundString | null;
 }
 
