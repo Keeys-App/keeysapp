@@ -18,6 +18,15 @@ export interface BatchImportExtraData {
   translations_count?: number;
 }
 
+export interface ScanExtraData {
+  repository?: string;
+  files_scanned?: number;
+  strings_found?: number;
+  error?: string;
+}
+
+export type ExtraData = BatchImportExtraData | ScanExtraData;
+
 export interface ActivityLog {
   id: number;
   projectId: number | null;
@@ -32,7 +41,7 @@ export interface ActivityLog {
   language: string | null;
   oldValue: string | null;
   newValue: string | null;
-  extraData: BatchImportExtraData | null;
+  extraData: ExtraData | null;
   createdAt: string;
 }
 
@@ -73,5 +82,10 @@ export type ActionType =
   // Review actions
   | 'REVIEW_APPROVE'
   | 'REVIEW_REJECT'
-  | 'REVIEW_DELETE';
+  | 'REVIEW_DELETE'
+  // Scan actions
+  | 'SCAN_START'
+  | 'SCAN_COMPLETE'
+  | 'SCAN_FAILED'
+  | 'SCAN_CANCELLED';
 

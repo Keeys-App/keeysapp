@@ -26,7 +26,7 @@ import {
   CheckCircle,
   XCircle,
 } from 'lucide-react';
-import type { ActivityLog } from '@/types/activity';
+import type { ActivityLog, ScanExtraData, BatchImportExtraData } from '@/types/activity';
 import {
   ReviewContent,
   ColorChangeContent,
@@ -236,27 +236,32 @@ export const ActivityItem: FC<ActivityItemProps> = ({ log, isLast, showProject =
         <div className="text-sm text-muted-foreground space-y-1">
           {/* Scan actions */}
           {(log.action === 'SCAN_START' || log.action === 'SCAN_COMPLETE' || log.action === 'SCAN_FAILED' || log.action === 'SCAN_CANCELLED') && log.extraData ? (
-            <div className="text-xs space-y-0.5">
-              {log.extraData.repository ? (
-                <div>Repository: <span className="font-medium">{log.extraData.repository}</span></div>
-              ) : null}
-              {log.action === 'SCAN_COMPLETE' ? (
-                <>
-                  {log.extraData.files_scanned !== undefined ? (
-                    <div>Files scanned: <span className="font-medium">{log.extraData.files_scanned}</span></div>
+            (() => {
+              const scanData = log.extraData as ScanExtraData;
+              return (
+                <div className="text-xs space-y-0.5">
+                  {scanData.repository ? (
+                    <div>Repository: <span className="font-medium">{scanData.repository}</span></div>
                   ) : null}
-                  {log.extraData.strings_found !== undefined ? (
-                    <div>Strings found: <span className="font-medium">{log.extraData.strings_found}</span></div>
+                  {log.action === 'SCAN_COMPLETE' ? (
+                    <>
+                      {scanData.files_scanned !== undefined ? (
+                        <div>Files scanned: <span className="font-medium">{scanData.files_scanned}</span></div>
+                      ) : null}
+                      {scanData.strings_found !== undefined ? (
+                        <div>Strings found: <span className="font-medium">{scanData.strings_found}</span></div>
+                      ) : null}
+                    </>
                   ) : null}
-                </>
-              ) : null}
-              {log.action === 'SCAN_FAILED' && log.extraData.error ? (
-                <div className="text-red-600">Error: {log.extraData.error}</div>
-              ) : null}
-            </div>
+                  {log.action === 'SCAN_FAILED' && scanData.error ? (
+                    <div className="text-red-600">Error: {scanData.error}</div>
+                  ) : null}
+                </div>
+              );
+            })()
           ) : log.action === 'KEYS_BATCH_IMPORT' && log.extraData ? (
             <BatchImportContent
-              extraData={log.extraData}
+              extraData={log.extraData as BatchImportExtraData}
               language={log.language || undefined}
             />
           ) : (log.action === 'REVIEW_APPROVE' ||
