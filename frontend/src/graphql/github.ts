@@ -67,6 +67,7 @@ export const GITHUB_APP_INFO_QUERY = gql`
         accountLogin
         accountType
         repositorySelection
+        htmlUrl
       }
     }
   }
@@ -195,6 +196,7 @@ export interface GitHubInstallation {
   accountLogin: string;
   accountType: string;
   repositorySelection: string;
+  htmlUrl: string | null;
 }
 
 export interface GitHubAppInfo {

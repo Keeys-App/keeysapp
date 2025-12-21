@@ -101,6 +101,7 @@ class GitHubInstallationType:
     account_login: str
     account_type: str  # "User" or "Organization"
     repository_selection: str  # "all" or "selected"
+    html_url: Optional[str] = None  # URL to configure installation permissions
 
 
 @strawberry.type
@@ -217,6 +218,7 @@ class GitHubQuery:
                         account_login=inst.get("account", {}).get("login", ""),
                         account_type=inst.get("account", {}).get("type", "User"),
                         repository_selection=inst.get("repository_selection", "selected"),
+                        html_url=inst.get("html_url"),
                     )
                     for inst in raw_installations
                 ]

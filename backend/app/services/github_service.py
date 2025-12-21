@@ -203,6 +203,10 @@ class GitHubService:
                 data = response.json()
                 installations = data.get("installations", [])
                 logger.info(f"Found {len(installations)} installations: {[i.get('account', {}).get('login') for i in installations]}")
+                if installations:
+                    # Log first installation to debug html_url
+                    logger.info(f"First installation keys: {list(installations[0].keys())}")
+                    logger.info(f"First installation html_url: {installations[0].get('html_url')}")
                 return installations
         except Exception as e:
             logger.error(f"Error getting installations: {type(e).__name__}: {str(e)}")

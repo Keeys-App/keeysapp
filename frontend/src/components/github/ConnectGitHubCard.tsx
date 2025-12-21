@@ -1,6 +1,6 @@
 import { type FC, useEffect } from 'react';
 import { useMutation, useQuery } from '@apollo/client';
-import { Github, Trash2, ExternalLink, Check, User, AlertTriangle, Settings } from 'lucide-react';
+import { Github, Trash2, ExternalLink, Check, User, AlertTriangle, Settings, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Card,
@@ -266,7 +266,7 @@ export const ConnectGitHubCard: FC<ConnectGitHubCardProps> = ({
 
             {/* Show installation info if exists */}
             {appInfo?.hasInstallation ? (
-              <div className="text-sm text-muted-foreground">
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
                 <span className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-green-500" />
                   App installed on: {appInfo.installations.map((i) => i.accountLogin).join(', ')}
@@ -274,6 +274,22 @@ export const ConnectGitHubCard: FC<ConnectGitHubCardProps> = ({
                     <span className="text-yellow-600"> (selected repos only)</span>
                   ) : null}
                 </span>
+                {canManage && appInfo.installations[0]?.htmlUrl ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    asChild
+                  >
+                    <a
+                      href={appInfo.installations[0].htmlUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <RefreshCw className="mr-2 h-3 w-3" />
+                      Change
+                    </a>
+                  </Button>
+                ) : null}
               </div>
             ) : null}
             
