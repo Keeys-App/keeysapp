@@ -25,6 +25,7 @@ from app.services.token_usage_service import TokenUsageService
 from app.services.github_service import GitHubService
 from app.services.project_service import ProjectService
 from app.services.team_service import TeamService
+from app.services.ai_service import ai_service
 from app.schemas.github import get_current_user_id
 from app.core.exceptions import AuthenticationError
 
@@ -1285,7 +1286,6 @@ class ScannerMutation:
         Returns:
             Result with PR URL and details
         """
-        import re
         from datetime import datetime, timezone
         
         try:
@@ -1433,83 +1433,41 @@ class ScannerMutation:
                         branch=branch_name,
                     )
                     
-                    # Sort strings by line number descending to replace from bottom up
-                    # This prevents line number shifts from affecting other replacements
-                    strings.sort(key=lambda x: x.line_number or 0, reverse=True)
-                    
-                    # Split content into lines for line-based replacement
-                    lines = content.split('\n')
-                    modified = False
-                    
+                    # Build replacements list for AI
+                    replacements = []
                     for fs in strings:
                         # Get key based on string status
-                        # CONVERTED strings have key_id, MATCHED strings have matched_key_id
                         key_id_to_use = fs.key_id if fs.key_id else fs.matched_key_id
                         key = keys_map.get(key_id_to_use) if key_id_to_use else None
                         if not key:
                             continue
                         
-                        key_name = key.key
-                        original_text = fs.original_text
-                        
-                        # Determine replacement format based on context
-                        # Check if the string is inside JSX (has quotes and is in a tag attribute or as child)
-                        line_num = fs.line_number
-                        if line_num and 0 < line_num <= len(lines):
-                            line = lines[line_num - 1]
-                            
-                            # Create regex pattern to match the original string
-                            # Handle both single and double quotes
-                            escaped_text = re.escape(original_text)
-                            
-                            # Pattern 1: String in quotes (e.g., "Hello" or 'Hello')
-                            pattern_double = f'"{escaped_text}"'
-                            pattern_single = f"'{escaped_text}'"
-                            
-                            # Generate replacement
-                            replacement = f"{translation_function}('{key_name}')"
-                            
-                            # Check if it's in JSX context (needs curly braces)
-                            # Look for JSX patterns like: <tag attr="text"> or >text<
-                            is_jsx_attr = re.search(rf'\w+\s*=\s*["\']?{escaped_text}["\']?', line)
-                            is_jsx_child = re.search(rf'>\s*{escaped_text}\s*<', line) or \
-                                          re.search(rf'>\s*["\']?{escaped_text}["\']?\s*$', line)
-                            
-                            if is_jsx_attr:
-                                # JSX attribute: prop="text" -> prop={t('key')}
-                                replacement = "{" + replacement + "}"
-                                # Replace quoted string in attribute
-                                new_line = re.sub(
-                                    rf'(\w+\s*=\s*)["\']' + escaped_text + r'["\']',
-                                    r'\1' + replacement,
-                                    line
-                                )
-                            elif is_jsx_child:
-                                # JSX child text: >text< -> >{t('key')}<
-                                replacement = "{" + replacement + "}"
-                                new_line = re.sub(
-                                    rf'(>)\s*["\']?' + escaped_text + r'["\']?\s*(<)',
-                                    r'\1' + replacement + r'\2',
-                                    line
-                                )
-                            else:
-                                # Regular string replacement
-                                if pattern_double in line:
-                                    new_line = line.replace(pattern_double, replacement, 1)
-                                elif pattern_single in line:
-                                    new_line = line.replace(pattern_single, replacement, 1)
-                                else:
-                                    # Try matching without quotes (template literals, etc.)
-                                    new_line = line.replace(original_text, replacement, 1)
-                            
-                            if new_line != line:
-                                lines[line_num - 1] = new_line
-                                modified = True
+                        replacements.append({
+                            "original_text": fs.original_text,
+                            "key": key.key,
+                            "line_number": fs.line_number,
+                        })
                     
-                    if modified:
-                        new_content = '\n'.join(lines)
-                        
-                        # Commit the file
+                    if not replacements:
+                        continue
+                    
+                    # Use AI to replace strings (understands code context)
+                    logger.info(f"Using AI to replace {len(replacements)} strings in {file_path}")
+                    result = await ai_service.replace_strings_in_file(
+                        file_content=content,
+                        file_path=file_path,
+                        replacements=replacements,
+                        translation_function=translation_function,
+                    )
+                    
+                    if not result.get("success"):
+                        logger.error(f"AI replacement failed for {file_path}: {result.get('error', 'Unknown error')}")
+                        continue
+                    
+                    new_content = result.get("content", "")
+                    
+                    # Only commit if content actually changed
+                    if new_content and new_content != content:
                         success = await GitHubService.update_file(
                             access_token=access_token,
                             owner=repository.repo_owner,
@@ -1523,6 +1481,7 @@ class ScannerMutation:
                         
                         if success:
                             files_modified += 1
+                            logger.info(f"Successfully modified {file_path}")
                 
                 if files_modified == 0:
                     return CreatePRResult(

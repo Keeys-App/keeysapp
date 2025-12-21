@@ -646,6 +646,26 @@ export const ScanRepositoryCard: FC<ScanRepositoryCardProps> = ({
           </Collapsible>
         ) : null}
         
+        {/* Empty Results State */}
+        {currentScan?.status === ScanStatus.COMPLETED && currentScan.foundStrings.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed p-6 text-center">
+            <div className="rounded-full bg-muted p-3">
+              <CheckCircle2 className="h-6 w-6 text-green-500" />
+            </div>
+            <div className="space-y-1">
+              <p className="font-medium">No hardcoded strings found</p>
+              <p className="text-sm text-muted-foreground">
+                {currentScan.scanPath 
+                  ? `The directory "${currentScan.scanPath}" appears to be clean.`
+                  : 'The repository appears to be clean.'}
+              </p>
+              <p className="text-xs text-muted-foreground mt-2">
+                Scanned {currentScan.filesScanned} files
+              </p>
+            </div>
+          </div>
+        ) : null}
+        
         {/* Error State */}
         {currentScan?.status === ScanStatus.FAILED ? (
           <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">

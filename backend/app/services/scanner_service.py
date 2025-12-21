@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
+from sqlalchemy.orm.attributes import flag_modified
 from arq import create_pool
 from arq.connections import RedisSettings
 from rapidfuzz import fuzz
@@ -657,6 +658,7 @@ class ScannerService:
                     if session.processed_files is None:
                         session.processed_files = []
                     session.processed_files = session.processed_files + [file_path]
+                    flag_modified(session, "processed_files")
                         
                 except asyncio.TimeoutError:
                     logger.error(f"Job timeout for {file_path}")
@@ -665,9 +667,12 @@ class ScannerService:
                 
                 files_processed += 1
                 
-                # Update progress periodically (every 5 files) and check for cancellation
+                # Update progress every file for real-time feedback
+                session.files_scanned = files_processed
+                session.strings_found = total_strings
+                
+                # Check for cancellation every 5 files
                 if files_processed % 5 == 0:
-                    # Check if cancelled
                     status_check = await db.execute(
                         select(ScanSession.status).where(ScanSession.id == scan_session_id)
                     )
@@ -675,10 +680,11 @@ class ScannerService:
                         logger.info(f"Scan {scan_session_id} was cancelled during processing")
                         await redis_pool.close()
                         return False
-                    
-                    session.files_scanned = len(session.processed_files or [])
-                    session.strings_found = total_strings
+                
+                # Commit progress periodically (every 3 files)
+                if files_processed % 3 == 0:
                     await db.commit()
+                    await db.refresh(session)
             
             # Close Redis pool
             await redis_pool.close()

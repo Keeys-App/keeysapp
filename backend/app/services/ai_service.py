@@ -1051,6 +1051,124 @@ File path: {file_path}
 
 Remember: Return ONLY valid JSON with the found strings. Do not include any explanations or markdown formatting."""
 
+    async def replace_strings_in_file(
+        self,
+        file_content: str,
+        file_path: str,
+        replacements: list[dict],
+        translation_function: str = "t",
+        model: Optional[str] = None,
+    ) -> dict:
+        """
+        Use AI to replace hardcoded strings with translation function calls.
+        
+        Args:
+            file_content: The original file content
+            file_path: Path to the file (for context)
+            replacements: List of {original_text: str, key: str, line_number: int}
+            translation_function: The i18n function to use (t, $t, etc.)
+            model: Specific model to use
+            
+        Returns:
+            {
+                "success": bool,
+                "content": str,  # New file content with replacements
+                "token_usage": TokenUsageInfo
+            }
+        """
+        if not replacements:
+            return {
+                "success": True,
+                "content": file_content,
+                "token_usage": {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
+            }
+        
+        # Build replacement instructions
+        replacement_list = []
+        for r in replacements:
+            replacement_list.append(
+                f"- Line {r.get('line_number', '?')}: Replace \"{r['original_text']}\" with {translation_function}('{r['key']}')"
+            )
+        
+        system_prompt = f"""You are an expert code transformer. Your task is to replace hardcoded strings with i18n translation function calls.
+
+CRITICAL RULES:
+1. ONLY replace the exact string literals specified - do NOT touch anything else
+2. Keep the code syntactically correct
+3. For JSX attributes: "text" becomes {{{translation_function}('key')}}
+4. For JSX children: text between tags becomes {{{translation_function}('key')}}
+5. For regular strings: "text" becomes {translation_function}('key')
+6. NEVER modify enum values, identifiers, variable names, or imports
+7. If a string appears multiple times, only replace it where it's a user-facing string literal
+
+Return ONLY the complete modified file content, nothing else. No explanations, no markdown code blocks."""
+
+        user_prompt = f"""File: {file_path}
+
+REPLACEMENTS TO MAKE:
+{chr(10).join(replacement_list)}
+
+ORIGINAL FILE:
+```
+{file_content}
+```
+
+Return the complete modified file with the replacements applied. Output ONLY the file content, no markdown formatting."""
+
+        try:
+            if not self.openai_client:
+                return {
+                    "success": False,
+                    "content": file_content,
+                    "token_usage": {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0},
+                    "error": "OpenAI client not configured"
+                }
+            
+            model_to_use = model or settings.openai_text_model
+            
+            response = await self.openai_client.chat.completions.create(
+                model=model_to_use,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0,  # Deterministic output
+                max_tokens=16000,
+            )
+            
+            new_content = response.choices[0].message.content
+            
+            # Clean up response - remove markdown code blocks if present
+            if new_content.startswith("```"):
+                lines = new_content.split("\n")
+                # Remove first line (```language) and last line (```)
+                if lines[-1].strip() == "```":
+                    lines = lines[1:-1]
+                else:
+                    lines = lines[1:]
+                new_content = "\n".join(lines)
+            
+            token_usage: TokenUsageInfo = {
+                "input_tokens": response.usage.prompt_tokens if response.usage else 0,
+                "output_tokens": response.usage.completion_tokens if response.usage else 0,
+                "total_tokens": response.usage.total_tokens if response.usage else 0,
+            }
+            
+            return {
+                "success": True,
+                "content": new_content,
+                "token_usage": token_usage
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to replace strings with AI: {type(e).__name__}: {str(e)}")
+            return {
+                "success": False,
+                "content": file_content,
+                "token_usage": {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0},
+                "error": str(e)
+            }
+
 
 # Global instance
 ai_service = AIService()
