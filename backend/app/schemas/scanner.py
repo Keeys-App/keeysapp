@@ -148,12 +148,31 @@ IGNORED_DIRECTORIES = {
 
 # Directory names that are top-level project directories (highest priority)
 TOP_LEVEL_DIRECTORIES = {
+    # Frontend
     'frontend',
     'client',
     'web',
+    'webapp',
+    'website',
+    'dashboard',
+    'admin',
+    'portal',
+    'mobile',
+    'ios',
+    'android',
+    # Backend
     'backend',
     'server',
     'api',
+    'service',
+    'services',
+    # Monorepo
+    'packages',
+    'apps',
+    'core',
+    'shared',
+    'common',
+    'libs',
 }
 
 # Directory names that likely contain localizable code (high priority)
@@ -167,7 +186,28 @@ RECOMMENDED_DIRECTORIES = {
     'features',
     'modules',
     'ui',
-    'lib',  # Often contains shared code
+    'lib',
+    'libs',
+    # Layout & templates
+    'layouts',
+    'templates',
+    # State management
+    'store',
+    'stores',
+    # React/Vue specific
+    'hooks',
+    'composables',  # Vue 3
+    'containers',
+    'widgets',
+    # Routing
+    'routes',
+    'router',
+    'navigation',
+    # Shared code
+    'utils',
+    'helpers',
+    'common',
+    'shared',
 }
 
 
