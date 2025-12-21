@@ -255,7 +255,7 @@ export const ConnectGitHubCard: FC<ConnectGitHubCardProps> = ({
                     asChild
                     className="w-fit"
                   >
-                    <a href={appInfo.installationUrl} target="_blank" rel="noopener noreferrer">
+                    <a href={appInfo.installationUrl}>
                       <Settings className="mr-2 h-4 w-4" />
                       Install GitHub App
                     </a>
@@ -266,29 +266,55 @@ export const ConnectGitHubCard: FC<ConnectGitHubCardProps> = ({
 
             {/* Show installation info if exists */}
             {appInfo?.hasInstallation ? (
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <span className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  App installed on: {appInfo.installations.map((i) => i.accountLogin).join(', ')}
-                  {appInfo.installations[0]?.repositorySelection === 'selected' ? (
-                    <span className="text-yellow-600"> (selected repos only)</span>
-                  ) : null}
-                </span>
-                {canManage && appInfo.installations[0]?.htmlUrl ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    asChild
+              <div className="space-y-2">
+                {appInfo.installations.map((installation) => (
+                  <div
+                    key={installation.id}
+                    className="flex items-center justify-between text-sm text-muted-foreground"
                   >
-                    <a
-                      href={appInfo.installations[0].htmlUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <span className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-green-500" />
+                      App installed on: {installation.accountLogin}
+                      {installation.repositorySelection === 'selected' ? (
+                        <span className="text-yellow-600"> (selected repos only)</span>
+                      ) : null}
+                    </span>
+                    {canManage && installation.htmlUrl ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        asChild
+                      >
+                        <a
+                          href={installation.htmlUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <RefreshCw className="mr-2 h-3 w-3" />
+                          Change
+                        </a>
+                      </Button>
+                    ) : null}
+                  </div>
+                ))}
+                {/* Install on additional accounts */}
+                {canManage && appInfo.installationUrl ? (
+                  <div className="flex items-center justify-between text-sm text-muted-foreground pt-1">
+                    <span className="flex items-center gap-2 text-muted-foreground/70">
+                      <Settings className="h-4 w-4" />
+                      Install on another account or organization
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      asChild
                     >
-                      <RefreshCw className="mr-2 h-3 w-3" />
-                      Change
-                    </a>
-                  </Button>
+                      <a href={appInfo.installationUrl}>
+                        <Settings className="mr-2 h-3 w-3" />
+                        Install
+                      </a>
+                    </Button>
+                  </div>
                 ) : null}
               </div>
             ) : null}

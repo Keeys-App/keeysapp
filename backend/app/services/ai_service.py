@@ -1095,16 +1095,35 @@ Remember: Return ONLY valid JSON with the found strings. Do not include any expl
                 f"- Line {r.get('line_number', '?')}: Replace \"{r['original_text']}\" with {translation_function}('{r['key']}')"
             )
         
-        system_prompt = f"""You are an expert code transformer. Your task is to replace hardcoded strings with i18n translation function calls.
+        system_prompt = f"""You are an expert code transformer for internationalization (i18n).
 
-CRITICAL RULES:
+BEFORE REPLACING STRINGS, ANALYZE THE CODE CONTEXT:
+
+1. What language and framework is this file using? (React, Vue, Angular, Svelte, Python, etc.)
+2. What is the execution context of each string? (component, utility function, callback, template, class method, etc.)
+3. What are the i18n access patterns and constraints for this framework?
+   - Some frameworks have restrictions (e.g., React hooks only work in components)
+   - Some allow global/static access to the translator
+   - Some require dependency injection or passing translator as parameter
+
+IF YOU DETECT A FRAMEWORK CONSTRAINT:
+Don't blindly insert {translation_function}() everywhere. Choose an appropriate strategy:
+- Use the standard pattern if in the right context (component, template, etc.)
+- Pass translator as a parameter to utility functions
+- Use global/static i18n access when available
+- Import i18n instance directly if the framework supports it
+
+REPLACEMENT RULES:
 1. ONLY replace the exact string literals specified - do NOT touch anything else
-2. Keep the code syntactically correct
-3. For JSX attributes: "text" becomes {{{translation_function}('key')}}
-4. For JSX children: text between tags becomes {{{translation_function}('key')}}
+2. Keep the code syntactically correct and idiomatic for the framework
+3. For JSX/template attributes: "text" becomes {{{translation_function}('key')}}
+4. For JSX/template children: text between tags becomes {{{translation_function}('key')}}
 5. For regular strings: "text" becomes {translation_function}('key')
-6. NEVER modify enum values, identifiers, variable names, or imports
-7. If a string appears multiple times, only replace it where it's a user-facing string literal
+6. NEVER modify enum values, identifiers, variable names, or technical strings
+7. Add necessary imports at the top of the file if needed
+8. If the same translator setup is needed multiple times, add it once in the appropriate scope
+
+GOAL: Produce working, idiomatic code that follows the framework's best practices.
 
 Return ONLY the complete modified file content, nothing else. No explanations, no markdown code blocks."""
 

@@ -160,16 +160,22 @@ class GitHubService:
         return f"{GITHUB_AUTHORIZE_URL}?{urlencode(params)}"
     
     @staticmethod
-    def get_app_installation_url() -> Optional[str]:
+    def get_app_installation_url(state: Optional[str] = None) -> Optional[str]:
         """
         Get GitHub App installation URL for manual installation.
+        
+        Args:
+            state: Optional state parameter (e.g., team_public_id) for redirect after installation
         
         Returns:
             Installation URL or None if app slug not configured
         """
         if not settings.github_app_slug:
             return None
-        return f"{GITHUB_APP_INSTALL_URL}/{settings.github_app_slug}/installations/new"
+        base_url = f"{GITHUB_APP_INSTALL_URL}/{settings.github_app_slug}/installations/new"
+        if state:
+            return f"{base_url}?state={state}"
+        return base_url
     
     @staticmethod
     async def get_user_installations(access_token: str) -> list[dict]:

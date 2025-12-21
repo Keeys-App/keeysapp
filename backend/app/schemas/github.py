@@ -187,7 +187,7 @@ class GitHubQuery:
                 team = await TeamService.get_team_by_public_id(db, team_id)
                 if not team:
                     return GitHubAppInfoType(
-                        installation_url=GitHubService.get_app_installation_url(),
+                        installation_url=GitHubService.get_app_installation_url(state=team_id),
                         installations=[],
                         has_installation=False,
                     )
@@ -197,7 +197,7 @@ class GitHubQuery:
                 
                 if not connections:
                     return GitHubAppInfoType(
-                        installation_url=GitHubService.get_app_installation_url(),
+                        installation_url=GitHubService.get_app_installation_url(state=team_id),
                         installations=[],
                         has_installation=False,
                     )
@@ -206,7 +206,7 @@ class GitHubQuery:
                 access_token = await GitHubService.get_valid_access_token(db, connections[0])
                 if not access_token:
                     return GitHubAppInfoType(
-                        installation_url=GitHubService.get_app_installation_url(),
+                        installation_url=GitHubService.get_app_installation_url(state=team_id),
                         installations=[],
                         has_installation=False,
                     )
@@ -224,7 +224,7 @@ class GitHubQuery:
                 ]
                 
                 return GitHubAppInfoType(
-                    installation_url=GitHubService.get_app_installation_url(),
+                    installation_url=GitHubService.get_app_installation_url(state=team_id),
                     installations=installations,
                     has_installation=len(installations) > 0,
                 )
@@ -233,7 +233,7 @@ class GitHubQuery:
         except Exception as e:
             logger.error(f"Error getting GitHub App info: {type(e).__name__}")
             return GitHubAppInfoType(
-                installation_url=GitHubService.get_app_installation_url(),
+                installation_url=GitHubService.get_app_installation_url(state=team_id),
                 installations=[],
                 has_installation=False,
             )

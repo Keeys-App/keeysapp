@@ -54,13 +54,13 @@ async def github_callback(
         team_public_id = state if state else ""
         
         if setup_action == "install":
-            # App was just installed - redirect to team settings with success
-            success_url = f"{settings.app_url}/team/{team_public_id}/settings?github_installed=true"
+            # App was just installed - redirect to team edit page with success
+            success_url = f"{settings.app_url}/team/{team_public_id}/edit?github_installed=true"
             logger.info(f"App installed, redirecting to: {success_url}")
             return RedirectResponse(url=success_url)
         elif setup_action == "update":
             # App permissions updated
-            success_url = f"{settings.app_url}/team/{team_public_id}/settings?github_updated=true"
+            success_url = f"{settings.app_url}/team/{team_public_id}/edit?github_updated=true"
             return RedirectResponse(url=success_url)
         else:
             # Other action (e.g., uninstall)
@@ -144,13 +144,11 @@ async def github_callback(
         
         if not installations:
             # No installations - redirect to install GitHub App
-            install_url = GitHubService.get_app_installation_url()
+            install_url = GitHubService.get_app_installation_url(state=team_public_id)
             logger.info(f"Install URL: {install_url} (GITHUB_APP_SLUG={settings.github_app_slug})")
             if install_url:
                 logger.info(f"No GitHub App installation found, redirecting to install: {install_url}")
-                # Add state to return after installation
-                install_url_with_state = f"{install_url}?state={team_public_id}"
-                return RedirectResponse(url=install_url_with_state)
+                return RedirectResponse(url=install_url)
             else:
                 logger.warning("GITHUB_APP_SLUG not configured, skipping installation redirect")
         
