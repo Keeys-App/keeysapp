@@ -101,6 +101,103 @@ class RepositoryDirectoryType:
     """GraphQL type for repository directory."""
     path: str
     name: str
+    is_recommended: bool = False  # True for directories likely containing localizable content
+
+
+# Directories to always ignore (not useful for localization scanning)
+IGNORED_DIRECTORIES = {
+    'node_modules',
+    '.git',
+    '.github',
+    '.vscode',
+    '.idea',
+    'dist',
+    'build',
+    'out',
+    '.next',
+    '.nuxt',
+    '.output',
+    '.yarn',
+    '.pnpm',
+    'vendor',
+    '__pycache__',
+    '.pytest_cache',
+    'venv',
+    '.venv',
+    'env',
+    '.env',
+    'coverage',
+    '.coverage',
+    '.nyc_output',
+    'tmp',
+    'temp',
+    'logs',
+    'cache',
+    '.cache',
+    'public',  # Usually static assets, not code
+    'static',  # Usually static assets
+    'assets',  # Usually images/fonts
+    'migrations',  # Database migrations
+    'alembic',  # Database migrations (Python)
+    'tests',  # Test files
+    'test',
+    '__tests__',
+    'spec',
+    'specs',
+}
+
+# Directory names that are top-level project directories (highest priority)
+TOP_LEVEL_DIRECTORIES = {
+    'frontend',
+    'client',
+    'web',
+    'backend',
+    'server',
+    'api',
+}
+
+# Directory names that likely contain localizable code (high priority)
+RECOMMENDED_DIRECTORIES = {
+    'src',
+    'app',
+    'pages',
+    'components',
+    'views',
+    'screens',
+    'features',
+    'modules',
+    'ui',
+    'lib',  # Often contains shared code
+}
+
+
+def get_directory_priority(path: str, name: str) -> tuple:
+    """
+    Get sorting priority for a directory based on full path.
+    Returns tuple for multi-level sorting. Lower = higher priority (shown first).
+    """
+    path_lower = path.lower()
+    name_lower = name.lower()
+    path_parts = path_lower.split('/')
+    depth = len(path_parts)
+    
+    # Check if path starts with a top-level directory (frontend, backend, etc.)
+    is_top_level_root = path_parts[0] in TOP_LEVEL_DIRECTORIES if path_parts else False
+    
+    if is_top_level_root:
+        # frontend, backend, frontend/src - highest priority, sorted by depth
+        return (0, depth, path)
+    
+    if name_lower in TOP_LEVEL_DIRECTORIES:
+        # Directory named frontend/backend but nested somewhere
+        return (1, depth, path)
+    
+    if name_lower in RECOMMENDED_DIRECTORIES:
+        # Recommended directories like src, components
+        return (2, depth, path)
+    
+    # Everything else
+    return (3, depth, path)
 
 
 @strawberry.type
@@ -458,6 +555,14 @@ class ScannerQuery:
                     if entry.get("type") == "tree":  # tree = directory in GitHub API
                         path = entry.get("path", "")
                         if path and path not in seen_paths:
+                            # Get directory name (last part of path)
+                            name = path.split("/")[-1] if "/" in path else path
+                            
+                            # Skip ignored directories (check each path segment)
+                            path_parts = path.lower().split("/")
+                            if any(part in IGNORED_DIRECTORIES for part in path_parts):
+                                continue
+                            
                             # Filter by prefix if provided
                             if prefix:
                                 # Match if path starts with prefix or contains prefix
@@ -467,15 +572,31 @@ class ScannerQuery:
                                     continue
                             
                             seen_paths.add(path)
-                            # Get directory name (last part of path)
-                            name = path.split("/")[-1] if "/" in path else path
+                            
+                            # Check if this directory is recommended for localization
+                            name_lower = name.lower()
+                            path_lower = path.lower()
+                            path_parts = path_lower.split('/')
+                            depth = len(path_parts)
+                            
+                            # Only recommend directories at depth 1-2 (e.g., frontend, frontend/src)
+                            # Deeper directories (frontend/src/components) should not be highlighted
+                            is_shallow = depth <= 2
+                            
+                            # Recommended if: shallow + top-level or recommended directory
+                            is_top_level = name_lower in TOP_LEVEL_DIRECTORIES or path_parts[0] in TOP_LEVEL_DIRECTORIES
+                            is_recommended_name = name_lower in RECOMMENDED_DIRECTORIES
+                            
+                            is_recommended = is_shallow and (is_top_level or is_recommended_name)
+                            
                             directories.append(RepositoryDirectoryType(
                                 path=path,
                                 name=name,
+                                is_recommended=is_recommended,
                             ))
                 
-                # Sort by path
-                directories.sort(key=lambda d: d.path)
+                # Sort: by priority (frontend paths first, then recommended, then others)
+                directories.sort(key=lambda d: get_directory_priority(d.path, d.name))
                 
                 # Limit results to prevent huge responses
                 return directories[:100]

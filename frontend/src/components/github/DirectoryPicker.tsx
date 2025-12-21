@@ -239,6 +239,7 @@ export const DirectoryPicker: FC<DirectoryPickerProps> = ({
                 filteredDirectories.map((directory, index) => {
                   const isExactMatch = inputValue.toLowerCase() === directory.path.toLowerCase();
                   const isHighlighted = highlightedIndex === index;
+                  const isRecommended = directory.isRecommended;
                   
                   return (
                     <div
@@ -248,20 +249,20 @@ export const DirectoryPicker: FC<DirectoryPickerProps> = ({
                         handleSelect(directory);
                       }}
                       className={cn(
-                        'flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm',
+                        'flex cursor-pointer items-start gap-2 rounded-sm px-2 py-1.5 text-sm',
                         'hover:bg-accent/50',
                         isHighlighted && 'bg-accent text-accent-foreground',
                         isExactMatch && !isHighlighted && 'bg-primary/10'
                       )}
                     >
                       <Folder className={cn(
-                        'h-4 w-4 shrink-0',
-                        isExactMatch ? 'text-primary' : 'text-muted-foreground'
+                        'mt-0.5 h-4 w-4 shrink-0',
+                        isExactMatch ? 'text-primary' : isRecommended ? 'text-violet-500' : 'text-muted-foreground'
                       )} />
                       <div className="flex flex-1 flex-col overflow-hidden">
                         <span className={cn(
                           'font-medium',
-                          isExactMatch && 'text-primary'
+                          isExactMatch ? 'text-primary' : isRecommended && 'text-violet-600 dark:text-violet-400'
                         )}>
                           {directory.name}
                         </span>
@@ -270,7 +271,7 @@ export const DirectoryPicker: FC<DirectoryPickerProps> = ({
                         </span>
                       </div>
                       {isExactMatch ? (
-                        <Check className="h-4 w-4 shrink-0 text-primary" />
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                       ) : null}
                     </div>
                   );

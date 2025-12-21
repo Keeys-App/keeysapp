@@ -96,6 +96,7 @@ export const REPOSITORY_DIRECTORIES_QUERY = gql`
     repositoryDirectories(projectId: $projectId, prefix: $prefix) {
       path
       name
+      isRecommended
     }
   }
 `;
@@ -265,6 +266,7 @@ export interface ScanSession {
 export interface RepositoryDirectory {
   path: string;
   name: string;
+  isRecommended: boolean;
 }
 
 export interface TokenUsageStats {

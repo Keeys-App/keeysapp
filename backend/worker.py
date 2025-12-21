@@ -3,7 +3,6 @@ ARQ Worker for background file analysis tasks.
 
 Run with: arq worker.WorkerSettings
 """
-import asyncio
 import logging
 import sys
 from typing import Optional, Any
@@ -109,6 +108,29 @@ async def analyze_file_task(
     logger.info(f"Analyzing file: {file_path} for session {scan_session_id} with {ai_provider}/{ai_model}")
     
     try:
+        # Check Redis cancel flag BEFORE calling AI (instant, no DB query)
+        cancel_redis = ctx.get('cancel_redis')
+        if cancel_redis:
+            try:
+                cancel_key = f"scan_cancelled:{scan_session_id}"
+                cancelled = await cancel_redis.get(cancel_key)
+                logger.debug(f"Cancel check for {cancel_key}: {cancelled}")
+                if cancelled:
+                    logger.info(f"🛑 Scan {scan_session_id} was cancelled, skipping file {file_path}")
+                    return {
+                        "file_path": file_path,
+                        "strings": [],
+                        "token_usage": {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0},
+                        "scan_session_id": scan_session_id,
+                        "success": False,
+                        "error": "Scan cancelled",
+                        "cancelled": True,
+                    }
+            except Exception as e:
+                logger.warning(f"Failed to check cancel flag: {e}")
+        else:
+            logger.warning("cancel_redis not available in context")
+        
         result: AnalysisResult = await ai_service.analyze_file_for_strings(
             file_content=file_content,
             file_path=file_path,
@@ -146,11 +168,23 @@ async def analyze_file_task(
 
 async def startup(ctx: dict) -> None:
     """Called when worker starts."""
-    logger.info("Scanner worker started")
+    # Create dedicated Redis client for cancel checks
+    redis_settings = get_redis_settings()
+    ctx['cancel_redis'] = Redis(
+        host=redis_settings.host,
+        port=redis_settings.port,
+        password=redis_settings.password,
+        db=redis_settings.database,
+        decode_responses=True,
+    )
+    logger.info("Scanner worker started with cancel check Redis")
 
 
 async def shutdown(ctx: dict) -> None:
     """Called when worker shuts down."""
+    # Close Redis client
+    if 'cancel_redis' in ctx:
+        await ctx['cancel_redis'].close()
     logger.info("Scanner worker shutting down")
 
 

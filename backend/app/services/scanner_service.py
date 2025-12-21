@@ -700,6 +700,8 @@ class ScannerService:
         """
         Cancel a running scan.
         
+        Sets cancel flag in Redis so workers stop immediately.
+        
         Args:
             db: Database session
             scan_session_id: Scan session ID
@@ -717,6 +719,23 @@ class ScannerService:
         
         if session.status not in [ScanStatus.PENDING, ScanStatus.SCANNING]:
             return False
+        
+        # Set cancel flag in Redis (workers check this before AI calls)
+        try:
+            from redis.asyncio import Redis as AsyncRedis
+            redis_settings = _get_redis_settings()
+            redis_client = AsyncRedis(
+                host=redis_settings.host,
+                port=redis_settings.port,
+                password=redis_settings.password,
+                db=redis_settings.database,
+            )
+            # Set flag with 1 hour TTL (in case cleanup doesn't happen)
+            await redis_client.set(f"scan_cancelled:{scan_session_id}", "1", ex=3600)
+            await redis_client.close()
+            logger.info(f"Set cancel flag in Redis for scan {scan_session_id}")
+        except Exception as e:
+            logger.warning(f"Failed to set Redis cancel flag: {type(e).__name__}: {str(e)}")
         
         session.status = ScanStatus.CANCELLED
         session.completed_at = datetime.now(timezone.utc)
