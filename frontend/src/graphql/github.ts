@@ -125,9 +125,19 @@ export const PROJECT_REPOSITORY_QUERY = gql`
 `;
 
 // Mutation to connect a repository to a project
+// Query to get branches for a repository before connecting
+export const GITHUB_REPO_BRANCHES_QUERY = gql`
+  query GitHubRepoBranches($githubConnectionId: String!, $owner: String!, $repo: String!) {
+    githubRepoBranches(githubConnectionId: $githubConnectionId, owner: $owner, repo: $repo) {
+      name
+      isDefault
+    }
+  }
+`;
+
 export const CONNECT_REPOSITORY_MUTATION = gql`
-  mutation ConnectRepository($projectId: String!, $githubRepoId: String!, $githubConnectionId: String!) {
-    connectRepository(projectId: $projectId, githubRepoId: $githubRepoId, githubConnectionId: $githubConnectionId) {
+  mutation ConnectRepository($projectId: String!, $githubRepoId: String!, $githubConnectionId: String!, $branch: String!) {
+    connectRepository(projectId: $projectId, githubRepoId: $githubRepoId, githubConnectionId: $githubConnectionId, branch: $branch) {
       success
       message
       repository {
@@ -175,6 +185,11 @@ export interface GitHubRepo {
   private: boolean;
   description: string | null;
   htmlUrl: string;
+}
+
+export interface GitHubBranch {
+  name: string;
+  isDefault: boolean;
 }
 
 export interface Repository {

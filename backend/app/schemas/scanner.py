@@ -684,6 +684,7 @@ class ScannerMutation:
         info: Info,
         project_id: str,
         scan_path: Optional[str] = None,
+        branch: Optional[str] = None,
         key_naming_style: Optional[str] = None,
         key_naming_delimiter: Optional[str] = None,
     ) -> StartScanResult:
@@ -695,6 +696,7 @@ class ScannerMutation:
             info: GraphQL info object
             project_id: Public UUID of the project
             scan_path: Optional directory path to limit scan scope
+            branch: Optional branch to scan (defaults to repository's default branch)
             key_naming_style: Key naming style (UPPERCASE, snake_case, camelCase)
             key_naming_delimiter: Delimiter for key segments (_, ., :, ::)
             
@@ -765,11 +767,13 @@ class ScannerMutation:
                                 success=False,
                                 message="GitHub token expired. Please reconnect your account.",
                             )
+                        # Use provided branch or default
+                        scan_branch = branch or repository.default_branch or "main"
                         tree = await GitHubService.get_repository_tree(
                             access_token=access_token,
                             owner=repository.repo_owner,
                             repo=repository.repo_name,
-                            branch=repository.default_branch or "main",
+                            branch=scan_branch,
                         )
                         
                         if tree:
@@ -795,6 +799,7 @@ class ScannerMutation:
                     ai_provider=ai_provider,
                     ai_model=ai_model,
                     scan_path=scan_path,
+                    branch=branch,
                     key_naming_style=key_naming_style,
                     key_naming_delimiter=key_naming_delimiter,
                 )

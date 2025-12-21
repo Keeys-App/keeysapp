@@ -868,6 +868,7 @@ class GitHubService:
         project_id: int,
         github_connection_id: int,
         repo_info: GitHubRepoInfo,
+        branch: Optional[str] = None,
         i18n_framework: Optional[str] = None,
         source_patterns: Optional[list[str]] = None,
         locale_path: Optional[str] = None,
@@ -880,6 +881,7 @@ class GitHubService:
             project_id: Internal project ID
             github_connection_id: Internal GitHub connection ID
             repo_info: Repository information from GitHub
+            branch: Branch to use for scanning (defaults to repo's default branch)
             i18n_framework: Optional i18n framework name
             source_patterns: Optional source file patterns
             locale_path: Optional path to locale files
@@ -887,6 +889,9 @@ class GitHubService:
         Returns:
             Created or updated Repository
         """
+        # Use provided branch or default branch from repo
+        selected_branch = branch or repo_info["default_branch"]
+        
         # Check if repository already exists for this project
         result = await db.execute(
             select(Repository).where(Repository.project_id == project_id)
@@ -899,7 +904,7 @@ class GitHubService:
             existing.github_repo_id = repo_info["id"]
             existing.repo_owner = repo_info["owner"]
             existing.repo_name = repo_info["name"]
-            existing.default_branch = repo_info["default_branch"]
+            existing.default_branch = selected_branch
             
             if i18n_framework is not None:
                 existing.i18n_framework = i18n_framework
@@ -921,7 +926,7 @@ class GitHubService:
             github_repo_id=repo_info["id"],
             repo_owner=repo_info["owner"],
             repo_name=repo_info["name"],
-            default_branch=repo_info["default_branch"],
+            default_branch=selected_branch,
             i18n_framework=i18n_framework,
             source_patterns=source_patterns or [],
             locale_path=locale_path,
@@ -963,6 +968,63 @@ class GitHubService:
             return True
         
         return False
+
+    @staticmethod
+    async def get_repository_branches(
+        access_token: str,
+        owner: str,
+        repo: str,
+    ) -> list[dict]:
+        """
+        Get list of branches for a repository.
+        
+        Args:
+            access_token: GitHub access token
+            owner: Repository owner
+            repo: Repository name
+            
+        Returns:
+            List of branches with name and commit info
+        """
+        try:
+            branches = []
+            page = 1
+            per_page = 100
+            
+            async with httpx.AsyncClient() as client:
+                while True:
+                    response = await client.get(
+                        f"{GITHUB_API_URL}/repos/{owner}/{repo}/branches",
+                        params={"per_page": per_page, "page": page},
+                        headers={
+                            "Authorization": f"Bearer {access_token}",
+                            "Accept": "application/vnd.github+json",
+                            "X-GitHub-Api-Version": "2022-11-28",
+                        },
+                        timeout=30.0,
+                    )
+                    
+                    if response.status_code != 200:
+                        logger.error(f"Failed to get branches: {response.status_code}")
+                        break
+                    
+                    page_branches = response.json()
+                    if not page_branches:
+                        break
+                    
+                    branches.extend(page_branches)
+                    
+                    # Check if there are more pages
+                    if len(page_branches) < per_page:
+                        break
+                    page += 1
+            
+            logger.info(f"Found {len(branches)} branches for {owner}/{repo}")
+            return branches
+            
+        except Exception as e:
+            logger.error(f"Error getting branches: {type(e).__name__}: {str(e)}")
+            return []
 
     @staticmethod
     async def get_repository_tree(

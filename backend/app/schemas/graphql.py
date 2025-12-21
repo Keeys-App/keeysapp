@@ -25,6 +25,7 @@ from app.schemas.github import (
     ConnectRepositoryResult,
     GitHubDisconnectResult,
     GitHubAppInfoType,
+    GitHubBranchType,
 )
 from app.schemas.scanner import (
     ScannerQuery,
@@ -84,6 +85,7 @@ class Query:
     available_github_repositories: List[GitHubRepoType] = strawberry.field(resolver=GitHubQuery.available_github_repositories)
     search_github_repositories: List[GitHubRepoType] = strawberry.field(resolver=GitHubQuery.search_github_repositories)
     project_repository: Optional[RepositoryType] = strawberry.field(resolver=GitHubQuery.project_repository)
+    repository_branches: List[GitHubBranchType] = strawberry.field(resolver=GitHubQuery.repository_branches)
     
     # Scanner
     scan_session: Optional[ScanSessionType] = strawberry.field(resolver=ScannerQuery.scan_session)

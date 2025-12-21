@@ -158,6 +158,15 @@ class ConnectRepositoryResult:
 
 
 @strawberry.type
+class GitHubBranchType:
+    """
+    GraphQL type for GitHub branch.
+    """
+    name: str
+    is_default: bool
+
+
+@strawberry.type
 class GitHubQuery:
     """
     GraphQL queries for GitHub integration.
@@ -379,6 +388,80 @@ class GitHubQuery:
             return None
     
     @strawberry.field
+    async def repository_branches(
+        self,
+        info: Info,
+        project_id: str,
+    ) -> List[GitHubBranchType]:
+        """
+        Get list of branches for a project's repository.
+        
+        Args:
+            info: GraphQL info object
+            project_id: Public UUID of the project
+            
+        Returns:
+            List of branches
+        """
+        try:
+            user_id = await get_current_user_id(info)
+            
+            async with AsyncSessionLocal() as db:
+                # Get project
+                project = await ProjectService.get_project_by_public_id(db, project_id)
+                if not project:
+                    return []
+                
+                # Verify user has access
+                has_access = await ProjectService.check_project_access(db, project.id, user_id)
+                if not has_access:
+                    return []
+                
+                # Get repository
+                repository = await GitHubService.get_repository_by_project(db, project.id)
+                if not repository:
+                    return []
+                
+                # Get GitHub connection for access token
+                if not repository.github_connection_id:
+                    return []
+                
+                result = await db.execute(
+                    select(GitHubConnection).where(
+                        GitHubConnection.id == repository.github_connection_id
+                    )
+                )
+                connection = result.scalar_one_or_none()
+                if not connection:
+                    return []
+                
+                access_token = await GitHubService.get_valid_access_token(db, connection)
+                if not access_token:
+                    return []
+                
+                # Get branches from GitHub
+                branches = await GitHubService.get_repository_branches(
+                    access_token,
+                    repository.repo_owner,
+                    repository.repo_name,
+                )
+                
+                default_branch = repository.default_branch or "main"
+                
+                return [
+                    GitHubBranchType(
+                        name=branch.get("name", ""),
+                        is_default=branch.get("name", "") == default_branch,
+                    )
+                    for branch in branches
+                ]
+        except AuthenticationError:
+            raise
+        except Exception as e:
+            logger.error(f"Error fetching repository branches: {type(e).__name__}")
+            return []
+    
+    @strawberry.field
     async def search_github_repositories(
         self,
         info: Info,
@@ -445,6 +528,69 @@ class GitHubQuery:
             raise
         except Exception as e:
             logger.error(f"Error searching repositories: {type(e).__name__}")
+            return []
+    
+    @strawberry.field
+    async def github_repo_branches(
+        self,
+        info: Info,
+        github_connection_id: str,
+        owner: str,
+        repo: str,
+    ) -> List[GitHubBranchType]:
+        """
+        Get branches for a GitHub repository before connecting it.
+        
+        Args:
+            info: GraphQL info object
+            github_connection_id: Public UUID of the GitHub connection to use
+            owner: Repository owner
+            repo: Repository name
+            
+        Returns:
+            List of branches
+        """
+        try:
+            user_id = await get_current_user_id(info)
+            
+            async with AsyncSessionLocal() as db:
+                # Get GitHub connection
+                connection = await GitHubService.get_connection_by_public_id(db, github_connection_id)
+                if not connection:
+                    return []
+                
+                # Get team and verify access
+                team = await TeamService.get_team_by_id(db, connection.team_id)
+                if not team:
+                    return []
+                
+                has_access = await TeamService.check_user_team_access(db, team.id, user_id)
+                if not has_access and team.owner_id != user_id:
+                    return []
+                
+                # Get access token
+                access_token = await GitHubService.get_valid_access_token(db, connection)
+                if not access_token:
+                    return []
+                
+                # Get branches from GitHub
+                branches = await GitHubService.get_repository_branches(
+                    access_token,
+                    owner,
+                    repo,
+                )
+                
+                return [
+                    GitHubBranchType(
+                        name=branch.get("name", ""),
+                        is_default=False,  # We don't know which is default here
+                    )
+                    for branch in branches
+                ]
+        except AuthenticationError:
+            raise
+        except Exception as e:
+            logger.error(f"Error fetching repo branches: {type(e).__name__}")
             return []
     
     @strawberry.field
@@ -737,6 +883,7 @@ class GitHubMutation:
         project_id: str,
         github_repo_id: str,
         github_connection_id: str,
+        branch: str,
     ) -> ConnectRepositoryResult:
         """
         Connect a GitHub repository to a project.
@@ -746,6 +893,7 @@ class GitHubMutation:
             project_id: Public UUID of the project
             github_repo_id: GitHub repository ID
             github_connection_id: Public UUID of the GitHub connection to use
+            branch: Branch to use for scanning
             
         Returns:
             Result with success status and repository info
@@ -818,6 +966,7 @@ class GitHubMutation:
                     project_id=project.id,
                     github_connection_id=connection.id,
                     repo_info=repo_info,
+                    branch=branch,
                 )
                 
                 return ConnectRepositoryResult(

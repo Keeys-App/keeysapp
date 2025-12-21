@@ -113,18 +113,30 @@ export const REPOSITORY_DIRECTORIES_QUERY = gql`
   }
 `;
 
+// Query to get repository branches
+export const REPOSITORY_BRANCHES_QUERY = gql`
+  query RepositoryBranches($projectId: String!) {
+    repositoryBranches(projectId: $projectId) {
+      name
+      isDefault
+    }
+  }
+`;
+
 // Mutation to start a repository scan
 // Note: AI settings are taken from Team configuration on backend
 export const START_REPOSITORY_SCAN_MUTATION = gql`
   mutation StartRepositoryScan(
     $projectId: String!
     $scanPath: String
+    $branch: String
     $keyNamingStyle: String
     $keyNamingDelimiter: String
   ) {
     startRepositoryScan(
       projectId: $projectId
       scanPath: $scanPath
+      branch: $branch
       keyNamingStyle: $keyNamingStyle
       keyNamingDelimiter: $keyNamingDelimiter
     ) {
@@ -327,6 +339,11 @@ export interface RepositoryDirectory {
   path: string;
   name: string;
   isRecommended: boolean;
+}
+
+export interface RepositoryBranch {
+  name: string;
+  isDefault: boolean;
 }
 
 export interface TokenUsageStats {

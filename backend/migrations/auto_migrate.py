@@ -1734,6 +1734,32 @@ def migrate_add_key_matching_fields_if_needed():
         return False
 
 
+def migrate_add_scan_branch_if_needed():
+    """
+    Add branch field to scan_sessions table for scanning specific branches.
+    Safe to run multiple times.
+    """
+    try:
+        if check_column_exists('scan_sessions', 'branch'):
+            logger.info("✅ Migration: branch column in scan_sessions already exists, skipping")
+            return True
+        
+        logger.info("🔄 Migration: Adding branch column to scan_sessions")
+        
+        with engine.connect() as connection:
+            connection.execute(text("""
+                ALTER TABLE scan_sessions 
+                ADD COLUMN branch VARCHAR(255) DEFAULT NULL
+            """))
+            connection.commit()
+            logger.info("✅ Migration: branch column added successfully")
+            return True
+            
+    except Exception as e:
+        logger.error(f"❌ Migration failed: {type(e).__name__}: {str(e)}")
+        return False
+
+
 def run_all_migrations():
     """
     Run all pending migrations.
@@ -1772,6 +1798,7 @@ def run_all_migrations():
         ("add_key_matching_fields", migrate_add_key_matching_fields_if_needed),
         ("add_key_naming_settings", migrate_add_key_naming_settings_if_needed),
         ("add_scan_pr_fields", migrate_add_scan_pr_fields_if_needed),
+        ("add_scan_branch", migrate_add_scan_branch_if_needed),
         # Add more migrations here as needed
     ]
     

@@ -349,6 +349,7 @@ class ScannerService:
         ai_provider: Optional[str] = None,
         ai_model: Optional[str] = None,
         scan_path: Optional[str] = None,
+        branch: Optional[str] = None,
         key_naming_style: Optional[str] = None,
         key_naming_delimiter: Optional[str] = None,
     ) -> ScanSession:
@@ -362,6 +363,7 @@ class ScannerService:
             ai_provider: AI provider to use (OPENAI or ANTHROPIC)
             ai_model: Specific model to use
             scan_path: Optional directory path to limit scan scope
+            branch: Optional branch to scan (defaults to repository's default branch)
             key_naming_style: Key naming style (UPPERCASE, snake_case, camelCase)
             key_naming_delimiter: Delimiter for key segments (_, ., :, ::)
             
@@ -394,6 +396,7 @@ class ScannerService:
             ai_provider=provider,
             ai_model=model,
             scan_path=scan_path,
+            branch=branch,
             key_naming_style=key_naming_style or "camelCase",
             key_naming_delimiter=key_naming_delimiter or ".",
         )
@@ -467,12 +470,13 @@ class ScannerService:
                 await ScannerService._fail_scan(db, session, "GitHub token expired. Please reconnect your account.")
                 return False
             
-            # Get repository file tree
+            # Get repository file tree (use session branch or default)
+            scan_branch = session.branch or repository.default_branch or "main"
             tree = await GitHubService.get_repository_tree(
                 access_token=access_token,
                 owner=repository.repo_owner,
                 repo=repository.repo_name,
-                branch=repository.default_branch or "main",
+                branch=scan_branch,
             )
             
             if not tree:
@@ -543,7 +547,7 @@ class ScannerService:
                         owner=repository.repo_owner,
                         repo=repository.repo_name,
                         path=file_path,
-                        branch=repository.default_branch or "main",
+                        branch=scan_branch,
                     )
                     
                     if content is None:

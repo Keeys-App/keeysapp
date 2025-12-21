@@ -50,13 +50,23 @@ import {
   CONVERT_FOUND_STRINGS_TO_KEYS_MUTATION,
   REPLACE_FOUND_STRING_MUTATION,
   CREATE_LOCALIZATION_PR_MUTATION,
+  REPOSITORY_BRANCHES_QUERY,
   type ScanSession,
   type FoundString,
   type CreatePRResult,
+  type RepositoryBranch,
   ScanStatus,
   FoundStringStatus,
 } from '@/graphql/scanner';
 import { DirectoryPicker } from './DirectoryPicker';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { GitBranch } from 'lucide-react';
 
 interface ScanRepositoryCardProps {
   projectId: string;
@@ -75,6 +85,19 @@ export const ScanRepositoryCard: FC<ScanRepositoryCardProps> = ({
   const [isResultsOpen, setIsResultsOpen] = useState(false);
   const [scanPath, setScanPath] = useState<string>('');
   const [scanPathError, setScanPathError] = useState<string | null>(null);
+  const [selectedBranch, setSelectedBranch] = useState<string>('');
+  
+  // Query for repository branches
+  const { data: branchesData, loading: branchesLoading } = useQuery<{
+    repositoryBranches: RepositoryBranch[];
+  }>(REPOSITORY_BRANCHES_QUERY, {
+    variables: { projectId },
+    skip: !hasRepository,
+    fetchPolicy: 'cache-and-network',
+  });
+  
+  const branches = branchesData?.repositoryBranches ?? [];
+  const defaultBranch = branches.find(b => b.isDefault)?.name ?? '';
   
   // Query for scan sessions
   const { data: sessionsData, loading: sessionsLoading, refetch: refetchSessions } = useQuery<{
@@ -131,10 +154,12 @@ export const ScanRepositoryCard: FC<ScanRepositoryCardProps> = ({
     setScanPathError(null);
     
     try {
+      const branchToScan = selectedBranch || defaultBranch || null;
       const result = await startScan({
         variables: { 
           projectId,
           scanPath: scanPath.trim() || null,
+          branch: branchToScan,
         },
       });
       
@@ -677,6 +702,31 @@ export const ScanRepositoryCard: FC<ScanRepositoryCardProps> = ({
         {/* Directory Selection and Start Button */}
         {!isScanning && canManage ? (
           <div className="space-y-4">
+            {/* Branch Selector */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <GitBranch className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Branch</span>
+              </div>
+              <Select
+                value={selectedBranch || defaultBranch}
+                onValueChange={setSelectedBranch}
+                disabled={startingScan || branchesLoading || branches.length === 0}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={branchesLoading ? "Loading branches..." : "Select branch"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {branches.map((branch) => (
+                    <SelectItem key={branch.name} value={branch.name}>
+                      {branch.name}
+                      {branch.isDefault ? " (default)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
             {/* Directory Picker */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">

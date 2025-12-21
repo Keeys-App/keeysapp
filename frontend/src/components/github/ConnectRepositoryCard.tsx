@@ -184,7 +184,7 @@ export const ConnectRepositoryCard: FC<ConnectRepositoryCardProps> = ({
   }, [disconnectError]);
 
   const handleConnect = async () => {
-    if (!selectedRepoId || !selectedConnectionId) {
+    if (!selectedRepoId || !selectedConnectionId || !selectedRepo) {
       toast('Please select a repository');
       return;
     }
@@ -194,6 +194,7 @@ export const ConnectRepositoryCard: FC<ConnectRepositoryCardProps> = ({
         projectId,
         githubRepoId: selectedRepoId,
         githubConnectionId: selectedConnectionId,
+        branch: selectedRepo.defaultBranch,
       },
     });
   };

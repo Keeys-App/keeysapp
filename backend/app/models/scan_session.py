@@ -57,6 +57,9 @@ class ScanSession(Base):
     # Scan path (optional directory to limit scan scope)
     scan_path = Column(String(500), nullable=True)
     
+    # Branch to scan (defaults to repository's default branch)
+    branch = Column(String(255), nullable=True)
+    
     # Progress tracking
     files_total = Column(Integer, default=0, nullable=False)
     files_scanned = Column(Integer, default=0, nullable=False)
