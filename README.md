@@ -24,8 +24,3 @@ python main.py
 cd frontend
 yarn dev
 ```
-
-### Запуск Ngrok
-```bash
-ngrok start --all --config=ngrok.yml
-```
